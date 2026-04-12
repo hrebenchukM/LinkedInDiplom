@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkedIn-backend", "LinkedIn-backend\LinkedIn-backend.csproj", "{5A5A1668-6514-40B8-B50E-470B5F30FF28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkedIn-backend.DAL", "LinkedIn-backend.DAL\LinkedIn-backend.DAL.csproj", "{AE3C7805-17B4-4DD9-BE29-6F45970BDF30}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkedIn-backend.BLL", "LinkedIn-backend.BLL\LinkedIn-backend.BLL.csproj", "{FB3EBE88-255C-4B00-9833-13ABEA8BDF67}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LinkedIn-frontend", "LinkedIn-frontend", "{95FB462C-0C57-4077-BDB9-E24DFA6AD94E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A5A1668-6514-40B8-B50E-470B5F30FF28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A5A1668-6514-40B8-B50E-470B5F30FF28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A5A1668-6514-40B8-B50E-470B5F30FF28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A5A1668-6514-40B8-B50E-470B5F30FF28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE3C7805-17B4-4DD9-BE29-6F45970BDF30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE3C7805-17B4-4DD9-BE29-6F45970BDF30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE3C7805-17B4-4DD9-BE29-6F45970BDF30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE3C7805-17B4-4DD9-BE29-6F45970BDF30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB3EBE88-255C-4B00-9833-13ABEA8BDF67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB3EBE88-255C-4B00-9833-13ABEA8BDF67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB3EBE88-255C-4B00-9833-13ABEA8BDF67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB3EBE88-255C-4B00-9833-13ABEA8BDF67}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
