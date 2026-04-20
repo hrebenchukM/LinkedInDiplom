@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Facade.AccountManagement.Contracts\Facade.AccountManagement.Contracts.csproj" />
+    <ProjectReference Include="..\Facade.AccountManagement.Services\Facade.AccountManagement.Services.csproj" />
+  </ItemGroup>
+
+</Project>
