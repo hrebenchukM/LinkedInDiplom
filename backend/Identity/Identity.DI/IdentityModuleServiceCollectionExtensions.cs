@@ -22,8 +22,10 @@ public static class IdentityModuleServiceCollectionExtensions
         string connectionString)
     {
         // Configure JWT settings
-        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
-
+        services.Configure<JwtSettings>(options =>
+        {
+            configuration.GetSection("JwtSettings").Bind(options);
+        });
         // Register DbContext
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(connectionString, 
