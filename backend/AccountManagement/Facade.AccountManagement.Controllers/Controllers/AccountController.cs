@@ -1,4 +1,4 @@
-using Facade.AccountManagement.Contracts.Requests;
+﻿using Facade.AccountManagement.Contracts.Requests;
 using Facade.AccountManagement.Contracts.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,97 +8,105 @@ namespace Facade.AccountManagement.Controllers.Controllers;
 [Route("api/auth")]
 public class AccountController : ControllerBase
 {
+    // Сервис фасада, который работает через IdentityClient
     private readonly IAccountManagementService _accountManagementService;
 
+    // Получаем сервис через DI
     public AccountController(IAccountManagementService accountManagementService)
     {
         _accountManagementService = accountManagementService;
     }
 
-    /// <summary>
-    /// Register a new user account
-    /// </summary>
+    // POST api/auth/register
     [HttpPost("register")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.RegisterResponse), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        // Проверяем validation attributes: Required, EmailAddress, MinLength
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // Передаём регистрацию в фасадный сервис
         var response = await _accountManagementService.RegisterAsync(request);
 
+        // Если регистрация не удалась — 400
         if (!response.Success)
         {
             return BadRequest(response);
         }
 
+        // Если всё хорошо — 200
         return Ok(response);
     }
 
-    /// <summary>
-    /// Login with email and password
-    /// </summary>
+    // POST api/auth/login
     [HttpPost("login")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.LoginResponse), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        // Проверяем модель запроса
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // Передаём логин в фасадный сервис
         var response = await _accountManagementService.LoginAsync(request);
 
+        // Если логин неуспешный — 401
         if (!response.Success)
         {
             return Unauthorized(response);
         }
 
+        // Если всё хорошо — 200
         return Ok(response);
     }
 
-    /// <summary>
-    /// Refresh access token using refresh token
-    /// </summary>
+    // POST api/auth/refresh
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.RefreshTokenResponse), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
+        // Проверяем модель запроса
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // Обновляем access token по refresh token
         var response = await _accountManagementService.RefreshTokenAsync(request);
 
+        // Если refresh token плохой — 401
         if (!response.Success)
         {
             return Unauthorized(response);
         }
 
+        // Если всё хорошо — 200
         return Ok(response);
     }
 
-    /// <summary>
-    /// Logout by revoking refresh token
-    /// </summary>
+    // POST api/auth/logout
     [HttpPost("logout")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.LogoutResponse), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
+        // Проверяем модель запроса
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // Logout = отзыв refresh token
         var response = await _accountManagementService.LogoutAsync(request.RefreshToken);
 
         return Ok(response);

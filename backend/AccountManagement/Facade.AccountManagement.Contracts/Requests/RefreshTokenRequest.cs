@@ -1,7 +1,8 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Facade.AccountManagement.Contracts.Requests;
 
+// Запрос обновления токена
 public record RefreshTokenRequest
 {
     [Required]

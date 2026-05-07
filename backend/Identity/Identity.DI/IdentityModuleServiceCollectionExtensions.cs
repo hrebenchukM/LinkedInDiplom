@@ -1,40 +1,44 @@
-using Identity.Client;
-using Identity.Client.Contracts;
-using Identity.Client.Contracts.Resources;
-using Identity.Client.Resources;
-using Identity.Contracts.Configuration;
-using Identity.Contracts.Services;
-using Identity.DataAccess;
-using Identity.DataAccess.Entities;
-using Identity.Services;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Identity.Client;                     // Реализация IdentityClient
+using Identity.Client.Contracts;           // Интерфейс IIdentityClient
+using Identity.Client.Contracts.Resources; // Интерфейсы ресурсов IUserResource, IAuthenticationResource
+using Identity.Client.Resources;           // Реализации ресурсов UserResource, AuthenticationResource
+using Identity.Contracts.Configuration;    // JwtSettings
+using Identity.Contracts.Services;         // IUserService, IAuthenticationService, ITokenService
+using Identity.DataAccess;                 // IdentityDbContext
+using Identity.DataAccess.Entities;        // ApplicationUser
+using Identity.Services;                   // UserService, AuthenticationService, TokenService
+using Microsoft.AspNetCore.Identity;       // ASP.NET Core Identity
+using Microsoft.EntityFrameworkCore;       // EF Core
+using Microsoft.Extensions.Configuration;  // IConfiguration
+using Microsoft.Extensions.DependencyInjection; // IServiceCollection
 
 namespace Identity.DI;
 
+// Класс для подключения всего Identity-модуля одной строкой в Program.cs
 public static class IdentityModuleServiceCollectionExtensions
 {
+    // Метод расширения для DI-контейнера
     public static IServiceCollection AddIdentityModule(
         this IServiceCollection services,
         IConfiguration configuration,
         string connectionString)
     {
-        // Configure JWT settings
+        // Читаем JwtSettings из appsettings.json
         services.Configure<JwtSettings>(options =>
         {
             configuration.GetSection("JwtSettings").Bind(options);
         });
-        // Register DbContext
+
+        // Регистрируем DbContext и подключение к PostgreSQL
         services.AddDbContext<IdentityDbContext>(options =>
-            options.UseNpgsql(connectionString, 
+            options.UseNpgsql(
+                connectionString,
                 npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "identity")));
 
-        // Register ASP.NET Core Identity
+        // Подключаем ASP.NET Core Identity для ApplicationUser
         services.AddIdentityCore<ApplicationUser>(options =>
         {
-            // Password settings
+            // Настройки пароля
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
             options.Password.RequireNonAlphanumeric = false;
@@ -42,27 +46,28 @@ public static class IdentityModuleServiceCollectionExtensions
             options.Password.RequiredLength = 6;
             options.Password.RequiredUniqueChars = 1;
 
-            // Lockout settings
+            // Настройки блокировки после неудачных попыток входа
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.AllowedForNewUsers = true;
 
-            // User settings
+            // Email должен быть уникальным
             options.User.RequireUniqueEmail = true;
         })
-        .AddRoles<IdentityRole>()
-        .AddEntityFrameworkStores<IdentityDbContext>();
+        .AddRoles<IdentityRole>() // Добавляем роли
+        .AddEntityFrameworkStores<IdentityDbContext>(); // Храним Identity-данные через EF Core
 
-        // Register Core Services
+        // Регистрируем основные сервисы Identity
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
 
-        // Register Client Resources
+        // Регистрируем Identity.Client слой
         services.AddScoped<IUserResource, UserResource>();
         services.AddScoped<IAuthenticationResource, AuthenticationResource>();
         services.AddScoped<IIdentityClient, IdentityClient>();
 
+        // Возвращаем services для цепочки вызовов
         return services;
     }
 }
