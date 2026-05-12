@@ -35,6 +35,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.AccountManagement.DI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.API", "backend\Facade.API\Facade.API.csproj", "{3594F8E8-5A88-4A76-B0B6-19160FEB4753}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{DC0B97FD-1D19-4243-81D1-0944C836BC1F}"
+	ProjectSection(SolutionItems) = preProject
+		..\LinkedInDiplomFront\frontend\app.js = ..\LinkedInDiplomFront\frontend\app.js
+		..\LinkedInDiplomFront\frontend\index.html = ..\LinkedInDiplomFront\frontend\index.html
+		..\LinkedInDiplomFront\frontend\profile.html = ..\LinkedInDiplomFront\frontend\profile.html
+		..\LinkedInDiplomFront\frontend\styles.css = ..\LinkedInDiplomFront\frontend\styles.css
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
