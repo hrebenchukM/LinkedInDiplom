@@ -35,12 +35,26 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.AccountManagement.DI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.API", "backend\Facade.API\Facade.API.csproj", "{3594F8E8-5A88-4A76-B0B6-19160FEB4753}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{DC0B97FD-1D19-4243-81D1-0944C836BC1F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{B460F04B-7C97-40C4-A170-8CCFFE849B83}"
 	ProjectSection(SolutionItems) = preProject
-		..\LinkedInDiplomFront\frontend\app.js = ..\LinkedInDiplomFront\frontend\app.js
-		..\LinkedInDiplomFront\frontend\index.html = ..\LinkedInDiplomFront\frontend\index.html
-		..\LinkedInDiplomFront\frontend\profile.html = ..\LinkedInDiplomFront\frontend\profile.html
-		..\LinkedInDiplomFront\frontend\styles.css = ..\LinkedInDiplomFront\frontend\styles.css
+		..\..\..\OneDrive\Desktop\Test\frontend\app.js = ..\..\..\OneDrive\Desktop\Test\frontend\app.js
+		..\..\..\OneDrive\Desktop\Test\frontend\index.html = ..\..\..\OneDrive\Desktop\Test\frontend\index.html
+		..\..\..\OneDrive\Desktop\Test\frontend\profile.html = ..\..\..\OneDrive\Desktop\Test\frontend\profile.html
+		..\..\..\OneDrive\Desktop\Test\frontend\styles.css = ..\..\..\OneDrive\Desktop\Test\frontend\styles.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{0C6A8603-7D32-4693-ADFB-C4FFBF4D17A5}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\OneDrive\Desktop\Test\frontend\auth\app.jsx = ..\..\..\OneDrive\Desktop\Test\frontend\auth\app.jsx
+		..\..\..\OneDrive\Desktop\Test\frontend\auth\index.html = ..\..\..\OneDrive\Desktop\Test\frontend\auth\index.html
+		..\..\..\OneDrive\Desktop\Test\frontend\auth\styles.css = ..\..\..\OneDrive\Desktop\Test\frontend\auth\styles.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "home", "home", "{9D8E4075-CC47-4226-8BAA-AC05CC90ECFB}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\OneDrive\Desktop\Test\frontend\home\app.jsx = ..\..\..\OneDrive\Desktop\Test\frontend\home\app.jsx
+		..\..\..\OneDrive\Desktop\Test\frontend\home\index.html = ..\..\..\OneDrive\Desktop\Test\frontend\home\index.html
+		..\..\..\OneDrive\Desktop\Test\frontend\home\styles.css = ..\..\..\OneDrive\Desktop\Test\frontend\home\styles.css
 	EndProjectSection
 EndProject
 Global
@@ -229,5 +243,7 @@ Global
 		{C5E87AA0-53C2-4948-B2FD-1A4120EC5B97} = {158EEB1E-C387-7BB1-ACAE-9D80DF987EE4}
 		{11A52EF6-081F-41D4-B95E-B98BC38F1189} = {158EEB1E-C387-7BB1-ACAE-9D80DF987EE4}
 		{3594F8E8-5A88-4A76-B0B6-19160FEB4753} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
+		{0C6A8603-7D32-4693-ADFB-C4FFBF4D17A5} = {B460F04B-7C97-40C4-A170-8CCFFE849B83}
+		{9D8E4075-CC47-4226-8BAA-AC05CC90ECFB} = {B460F04B-7C97-40C4-A170-8CCFFE849B83}
 	EndGlobalSection
 EndGlobal
