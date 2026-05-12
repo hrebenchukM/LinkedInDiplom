@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:7011";
+const API_BASE_URL = "https://localhost:7011";
 const { useMemo, useState } = React;
 const USE_MOCK_AUTH = false;
 const MOCK_USERS_KEY = "mockAuthUsers";
@@ -38,7 +38,7 @@ async function postMockAuth(path, payload) {
   await delay(300);
   const users = readMockUsers();
 
-  if (path === "/api/account/register") {
+  if (path === "/api/auth/register") {
     const email = String(payload?.email ?? "").trim().toLowerCase();
     const userName = String(payload?.userName ?? "").trim();
     const password = String(payload?.password ?? "");
@@ -55,7 +55,7 @@ async function postMockAuth(path, payload) {
     return { ok: true, status: 200, data: { success: true } };
   }
 
-  if (path === "/api/account/login") {
+  if (path === "/api/auth/login") {
     const email = String(payload?.email ?? "").trim().toLowerCase();
     const password = String(payload?.password ?? "");
     const user = users.find((item) => item.email === email && item.password === password);
@@ -154,7 +154,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await postJson("/api/account/register", {
+      const response = await postJson("/api/auth/register", {
         email: registerForm.email.trim(),
         userName: registerForm.userName.trim(),
         password: registerForm.password,
@@ -191,7 +191,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await postJson("/api/account/login", {
+      const response = await postJson("/api/auth/login", {
         email: loginForm.email.trim(),
         password: loginForm.password,
       });
@@ -203,11 +203,10 @@ function App() {
         });
         return;
       }
-
       const payload = {
         email: loginForm.email.trim(),
-        accessToken: response.data?.data?.tokens?.accessToken ?? null,
-        refreshToken: response.data?.data?.tokens?.refreshToken ?? null,
+        accessToken: response.data?.token?.accessToken ?? null,
+        refreshToken: response.data?.token?.refreshToken ?? null,
       };
       localStorage.setItem("authSession", JSON.stringify(payload));
       window.location.href = "../home/index.html";
