@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Профиль пользователя</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #eef3f9;
+      color: #0f172a;
+    }
+
+    main {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: min(520px, 100%);
+      background: #fff;
+      border: 1px solid #dbe5f0;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 16px 34px #0f172a14;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: #475569;
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 12px;
+      font-size: 0.96rem;
+    }
+
+    dt {
+      color: #64748b;
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    a {
+      text-decoration: none;
+      background: #0a66c2;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+    }
+
+    a.secondary {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>Профиль</h1>
+      <p>Регистрация завершена. Данные текущего пользователя:</p>
+      <dl>
+        <dt>ID</dt><dd id="userId">-</dd>
+        <dt>Username</dt><dd id="userName">-</dd>
+        <dt>Email</dt><dd id="email">-</dd>
+        <dt>Имя</dt><dd id="firstName">-</dd>
+        <dt>Фамилия</dt><dd id="lastName">-</dd>
+      </dl>
+      <div class="actions">
+        <a href="../02-domashnyaya/index.html">Главная лента</a>
+        <a href="../01-registratsiya/index.html" class="secondary">Назад к регистрации</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const raw = localStorage.getItem("registeredAccount");
+    if (raw) {
+      const user = JSON.parse(raw);
+      document.getElementById("userId").textContent = user.id ?? "-";
+      document.getElementById("userName").textContent = user.userName ?? "-";
+      document.getElementById("email").textContent = user.email ?? "-";
+      document.getElementById("firstName").textContent = user.firstName ?? "-";
+      document.getElementById("lastName").textContent = user.lastName ?? "-";
+    }
+  </script>
+</body>
+</html>

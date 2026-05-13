@@ -3,16 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Профиль пользователя</title>
+  <title data-i18n="page.title.profile">Профиль пользователя</title>
+  <script>
+    (function () {
+      var kLang = "uiLang";
+      var lang = localStorage.getItem(kLang);
+      if (lang !== "en" && lang !== "ru") lang = "ru";
+      document.documentElement.lang = lang;
+      document.documentElement.dataset.lang = lang;
+      var k = "uiTheme";
+      var s = localStorage.getItem(k);
+      var t =
+        s === "dark" || s === "light"
+          ? s
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      document.documentElement.dataset.theme = t;
+      document.documentElement.style.colorScheme = t === "dark" ? "dark" : "light";
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./theme.css" />
   <style>
     body {
       margin: 0;
       font-family: Inter, "Segoe UI", sans-serif;
-      background: #eef3f9;
-      color: #0f172a;
+      background: var(--profile-bg);
+      color: var(--profile-text);
     }
 
     main {
@@ -25,11 +45,11 @@
 
     .card {
       width: min(520px, 100%);
-      background: #fff;
-      border: 1px solid #dbe5f0;
+      background: var(--profile-card);
+      border: 1px solid var(--profile-border);
       border-radius: 20px;
       padding: 24px;
-      box-shadow: 0 16px 34px #0f172a14;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
     }
 
     h1 {
@@ -39,7 +59,7 @@
 
     p {
       margin: 0 0 16px;
-      color: #475569;
+      color: var(--profile-muted);
     }
 
     dl {
@@ -51,59 +71,128 @@
     }
 
     dt {
-      color: #64748b;
+      color: var(--profile-dt);
     }
 
     dd {
       margin: 0;
       font-weight: 500;
       overflow-wrap: anywhere;
+      color: var(--profile-text);
     }
 
     .actions {
       margin-top: 18px;
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
     a {
       text-decoration: none;
-      background: #0a66c2;
+      background: var(--profile-link);
       color: #fff;
       border-radius: 10px;
       padding: 10px 14px;
       font-weight: 600;
     }
+
+    a.secondary {
+      background: var(--profile-secondary-bg);
+      color: var(--profile-secondary-text);
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .profile-lang-row {
+      margin-top: 16px;
+    }
+
+    .profile-lang-row select {
+      font: inherit;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--profile-border);
+      background: var(--profile-card);
+      color: var(--profile-text);
+    }
   </style>
 </head>
-<body>
+<body class="profile-page">
   <main>
     <section class="card">
-      <h1>Профиль</h1>
-      <p>Регистрация завершена. Данные текущего пользователя:</p>
+      <h1 data-i18n="prof.title">Профиль</h1>
+      <p data-i18n="prof.intro">Регистрация завершена. Данные текущего пользователя:</p>
       <dl>
-        <dt>ID</dt><dd id="userId">-</dd>
-        <dt>Username</dt><dd id="userName">-</dd>
-        <dt>Email</dt><dd id="email">-</dd>
-        <dt>Имя</dt><dd id="firstName">-</dd>
-        <dt>Фамилия</dt><dd id="lastName">-</dd>
+        <dt data-i18n="prof.id">ID</dt><dd id="userId">-</dd>
+        <dt data-i18n="prof.userName">Имя пользователя</dt><dd id="userName">-</dd>
+        <dt data-i18n="prof.email">Почта</dt><dd id="email">-</dd>
+        <dt data-i18n="prof.firstName">Имя</dt><dd id="firstName">-</dd>
+        <dt data-i18n="prof.lastName">Фамилия</dt><dd id="lastName">-</dd>
       </dl>
       <div class="actions">
-        <a href="./index.html">Назад к регистрации</a>
+        <a href="./home.html" data-i18n="prof.feed">Главная лента</a>
+        <a href="./index.html" class="secondary" data-i18n="prof.back">Назад к регистрации</a>
+      </div>
+      <div class="profile-lang-row">
+        <label>
+          <span class="visually-hidden" data-i18n="footer.langHidden">Язык</span>
+          <select name="lang" data-ui-lang data-i18n-aria="footer.langAria" id="uiLangSelect">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </label>
       </div>
     </section>
   </main>
 
+  <div class="profile-theme-bar">
+    <button
+      type="button"
+      class="theme-toggle theme-toggle--surface"
+      data-theme-toggle
+      aria-pressed="false"
+      aria-label=""
+      title=""
+    >
+      <svg class="theme-toggle__icon theme-toggle__icon--moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+      </svg>
+      <svg class="theme-toggle__icon theme-toggle__icon--sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    </button>
+  </div>
+
+  <script src="./i18n.js"></script>
+  <script src="./theme.js"></script>
   <script>
-    const raw = localStorage.getItem("registeredAccount");
-    if (raw) {
-      const user = JSON.parse(raw);
-      document.getElementById("userId").textContent = user.id ?? "-";
-      document.getElementById("userName").textContent = user.userName ?? "-";
-      document.getElementById("email").textContent = user.email ?? "-";
-      document.getElementById("firstName").textContent = user.firstName ?? "-";
-      document.getElementById("lastName").textContent = user.lastName ?? "-";
-    }
+    (function () {
+      const raw = localStorage.getItem("registeredAccount");
+      if (!raw) return;
+      try {
+        const user = JSON.parse(raw);
+        if (!user || typeof user !== "object") return;
+        document.getElementById("userId").textContent = user.id ?? "-";
+        document.getElementById("userName").textContent = user.userName ?? "-";
+        document.getElementById("email").textContent = user.email ?? "-";
+        document.getElementById("firstName").textContent = user.firstName ?? "-";
+        document.getElementById("lastName").textContent = user.lastName ?? "-";
+      } catch {
+        /* ignore corrupted storage */
+      }
+    })();
   </script>
 </body>
 </html>

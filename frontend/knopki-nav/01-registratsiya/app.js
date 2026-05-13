@@ -10,42 +10,12 @@ const submitBtn = document.getElementById("submitBtn");
 
 const API_BASE_URL = "http://localhost:5000";
 let registeredAccount = null;
-let lastRegisterEmail = "";
-let lastPillKind = "ready";
-
-function T(key) {
-  return typeof window.uiT === "function" ? window.uiT(key) : key;
-}
-
-function Tmpl(key, vars) {
-  return typeof window.uiTmpl === "function" ? window.uiTmpl(key, vars) : key;
-}
 
 function showResult(ok, payload) {
   output.textContent = JSON.stringify(payload, null, 2);
   statusPill.classList.remove("ok", "err");
   statusPill.classList.add(ok ? "ok" : "err");
-  lastPillKind = ok ? "ok" : "err";
-  statusPill.textContent = ok ? T("reg.ok") : T("reg.err");
-}
-
-function refreshSuccessHint() {
-  if (!successHint || successState.classList.contains("hidden")) return;
-  const username = registeredAccount?.userName;
-  const target = username || lastRegisterEmail;
-  successHint.removeAttribute("data-i18n");
-  successHint.textContent = Tmpl("reg.successHintNamed", { target });
-}
-
-function refreshRegisterUiStrings() {
-  if (lastPillKind === "ok") statusPill.textContent = T("reg.ok");
-  else if (lastPillKind === "err") statusPill.textContent = T("reg.err");
-  else statusPill.textContent = T("reg.statusReady");
-
-  if (submitBtn && !submitBtn.disabled) {
-    submitBtn.textContent = T("reg.submit");
-  }
-  refreshSuccessHint();
+  statusPill.textContent = ok ? "Успешно" : "Ошибка";
 }
 
 async function apiPost(path, body) {
@@ -63,9 +33,9 @@ async function apiPost(path, body) {
 
 function showSuccess(data, email) {
   registeredAccount = data?.data?.account ?? null;
-  lastRegisterEmail = email || "";
-  successHint.removeAttribute("data-i18n");
-  refreshSuccessHint();
+  const username = registeredAccount?.userName;
+  const target = username || email;
+  successHint.textContent = `Аккаунт ${target} создан. Следующий шаг: заполнить профиль пользователя.`;
   formState.classList.add("hidden");
   successState.classList.remove("hidden");
 }
@@ -73,7 +43,7 @@ function showSuccess(data, email) {
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   submitBtn.disabled = true;
-  submitBtn.textContent = T("reg.submitting");
+  submitBtn.textContent = "Создание...";
   const formData = new FormData(registerForm);
   const email = String(formData.get("email") ?? "").trim();
   const body = {
@@ -92,10 +62,10 @@ registerForm.addEventListener("submit", async (event) => {
       showSuccess(response, email);
     }
   } catch (error) {
-    showResult(false, { error: T("reg.fetchErr"), details: String(error) });
+    showResult(false, { error: "Не удалось выполнить запрос", details: String(error) });
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = T("reg.submit");
+    submitBtn.textContent = "Создать аккаунт";
   }
 });
 
@@ -103,20 +73,14 @@ continueBtn.addEventListener("click", () => {
   if (registeredAccount) {
     localStorage.setItem("registeredAccount", JSON.stringify(registeredAccount));
   }
-  window.location.href = "./profile.html";
+  window.location.href = "../07-profil/index.html";
 });
 
 againBtn.addEventListener("click", () => {
   registeredAccount = null;
-  lastRegisterEmail = "";
   registerForm.reset();
   successState.classList.add("hidden");
   formState.classList.remove("hidden");
   statusPill.classList.remove("ok", "err");
-  lastPillKind = "ready";
-  statusPill.textContent = T("reg.statusReady");
-  successHint.setAttribute("data-i18n", "reg.successHint");
-  successHint.textContent = T("reg.successHint");
+  statusPill.textContent = "Готово";
 });
-
-document.addEventListener("uilangchange", refreshRegisterUiStrings);

@@ -3,11 +3,135 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Frontend Entry</title>
-</head>
-<body>
+  <title data-i18n="page.title.register">Регистрация — LinkedIn-аналог</title>
   <script>
-    window.location.replace("./auth/index.html");
+    (function () {
+      var kLang = "uiLang";
+      var lang = localStorage.getItem(kLang);
+      if (lang !== "en" && lang !== "ru") lang = "ru";
+      document.documentElement.lang = lang;
+      document.documentElement.dataset.lang = lang;
+      var k = "uiTheme";
+      var s = localStorage.getItem(k);
+      var t =
+        s === "dark" || s === "light"
+          ? s
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      document.documentElement.dataset.theme = t;
+      document.documentElement.style.colorScheme = t === "dark" ? "dark" : "light";
+    })();
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./theme.css" />
+</head>
+<body class="register-page">
+  <main class="screen">
+    <section class="brand-panel">
+      <span class="brand-tag" data-i18n="reg.brand">LinkedIn-аналог</span>
+      <h1 data-i18n="reg.heroTitle">Создай профиль и начни нетворкинг</h1>
+      <p data-i18n="reg.heroText">
+        Регистрация подключена к backend API. После создания аккаунта
+        ты переходишь к следующему шагу заполнения профиля.
+      </p>
+      <div class="brand-shape" aria-hidden="true"></div>
+    </section>
+
+    <section class="form-panel">
+      <div id="formState">
+        <h2 data-i18n="reg.heading">Регистрация</h2>
+        <form id="registerForm" class="register-form" autocomplete="on">
+          <label>
+            <span data-i18n="reg.email">Электронная почта</span>
+            <input name="email" type="email" required placeholder="you@example.com" />
+          </label>
+
+          <label>
+            <span data-i18n="reg.username">Имя пользователя</span>
+            <input name="userName" type="text" required minlength="3" placeholder="username" />
+          </label>
+
+          <div class="name-grid">
+            <label>
+              <span data-i18n="reg.firstName">Имя</span>
+              <input name="firstName" type="text" data-i18n-placeholder="reg.phFirst" placeholder="Иван" />
+            </label>
+            <label>
+              <span data-i18n="reg.lastName">Фамилия</span>
+              <input name="lastName" type="text" data-i18n-placeholder="reg.phLast" placeholder="Петров" />
+            </label>
+          </div>
+
+          <label>
+            <span data-i18n="reg.password">Пароль</span>
+            <input
+              name="password"
+              type="password"
+              required
+              minlength="6"
+              data-i18n-placeholder="reg.phPass"
+              placeholder="минимум 6 символов"
+            />
+          </label>
+
+          <button id="submitBtn" type="submit" data-i18n="reg.submit">Создать аккаунт</button>
+        </form>
+        <p class="guest-hint">
+          <a href="./home.html" class="guest-entry" data-i18n="reg.guestLead">Пропустить регистрацию</a>
+          <span data-i18n="reg.guestTail"> — открыть главную ленту без аккаунта.</span>
+        </p>
+      </div>
+
+      <div id="successState" class="success-card hidden">
+        <div class="success-icon">✓</div>
+        <h3 data-i18n="reg.successTitle">Аккаунт создан</h3>
+        <p id="successHint" data-i18n="reg.successHint">Теперь можно перейти к заполнению профиля.</p>
+        <div class="success-actions">
+          <button id="continueBtn" type="button" data-i18n="reg.continue">Перейти к профилю</button>
+          <button id="againBtn" type="button" class="secondary" data-i18n="reg.again">Зарегистрировать еще</button>
+        </div>
+      </div>
+
+      <section class="response-block">
+        <span id="statusPill" data-i18n="reg.statusReady">Готово</span>
+        <pre id="output">{}</pre>
+      </section>
+
+      <div class="register-lang-row">
+        <label>
+          <span class="visually-hidden" data-i18n="footer.langHidden">Язык</span>
+          <select name="lang" data-ui-lang data-i18n-aria="footer.langAria" id="uiLangSelect">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </div>
+    </section>
+  </main>
+  <div class="register-theme-bar">
+    <button
+      type="button"
+      class="theme-toggle theme-toggle--surface"
+      data-theme-toggle
+      aria-pressed="false"
+      aria-label=""
+      title=""
+    >
+      <svg class="theme-toggle__icon theme-toggle__icon--moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+      </svg>
+      <svg class="theme-toggle__icon theme-toggle__icon--sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    </button>
+  </div>
+  <script src="./i18n.js"></script>
+  <script src="./theme.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

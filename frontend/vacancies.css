@@ -1,0 +1,587 @@
+/* Страница Vacancies / network (Figma) */
+.home-shell--vacancies {
+  grid-template-columns: 260px 1fr 300px;
+}
+
+.vac-sidebar {
+  padding: 0;
+  overflow: hidden;
+}
+
+.vac-sidebar__title {
+  margin: 0;
+  padding: 16px 16px 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--home-purple);
+  line-height: 1.35;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.vac-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--home-purple);
+  text-decoration: none;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-sidebar__link:last-child {
+  border-bottom: 0;
+}
+
+.vac-sidebar__link:hover {
+  background: #f9fafb;
+}
+
+.vac-sidebar__link svg {
+  flex-shrink: 0;
+  color: var(--home-muted);
+}
+
+.vac-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.vac-tabs {
+  display: flex;
+  gap: 24px;
+  padding: 4px 4px 0;
+  background: var(--home-card);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.vac-tabs__btn {
+  padding: 12px 16px;
+  margin-bottom: -1px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--home-muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.vac-tabs__btn--active {
+  color: var(--home-purple);
+  border-bottom-color: var(--home-purple);
+}
+
+/* —— Event tab (updates / empty state) —— */
+.vac-event-card {
+  padding: 18px 18px 28px;
+}
+
+.vac-event-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.vac-event-filter {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--home-purple-soft);
+  background: #fff;
+  color: var(--home-purple);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.vac-event-filter:hover {
+  background: #f5f3ff;
+}
+
+.vac-event-filter--active {
+  background: var(--home-purple);
+  color: #fff;
+  border-color: var(--home-purple);
+}
+
+.vac-event-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 8px 8px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.vac-event-empty__art {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+}
+
+.vac-event-empty__title {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--home-purple);
+  letter-spacing: -0.02em;
+}
+
+.vac-event-empty__text {
+  margin: 0 0 22px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--home-muted);
+}
+
+.vac-event-expand {
+  width: 100%;
+  max-width: 320px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--home-purple);
+  background: #fff;
+  color: var(--home-purple);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.vac-event-expand:hover {
+  background: #f5f3ff;
+}
+
+.vac-people {
+  padding: 18px 18px 22px;
+}
+
+.vac-people__heading {
+  margin: 0 0 18px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--home-muted);
+  line-height: 1.4;
+}
+
+.vac-people__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.vac-person {
+  border: 1px solid var(--home-border);
+  border-radius: 10px;
+  padding: 16px 14px;
+  text-align: center;
+  background: #fafafa;
+}
+
+.vac-person__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 10px;
+  display: block;
+  border: 2px solid #ede9fe;
+}
+
+.vac-person__name {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--home-purple);
+}
+
+.vac-person__role {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  color: var(--home-muted);
+  line-height: 1.35;
+}
+
+.vac-person__handle {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  color: var(--home-purple-soft);
+  font-weight: 600;
+}
+
+.vac-person__btn {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--home-purple);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.vac-person__btn:hover {
+  background: var(--home-purple-dark);
+}
+
+.vac-person__btn:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
+
+/* —— Jobs / Vacancies page (Figma) —— */
+.home-shell--vacancies.home-shell--jobs {
+  grid-template-columns: 220px 1fr 300px;
+}
+
+.vac-jobs-sidebar {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 14px;
+}
+
+.vac-jobs-nav {
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-jobs-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--home-purple);
+  text-decoration: none;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-jobs-nav__link:last-of-type {
+  border-bottom: 0;
+}
+
+.vac-jobs-nav__link:hover {
+  background: #f9fafb;
+}
+
+.vac-jobs-nav__link svg {
+  color: var(--home-muted);
+  flex-shrink: 0;
+}
+
+.vac-jobs-post {
+  margin: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--home-purple);
+  background: #fff;
+  color: var(--home-purple);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.vac-jobs-post:hover {
+  background: #f5f3ff;
+}
+
+.vac-jobs-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.vac-job-card {
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.vac-job-card__header {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-job-card__title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--home-text);
+}
+
+.vac-job-card__title--sm {
+  font-size: 1rem;
+  padding-right: 36px;
+}
+
+.vac-job-card__subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--home-muted);
+  line-height: 1.45;
+}
+
+.vac-job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vac-job-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--home-border);
+}
+
+.vac-job-row:last-child {
+  border-bottom: 0;
+}
+
+.vac-job-row__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--home-border);
+}
+
+.vac-job-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.vac-job-row__title {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--home-text);
+  line-height: 1.3;
+}
+
+.vac-job-row__salary {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--home-muted);
+}
+
+.vac-job-row__meta {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.vac-job-row__cta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--home-purple);
+  text-decoration: none;
+}
+
+.vac-job-row__cta:hover {
+  text-decoration: underline;
+}
+
+.vac-job-row__dismiss {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  margin: -4px -4px 0 0;
+}
+
+.vac-job-row__dismiss:hover {
+  background: #f3f4f6;
+  color: var(--home-text);
+}
+
+.vac-job-card__footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--home-purple);
+  text-decoration: none;
+}
+
+.vac-job-card__footer-link:hover {
+  text-decoration: underline;
+}
+
+.vac-job-card--queries {
+  padding: 18px 18px 20px;
+}
+
+.vac-job-card--queries .vac-job-card__title {
+  margin-bottom: 14px;
+}
+
+.vac-job-card__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vac-job-card__close:hover {
+  background: #f3f4f6;
+  color: var(--home-text);
+}
+
+.vac-job-card--hidden {
+  display: none !important;
+}
+
+.vac-query-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vac-query-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--home-border);
+  background: #fafafa;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--home-text);
+  text-decoration: none;
+}
+
+.vac-query-pill:hover {
+  border-color: var(--home-purple-soft);
+  background: #f5f3ff;
+}
+
+.vac-query-pill svg {
+  color: var(--home-muted);
+  flex-shrink: 0;
+}
+
+/* Beat `.home-body a { color: inherit }` for job links */
+.home-body .vac-jobs-feed .vac-job-row__cta,
+.home-body .vac-jobs-feed .vac-job-row__cta:visited {
+  color: var(--home-purple);
+  text-decoration: none;
+}
+
+.home-body .vac-jobs-feed .vac-job-row__cta:hover {
+  color: var(--home-purple);
+  text-decoration: underline;
+}
+
+.home-body .vac-jobs-feed .vac-job-card__footer-link,
+.home-body .vac-jobs-feed .vac-job-card__footer-link:visited {
+  color: var(--home-purple);
+  text-decoration: none;
+}
+
+.home-body .vac-jobs-feed .vac-job-card__footer-link:hover {
+  color: var(--home-purple);
+  text-decoration: underline;
+}
+
+.home-body .vac-jobs-feed .vac-query-pill,
+.home-body .vac-jobs-feed .vac-query-pill:visited {
+  color: var(--home-text);
+  text-decoration: none;
+}
+
+.home-body .vac-jobs-feed .vac-query-pill:hover {
+  color: var(--home-text);
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  .home-shell--vacancies {
+    grid-template-columns: 1fr 280px;
+  }
+
+  .home-shell--vacancies.home-shell--jobs {
+    grid-template-columns: 1fr 280px;
+  }
+
+  .vac-jobs-sidebar {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .vac-people__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .home-shell--vacancies {
+    grid-template-columns: 1fr;
+  }
+
+  .home-shell--vacancies.home-shell--jobs {
+    grid-template-columns: 1fr;
+  }
+
+  .vac-people__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,41 @@
   --border: #dbe5f0;
   --success: #047857;
   --error: #b91c1c;
+  --body-grad-a: #f6f9fc;
+  --body-grad-b: #e8f1fb;
+  --input-focus: #93c5fd;
+  --secondary-bg: #f1f5f9;
+  --secondary-text: #0f172a;
+  --secondary-hover: #e2e8f0;
+  --success-card-bg: #f0fdf4;
+  --success-card-border: #b5dfcb;
+  --success-card-text: #14532d;
+  --pill-bg: #e2e8f0;
+  --pill-text: #334155;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c1018;
+  --card: #161c28;
+  --text: #e8eaef;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --border: #2d3a4d;
+  --success: #34d399;
+  --error: #f87171;
+  --body-grad-a: #0f1419;
+  --body-grad-b: #0a0e14;
+  --input-focus: #60a5fa;
+  --secondary-bg: #252d3d;
+  --secondary-text: #e8eaef;
+  --secondary-hover: #2f3a4f;
+  --success-card-bg: #0f2419;
+  --success-card-border: #166534;
+  --success-card-text: #bbf7d0;
+  --pill-bg: #252d3d;
+  --pill-text: #cbd5e1;
 }
 
 *,
@@ -19,7 +54,7 @@
 body {
   margin: 0;
   font-family: Inter, "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #f6f9fc 0%, #e8f1fb 100%);
+  background: linear-gradient(135deg, var(--body-grad-a) 0%, var(--body-grad-b) 100%);
   color: var(--text);
 }
 
@@ -113,8 +148,8 @@ input {
 }
 
 input:focus {
-  outline: 2px solid #93c5fd;
-  border-color: #93c5fd;
+  outline: 2px solid var(--input-focus);
+  border-color: var(--input-focus);
 }
 
 button {
@@ -134,19 +169,37 @@ button:hover {
 }
 
 button.secondary {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--secondary-bg);
+  color: var(--secondary-text);
 }
 
 button.secondary:hover {
-  background: #e2e8f0;
+  background: var(--secondary-hover);
+}
+
+.guest-hint {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.guest-entry {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.guest-entry:hover {
+  text-decoration: underline;
 }
 
 .success-card {
   margin-top: 6px;
-  border: 1px solid #b5dfcb;
+  border: 1px solid var(--success-card-border);
   border-radius: 16px;
-  background: #f0fdf4;
+  background: var(--success-card-bg);
   padding: 18px;
 }
 
@@ -168,7 +221,7 @@ button.secondary:hover {
 
 .success-card p {
   margin: 0;
-  color: #14532d;
+  color: var(--success-card-text);
 }
 
 .success-actions {
@@ -193,8 +246,8 @@ button.secondary:hover {
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 0.78rem;
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--pill-bg);
+  color: var(--pill-text);
 }
 
 #statusPill.ok {
@@ -217,6 +270,31 @@ pre {
   line-height: 1.45;
   max-height: 180px;
   overflow: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.register-lang-row {
+  margin-top: 14px;
+}
+
+.register-lang-row select {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
 }
 
 @media (max-width: 980px) {
