@@ -12,6 +12,8 @@
 		<ProjectReference Include="..\..\Identity\Identity.Client.Contracts\Identity.Client.Contracts.csproj" />
 
 		<ProjectReference Include="..\..\Identity\Identity.Contracts\Identity.Contracts.csproj" />
+
+		<ProjectReference Include="..\..\Profile\Profile.Contracts\Profile.Contracts.csproj" />
 	</ItemGroup>
 
 </Project>

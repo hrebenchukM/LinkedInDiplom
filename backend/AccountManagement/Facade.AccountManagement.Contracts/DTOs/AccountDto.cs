@@ -3,19 +3,13 @@
 // DTO аккаунта для клиента (UI / фронт)
 public record AccountDto
 {
-    public string Id { get; init; } = default!; // Id пользователя
+    public string Id { get; init; } = default!;
 
-    public string UserName { get; init; } = default!; // логин
+    public string UserName { get; init; } = default!;
 
-    public string Email { get; init; } = default!; // email
+    public string Email { get; init; } = default!;
 
-    public string? FirstName { get; init; } // имя
+    public DateTime CreatedAt { get; init; }
 
-    public string? LastName { get; init; } // фамилия
-
-    public string? FullName { get; init; } // вычисляемое поле (First + Last)
-
-    public string? ProfilePictureUrl { get; init; } // аватар
-
-    public DateTime CreatedAt { get; init; } // дата создания
+    public DateTime? UpdatedAt { get; init; }
 }

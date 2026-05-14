@@ -1,6 +1,9 @@
 ﻿using Facade.AccountManagement.Contracts.Requests;
 using Facade.AccountManagement.Contracts.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Facade.AccountManagement.Contracts.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Facade.AccountManagement.Controllers.Controllers;
 
@@ -110,5 +113,32 @@ public class AccountController : ControllerBase
         var response = await _accountManagementService.LogoutAsync(request.RefreshToken);
 
         return Ok(response);
+    }
+
+    // GET api/auth/me
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(AccountDto), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Me()
+    {
+        // Достаём userId из JWT token
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        // Получаем текущий аккаунт
+        var account = await _accountManagementService.GetCurrentAccountAsync(userId);
+
+        if (account == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(account);
     }
 }

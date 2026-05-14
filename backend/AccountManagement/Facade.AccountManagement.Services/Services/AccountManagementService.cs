@@ -4,6 +4,10 @@ using Facade.AccountManagement.Contracts.Responses;
 using Facade.AccountManagement.Contracts.Services;
 using Identity.Client.Contracts;
 using Identity.Contracts.Parameters;
+using Profile.Contracts.DTOs;
+using Profile.Contracts.Services;
+
+
 
 namespace Facade.AccountManagement.Services.Services;
 
@@ -16,11 +20,15 @@ public class AccountManagementService : IAccountManagementService
     // Клиент Identity-модуля.
     // Через него фасад обращается к Users и Authentication.
     private readonly IIdentityClient _identityClient;
+    private readonly IProfileService _profileService;
 
     // Получаем IIdentityClient через DI
-    public AccountManagementService(IIdentityClient identityClient)
+    public AccountManagementService(
+        IIdentityClient identityClient,
+        IProfileService profileService)
     {
         _identityClient = identityClient;
+        _profileService = profileService;
     }
 
     // Регистрация аккаунта через фасад
@@ -31,9 +39,7 @@ public class AccountManagementService : IAccountManagementService
         {
             Email = request.Email,
             UserName = request.UserName,
-            Password = request.Password,
-            FirstName = request.FirstName,
-            LastName = request.LastName
+            Password = request.Password
         });
 
         // Если Identity не смог зарегистрировать пользователя — возвращаем ошибки клиенту
@@ -45,6 +51,25 @@ public class AccountManagementService : IAccountManagementService
                 Errors = result.Errors
             };
         }
+
+        // После успешной регистрации создаём профиль в Profile-модуле.
+        // Это подготовка к микросервисной архитектуре:
+        // Identity отвечает за логин/email/password,
+        // Profile отвечает за имя, аватар, headline, location и т.д.
+        await _profileService.UpdateAsync(new UserProfileDto
+        {
+            UserId = result.User.Id,
+
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            AvatarUrl = request.AvatarUrl,
+            ProfileTitle = request.ProfileTitle,
+            Headline = request.Headline,
+            Location = request.Location,
+            University = request.University,
+            PortfolioUrl = request.PortfolioUrl,
+            IsCompany = request.IsCompany
+        });
 
         // Если всё хорошо — возвращаем клиенту AccountDto
         return new RegisterResponse
@@ -143,25 +168,31 @@ public class AccountManagementService : IAccountManagementService
         };
     }
 
+    // Получить текущий аккаунт по userId из JWT
+    public async Task<AccountDto?> GetCurrentAccountAsync(string userId)
+    {
+        var user = await _identityClient.Users.GetAsync(new GetUserByIdParameters
+        {
+            UserId = userId
+        });
+
+        if (user == null)
+            return null;
+
+        return MapToAccountDto(user);
+    }
+
     // Маппинг UserDto из Identity в AccountDto фасада
     private static AccountDto MapToAccountDto(Identity.Contracts.DTOs.UserDto user)
     {
-        // Собираем FullName из FirstName + LastName
-        var fullName = string.IsNullOrWhiteSpace(user.FirstName) && string.IsNullOrWhiteSpace(user.LastName)
-            ? null
-            : $"{user.FirstName} {user.LastName}".Trim();
-
         // Возвращаем клиентскую модель аккаунта
         return new AccountDto
         {
             Id = user.Id,
             UserName = user.UserName,
             Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            FullName = fullName,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
         };
     }
 }

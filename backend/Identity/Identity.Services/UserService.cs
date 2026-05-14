@@ -49,8 +49,6 @@ public class UserService : IUserService
         {
             UserName = parameters.UserName,
             Email = parameters.Email,
-            FirstName = parameters.FirstName,
-            LastName = parameters.LastName,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -85,9 +83,6 @@ public class UserService : IUserService
             Id = user.Id,
             UserName = user.UserName!,
             Email = user.Email!,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            ProfilePictureUrl = user.ProfilePictureUrl,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };

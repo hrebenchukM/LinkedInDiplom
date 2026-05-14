@@ -12,15 +12,6 @@ public record UserDto
     // Email пользователя
     public string Email { get; init; } = default!;
 
-    // Имя пользователя
-    public string? FirstName { get; init; }
-
-    // Фамилия пользователя
-    public string? LastName { get; init; }
-
-    // Ссылка на аватарку
-    public string? ProfilePictureUrl { get; init; }
-
     // Когда пользователь был создан
     public DateTime CreatedAt { get; init; }
 

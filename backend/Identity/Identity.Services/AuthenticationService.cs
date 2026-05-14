@@ -258,14 +258,7 @@ public class AuthenticationService : IAuthenticationService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        // Добавляем имя, если оно есть
-        if (!string.IsNullOrEmpty(user.FirstName))
-            claims.Add(new Claim(ClaimTypes.GivenName, user.FirstName));
-
-        // Добавляем фамилию, если она есть
-        if (!string.IsNullOrEmpty(user.LastName))
-            claims.Add(new Claim(ClaimTypes.Surname, user.LastName));
-
+       
         // Получаем роли пользователя
         var roles = await _userManager.GetRolesAsync(user);
 
@@ -299,9 +292,6 @@ public class AuthenticationService : IAuthenticationService
             Id = user.Id,
             UserName = user.UserName!,
             Email = user.Email!,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            ProfilePictureUrl = user.ProfilePictureUrl,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };

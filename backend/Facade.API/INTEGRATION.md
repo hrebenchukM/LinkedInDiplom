@@ -75,7 +75,7 @@ POST /api/account/register
     "firstName": "John",
     "lastName": "Doe",
     "fullName": "John Doe",
-    "profilePictureUrl": null,
+    "AvatarUrl": null,
     "createdAt": "2024-01-15T10:00:00Z"
   },
   "errors": []

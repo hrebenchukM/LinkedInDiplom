@@ -1,5 +1,4 @@
-﻿using System.Security.Principal;
-using Identity.DataAccess.Entities;
+﻿using Identity.DataAccess.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 

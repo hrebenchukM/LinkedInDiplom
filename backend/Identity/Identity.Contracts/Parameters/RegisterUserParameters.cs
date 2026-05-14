@@ -11,10 +11,4 @@ public record RegisterUserParameters
 
     // Пароль пользователя
     public string Password { get; init; } = default!;
-
-    // Имя, необязательное поле
-    public string? FirstName { get; init; }
-
-    // Фамилия, необязательное поле
-    public string? LastName { get; init; }
 }

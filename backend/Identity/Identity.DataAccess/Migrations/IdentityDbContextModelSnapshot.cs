@@ -31,11 +31,17 @@ namespace Identity.DataAccess.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
@@ -48,7 +54,22 @@ namespace Identity.DataAccess.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("text");
 
+                    b.Property<string>("GenInfo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HeaderUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Headline")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsCompany")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LastName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Location")
                         .HasColumnType("text");
 
                     b.Property<bool>("LockoutEnabled")
@@ -74,7 +95,10 @@ namespace Identity.DataAccess.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("ProfilePictureUrl")
+                    b.Property<string>("PortfolioUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProfileTitle")
                         .HasColumnType("text");
 
                     b.Property<string>("SecurityStamp")
@@ -82,6 +106,9 @@ namespace Identity.DataAccess.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("University")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

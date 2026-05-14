@@ -1,4 +1,5 @@
-﻿using Facade.AccountManagement.Contracts.Requests;
+﻿using Facade.AccountManagement.Contracts.DTOs;
+using Facade.AccountManagement.Contracts.Requests;
 using Facade.AccountManagement.Contracts.Responses;
 
 namespace Facade.AccountManagement.Contracts.Services;
@@ -17,4 +18,5 @@ public interface IAccountManagementService
 
     // logout
     Task<LogoutResponse> LogoutAsync(string refreshToken);
+    Task<AccountDto?> GetCurrentAccountAsync(string userId);
 }
