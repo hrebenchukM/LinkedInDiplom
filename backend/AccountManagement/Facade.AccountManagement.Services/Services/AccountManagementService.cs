@@ -5,8 +5,7 @@ using Facade.AccountManagement.Contracts.Services;
 using Identity.Client.Contracts;
 using Identity.Contracts.Parameters;
 using Profile.Contracts.DTOs;
-using Profile.Contracts.Services;
-
+using Profile.Client.Contracts.Services;
 
 
 namespace Facade.AccountManagement.Services.Services;
@@ -20,15 +19,15 @@ public class AccountManagementService : IAccountManagementService
     // Клиент Identity-модуля.
     // Через него фасад обращается к Users и Authentication.
     private readonly IIdentityClient _identityClient;
-    private readonly IProfileService _profileService;
+    private readonly IProfileClient _profileClient;
 
     // Получаем IIdentityClient через DI
     public AccountManagementService(
         IIdentityClient identityClient,
-        IProfileService profileService)
+         IProfileClient profileClient)
     {
         _identityClient = identityClient;
-        _profileService = profileService;
+        _profileClient = profileClient;
     }
 
     // Регистрация аккаунта через фасад
@@ -56,7 +55,7 @@ public class AccountManagementService : IAccountManagementService
         // Это подготовка к микросервисной архитектуре:
         // Identity отвечает за логин/email/password,
         // Profile отвечает за имя, аватар, headline, location и т.д.
-        await _profileService.UpdateAsync(new UserProfileDto
+        await _profileClient.UpdateByUserIdAsync(result.User.Id, new UserProfileDto
         {
             UserId = result.User.Id,
 

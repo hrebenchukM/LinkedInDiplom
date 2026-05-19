@@ -15,4 +15,8 @@ public interface IProfileManagementService
 
     // Обновить мой профиль
     Task<ProfileResponse> UpdateMyProfileAsync(string userId, UpdateMyProfileRequest request);
+
+    Task<ProfileResponse> UploadMyAvatarAsync(string userId, Stream fileStream, string fileName, string contentType);
+
+    Task<ProfileResponse> UploadMyHeaderAsync(string userId, Stream fileStream, string fileName, string contentType);
 }

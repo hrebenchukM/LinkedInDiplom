@@ -4,11 +4,12 @@ using Facade.AccountManagement.Controllers.Controllers; // AccountController и�
 using Facade.AccountManagement.DI; // AddAccountManagementFacade()
 using Facade.API.Extensions; // ApplyMigrationsAsync()
 using Identity.DI; // AddIdentityModule()
-using Profile.DI; // AddProfileModule()
 using Microsoft.AspNetCore.Authentication.JwtBearer; // JWT Bearer
 using Microsoft.IdentityModel.Tokens; // TokenValidationParameters, SymmetricSecurityKey
 using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
 using Facade.ProfileManagement.DI;
+using Profile.Client;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Получаем конфигурацию из appsettings.json
@@ -21,8 +22,7 @@ var connectionString = configuration.GetConnectionString("DefaultConnection")
 // Подключаем Identity core module
 builder.Services.AddIdentityModule(configuration, connectionString);
 
-// Подключаем Profile module
-builder.Services.AddProfileModule(configuration, connectionString);
+builder.Services.AddProfileClient(configuration);
 
 // Подключаем AccountManagement facade
 builder.Services.AddAccountManagementFacade();

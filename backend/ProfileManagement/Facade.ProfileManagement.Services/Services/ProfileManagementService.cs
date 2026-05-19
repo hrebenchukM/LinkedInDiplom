@@ -2,30 +2,26 @@
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
+using Profile.Client.Contracts.Services;
 using Profile.Contracts.DTOs;
-using Profile.Contracts.Parameters;
-using Profile.Contracts.Services;
 
 namespace Facade.ProfileManagement.Services.Services;
 
 // Фасадный сервис для работы с профилем.
-// Он принимает данные от API и обращается к внутреннему Profile-модулю.
+// Теперь он обращается к Profile.API через HTTP-клиент.
 public class ProfileManagementService : IProfileManagementService
 {
-    private readonly IProfileService _profileService;
+    private readonly IProfileClient _profileClient;
 
-    public ProfileManagementService(IProfileService profileService)
+    public ProfileManagementService(IProfileClient profileClient)
     {
-        _profileService = profileService;
+        _profileClient = profileClient;
     }
 
     // Получить мой профиль
     public async Task<ProfileDto?> GetMyProfileAsync(string userId)
     {
-        var profile = await _profileService.GetAsync(new GetProfileByUserIdParameters
-        {
-            UserId = userId
-        });
+        var profile = await _profileClient.GetByUserIdAsync(userId);
 
         return profile == null ? null : MapToFacadeDto(profile);
     }
@@ -33,10 +29,7 @@ public class ProfileManagementService : IProfileManagementService
     // Получить профиль по UserId
     public async Task<ProfileDto?> GetProfileByUserIdAsync(string userId)
     {
-        var profile = await _profileService.GetAsync(new GetProfileByUserIdParameters
-        {
-            UserId = userId
-        });
+        var profile = await _profileClient.GetByUserIdAsync(userId);
 
         return profile == null ? null : MapToFacadeDto(profile);
     }
@@ -61,7 +54,7 @@ public class ProfileManagementService : IProfileManagementService
             IsCompany = request.IsCompany
         };
 
-        var updatedProfile = await _profileService.UpdateAsync(profileToUpdate);
+        var updatedProfile = await _profileClient.UpdateByUserIdAsync(userId, profileToUpdate);
 
         return new ProfileResponse
         {
@@ -70,7 +63,6 @@ public class ProfileManagementService : IProfileManagementService
         };
     }
 
-    // Маппинг из внутреннего Profile DTO в фасадный DTO
     private static ProfileDto MapToFacadeDto(UserProfileDto profile)
     {
         return new ProfileDto
@@ -97,6 +89,45 @@ public class ProfileManagementService : IProfileManagementService
 
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
+        };
+    }
+
+
+    public async Task<ProfileResponse> UploadMyAvatarAsync(
+    string userId,
+    Stream fileStream,
+    string fileName,
+    string contentType)
+    {
+        var updatedProfile = await _profileClient.UploadAvatarAsync(
+            userId,
+            fileStream,
+            fileName,
+            contentType);
+
+        return new ProfileResponse
+        {
+            Success = true,
+            Profile = MapToFacadeDto(updatedProfile)
+        };
+    }
+
+    public async Task<ProfileResponse> UploadMyHeaderAsync(
+        string userId,
+        Stream fileStream,
+        string fileName,
+        string contentType)
+    {
+        var updatedProfile = await _profileClient.UploadHeaderAsync(
+            userId,
+            fileStream,
+            fileName,
+            contentType);
+
+        return new ProfileResponse
+        {
+            Success = true,
+            Profile = MapToFacadeDto(updatedProfile)
         };
     }
 }
