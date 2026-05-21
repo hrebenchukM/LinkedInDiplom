@@ -1,7 +1,7 @@
 ﻿using Identity.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Profile.DataAccess;
-
+using Professional.DataAccess;
 namespace Facade.API.Extensions;
 
 // Расширение для автоматического применения миграций при запуске API
@@ -35,6 +35,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Profile-модуля
             await profileContext.Database.MigrateAsync();
+
+            // Получаем ProfessionalDbContext из DI
+            var professionalContext = services.GetRequiredService<ProfessionalDbContext>();
+
+            // Применяем миграции Professional-модуля
+            await professionalContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

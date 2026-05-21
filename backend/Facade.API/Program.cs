@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer; // JWT Bearer
 using Microsoft.Extensions.FileProviders; // PhysicalFileProvider для uploads
 using Microsoft.IdentityModel.Tokens; // TokenValidationParameters, SymmetricSecurityKey
 using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
+using Professional.DI;
+using Facade.ProfessionalManagement.Controllers.Controllers;
+using Facade.ProfessionalManagement.DI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,17 +30,19 @@ builder.Services.AddIdentityModule(configuration, connectionString);
 // Теперь Profile снова работает как модуль внутри модульного монолита,
 // а не как отдельный HTTP-микросервис.
 builder.Services.AddProfileModule(configuration, connectionString);
+builder.Services.AddProfessionalModule(configuration, connectionString);
 
 // Подключаем AccountManagement facade
 builder.Services.AddAccountManagementFacade();
 
 // Подключаем ProfileManagement facade
 builder.Services.AddProfileManagementFacade();
-
+builder.Services.AddProfessionalManagementFacade();
 // Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
-    .AddApplicationPart(typeof(ProfileController).Assembly);
+    .AddApplicationPart(typeof(ProfileController).Assembly)
+    .AddApplicationPart(typeof(ProfessionalController).Assembly);
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");

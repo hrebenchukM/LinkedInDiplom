@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Facade.ProfessionalManagement.Contracts\Facade.ProfessionalManagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Client.Contracts\Professional.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Contracts\Professional.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

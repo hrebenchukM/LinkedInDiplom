@@ -23,6 +23,9 @@
 		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.Controllers\Facade.ProfileManagement.Controllers.csproj" />
 		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.DI\Facade.ProfileManagement.DI.csproj" />
 		<ProjectReference Include="..\Profile\Profile.DI\Profile.DI.csproj" />
+		<ProjectReference Include="..\Professional\Professional.DI\Professional.DI.csproj" />
+		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.DI\Facade.ProfessionalManagement.DI.csproj" />
+		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.Controllers\Facade.ProfessionalManagement.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>
