@@ -15,6 +15,8 @@ public interface IProfileManagementService
 
     // Обновить мой профиль
     Task<ProfileResponse> UpdateMyProfileAsync(string userId, UpdateMyProfileRequest request);
+    // Частично обновить мой профиль
+    Task<ProfileResponse> PatchMyProfileAsync(string userId, PatchMyProfileRequest request);
 
     // Загрузить аватар моего профиля
     Task<ProfileResponse> UploadMyAvatarAsync(

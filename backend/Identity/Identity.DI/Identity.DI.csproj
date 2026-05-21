@@ -21,6 +21,7 @@
     <ProjectReference Include="..\Identity.Contracts\Identity.Contracts.csproj" />
     <ProjectReference Include="..\Identity.DataAccess\Identity.DataAccess.csproj" />
     <ProjectReference Include="..\Identity.Services\Identity.Services.csproj" />
+    <ProjectReference Include="..\Identity.Events\Identity.Events.csproj" />
   </ItemGroup>
 
 </Project>

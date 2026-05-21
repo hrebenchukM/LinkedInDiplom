@@ -81,6 +81,27 @@ public class ProfileController : ControllerBase
             ?? User.FindFirstValue("sub");
     }
 
+    // PATCH api/profile/me
+    [Authorize]
+    [HttpPatch("me")]
+    [ProducesResponseType(typeof(ProfileResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> PatchMyProfile([FromBody] PatchMyProfileRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _profileManagementService.PatchMyProfileAsync(userId, request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
     // POST api/profile/me/avatar
     [Authorize]
     [HttpPost("me/avatar")]
@@ -96,16 +117,28 @@ public class ProfileController : ControllerBase
 
         if (file == null || file.Length == 0)
             return BadRequest("File is empty.");
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest("File is too large. Maximum size is 5 MB.");
 
-        await using var stream = file.OpenReadStream();
+        try
+        {
+            await using var stream = file.OpenReadStream();
 
-        var response = await _profileManagementService.UploadMyAvatarAsync(
-            userId,
-            stream,
-            file.FileName,
-            file.ContentType);
+            var response = await _profileManagementService.UploadMyAvatarAsync(
+                userId,
+                stream,
+                file.FileName,
+                file.ContentType);
 
-        return Ok(response);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     // POST api/profile/me/header
@@ -123,15 +156,27 @@ public class ProfileController : ControllerBase
 
         if (file == null || file.Length == 0)
             return BadRequest("File is empty.");
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest("File is too large. Maximum size is 5 MB.");
 
-        await using var stream = file.OpenReadStream();
+        try
+        {
+            await using var stream = file.OpenReadStream();
 
-        var response = await _profileManagementService.UploadMyHeaderAsync(
-            userId,
-            stream,
-            file.FileName,
-            file.ContentType);
+            var response = await _profileManagementService.UploadMyHeaderAsync(
+                userId,
+                stream,
+                file.FileName,
+                file.ContentType);
 
-        return Ok(response);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

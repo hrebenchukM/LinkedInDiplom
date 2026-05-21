@@ -4,6 +4,8 @@
     <ProjectReference Include="..\Profile.Contracts\Profile.Contracts.csproj" />
     <ProjectReference Include="..\Profile.Services\Profile.Services.csproj" />
     <ProjectReference Include="..\Profile.DataAccess\Profile.DataAccess.csproj" />
+    <ProjectReference Include="..\Profile.Client\Profile.Client.csproj" />
+    <ProjectReference Include="..\Profile.Client.Contracts\Profile.Client.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

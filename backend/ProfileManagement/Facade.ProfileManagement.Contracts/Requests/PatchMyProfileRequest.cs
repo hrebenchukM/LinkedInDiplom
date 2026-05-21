@@ -1,7 +1,8 @@
 ﻿namespace Facade.ProfileManagement.Contracts.Requests;
 
-// Запрос на обновление своего профиля
-public record UpdateMyProfileRequest
+// Запрос на частичное обновление своего профиля.
+// Если поле null — значит его не меняем.
+public record PatchMyProfileRequest
 {
     public string? FirstName { get; init; }
 
@@ -19,5 +20,5 @@ public record UpdateMyProfileRequest
 
     public string? PortfolioUrl { get; init; }
 
-    public bool IsCompany { get; init; }
+    public bool? IsCompany { get; init; }
 }

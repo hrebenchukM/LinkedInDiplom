@@ -4,14 +4,12 @@ using Facade.AccountManagement.Contracts.Responses;
 using Facade.AccountManagement.Contracts.Services;
 using Identity.Client.Contracts;
 using Identity.Contracts.Parameters;
-using Profile.Contracts.DTOs;
-using Profile.Contracts.Services;
 
 namespace Facade.AccountManagement.Services.Services;
 
 // Сервис фасада AccountManagement.
 // Он принимает клиентские Request-модели,
-// вызывает IdentityClient,
+// вызывает IdentityClient и ProfileClient,
 // а потом возвращает клиентские Response-модели.
 public class AccountManagementService : IAccountManagementService
 {
@@ -19,17 +17,11 @@ public class AccountManagementService : IAccountManagementService
     // Через него фасад обращается к Users и Authentication.
     private readonly IIdentityClient _identityClient;
 
-    // Сервис Profile-модуля.
-    // В модульном монолите обращаемся к Profile напрямую через контракт.
-    private readonly IProfileService _profileService;
 
     // Получаем зависимости через DI
-    public AccountManagementService(
-        IIdentityClient identityClient,
-        IProfileService profileService)
+    public AccountManagementService(IIdentityClient identityClient)
     {
         _identityClient = identityClient;
-        _profileService = profileService;
     }
 
     // Регистрация аккаунта через фасад
@@ -39,7 +31,7 @@ public class AccountManagementService : IAccountManagementService
         var result = await _identityClient.Users.RegisterAsync(new RegisterUserParameters
         {
             Email = request.Email,
-            UserName = request.UserName,
+            UserName = request.Email,
             Password = request.Password
         });
 
@@ -53,25 +45,9 @@ public class AccountManagementService : IAccountManagementService
             };
         }
 
-        // После успешной регистрации создаём/обновляем профиль в Profile-модуле.
-        // Identity отвечает за логин/email/password,
-        // Profile отвечает за имя, аватар, headline, location и т.д.
-        await _profileService.UpdateAsync(new UserProfileDto
-        {
-            UserId = result.User.Id,
+        // Профиль больше НЕ создаём здесь напрямую.
+        // Пустой профиль будет создан через UserRegisteredEvent внутри модульного монолита.
 
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            AvatarUrl = request.AvatarUrl,
-            ProfileTitle = request.ProfileTitle,
-            Headline = request.Headline,
-            Location = request.Location,
-            University = request.University,
-            PortfolioUrl = request.PortfolioUrl,
-            IsCompany = request.IsCompany
-        });
-
-        // Если всё хорошо — возвращаем клиенту AccountDto
         return new RegisterResponse
         {
             Success = true,
@@ -188,7 +164,6 @@ public class AccountManagementService : IAccountManagementService
         return new AccountDto
         {
             Id = user.Id,
-            UserName = user.UserName,
             Email = user.Email,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt

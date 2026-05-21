@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Profile.Client.Contracts\Profile.Client.Contracts.csproj" />
     <ProjectReference Include="..\Profile.Contracts\Profile.Contracts.csproj" />
-    <ProjectReference Include="..\Profile.DataAccess\Profile.DataAccess.csproj" />
-    <ProjectReference Include="..\..\Identity\Identity.Events.Contracts\Identity.Events.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

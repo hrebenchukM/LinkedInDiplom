@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Identity;       // ASP.NET Core Identity
 using Microsoft.EntityFrameworkCore;       // EF Core
 using Microsoft.Extensions.Configuration;  // IConfiguration
 using Microsoft.Extensions.DependencyInjection; // IServiceCollection
+using Identity.Events;
+using Identity.Events.Contracts.Abstractions;
 
 namespace Identity.DI;
 
@@ -62,11 +64,16 @@ public static class IdentityModuleServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
 
+        // Регистрируем in-process event publisher
+        services.AddScoped<IDomainEventPublisher, InMemoryDomainEventPublisher>();
+
         // Регистрируем Identity.Client слой
         services.AddScoped<IUserResource, UserResource>();
         services.AddScoped<IAuthenticationResource, AuthenticationResource>();
         services.AddScoped<IIdentityClient, IdentityClient>();
 
+
+      
         // Возвращаем services для цепочки вызовов
         return services;
     }

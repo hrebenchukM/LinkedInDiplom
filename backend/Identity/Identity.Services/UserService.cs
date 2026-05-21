@@ -6,6 +6,8 @@ using Identity.DataAccess;
 using Identity.DataAccess.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Identity.Events.Contracts.Abstractions;
+using Identity.Events.Contracts.Events;
 
 namespace Identity.Services;
 
@@ -18,11 +20,17 @@ public class UserService : IUserService
     // DbContext — доступ к таблицам базы данных
     private readonly IdentityDbContext _dbContext;
 
+    private readonly IDomainEventPublisher _eventPublisher;
+
     // Через конструктор получаем нужные зависимости из DI
-    public UserService(UserManager<ApplicationUser> userManager, IdentityDbContext dbContext)
+    public UserService(
+        UserManager<ApplicationUser> userManager,
+        IdentityDbContext dbContext,
+        IDomainEventPublisher eventPublisher)
     {
         _userManager = userManager;
         _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
     }
 
     // Получить пользователя по Id
@@ -65,6 +73,15 @@ public class UserService : IUserService
                 Errors = result.Errors.Select(e => e.Description)
             };
         }
+        // Публикуем событие: пользователь зарегистрировался.
+        // Profile-модуль потом создаст пустой профиль.
+        await _eventPublisher.PublishAsync(new UserRegisteredEvent
+        {
+            UserId = user.Id,
+            UserName = user.UserName!,
+            Email = user.Email!,
+            RegisteredAt = user.CreatedAt
+        });
 
         // Если всё хорошо — возвращаем успешный результат и данные пользователя
         return new RegisterUserResult

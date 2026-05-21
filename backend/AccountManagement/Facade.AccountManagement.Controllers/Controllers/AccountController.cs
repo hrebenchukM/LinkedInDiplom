@@ -101,6 +101,7 @@ public class AccountController : ControllerBase
     [HttpPost("logout")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.LogoutResponse), 200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
         // Проверяем модель запроса
@@ -111,6 +112,12 @@ public class AccountController : ControllerBase
 
         // Logout = отзыв refresh token
         var response = await _accountManagementService.LogoutAsync(request.RefreshToken);
+
+        // Если refresh token не найден, истёк или уже отозван — возвращаем 401
+        if (!response.Success)
+        {
+            return Unauthorized(response);
+        }
 
         return Ok(response);
     }
