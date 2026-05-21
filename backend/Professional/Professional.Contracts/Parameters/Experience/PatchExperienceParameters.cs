@@ -1,4 +1,4 @@
-﻿namespace Professional.Contracts.Parameters;
+﻿namespace Professional.Contracts.Parameters.Experience;
 
 // Параметры для частичного обновления опыта работы.
 // Если поле null — значит его не меняем.

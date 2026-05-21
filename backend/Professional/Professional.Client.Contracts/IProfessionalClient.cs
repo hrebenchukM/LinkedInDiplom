@@ -7,4 +7,6 @@ namespace Professional.Client.Contracts;
 public interface IProfessionalClient
 {
     IExperienceResource Experiences { get; }
+
+    ICompanyResource Companies { get; }
 }

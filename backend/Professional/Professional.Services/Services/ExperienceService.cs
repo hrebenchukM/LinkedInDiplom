@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Professional.Contracts.DTOs;
-using Professional.Contracts.Parameters;
+using Professional.Contracts.Parameters.Experience;
 using Professional.Contracts.Results;
 using Professional.Contracts.Services;
 using Professional.DataAccess;
@@ -68,6 +68,14 @@ public class ExperienceService : IExperienceService
                 Errors = new[] { "End date cannot be earlier than start date." }
             };
         }
+        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        {
+            return new ExperienceResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Company not found." }
+            };
+        }
 
         var experience = new Experience
         {
@@ -129,6 +137,14 @@ public class ExperienceService : IExperienceService
                 Errors = new[] { "End date cannot be earlier than start date." }
             };
         }
+        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        {
+            return new ExperienceResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Company not found." }
+            };
+        }
 
         experience.CompanyId = parameters.CompanyId;
         experience.Position = parameters.Position;
@@ -164,6 +180,14 @@ public class ExperienceService : IExperienceService
             {
                 Succeeded = false,
                 Errors = new[] { "Experience not found." }
+            };
+        }
+        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        {
+            return new ExperienceResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Company not found." }
             };
         }
 
@@ -233,6 +257,14 @@ public class ExperienceService : IExperienceService
             Succeeded = true,
             Experience = MapToDto(experience)
         };
+    }
+    private async Task<bool> CompanyExistsAsync(Guid companyId)
+    {
+        return await _dbContext.Companies
+            .AsNoTracking()
+            .AnyAsync(c =>
+                c.Id == companyId &&
+                c.DeletedAt == null);
     }
 
     private static ExperienceDto MapToDto(Experience experience)

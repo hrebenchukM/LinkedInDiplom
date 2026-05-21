@@ -1,6 +1,6 @@
 ﻿using Professional.Client.Contracts.Resources;
 using Professional.Contracts.DTOs;
-using Professional.Contracts.Parameters;
+using Professional.Contracts.Parameters.Experience;
 using Professional.Contracts.Results;
 using Professional.Contracts.Services;
 

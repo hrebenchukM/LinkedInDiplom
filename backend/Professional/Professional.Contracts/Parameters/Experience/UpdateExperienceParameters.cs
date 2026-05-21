@@ -1,26 +1,22 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿namespace Professional.Contracts.Parameters.Experience;
 
-namespace Facade.ProfessionalManagement.Contracts.Requests;
-
-// Запрос на полное обновление опыта работы
-public record UpdateExperienceRequest
+// Параметры для полного обновления опыта работы
+public record UpdateExperienceParameters
 {
+    public string UserId { get; init; } = default!;
+
+    public Guid ExperienceId { get; init; }
+
     public Guid? CompanyId { get; init; }
 
-    [Required]
-    [MaxLength(200)]
     public string Position { get; init; } = default!;
 
-    [MaxLength(100)]
     public string? EmploymentType { get; init; }
 
-    [MaxLength(100)]
     public string? WorkLocationType { get; init; }
 
-    [MaxLength(200)]
     public string? Location { get; init; }
 
-    [Required]
     public DateOnly StartDate { get; init; }
 
     public DateOnly? EndDate { get; init; }

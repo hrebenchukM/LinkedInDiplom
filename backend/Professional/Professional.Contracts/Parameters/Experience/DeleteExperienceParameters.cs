@@ -1,4 +1,4 @@
-﻿namespace Professional.Contracts.Parameters;
+﻿namespace Professional.Contracts.Parameters.Experience;
 
 // Параметры для удаления опыта работы
 public record DeleteExperienceParameters

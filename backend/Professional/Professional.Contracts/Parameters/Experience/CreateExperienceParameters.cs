@@ -1,4 +1,4 @@
-﻿namespace Professional.Contracts.Parameters;
+﻿namespace Professional.Contracts.Parameters.Experience;
 
 // Параметры для создания опыта работы
 public record CreateExperienceParameters

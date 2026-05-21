@@ -1,4 +1,4 @@
-﻿namespace Facade.ProfessionalManagement.Contracts.Requests;
+﻿namespace Facade.ProfessionalManagement.Contracts.Requests.Experience;
 
 // Запрос на частичное обновление опыта работы.
 // Если поле null — значит его не меняем.

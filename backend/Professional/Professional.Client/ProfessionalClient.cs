@@ -8,8 +8,13 @@ public class ProfessionalClient : IProfessionalClient
 {
     public IExperienceResource Experiences { get; }
 
-    public ProfessionalClient(IExperienceResource experiences)
+    public ICompanyResource Companies { get; }
+
+    public ProfessionalClient(
+        IExperienceResource experiences,
+        ICompanyResource companies)
     {
         Experiences = experiences;
+        Companies = companies;
     }
 }

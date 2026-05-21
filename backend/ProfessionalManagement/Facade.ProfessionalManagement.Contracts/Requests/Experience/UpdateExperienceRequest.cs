@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Facade.ProfessionalManagement.Contracts.Requests;
+namespace Facade.ProfessionalManagement.Contracts.Requests.Experience;
 
-// Запрос на создание опыта работы
-public record CreateExperienceRequest
+// Запрос на полное обновление опыта работы
+public record UpdateExperienceRequest
 {
     public Guid? CompanyId { get; init; }
 
