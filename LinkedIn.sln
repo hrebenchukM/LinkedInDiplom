@@ -35,28 +35,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.AccountManagement.DI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.API", "backend\Facade.API\Facade.API.csproj", "{3594F8E8-5A88-4A76-B0B6-19160FEB4753}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{B460F04B-7C97-40C4-A170-8CCFFE849B83}"
-	ProjectSection(SolutionItems) = preProject
-		..\Test\frontend\app.js = ..\Test\frontend\app.js
-		..\Test\frontend\index.html = ..\Test\frontend\index.html
-		..\Test\frontend\profile.html = ..\Test\frontend\profile.html
-		..\Test\frontend\styles.css = ..\Test\frontend\styles.css
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{0C6A8603-7D32-4693-ADFB-C4FFBF4D17A5}"
-	ProjectSection(SolutionItems) = preProject
-		..\Test\frontend\auth\app.jsx = ..\Test\frontend\auth\app.jsx
-		..\Test\frontend\auth\index.html = ..\Test\frontend\auth\index.html
-		..\Test\frontend\auth\styles.css = ..\Test\frontend\auth\styles.css
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "home", "home", "{9D8E4075-CC47-4226-8BAA-AC05CC90ECFB}"
-	ProjectSection(SolutionItems) = preProject
-		..\Test\frontend\home\app.jsx = ..\Test\frontend\home\app.jsx
-		..\Test\frontend\home\index.html = ..\Test\frontend\home\index.html
-		..\Test\frontend\home\styles.css = ..\Test\frontend\home\styles.css
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Profile", "Profile", "{A7025E1E-079E-B6E7-9F29-C8DACAC51D68}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.Contracts", "backend\Profile\Profile.Contracts\Profile.Contracts.csproj", "{0C4AE538-B9AD-431C-81AC-974C228A6858}"
@@ -76,12 +54,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.ProfileManagement.DI", "backend\ProfileManagement\Facade.ProfileManagement.DI\Facade.ProfileManagement.DI.csproj", "{79FABE1A-BCA9-414A-8A2E-5BBC26D4FEC3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Facade.ProfileManagement.Controllers", "backend\ProfileManagement\Facade.ProfileManagement.Controllers\Facade.ProfileManagement.Controllers.csproj", "{368CF3D3-91BD-499A-872D-55CBE951BD5A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.API", "backend\Profile\Profile.API\Profile.API.csproj", "{3D813AB3-FAD0-4037-B858-5F5D6072A105}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.Client.Contracts", "backend\Profile\Profile.Client.Contracts\Profile.Client.Contracts.csproj", "{E580329D-883F-4772-9402-4BB05D6F3F13}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile.Client", "backend\Profile\Profile.Client\Profile.Client.csproj", "{6A743387-C023-4C3B-8C1A-0146C3AE397A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -345,42 +317,6 @@ Global
 		{368CF3D3-91BD-499A-872D-55CBE951BD5A}.Release|x64.Build.0 = Release|Any CPU
 		{368CF3D3-91BD-499A-872D-55CBE951BD5A}.Release|x86.ActiveCfg = Release|Any CPU
 		{368CF3D3-91BD-499A-872D-55CBE951BD5A}.Release|x86.Build.0 = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|x64.Build.0 = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Debug|x86.Build.0 = Debug|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|x64.ActiveCfg = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|x64.Build.0 = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|x86.ActiveCfg = Release|Any CPU
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105}.Release|x86.Build.0 = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|x64.Build.0 = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Debug|x86.Build.0 = Debug|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|x64.ActiveCfg = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|x64.Build.0 = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|x86.ActiveCfg = Release|Any CPU
-		{E580329D-883F-4772-9402-4BB05D6F3F13}.Release|x86.Build.0 = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|x64.Build.0 = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Debug|x86.Build.0 = Debug|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|x64.ActiveCfg = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|x64.Build.0 = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|x86.ActiveCfg = Release|Any CPU
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -401,8 +337,6 @@ Global
 		{C5E87AA0-53C2-4948-B2FD-1A4120EC5B97} = {158EEB1E-C387-7BB1-ACAE-9D80DF987EE4}
 		{11A52EF6-081F-41D4-B95E-B98BC38F1189} = {158EEB1E-C387-7BB1-ACAE-9D80DF987EE4}
 		{3594F8E8-5A88-4A76-B0B6-19160FEB4753} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
-		{0C6A8603-7D32-4693-ADFB-C4FFBF4D17A5} = {B460F04B-7C97-40C4-A170-8CCFFE849B83}
-		{9D8E4075-CC47-4226-8BAA-AC05CC90ECFB} = {B460F04B-7C97-40C4-A170-8CCFFE849B83}
 		{A7025E1E-079E-B6E7-9F29-C8DACAC51D68} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 		{0C4AE538-B9AD-431C-81AC-974C228A6858} = {A7025E1E-079E-B6E7-9F29-C8DACAC51D68}
 		{279EDD8B-C43B-41AE-8CA7-86D8FBB1D046} = {A7025E1E-079E-B6E7-9F29-C8DACAC51D68}
@@ -413,8 +347,5 @@ Global
 		{783DBDFB-F416-4E74-BE03-18E54154061E} = {DA1D9583-822A-1565-18DC-DDD583D84E06}
 		{79FABE1A-BCA9-414A-8A2E-5BBC26D4FEC3} = {DA1D9583-822A-1565-18DC-DDD583D84E06}
 		{368CF3D3-91BD-499A-872D-55CBE951BD5A} = {DA1D9583-822A-1565-18DC-DDD583D84E06}
-		{3D813AB3-FAD0-4037-B858-5F5D6072A105} = {A7025E1E-079E-B6E7-9F29-C8DACAC51D68}
-		{E580329D-883F-4772-9402-4BB05D6F3F13} = {A7025E1E-079E-B6E7-9F29-C8DACAC51D68}
-		{6A743387-C023-4C3B-8C1A-0146C3AE397A} = {A7025E1E-079E-B6E7-9F29-C8DACAC51D68}
 	EndGlobalSection
 EndGlobal

@@ -5,8 +5,7 @@ using Facade.AccountManagement.Contracts.Services;
 using Identity.Client.Contracts;
 using Identity.Contracts.Parameters;
 using Profile.Contracts.DTOs;
-using Profile.Client.Contracts.Services;
-
+using Profile.Contracts.Services;
 
 namespace Facade.AccountManagement.Services.Services;
 
@@ -19,15 +18,18 @@ public class AccountManagementService : IAccountManagementService
     // Клиент Identity-модуля.
     // Через него фасад обращается к Users и Authentication.
     private readonly IIdentityClient _identityClient;
-    private readonly IProfileClient _profileClient;
 
-    // Получаем IIdentityClient через DI
+    // Сервис Profile-модуля.
+    // В модульном монолите обращаемся к Profile напрямую через контракт.
+    private readonly IProfileService _profileService;
+
+    // Получаем зависимости через DI
     public AccountManagementService(
         IIdentityClient identityClient,
-         IProfileClient profileClient)
+        IProfileService profileService)
     {
         _identityClient = identityClient;
-        _profileClient = profileClient;
+        _profileService = profileService;
     }
 
     // Регистрация аккаунта через фасад
@@ -51,11 +53,10 @@ public class AccountManagementService : IAccountManagementService
             };
         }
 
-        // После успешной регистрации создаём профиль в Profile-модуле.
-        // Это подготовка к микросервисной архитектуре:
+        // После успешной регистрации создаём/обновляем профиль в Profile-модуле.
         // Identity отвечает за логин/email/password,
         // Profile отвечает за имя, аватар, headline, location и т.д.
-        await _profileClient.UpdateByUserIdAsync(result.User.Id, new UserProfileDto
+        await _profileService.UpdateAsync(new UserProfileDto
         {
             UserId = result.User.Id,
 
@@ -184,7 +185,6 @@ public class AccountManagementService : IAccountManagementService
     // Маппинг UserDto из Identity в AccountDto фасада
     private static AccountDto MapToAccountDto(Identity.Contracts.DTOs.UserDto user)
     {
-        // Возвращаем клиентскую модель аккаунта
         return new AccountDto
         {
             Id = user.Id,

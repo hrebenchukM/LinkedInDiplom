@@ -21,30 +21,10 @@ services:
       timeout: 5s
       retries: 5
 
-  profile-api:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile.Profile
-    container_name: profile-api
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=linkedin_dev;Username=postgres;Password=postgres
-    ports:
-      - "5053:8080"
-    volumes:
-      - profile_uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - linkedin-network
-    restart: unless-stopped
-
-  facade-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.Facade
+      dockerfile: Dockerfile
     container_name: linkedin-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -52,27 +32,20 @@ services:
 
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=linkedin_dev;Username=postgres;Password=postgres
 
-      - Services__ProfileApi=http://profile-api:8080/
-
       - JwtSettings__SecretKey=docker-development-secret-key-min-32-characters-for-testing
       - JwtSettings__Issuer=LinkedInAPI
       - JwtSettings__Audience=LinkedInClients
       - JwtSettings__AccessTokenExpirationMinutes=60
       - JwtSettings__RefreshTokenExpirationDays=30
-
     ports:
       - "5000:8080"
-
+    volumes:
+      - profile_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
-
-      profile-api:
-        condition: service_started
-
     networks:
       - linkedin-network
-
     restart: unless-stopped
 
 networks:

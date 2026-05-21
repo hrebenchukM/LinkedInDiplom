@@ -22,7 +22,7 @@
 		<ProjectReference Include="..\Identity\Identity.DataAccess\Identity.DataAccess.csproj" />
 		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.Controllers\Facade.ProfileManagement.Controllers.csproj" />
 		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.DI\Facade.ProfileManagement.DI.csproj" />
-		<ProjectReference Include="..\Profile\Profile.Client\Profile.Client.csproj" />
+		<ProjectReference Include="..\Profile\Profile.DI\Profile.DI.csproj" />
 	</ItemGroup>
 
 </Project>

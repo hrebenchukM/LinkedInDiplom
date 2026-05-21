@@ -1,5 +1,6 @@
 ﻿using Identity.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Profile.DataAccess;
 
 namespace Facade.API.Extensions;
 
@@ -28,6 +29,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Identity-модуля
             await identityContext.Database.MigrateAsync();
+
+            // Получаем ProfileDbContext из DI
+            var profileContext = services.GetRequiredService<ProfileDbContext>();
+
+            // Применяем миграции Profile-модуля
+            await profileContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

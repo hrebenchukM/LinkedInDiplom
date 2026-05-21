@@ -5,6 +5,9 @@ WORKDIR /src
 # Copy solution file
 COPY ["LinkedIn.sln", "./"]
 
+# Facade.API
+COPY ["backend/Facade.API/Facade.API.csproj", "backend/Facade.API/"]
+
 # Identity
 COPY ["backend/Identity/Identity.Contracts/Identity.Contracts.csproj", "backend/Identity/Identity.Contracts/"]
 COPY ["backend/Identity/Identity.Services/Identity.Services.csproj", "backend/Identity/Identity.Services/"]
@@ -21,10 +24,11 @@ COPY ["backend/AccountManagement/Facade.AccountManagement.Services/Facade.Accoun
 COPY ["backend/AccountManagement/Facade.AccountManagement.Controllers/Facade.AccountManagement.Controllers.csproj", "backend/AccountManagement/Facade.AccountManagement.Controllers/"]
 COPY ["backend/AccountManagement/Facade.AccountManagement.DI/Facade.AccountManagement.DI.csproj", "backend/AccountManagement/Facade.AccountManagement.DI/"]
 
-# Profile Client
+# Profile module
 COPY ["backend/Profile/Profile.Contracts/Profile.Contracts.csproj", "backend/Profile/Profile.Contracts/"]
-COPY ["backend/Profile/Profile.Client.Contracts/Profile.Client.Contracts.csproj", "backend/Profile/Profile.Client.Contracts/"]
-COPY ["backend/Profile/Profile.Client/Profile.Client.csproj", "backend/Profile/Profile.Client/"]
+COPY ["backend/Profile/Profile.DataAccess/Profile.DataAccess.csproj", "backend/Profile/Profile.DataAccess/"]
+COPY ["backend/Profile/Profile.Services/Profile.Services.csproj", "backend/Profile/Profile.Services/"]
+COPY ["backend/Profile/Profile.DI/Profile.DI.csproj", "backend/Profile/Profile.DI/"]
 
 # ProfileManagement facade
 COPY ["backend/ProfileManagement/Facade.ProfileManagement.Contracts/Facade.ProfileManagement.Contracts.csproj", "backend/ProfileManagement/Facade.ProfileManagement.Contracts/"]
@@ -32,17 +36,18 @@ COPY ["backend/ProfileManagement/Facade.ProfileManagement.Services/Facade.Profil
 COPY ["backend/ProfileManagement/Facade.ProfileManagement.Controllers/Facade.ProfileManagement.Controllers.csproj", "backend/ProfileManagement/Facade.ProfileManagement.Controllers/"]
 COPY ["backend/ProfileManagement/Facade.ProfileManagement.DI/Facade.ProfileManagement.DI.csproj", "backend/ProfileManagement/Facade.ProfileManagement.DI/"]
 
-# Facade API
-COPY ["backend/Facade.API/Facade.API.csproj", "backend/Facade.API/"]
-
 # Restore dependencies
 RUN dotnet restore "backend/Facade.API/Facade.API.csproj"
 
 # Copy everything else
 COPY . .
 
-# Publish Facade.API
+# Build the application
 WORKDIR "/src/backend/Facade.API"
+RUN dotnet build "Facade.API.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
 RUN dotnet publish "Facade.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Runtime stage
@@ -51,6 +56,6 @@ WORKDIR /app
 
 EXPOSE 8080
 
-COPY --from=build /app/publish .
+COPY --from=publish /app/publish .
 
 ENTRYPOINT ["dotnet", "Facade.API.dll"]

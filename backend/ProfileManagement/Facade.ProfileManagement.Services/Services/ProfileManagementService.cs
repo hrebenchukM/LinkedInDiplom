@@ -2,26 +2,30 @@
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
-using Profile.Client.Contracts.Services;
 using Profile.Contracts.DTOs;
+using Profile.Contracts.Parameters;
+using Profile.Contracts.Services;
 
 namespace Facade.ProfileManagement.Services.Services;
 
 // Фасадный сервис для работы с профилем.
-// Теперь он обращается к Profile.API через HTTP-клиент.
+// В модульном монолите он обращается напрямую к Profile-модулю через IProfileService.
 public class ProfileManagementService : IProfileManagementService
 {
-    private readonly IProfileClient _profileClient;
+    private readonly IProfileService _profileService;
 
-    public ProfileManagementService(IProfileClient profileClient)
+    public ProfileManagementService(IProfileService profileService)
     {
-        _profileClient = profileClient;
+        _profileService = profileService;
     }
 
     // Получить мой профиль
     public async Task<ProfileDto?> GetMyProfileAsync(string userId)
     {
-        var profile = await _profileClient.GetByUserIdAsync(userId);
+        var profile = await _profileService.GetAsync(new GetProfileByUserIdParameters
+        {
+            UserId = userId
+        });
 
         return profile == null ? null : MapToFacadeDto(profile);
     }
@@ -29,7 +33,10 @@ public class ProfileManagementService : IProfileManagementService
     // Получить профиль по UserId
     public async Task<ProfileDto?> GetProfileByUserIdAsync(string userId)
     {
-        var profile = await _profileClient.GetByUserIdAsync(userId);
+        var profile = await _profileService.GetAsync(new GetProfileByUserIdParameters
+        {
+            UserId = userId
+        });
 
         return profile == null ? null : MapToFacadeDto(profile);
     }
@@ -54,13 +61,119 @@ public class ProfileManagementService : IProfileManagementService
             IsCompany = request.IsCompany
         };
 
-        var updatedProfile = await _profileClient.UpdateByUserIdAsync(userId, profileToUpdate);
+        var updatedProfile = await _profileService.UpdateAsync(profileToUpdate);
 
         return new ProfileResponse
         {
             Success = true,
             Profile = MapToFacadeDto(updatedProfile)
         };
+    }
+
+    // Загрузить аватар моего профиля
+    public async Task<ProfileResponse> UploadMyAvatarAsync(
+        string userId,
+        Stream fileStream,
+        string fileName,
+        string contentType)
+    {
+        var avatarUrl = await SaveProfileFileAsync(
+            userId,
+            fileStream,
+            fileName,
+            "avatar");
+
+        var existingProfile = await _profileService.GetAsync(new GetProfileByUserIdParameters
+        {
+            UserId = userId
+        });
+
+        var profileToUpdate = existingProfile ?? new UserProfileDto
+        {
+            UserId = userId
+        };
+
+        profileToUpdate = profileToUpdate with
+        {
+            AvatarUrl = avatarUrl
+        };
+
+        var updatedProfile = await _profileService.UpdateAsync(profileToUpdate);
+
+        return new ProfileResponse
+        {
+            Success = true,
+            Profile = MapToFacadeDto(updatedProfile)
+        };
+    }
+
+    // Загрузить header моего профиля
+    public async Task<ProfileResponse> UploadMyHeaderAsync(
+        string userId,
+        Stream fileStream,
+        string fileName,
+        string contentType)
+    {
+        var headerUrl = await SaveProfileFileAsync(
+            userId,
+            fileStream,
+            fileName,
+            "header");
+
+        var existingProfile = await _profileService.GetAsync(new GetProfileByUserIdParameters
+        {
+            UserId = userId
+        });
+
+        var profileToUpdate = existingProfile ?? new UserProfileDto
+        {
+            UserId = userId
+        };
+
+        profileToUpdate = profileToUpdate with
+        {
+            HeaderUrl = headerUrl
+        };
+
+        var updatedProfile = await _profileService.UpdateAsync(profileToUpdate);
+
+        return new ProfileResponse
+        {
+            Success = true,
+            Profile = MapToFacadeDto(updatedProfile)
+        };
+    }
+
+    // Сохраняем файл в uploads/profile/{userId}/avatar или header.
+    // В Docker эта папка будет подключена к volume profile_uploads.
+    private static async Task<string> SaveProfileFileAsync(
+        string userId,
+        Stream fileStream,
+        string originalFileName,
+        string folderName)
+    {
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(extension))
+            throw new InvalidOperationException("Only jpg, jpeg, png and webp files are allowed.");
+
+        var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+        var userFolder = Path.Combine(uploadsRoot, "profile", userId, folderName);
+
+        if (!Directory.Exists(userFolder))
+        {
+            Directory.CreateDirectory(userFolder);
+        }
+
+        var newFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(userFolder, newFileName);
+
+        await using var outputStream = new FileStream(filePath, FileMode.Create);
+        await fileStream.CopyToAsync(outputStream);
+
+        return $"/uploads/profile/{userId}/{folderName}/{newFileName}";
     }
 
     private static ProfileDto MapToFacadeDto(UserProfileDto profile)
@@ -89,45 +202,6 @@ public class ProfileManagementService : IProfileManagementService
 
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
-        };
-    }
-
-
-    public async Task<ProfileResponse> UploadMyAvatarAsync(
-    string userId,
-    Stream fileStream,
-    string fileName,
-    string contentType)
-    {
-        var updatedProfile = await _profileClient.UploadAvatarAsync(
-            userId,
-            fileStream,
-            fileName,
-            contentType);
-
-        return new ProfileResponse
-        {
-            Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
-        };
-    }
-
-    public async Task<ProfileResponse> UploadMyHeaderAsync(
-        string userId,
-        Stream fileStream,
-        string fileName,
-        string contentType)
-    {
-        var updatedProfile = await _profileClient.UploadHeaderAsync(
-            userId,
-            fileStream,
-            fileName,
-            contentType);
-
-        return new ProfileResponse
-        {
-            Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
         };
     }
 }
