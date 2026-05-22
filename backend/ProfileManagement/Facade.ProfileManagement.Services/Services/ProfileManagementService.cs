@@ -1,7 +1,9 @@
 ﻿using Facade.ProfileManagement.Contracts.DTOs;
+using Facade.ProfileManagement.Contracts.Options;
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
+using Microsoft.Extensions.Options;
 using Profile.Client.Contracts;
 using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
@@ -14,10 +16,12 @@ namespace Facade.ProfileManagement.Services.Services;
 public class ProfileManagementService : IProfileManagementService
 {
     private readonly IProfileClient _profileClient;
+    private readonly UploadsOptions _uploadsOptions;
 
-    public ProfileManagementService(IProfileClient profileClient)
+    public ProfileManagementService(IProfileClient profileClient, IOptions<UploadsOptions> uploadsOptions)
     {
         _profileClient = profileClient;
+        _uploadsOptions = uploadsOptions.Value;
     }
 
     // Получить мой профиль
@@ -200,7 +204,7 @@ public class ProfileManagementService : IProfileManagementService
 
     // Сохраняем файл в uploads/profile/{userId}/avatar или header.
     // В Docker эта папка будет подключена к volume profile_uploads.
-    private static async Task<string> SaveProfileFileAsync(
+    private async Task<string> SaveProfileFileAsync(
       string userId,
       Stream fileStream,
       string originalFileName,
@@ -218,8 +222,7 @@ public class ProfileManagementService : IProfileManagementService
         if (!allowedContentTypes.Contains(contentType.ToLowerInvariant()))
             throw new InvalidOperationException("Only jpg, jpeg, png and webp files are allowed.");
 
-        var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-        var userFolder = Path.Combine(uploadsRoot, "profile", userId, folderName);
+        var userFolder = Path.Combine(_uploadsOptions.RootPath, "profile", userId, folderName);
 
         if (!Directory.Exists(userFolder))
         {

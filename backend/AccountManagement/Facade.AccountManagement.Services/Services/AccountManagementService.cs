@@ -9,7 +9,8 @@ namespace Facade.AccountManagement.Services.Services;
 
 // Сервис фасада AccountManagement.
 // Он принимает клиентские Request-модели,
-// вызывает IdentityClient и ProfileClient,
+// вызывает IdentityClient,
+// а пустой профиль после регистрации создаётся через UserRegisteredEvent в Profile-модуле,
 // а потом возвращает клиентские Response-модели.
 public class AccountManagementService : IAccountManagementService
 {

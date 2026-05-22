@@ -68,7 +68,7 @@ public class ExperienceService : IExperienceService
                 Errors = new[] { "End date cannot be earlier than start date." }
             };
         }
-        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        if (parameters.CompanyId.HasValue && !await CompanyExistsAsync(parameters.CompanyId.Value, parameters.UserId))
         {
             return new ExperienceResult
             {
@@ -137,7 +137,7 @@ public class ExperienceService : IExperienceService
                 Errors = new[] { "End date cannot be earlier than start date." }
             };
         }
-        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        if (parameters.CompanyId.HasValue && !await CompanyExistsAsync(parameters.CompanyId.Value, parameters.UserId))
         {
             return new ExperienceResult
             {
@@ -182,7 +182,7 @@ public class ExperienceService : IExperienceService
                 Errors = new[] { "Experience not found." }
             };
         }
-        if (parameters.CompanyId.HasValue &&!await CompanyExistsAsync(parameters.CompanyId.Value))
+        if (parameters.CompanyId.HasValue && !await CompanyExistsAsync(parameters.CompanyId.Value, parameters.UserId))
         {
             return new ExperienceResult
             {
@@ -258,12 +258,13 @@ public class ExperienceService : IExperienceService
             Experience = MapToDto(experience)
         };
     }
-    private async Task<bool> CompanyExistsAsync(Guid companyId)
+    private async Task<bool> CompanyExistsAsync(Guid companyId, string ownerUserId)
     {
         return await _dbContext.Companies
             .AsNoTracking()
             .AnyAsync(c =>
                 c.Id == companyId &&
+                c.OwnerUserId == ownerUserId &&
                 c.DeletedAt == null);
     }
 

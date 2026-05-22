@@ -13,15 +13,21 @@ using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
 using Professional.DI;
 using Facade.ProfessionalManagement.Controllers.Controllers;
 using Facade.ProfessionalManagement.DI;
+using Facade.ProfileManagement.Contracts.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Получаем конфигурацию из appsettings.json
 var configuration = builder.Configuration;
+var isDevelopment = builder.Environment.IsDevelopment();
 
 // Получаем строку подключения к PostgreSQL
 var connectionString = configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+// Один абсолютный путь для сохранения и раздачи uploads (пустой конфиг = ContentRootPath/uploads)
+var uploadsPath = ResolveUploadsPath(configuration, builder.Environment.ContentRootPath);
+builder.Services.Configure<UploadsOptions>(options => options.RootPath = uploadsPath);
 
 // Подключаем Identity core module
 builder.Services.AddIdentityModule(configuration, connectionString);
@@ -65,8 +71,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    // Для разработки false, в production лучше true
-    options.RequireHttpsMetadata = false;
+    // Development: false (локально/Docker по HTTP). Production: true.
+    options.RequireHttpsMetadata = !isDevelopment;
 
     // Сохраняем токен в контексте запроса
     options.SaveToken = true;
@@ -91,47 +97,74 @@ builder.Services.AddAuthentication(options =>
 // Подключаем авторизацию
 builder.Services.AddAuthorization();
 
-// Подключаем Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-
-// Swagger + кнопка Authorize для JWT
-builder.Services.AddSwaggerGen(options =>
+// Swagger/OpenAPI только для локальной разработки
+if (isDevelopment)
 {
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Введите JWT access token"
-    });
+    builder.Services.AddEndpointsApiExplorer();
 
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    // Swagger + кнопка Authorize для JWT
+    builder.Services.AddSwaggerGen(options =>
     {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "Bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Введите JWT access token"
+        });
 
-// Разрешаем запросы с фронта
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    });
+}
+
+// CORS: Development — любой origin; Production — только из Cors:AllowedOrigins
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    if (isDevelopment)
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+        options.AddPolicy("DevelopmentCors", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    }
+    else
+    {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? Array.Empty<string>();
+
+        options.AddPolicy("ProductionCors", policy =>
+        {
+            policy.AllowAnyMethod()
+                  .AllowAnyHeader();
+
+            if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins);
+            }
+            else
+            {
+                // Пока origins не заданы в конфиге — блокируем cross-origin запросы
+                policy.SetIsOriginAllowed(_ => false);
+            }
+        });
+    }
 });
 
 // Собираем приложение
@@ -140,25 +173,26 @@ var app = builder.Build();
 // Автоматически применяем миграции при запуске
 await app.ApplyMigrationsAsync();
 
-// Включаем Swagger
-app.UseSwagger();
-
-// Swagger UI будет по /swagger
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "LinkedIn API v1");
-    c.RoutePrefix = "swagger";
-});
+    // Включаем Swagger только в Development
+    app.UseSwagger();
+
+    // Swagger UI будет по /swagger
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "LinkedIn API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // Перенаправление HTTP на HTTPS
 app.UseHttpsRedirection();
 
-// Включаем CORS
-app.UseCors("AllowAll");
+// Включаем CORS в зависимости от окружения
+app.UseCors(app.Environment.IsDevelopment() ? "DevelopmentCors" : "ProductionCors");
 
-// Отдача загруженных файлов из /app/uploads или локальной папки uploads
-var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
-
+// Отдача загруженных файлов из той же папки, что и ProfileManagementService
 if (!Directory.Exists(uploadsPath))
 {
     Directory.CreateDirectory(uploadsPath);
@@ -181,3 +215,15 @@ app.MapControllers();
 
 // Запускаем API
 app.Run();
+
+static string ResolveUploadsPath(IConfiguration configuration, string contentRootPath)
+{
+    var configuredPath = configuration["FileStorage:UploadsRootPath"];
+
+    if (string.IsNullOrWhiteSpace(configuredPath))
+        return Path.GetFullPath(Path.Combine(contentRootPath, "uploads"));
+
+    return Path.IsPathRooted(configuredPath)
+        ? Path.GetFullPath(configuredPath)
+        : Path.GetFullPath(Path.Combine(contentRootPath, configuredPath));
+}
