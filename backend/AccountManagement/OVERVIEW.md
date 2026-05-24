@@ -2,131 +2,76 @@
 
 ## Summary
 
-The Facade.AccountManagement module has been successfully created following the modular monolith architecture with Backend-for-Frontend (BFF) pattern. It provides a client-optimized REST API for account management and authentication.
+The Facade.AccountManagement module provides a client-optimized REST API for **authentication** in a **modular monolith prepared for microservices**. It follows the BFF pattern and delegates business logic to the Identity core module.
 
 ## What Was Created
 
-### 1. Four Projects Following Facade Architecture
+### Four Projects (Facade Architecture)
 
-- **Facade.AccountManagement.Contracts** - Client-friendly DTOs, requests, and responses
-- **Facade.AccountManagement.Services** - Service layer that orchestrates Identity module
-- **Facade.AccountManagement.Controllers** - REST API controllers
-- **Facade.AccountManagement.DI** - Dependency injection configuration
+- **Facade.AccountManagement.Contracts** — DTOs, requests, responses
+- **Facade.AccountManagement.Services** — Orchestration via `IIdentityClient`
+- **Facade.AccountManagement.Controllers** — `AccountController` at `/api/auth`
+- **Facade.AccountManagement.DI** — `AddAccountManagementFacade()`
 
-### 2. Complete API Endpoints
+### API Endpoints
 
-All endpoints are in `AccountController` under `/api/account`:
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/auth/register` | POST | Register account |
+| `/api/auth/login` | POST | Login |
+| `/api/auth/refresh` | POST | Refresh token |
+| `/api/auth/logout` | POST | Logout |
+| `/api/auth/me` | GET | Current account (authorized) |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/register` | POST | Register a new user account |
-| `/login` | POST | Authenticate with email/password |
-| `/refresh` | POST | Refresh access token using refresh token |
-| `/logout` | POST | Revoke refresh token |
+### DTO Mapping
 
-### 3. DTO Mapping Layer
+- `UserDto` → `AccountDto` (`id`, `email`, `createdAt`, `updatedAt`)
+- `TokenDto` → `AuthTokenDto`
+- `RegisterRequest`: `email`, `password` only
 
-The facade translates between core Identity DTOs and client-friendly DTOs:
+### Registration and Profile
 
-**Core → Facade Mappings:**
-- `UserDto` → `AccountDto` (adds computed `FullName` property)
-- `TokenDto` → `AuthTokenDto` (simplified structure)
-- Core results → Facade responses (consistent format)
-
-### 4. Request Validation
-
-All request DTOs include validation attributes:
-- `[Required]`, `[EmailAddress]`, `[MinLength]`, `[MaxLength]`
-- ASP.NET Core model validation integrated
+AccountManagement does **not** create profiles directly. Identity publishes `UserRegisteredEvent`; Profile module handler creates an empty profile.
 
 ## Architecture Benefits
 
 ### Loose Coupling
-- Depends only on `Identity.Client.Contracts`, not implementation
-- Can swap Identity implementation without changing facade
-- Easy to mock for testing
+- Facade calls Identity through **`IIdentityClient`**
+- Uses **`Identity.Contracts`** for request parameters
+- Identity implementation can be swapped (e.g. HTTP client in future)
 
-### Client-Optimized
-- Simplified DTOs with computed fields
-- Consistent response format
-- Validation built-in
-- RESTful API design
-
-### Microservice-Ready
-The facade is the **seam** for microservice migration:
-- Current: Calls `IIdentityClient` in-process
-- Future: Swap with HTTP client calling Identity microservice
-- **No facade code changes needed**
+### Microservice-Ready Seam
+- Current: in-process client
+- Future: HTTP-based `IIdentityClient` without changing controller/facade contract shape
 
 ## Data Flow
 
 ```
-Client Application
-    ↓ HTTP
-AccountController
-    ↓ Method Call
-AccountManagementService (Facade)
-    ↓ Interface Call
-IIdentityClient (Resource Pattern)
-    ↓ In-Process
-Identity Core Module
-    ↓ EF Core
-PostgreSQL Database
+Client → AccountController (/api/auth)
+      → AccountManagementService
+      → IIdentityClient
+      → Identity Core
+      → identity schema (PostgreSQL)
 ```
 
-## Example Usage
-
-### Registration Flow
+## Example Registration
 
 ```http
-POST /api/account/register
-{
-  "email": "john@example.com",
-  "userName": "johndoe",
-  "password": "SecurePass123",
-  "firstName": "John",
-  "lastName": "Doe"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "account": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "userName": "johndoe",
-    "email": "john@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "fullName": "John Doe",
-    "profilePictureUrl": null,
-    "createdAt": "2024-01-15T10:00:00Z"
-  },
-  "errors": []
-}
-```
-
-### Login Flow
-
-```http
-POST /api/account/login
+POST /api/auth/register
 {
   "email": "john@example.com",
   "password": "SecurePass123"
 }
 ```
 
-**Response:**
 ```json
 {
   "success": true,
-  "account": { /* same as above */ },
-  "token": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "Rt8F3k2LmN5pQ7sT9uV1wX3yZ5",
-    "expiresAt": "2024-01-15T10:15:00Z",
-    "tokenType": "Bearer"
+  "account": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "john@example.com",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": null
   },
   "errors": []
 }
@@ -134,45 +79,15 @@ POST /api/account/login
 
 ## Integration with Facade.API
 
-When you create `Facade.API`, integrate this module:
-
 ```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
-
-// Register Identity module (core)
-builder.Services.AddIdentityModule(
-    builder.Configuration,
-    builder.Configuration.GetConnectionString("DefaultConnection"));
-
-// Register AccountManagement facade
+builder.Services.AddIdentityModule(configuration, connectionString);
 builder.Services.AddAccountManagementFacade();
 
-// Register controllers
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly);
-
-var app = builder.Build();
-
-app.MapControllers();
-app.Run();
 ```
 
-## Testing Strategy
-
-### Unit Tests - Service Layer
-```csharp
-var mockIdentityClient = new Mock<IIdentityClient>();
-var service = new AccountManagementService(mockIdentityClient.Object);
-var result = await service.LoginAsync(new LoginRequest { ... });
-```
-
-### Integration Tests - API Layer
-```csharp
-var client = _factory.CreateClient();
-var response = await client.PostAsJsonAsync("/api/account/login", request);
-var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-```
+Also registered in production host together with Profile, Professional, and their facades.
 
 ## Project Dependencies
 
@@ -180,59 +95,28 @@ var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 Facade.AccountManagement.DI
     ├── Facade.AccountManagement.Services
     │   ├── Facade.AccountManagement.Contracts
-    │   │   └── Identity.Contracts (transitive)
-    │   └── Identity.Client.Contracts
-    │       └── Identity.Contracts
+    │   ├── Identity.Client.Contracts
+    │   └── Identity.Contracts
     └── Facade.AccountManagement.Controllers
-        ├── Facade.AccountManagement.Contracts
-        └── Facade.AccountManagement.Services
 ```
-
-## Future Enhancements
-
-Potential features to add to the facade:
-
-1. **Profile Management**
-   - Update profile endpoint
-   - Upload profile picture
-   - Change password
-
-2. **Email Verification**
-   - Send verification email
-   - Verify email token
-
-3. **Password Reset**
-   - Request password reset
-   - Reset password with token
-
-4. **Account Management**
-   - Get current account details
-   - Delete account
-   - Deactivate account
-
-5. **Session Management**
-   - List active sessions
-   - Revoke all sessions
-   - Revoke specific session
 
 ## Success Metrics
 
-✅ All 4 projects created and building successfully  
-✅ Added to LinkedIn.sln under AccountManagement folder  
-✅ Complete DTO mapping layer implemented  
-✅ 4 REST API endpoints ready  
-✅ Validation attributes on all requests  
-✅ Comprehensive documentation created  
-✅ Follows BFF pattern as per architecture  
-✅ Loosely coupled via IIdentityClient interface  
-✅ Ready for integration with Facade.API  
+✅ Four facade projects building in solution  
+✅ REST API at `/api/auth`  
+✅ BFF mapping layer  
+✅ Integrated into Facade.API host  
+✅ Loosely coupled via `IIdentityClient`  
 
 ## Notes
 
-- The facade layer is **thin** - it primarily maps and orchestrates
-- Business logic stays in the Identity core module
-- This separation allows the core module to be:
-  - Reused by multiple facades
-  - Extracted to microservices
-  - Tested independently
-  - Versioned separately
+- Business logic remains in **Identity.Services**
+- **ProfileManagement** is a separate facade for `/api/profile`
+- Solution architecture: **Facade + Core + Client.Contracts + DI**, single PostgreSQL with module schemas
+
+## Future Enhancements
+
+- Email verification, password reset (Identity/facade extensions)
+- Automated unit/integration tests
+
+Profile management and uploads: see **ProfileManagement** module.

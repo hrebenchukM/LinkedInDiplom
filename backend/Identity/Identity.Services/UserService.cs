@@ -39,9 +39,9 @@ public class UserService : IUserService
         // Ищем пользователя в таблице Users без отслеживания изменений
         var user = await _dbContext.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == parameters.UserId);
+            .FirstOrDefaultAsync(u => u.Id == parameters.UserId && u.DeletedAt == null);
 
-        // Если пользователь не найден — возвращаем null
+        // Если пользователь не найден или soft-deleted — возвращаем null
         if (user == null)
             return null;
 

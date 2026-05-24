@@ -46,7 +46,8 @@ public class ProfileManagementService : IProfileManagementService
         return profile == null ? null : MapToFacadeDto(profile);
     }
 
-    // Обновить мой профиль
+    // Обновить мой профиль.
+    // Если поле в запросе null — сохраняем текущее значение (partial PUT).
     public async Task<ProfileResponse> UpdateMyProfileAsync(string userId, UpdateMyProfileRequest request)
     {
         var existingProfile = await _profileClient.Profiles.GetAsync(new GetProfileByUserIdParameters
@@ -54,25 +55,30 @@ public class ProfileManagementService : IProfileManagementService
             UserId = userId
         });
 
-        var profileToUpdate = new UserProfileDto
+        if (existingProfile == null)
         {
-            UserId = userId,
+            existingProfile = await _profileClient.Profiles.CreateEmptyAsync(userId);
+        }
 
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+        var profileToUpdate = existingProfile with
+        {
+            FirstName = request.FirstName ?? existingProfile.FirstName,
+            LastName = request.LastName ?? existingProfile.LastName,
+
+            ProfileTitle = request.ProfileTitle ?? existingProfile.ProfileTitle,
+            Headline = request.Headline ?? existingProfile.Headline,
+            GenInfo = request.GenInfo ?? existingProfile.GenInfo,
+
+            University = request.University ?? existingProfile.University,
+            Location = request.Location ?? existingProfile.Location,
+            PortfolioUrl = request.PortfolioUrl ?? existingProfile.PortfolioUrl,
+
+            IsCompany = request.IsCompany ?? existingProfile.IsCompany,
 
             // Аватар и header не меняем через обычный PUT,
             // они меняются только через upload endpoints.
-            AvatarUrl = existingProfile?.AvatarUrl,
-            HeaderUrl = existingProfile?.HeaderUrl,
-
-            ProfileTitle = request.ProfileTitle,
-            Headline = request.Headline,
-            GenInfo = request.GenInfo,
-            University = request.University,
-            Location = request.Location,
-            PortfolioUrl = request.PortfolioUrl,
-            IsCompany = request.IsCompany
+            AvatarUrl = existingProfile.AvatarUrl,
+            HeaderUrl = existingProfile.HeaderUrl
         };
 
         var updatedProfile = await _profileClient.Profiles.UpdateAsync(profileToUpdate);

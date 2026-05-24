@@ -1,91 +1,45 @@
-# Integration Complete: Facade.AccountManagement → Facade.API
+# Facade.API — Module Integration
+
+Overview of how **Facade.API** hosts the modular monolith: three **Core** modules, three **Facade (BFF)** modules, one PostgreSQL database with separate schemas.
 
 ## Summary
 
-The Facade.AccountManagement module has been successfully integrated into Facade.API, creating a fully functional REST API for account management and authentication.
+- **Type**: ASP.NET Core Web API (.NET 8)
+- **Pattern**: Modular monolith **prepared for microservices** (in-process `I*Client` today; HTTP clients possible later)
+- **Deploy unit**: Single `Facade.API` process — not separate microservices
 
-## What Was Created
+## Registered Modules
 
-### 1. Facade.API Project
-- **Type**: ASP.NET Core Web API (.NET 10.0)
-- **Purpose**: Main entry point that hosts all facade modules
-- **Features**:
-  - JWT Bearer Authentication
-  - Swagger/OpenAPI documentation
-  - CORS configuration
-  - Environment-specific settings
-  - Module composition via DI
+| Layer | Module | DI extension |
+|-------|--------|--------------|
+| Core | Identity | `AddIdentityModule` |
+| Core | Profile | `AddProfileModule` |
+| Core | Professional | `AddProfessionalModule` |
+| Facade | AccountManagement | `AddAccountManagementFacade` |
+| Facade | ProfileManagement | `AddProfileManagementFacade` |
+| Facade | ProfessionalManagement | `AddProfessionalManagementFacade` |
 
-### 2. Integration Points
+Controllers are discovered via `AddApplicationPart` from each facade Controllers assembly.
 
-#### Program.cs Configuration
-```csharp
-// Register Identity core module
-builder.Services.AddIdentityModule(configuration, connectionString);
+## API Routes
 
-// Register AccountManagement facade
-builder.Services.AddAccountManagementFacade();
+| Prefix | Controller | Examples |
+|--------|------------|----------|
+| `/api/auth` | AccountController | register, login, refresh, logout, me |
+| `/api/profile` | ProfileController | me, {userId}, avatar, header |
+| `/api/professional` | ProfessionalController | me/experiences, me/companies |
 
-// Register controllers from facade modules
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(AccountController).Assembly);
+Swagger (Development): **http://localhost:5000/swagger**
 
-// Configure JWT Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(/* JWT configuration */);
-```
-
-#### Configuration Files
-- **appsettings.json** - Production configuration
-- **appsettings.Development.json** - Development overrides with longer token expiration
-- **launchSettings.json** - Development server settings
-
-## API Endpoints Available
-
-| Endpoint | Method | Description | Request Body | Response |
-|----------|--------|-------------|--------------|----------|
-| `/api/account/register` | POST | Register new account | RegisterRequest | RegisterResponse |
-| `/api/account/login` | POST | Login with credentials | LoginRequest | LoginResponse (with tokens) |
-| `/api/account/refresh` | POST | Refresh access token | RefreshTokenRequest | RefreshTokenResponse |
-| `/api/account/logout` | POST | Revoke refresh token | RefreshTokenRequest | LogoutResponse |
-
-## Request/Response Examples
+## Auth Example
 
 ### Register
-**Request:**
-```json
-POST /api/account/register
-{
-  "email": "john@example.com",
-  "userName": "johndoe",
-  "password": "SecurePass123",
-  "firstName": "John",
-  "lastName": "Doe"
-}
-```
 
-**Response:**
-```json
-{
-  "success": true,
-  "account": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "userName": "johndoe",
-    "email": "john@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "fullName": "John Doe",
-    "AvatarUrl": null,
-    "createdAt": "2024-01-15T10:00:00Z"
-  },
-  "errors": []
-}
-```
-
-### Login
 **Request:**
-```json
-POST /api/account/login
+```http
+POST /api/auth/register
+Content-Type: application/json
+
 {
   "email": "john@example.com",
   "password": "SecurePass123"
@@ -96,271 +50,115 @@ POST /api/account/login
 ```json
 {
   "success": true,
-  "account": { /* Account details */ },
-  "token": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "Rt8F3k2LmN5pQ7sT9uV1wX3yZ5",
-    "expiresAt": "2024-01-15T10:15:00Z",
-    "tokenType": "Bearer"
+  "account": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "john@example.com",
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": null
   },
   "errors": []
 }
 ```
 
-## Architecture Flow
+After registration, Identity publishes `UserRegisteredEvent`; Profile module creates an empty profile asynchronously.
+
+### Login
+
+```http
+POST /api/auth/login
+{ "email": "john@example.com", "password": "SecurePass123" }
+```
+
+Returns `account` + `token` (accessToken, refreshToken, expiresAt, tokenType).
+
+## Architecture Flow (Auth)
 
 ```
-HTTP Request
-    ↓
-Facade.API (Entry Point)
-    ├── JWT Authentication Middleware
-    ├── CORS Middleware
-    └── Controller Routing
-    ↓
-AccountController (Facade.AccountManagement.Controllers)
-    ↓
-AccountManagementService (Facade.AccountManagement.Services)
-    ├── DTO Mapping (Identity DTOs → Facade DTOs)
-    └── Orchestration
-    ↓
-IIdentityClient (Identity.Client.Contracts)
-    ↓
-IdentityClient → UserResource/AuthenticationResource (Identity.Client)
-    ↓
-IUserService/IAuthenticationService (Identity.Contracts.Services)
-    ↓
-UserService/AuthenticationService (Identity.Services)
-    ├── UserManager<ApplicationUser>
-    ├── TokenService (JWT generation)
-    └── Business Logic
-    ↓
-IdentityDbContext (Identity.DataAccess)
-    ↓
-PostgreSQL Database (identity schema)
+HTTP → Facade.API
+    → AccountController (/api/auth)
+    → AccountManagementService
+    → IIdentityClient
+    → IdentityClient → Resources → IUserService / IAuthenticationService
+    → IdentityDbContext → PostgreSQL (identity schema)
+```
+
+## Architecture Flow (Profile)
+
+```
+HTTP → ProfileController (/api/profile)
+    → ProfileManagementService
+    → IProfileClient
+    → ProfileService → ProfileDbContext (profile schema)
+```
+
+## Cross-Module Event
+
+```
+Identity.UserService.Register
+    → UserRegisteredEvent
+    → InMemoryDomainEventPublisher
+    → CreateEmptyProfileWhenUserRegisteredHandler (Profile module)
+    → ProfileDbContext
 ```
 
 ## Technology Stack
 
-### Backend Framework
-- **.NET 10.0** - Latest .NET framework
-- **ASP.NET Core** - Web API framework
-- **Entity Framework Core 10.0** - ORM
-- **Npgsql 10.0** - PostgreSQL provider
+- **.NET 8**, ASP.NET Core, EF Core 8, Npgsql
+- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`
+- **JWT** + ASP.NET Core Identity
+- **Swashbuckle** (Development)
 
-### Security
-- **ASP.NET Core Identity** - User management
-- **JWT Bearer Tokens** - Stateless authentication
-- **HMAC-SHA256** - Token signing algorithm
-- **BCrypt** - Password hashing (via Identity)
+## Database
 
-### API Documentation
-- **Swashbuckle.AspNetCore** - Swagger/OpenAPI generation
-- **Swagger UI** - Interactive API documentation
+- One connection string (`DefaultConnection`)
+- Separate `DbContext` per module
+- Migrations applied on startup for all three contexts
 
-### Database
-- **PostgreSQL 15+** - Primary database
-- **Dedicated schema** - `identity` schema for isolation
-
-## Configuration
-
-### JWT Settings (appsettings.json)
-```json
-{
-  "JwtSettings": {
-    "SecretKey": "your-secret-key-min-32-characters-long",
-    "Issuer": "LinkedInAPI",
-    "Audience": "LinkedInClients",
-    "AccessTokenExpirationMinutes": 15,
-    "RefreshTokenExpirationDays": 7
-  }
-}
-```
-
-### Database Connection
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=linkedin_dev;Username=postgres;Password=postgres"
-  }
-}
-```
-
-## Running the Application
-
-### 1. Prerequisites
-- .NET 10 SDK installed
-- PostgreSQL 15+ running
-- Database connection configured
-
-### 2. Apply Migrations
-```bash
-cd backend/Identity/Identity.DataAccess
-dotnet ef database update --context IdentityDbContext
-```
-
-### 3. Run the API
-```bash
-cd backend/Facade.API
-dotnet run
-```
-
-### 4. Access Swagger UI
-Open browser to: **http://localhost:5000**
-
-### 5. Test the API
-1. Navigate to Swagger UI
-2. Expand **POST /api/account/register**
-3. Click **"Try it out"**
-4. Fill in the request body
-5. Click **"Execute"**
-6. Copy the access token from the response
-7. Click **"Authorize"** button at top
-8. Enter: `Bearer <your-token>`
-9. Test protected endpoints
-
-## Project Dependencies
+## Project Dependencies (simplified)
 
 ```
 Facade.API
-├── Identity.DI
-│   ├── Identity.Services
-│   │   ├── Identity.Contracts
-│   │   └── Identity.DataAccess
-│   ├── Identity.Client
-│   │   ├── Identity.Client.Contracts
-│   │   └── Identity.Services
-│   └── Identity.Events
-│       └── Identity.Events.Contracts
-└── Facade.AccountManagement.DI
-    ├── Facade.AccountManagement.Services
-    │   ├── Facade.AccountManagement.Contracts
-    │   └── Identity.Client.Contracts
-    └── Facade.AccountManagement.Controllers
-        ├── Facade.AccountManagement.Contracts
-        └── Facade.AccountManagement.Services
+├── Identity.DI, Profile.DI, Professional.DI
+├── Facade.AccountManagement.DI
+├── Facade.ProfileManagement.DI
+├── Facade.ProfessionalManagement.DI
+└── Facade.*.Controllers (ApplicationPart)
 ```
 
-## Security Features
+## Microservice-Ready Seams (not deployed as microservices today)
 
-✅ **JWT Access Tokens** - Short-lived (15 min), stateless authentication  
-✅ **Refresh Tokens** - Long-lived (7 days), database-backed  
-✅ **Token Rotation** - Old refresh token revoked on use  
-✅ **Password Hashing** - Secure BCrypt hashing via Identity  
-✅ **Account Lockout** - Protection against brute force attacks  
-✅ **Token Validation** - Issuer, audience, and signature validation  
-✅ **HTTPS Support** - Encrypted communication in production  
-
-## Testing Strategy
-
-### Manual Testing (Swagger UI)
-1. Register a new account
-2. Login to get tokens
-3. Use access token for protected endpoints
-4. Test token refresh
-5. Test logout (token revocation)
-
-### Integration Testing
-```csharp
-[Fact]
-public async Task Register_Login_Flow_Works()
-{
-    // Register
-    var registerResponse = await client.PostAsJsonAsync("/api/account/register", registerRequest);
-    var registerResult = await registerResponse.Content.ReadFromJsonAsync<RegisterResponse>();
-    Assert.True(registerResult.Success);
-    
-    // Login
-    var loginResponse = await client.PostAsJsonAsync("/api/account/login", loginRequest);
-    var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
-    Assert.True(loginResult.Success);
-    Assert.NotNull(loginResult.Token);
-}
-```
-
-### Load Testing
-```bash
-# Using Apache Bench
-ab -n 1000 -c 10 -p register.json -T application/json http://localhost:5000/api/account/register
-```
-
-## Monitoring & Logging
-
-### Configured Logging
-- **Development**: Information level
-- **EF Core**: Information level for SQL queries
-- **ASP.NET Core**: Warning level
-
-### Add Application Insights (Future)
-```csharp
-builder.Services.AddApplicationInsightsTelemetry();
-```
-
-## Production Considerations
-
-### Security Hardening
-- [ ] Use environment variables for secrets
-- [ ] Enable HTTPS metadata validation
-- [ ] Configure specific CORS origins
-- [ ] Implement rate limiting
-- [ ] Add request size limits
-- [ ] Enable data protection
-
-### Performance
-- [ ] Add response caching
-- [ ] Implement distributed caching (Redis)
-- [ ] Configure connection pooling
-- [ ] Add compression middleware
-- [ ] Optimize EF Core queries
-
-### Scalability
-- [ ] Add health check endpoints
-- [ ] Configure horizontal scaling
-- [ ] Implement API versioning
-- [ ] Add request throttling
-- [ ] Consider CQRS for read-heavy operations
+| Seam | Current | Future option |
+|------|---------|---------------|
+| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` | In-process | HTTP SDK |
+| `Identity.Events.Contracts` | In-memory publisher | Message bus |
+| DbContext per module | Shared PostgreSQL | Split databases |
 
 ## Success Metrics
 
-✅ **16 projects** in solution building successfully  
-✅ **Facade.API** fully integrated and functional  
-✅ **4 REST endpoints** ready for use  
-✅ **JWT authentication** configured and working  
-✅ **Swagger UI** accessible for testing  
-✅ **Modular monolith** architecture implemented  
-✅ **Microservice-ready** with resource pattern  
-✅ **Production-ready** with environment-specific configs  
+✅ **33 projects** in `LinkedIn.sln`  
+✅ **3 core + 3 facade** modules integrated  
+✅ **JWT** authentication  
+✅ **Swagger** at `/swagger` (Development)  
+✅ **Modular monolith** with BFF + resource/client pattern  
 
-## Next Steps
+## Manual Testing Checklist
 
-1. **Database Setup**
-   - Configure PostgreSQL connection
-   - Apply Identity migrations
-   - Seed initial data if needed
+1. Register via `/api/auth/register`
+2. Login and copy access token
+3. `GET /api/auth/me`
+4. `GET /api/profile/me` (profile created via event)
+5. Upload avatar via `/api/profile/me/avatar`
+6. Refresh and logout tokens
 
-2. **Testing**
-   - Test all endpoints via Swagger
-   - Verify token refresh flow
-   - Test error scenarios
+## Future (roadmap, not implemented)
 
-3. **Additional Facades**
-   - Create more facade modules
-   - Integrate into Facade.API
-   - Add corresponding controllers
+- Automated test projects
+- Health checks, rate limiting
+- Outbox pattern for reliable events
+- Optional HTTP-based module clients when splitting services
 
-4. **Frontend Integration**
-   - Configure CORS for frontend origin
-   - Implement token storage on client
-   - Handle token refresh automatically
+## Related Documentation
 
-5. **DevOps**
-   - Set up CI/CD pipeline
-   - Configure deployment
-   - Add monitoring and alerts
-
-## Support
-
-For issues or questions:
-- Check README.md files in each module
-- Review Swagger documentation
-- Check logs in Development mode
-- Verify database connectivity and migrations
+- [Facade.API README](./README.md)
+- [AccountManagement facade](../AccountManagement/README.md)
+- [Root README](../../README.md)

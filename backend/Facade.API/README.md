@@ -1,357 +1,153 @@
 # Facade.API
 
-The main entry point for the LinkedIn Clone backend API. This project aggregates all facade modules and provides a unified REST API.
+The main entry point for the LinkedIn Clone backend. This **modular monolith host** aggregates all facade modules and core modules into a single deployable ASP.NET Core Web API (.NET 8).
 
 ## Overview
 
-Facade.API is an ASP.NET Core Web API project that:
-- Hosts all facade module controllers
-- Configures JWT authentication
-- Provides Swagger/OpenAPI documentation
-- Manages dependency injection for all modules
-- Serves as the single deployment unit (modular monolith)
+Facade.API:
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`)
+- Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
+- Applies EF Core migrations on startup
+- Serves uploaded files from `/uploads`
 
 ## Architecture
 
 ```
 Client (Web/Mobile)
-    ↓ HTTPS
-Facade.API (Entry Point)
-    ├── AccountManagement Controllers
-    ├── JWT Authentication Middleware
-    ├── Swagger UI
-    └── CORS Configuration
+    ↓ HTTP
+Facade.API (Host / composition root)
+    ├── JWT, CORS, Swagger (dev), static /uploads
     ↓
-Facade Modules (BFF Layer)
-    ├── Facade.AccountManagement
-    └── (Future: Other Facades)
-    ↓
+Facade Modules (BFF)
+    ├── Facade.AccountManagement      → /api/auth
+    ├── Facade.ProfileManagement      → /api/profile
+    └── Facade.ProfessionalManagement → /api/professional
+    ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
-    ├── Identity Module
-    └── (Future: Other Core Modules)
+    ├── Identity      (schema: identity)
+    ├── Profile       (schema: profile)
+    └── Professional  (schema: professional)
     ↓
-PostgreSQL Database
+PostgreSQL (single database, logical separation by schema)
 ```
 
 ## Features
 
 ### Authentication & Authorization
-- **JWT Bearer Token** authentication
-- Configured token validation
-- Token expiration and refresh support
-- Secure password hashing via ASP.NET Core Identity
+- JWT Bearer access tokens + refresh tokens
+- ASP.NET Core Identity (password hashing, user store)
 
 ### API Documentation
-- **Swagger UI** at root URL (http://localhost:5000)
-- Interactive API testing
-- Request/Response schemas
-- Authentication testing with Bearer tokens
+- **Swagger UI** (Development only): http://localhost:5000/swagger
+- JWT **Authorize** button for testing protected endpoints
 
-### CORS Support
-- Configured for cross-origin requests
-- Allows any origin in development (configure for production)
+### CORS
+- **Development**: permissive policy for local frontend
+- **Production**: origins from `Cors:AllowedOrigins` in configuration
 
-### Configuration Management
-- Environment-specific settings (Development/Production)
-- JWT settings configuration
-- Database connection strings
-- Logging configuration
-
-## Configuration
-
-### appsettings.json
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=linkedin_dev;Username=postgres;Password=postgres"
-  },
-  "JwtSettings": {
-    "SecretKey": "your-secret-key-min-32-characters-long-change-this-in-production",
-    "Issuer": "LinkedInAPI",
-    "Audience": "LinkedInClients",
-    "AccessTokenExpirationMinutes": 15,
-    "RefreshTokenExpirationDays": 7
-  }
-}
-```
-
-### appsettings.Development.json
-
-```json
-{
-  "JwtSettings": {
-    "SecretKey": "development-secret-key-min-32-characters-for-testing-only",
-    "AccessTokenExpirationMinutes": 60,
-    "RefreshTokenExpirationDays": 30
-  }
-}
-```
+### Configuration
+- `appsettings.json`, `appsettings.Development.json`, `appsettings.Production.json`
+- JWT, connection string, file storage (`FileStorage:UploadsRootPath`)
 
 ## Running the API
 
 ### Prerequisites
+- **.NET 8 SDK**
+- PostgreSQL 15+
 
-1. **.NET 10 SDK** installed
-2. **PostgreSQL 15+** running
-3. Database connection configured in appsettings.json
+### Local run
 
-### Steps
-
-1. **Apply database migrations**:
-```bash
-cd backend/Identity/Identity.DataAccess
-dotnet ef database update --context IdentityDbContext
-```
-
-2. **Run the API**:
 ```bash
 cd backend/Facade.API
 dotnet run
 ```
 
-3. **Access Swagger UI**:
-- Open browser to: https://localhost:5001
-- Or: http://localhost:5000
+Swagger: http://localhost:5000/swagger
 
-## API Endpoints
+Migrations run automatically on startup. Optional manual run:
 
-### Account Management
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/api/account/register` | POST | Register new user | No |
-| `/api/account/login` | POST | Login and get tokens | No |
-| `/api/account/refresh` | POST | Refresh access token | No |
-| `/api/account/logout` | POST | Revoke refresh token | No |
-
-### Example Requests
-
-#### Register
 ```bash
-curl -X POST https://localhost:5001/api/account/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "userName": "johndoe",
-    "password": "SecurePass123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
+cd backend/Identity/Identity.DataAccess
+dotnet ef database update --context IdentityDbContext
 ```
 
-#### Login
-```bash
-curl -X POST https://localhost:5001/api/account/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "SecurePass123"
-  }'
-```
+## API Routes (hosted controllers)
 
-#### Use Access Token
-```bash
-curl -X GET https://localhost:5001/api/protected-endpoint \
-  -H "Authorization: Bearer <your-access-token>"
-```
+### Auth — `/api/auth`
 
-## Project Structure
+| Endpoint | Method | Auth |
+|----------|--------|------|
+| `/api/auth/register` | POST | No |
+| `/api/auth/login` | POST | No |
+| `/api/auth/refresh` | POST | No |
+| `/api/auth/logout` | POST | No |
+| `/api/auth/me` | GET | Yes |
 
-```
-Facade.API/
-├── Program.cs                 # Application entry point and configuration
-├── appsettings.json           # Production configuration
-├── appsettings.Development.json # Development configuration
-└── Properties/
-    └── launchSettings.json    # Development server settings
-```
+### Profile — `/api/profile`
 
-## Module Integration
+| Endpoint | Method | Auth |
+|----------|--------|------|
+| `/api/profile/me` | GET, PUT, PATCH | Yes |
+| `/api/profile/{userId}` | GET | No |
+| `/api/profile/me/avatar` | POST | Yes |
+| `/api/profile/me/header` | POST | Yes |
 
-The API integrates modules through dependency injection:
+### Professional — `/api/professional`
+
+Experiences and companies under `/api/professional/me/...` (see Swagger for full list).
+
+## Module Integration (Program.cs)
 
 ```csharp
-// Register Identity core module
 builder.Services.AddIdentityModule(configuration, connectionString);
+builder.Services.AddProfileModule(configuration, connectionString);
+builder.Services.AddProfessionalModule(configuration, connectionString);
 
-// Register AccountManagement facade
 builder.Services.AddAccountManagementFacade();
+builder.Services.AddProfileManagementFacade();
+builder.Services.AddProfessionalManagementFacade();
 
-// Register controllers from facade modules
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(AccountController).Assembly);
+    .AddApplicationPart(typeof(AccountController).Assembly)
+    .AddApplicationPart(typeof(ProfileController).Assembly)
+    .AddApplicationPart(typeof(ProfessionalController).Assembly);
 ```
 
 ## Middleware Pipeline
 
-1. **HTTPS Redirection** - Redirects HTTP to HTTPS
-2. **CORS** - Handles cross-origin requests
-3. **Authentication** - JWT token validation
-4. **Authorization** - Role/claim-based access
-5. **Controllers** - Route to appropriate endpoints
+1. Swagger (Development)
+2. HTTPS redirection
+3. CORS
+4. Static files (`/uploads`)
+5. Authentication / Authorization
+6. Controllers
 
-## Security Considerations
+## Security
 
 ### Development
-- HTTPS not required for local development
-- Long token expiration for testing convenience
-- Permissive CORS policy
+- Permissive CORS, `RequireHttpsMetadata = false`
+- Longer JWT lifetime in `appsettings.Development.json`
 
-### Production (Recommendations)
-- **RequireHttpsMetadata = true** in JWT configuration
-- **Short access token lifetime** (15 minutes)
-- **Specific CORS origins** instead of AllowAny
-- **Strong secret key** (use environment variables)
-- **Connection string** from secure configuration
-- **Enable rate limiting**
-- **Add request validation**
-- **Implement logging and monitoring**
+### Production
+- CORS from configured origins
+- `RequireHttpsMetadata = true`
+- Swagger disabled
+- Secrets via environment variables (not committed)
 
-## Adding New Facades
+## Docker
 
-To integrate a new facade module:
-
-1. **Add project reference**:
-```bash
-dotnet add reference ../NewModule/Facade.NewModule.DI/Facade.NewModule.DI.csproj
-dotnet add reference ../NewModule/Facade.NewModule.Controllers/Facade.NewModule.Controllers.csproj
-```
-
-2. **Register in Program.cs**:
-```csharp
-builder.Services.AddNewModuleFacade();
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(NewModuleController).Assembly);
-```
-
-3. **Run and test** - controllers automatically discovered
-
-## Environment Variables
-
-You can override appsettings.json with environment variables:
-
-```bash
-export ConnectionStrings__DefaultConnection="Host=prod-db;Database=linkedin_prod;..."
-export JwtSettings__SecretKey="production-secret-key"
-dotnet run
-```
-
-## Troubleshooting
-
-### Database Connection Issues
-- Verify PostgreSQL is running
-- Check connection string in appsettings.json
-- Ensure database exists or migrations are applied
-
-### JWT Token Issues
-- Verify SecretKey is at least 32 characters
-- Check token expiration settings
-- Ensure clocks are synchronized (server/client)
-
-### Swagger Not Loading
-- Check if running in Development environment
-- Verify Swashbuckle.AspNetCore package is installed
-- Check browser console for errors
-
-## Development Tips
-
-### Hot Reload
-```bash
-dotnet watch run
-```
-
-### Debug Logging
-In appsettings.Development.json, set:
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Debug"
-    }
-  }
-}
-```
-
-### Database Migrations
-Always create migrations from the DataAccess project:
-```bash
-cd backend/Identity/Identity.DataAccess
-dotnet ef migrations add MigrationName --context IdentityDbContext
-dotnet ef database update --context IdentityDbContext
-```
-
-## Deployment
-
-### Docker (Future)
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-WORKDIR /app
-EXPOSE 80
-EXPOSE 443
-
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
-COPY . .
-RUN dotnet restore
-RUN dotnet build -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Facade.API.dll"]
-```
-
-### Azure/Cloud
-- Configure environment variables for secrets
-- Use managed identity for database connections
-- Enable Application Insights for monitoring
-- Configure auto-scaling
-
-## Testing
-
-### Integration Tests
-```csharp
-public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
-{
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public ApiIntegrationTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory;
-    }
-
-    [Fact]
-    public async Task Register_ReturnsSuccess()
-    {
-        var client = _factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/account/register", 
-            new { email = "test@test.com", ... });
-        
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-}
-```
+Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runtime). See [DOCKER.md](../../DOCKER.md).
 
 ## Status
 
-✅ API successfully created and building  
-✅ JWT authentication configured  
-✅ Swagger UI integrated  
-✅ AccountManagement facade integrated  
-✅ CORS configured  
-✅ Ready for database migration and testing  
+✅ All core and facade modules integrated  
+✅ JWT + refresh tokens  
+✅ Swagger at `/swagger` (Development)  
+✅ Profile uploads + static file serving  
+✅ Dev/Production security split  
 
-## Next Steps
+## Related docs
 
-1. Apply database migrations
-2. Test API endpoints with Swagger
-3. Add more facade modules as they're developed
-4. Configure production settings
-5. Add API versioning
-6. Implement rate limiting
-7. Add health check endpoints
-8. Configure logging and monitoring
+- [INTEGRATION.md](./INTEGRATION.md) — integration and data flow details
+- [AccountManagement facade](../AccountManagement/README.md)

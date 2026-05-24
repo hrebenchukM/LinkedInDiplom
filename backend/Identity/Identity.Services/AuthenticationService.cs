@@ -57,6 +57,16 @@ public class AuthenticationService : IAuthenticationService
             };
         }
 
+        // Soft-deleted пользователь не может войти
+        if (user.DeletedAt != null)
+        {
+            return new LoginResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Invalid email or password." }
+            };
+        }
+
         // Проверяем, не заблокирован ли аккаунт
         if (await _userManager.IsLockedOutAsync(user))
         {
@@ -111,6 +121,16 @@ public class AuthenticationService : IAuthenticationService
 
         // Если токена нет или он неактивный — ошибка
         if (refreshToken == null || !refreshToken.IsActive)
+        {
+            return new RefreshTokenResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Invalid or expired refresh token." }
+            };
+        }
+
+        // Soft-deleted пользователь не может обновить токен
+        if (refreshToken.User.DeletedAt != null)
         {
             return new RefreshTokenResult
             {

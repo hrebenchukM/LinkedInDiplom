@@ -25,7 +25,7 @@ This will:
 - Build the Facade.API Docker image
 - Create and start both containers
 - Apply database migrations automatically
-- Make the API available at http://localhost:5000
+- Make the API available at http://localhost:5000 (Swagger: http://localhost:5000/swagger)
 
 ### 2. Check the status
 
@@ -52,7 +52,7 @@ docker-compose logs -f postgres
 
 ### 4. Access the API
 
-- **Swagger UI**: http://localhost:5000
+- **Swagger UI**: http://localhost:5000/swagger
 - **API Base URL**: http://localhost:5000/api
 
 ### 5. Stop the application
@@ -78,7 +78,7 @@ docker-compose down -v
 │  ┌──────────────────────────────┐   │
 │  │  linkedin-api                │   │
 │  │  Port: 5000 → 8080           │   │
-│  │  .NET 10 Runtime              │   │
+│  │  .NET 8 Runtime               │   │
 │  │  Auto-applies migrations      │   │
 │  └──────────┬───────────────────┘   │
 │             │                        │
@@ -101,6 +101,7 @@ Both containers run on a custom bridge network `linkedin-network`, allowing them
 ### Volumes
 
 - `postgres_data` - Persists PostgreSQL data between container restarts
+- `profile_uploads` - Persists uploaded profile files (avatars, headers) at `/app/uploads`
 
 ## Configuration
 
@@ -140,13 +141,13 @@ api:
 The `Dockerfile` uses a multi-stage build for optimization:
 
 ### Stage 1: Build
-- Base: `mcr.microsoft.com/dotnet/sdk:10.0`
+- Base: `mcr.microsoft.com/dotnet/sdk:8.0`
 - Restores NuGet packages
 - Builds the solution
 - Publishes the application
 
 ### Stage 2: Runtime
-- Base: `mcr.microsoft.com/dotnet/aspnet:10.0`
+- Base: `mcr.microsoft.com/dotnet/aspnet:8.0`
 - Copies published artifacts
 - Exposes ports 8080 and 8081
 - Applies migrations on startup
@@ -156,7 +157,7 @@ The `Dockerfile` uses a multi-stage build for optimization:
 
 ### Automatic Migrations
 
-Migrations are automatically applied on API startup via `DatabaseExtensions.ApplyMigrationsAsync()`.
+Migrations are automatically applied on API startup via `DatabaseExtensions.ApplyMigrationsAsync()` for all module DbContexts: **Identity**, **Profile**, and **Professional** (PostgreSQL schemas: `identity`, `profile`, `professional`).
 
 ### Manual Migration Application
 
@@ -470,9 +471,9 @@ For issues or questions:
 ## Version Information
 
 - **Docker Compose File Version**: 3.8
-- **.NET Version**: 10.0
+- **.NET Version**: 8.0
 - **PostgreSQL Version**: 16 (Alpine)
 - **Base Images**:
-  - Build: `mcr.microsoft.com/dotnet/sdk:10.0`
-  - Runtime: `mcr.microsoft.com/dotnet/aspnet:10.0`
+  - Build: `mcr.microsoft.com/dotnet/sdk:8.0`
+  - Runtime: `mcr.microsoft.com/dotnet/aspnet:8.0`
   - Database: `postgres:16-alpine`

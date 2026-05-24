@@ -19,5 +19,6 @@ public record UpdateMyProfileRequest
 
     public string? PortfolioUrl { get; init; }
 
-    public bool IsCompany { get; init; }
+    // Если null — поле не меняем (partial PUT).
+    public bool? IsCompany { get; init; }
 }

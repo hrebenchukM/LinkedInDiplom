@@ -1,6 +1,6 @@
 # LinkedIn Clone - Modular Monolith Backend
 
-A modular monolith backend for LinkedIn Clone built with .NET 10, implementing layered architecture with Backend-for-Frontend (BFF) pattern.
+A modular monolith backend for LinkedIn Clone built with **.NET 8**, implementing layered architecture with Backend-for-Frontend (BFF) pattern. The solution is **prepared for microservices** (in-process clients and domain events today; not deployed as separate services).
 
 ## 🚀 Quick Start with Docker
 
@@ -10,14 +10,14 @@ The fastest way to run the application:
 # Start the application
 docker-compose up -d
 
-# Access Swagger UI
-# Open browser to http://localhost:5000
+# Access Swagger UI (Development)
+# Open browser to http://localhost:5000/swagger
 ```
 
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically
+- ✅ Apply database migrations automatically (Identity, Profile, Professional)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -33,7 +33,7 @@ docker-compose down
 - That's all you need!
 
 ### For Local Development
-- .NET 10 SDK
+- **.NET 8 SDK**
 - PostgreSQL 15+
 - Your favorite IDE (Visual Studio, VS Code, Rider)
 
@@ -41,53 +41,78 @@ docker-compose down
 
 This project implements a **microservice-ready modular monolith** with:
 
-- ✅ **Modular Monolith** - Independent domain modules
+- ✅ **Modular Monolith** - Independent domain modules in one deploy unit (`Facade.API`)
 - ✅ **Layered Architecture** - Concentric layers with dependency inversion
 - ✅ **Backend for Frontend (BFF)** - Client-optimized facade layer
-- ✅ **Loose Coupling** - Communication through contracts
-- ✅ **Database per Module** - Logical separation with DbContexts
-- ✅ **Resource Pattern** - Microservice migration seam
+- ✅ **Loose Coupling** - Communication through contracts and domain events
+- ✅ **Database per Module** - Logical separation with DbContexts and PostgreSQL schemas
+- ✅ **Resource / Client Pattern** - Seam for future HTTP-based microservice clients
 
 ### Project Structure
 
 ```
 LinkedInDiplom/
 ├── backend/
-│   ├── Identity/                    # Core Identity Module (8 projects)
-│   │   ├── Identity.Contracts       # DTOs, Parameters, Results
-│   │   ├── Identity.Services        # Business logic
-│   │   ├── Identity.DataAccess      # EF Core, Entities, Migrations
-│   │   ├── Identity.Client          # Resource pattern implementation
-│   │   ├── Identity.Client.Contracts # Resource interfaces
-│   │   ├── Identity.Events.Contracts # Domain events
-│   │   ├── Identity.Events          # Event handlers
-│   │   └── Identity.DI              # DI composition
+│   ├── Identity/                    # Core: authentication (8 projects)
+│   │   ├── Identity.Contracts
+│   │   ├── Identity.Services
+│   │   ├── Identity.DataAccess      # schema: identity
+│   │   ├── Identity.Client.Contracts
+│   │   ├── Identity.Client
+│   │   ├── Identity.Events.Contracts
+│   │   ├── Identity.Events
+│   │   └── Identity.DI
 │   │
-│   ├── AccountManagement/           # AccountManagement Facade (4 projects)
-│   │   ├── Facade.AccountManagement.Contracts    # Facade DTOs
-│   │   ├── Facade.AccountManagement.Services     # Orchestration
-│   │   ├── Facade.AccountManagement.Controllers  # REST API
-│   │   └── Facade.AccountManagement.DI           # DI composition
+│   ├── Profile/                     # Core: user profiles (6 projects)
+│   │   ├── Profile.Contracts
+│   │   ├── Profile.Services
+│   │   ├── Profile.DataAccess       # schema: profile
+│   │   ├── Profile.Client.Contracts
+│   │   ├── Profile.Client
+│   │   └── Profile.DI
 │   │
-│   └── Facade.API/                  # Main API Entry Point
-│       ├── Program.cs               # Application bootstrap
-│       └── appsettings.json         # Configuration
+│   ├── Professional/                # Core: companies & experience (6 projects)
+│   │   ├── Professional.Contracts
+│   │   ├── Professional.Services
+│   │   ├── Professional.DataAccess # schema: professional
+│   │   ├── Professional.Client.Contracts
+│   │   ├── Professional.Client
+│   │   └── Professional.DI
+│   │
+│   ├── AccountManagement/           # Facade: auth BFF (4 projects)
+│   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
+│   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
+│   │
+│   └── Facade.API/                  # Host: single entry point
 │
-├── docker-compose.yml               # Docker Compose configuration
-├── Dockerfile                       # Multi-stage Docker build
-└── LinkedIn.sln                     # Solution file
+├── docker-compose.yml
+├── Dockerfile
+└── LinkedIn.sln                     # 33 projects
 ```
 
-## 🔌 API Endpoints
+Each **Core module** follows: `Contracts` → `Services` → `DataAccess`, plus `Client.Contracts` / `Client` (resource pattern) and `DI`.
+
+Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` → `Facade.*.Controllers` + `Facade.*.DI`.
+
+## 🔌 API Endpoints (overview)
+
+| Route prefix | Purpose |
+|--------------|---------|
+| `/api/auth` | Register, login, refresh, logout, current account |
+| `/api/profile` | Profile CRUD, avatar/header upload |
+| `/api/professional` | Companies and work experience |
+
+### Auth (`/api/auth`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/account/register` | POST | Register new user account |
-| `/api/account/login` | POST | Login and receive JWT tokens |
-| `/api/account/refresh` | POST | Refresh access token |
-| `/api/account/logout` | POST | Revoke refresh token |
+| `/api/auth/register` | POST | Register new user account |
+| `/api/auth/login` | POST | Login and receive JWT tokens |
+| `/api/auth/refresh` | POST | Refresh access token |
+| `/api/auth/logout` | POST | Revoke refresh token |
+| `/api/auth/me` | GET | Current account (JWT required) |
 
-Full API documentation available at: **http://localhost:5000** (Swagger UI)
+Full API documentation (Development): **http://localhost:5000/swagger**
 
 ## 🛠️ Development
 
@@ -97,30 +122,24 @@ Full API documentation available at: **http://localhost:5000** (Swagger UI)
 
 2. **Update connection string** in `backend/Facade.API/appsettings.Development.json`
 
-3. **Apply migrations**:
-```bash
-cd backend/Identity/Identity.DataAccess
-dotnet ef database update --context IdentityDbContext
-```
-
-4. **Run the API**:
+3. **Run the API** (migrations apply automatically on startup):
 ```bash
 cd backend/Facade.API
 dotnet run
 ```
 
-5. **Access the API**: http://localhost:5000
+4. **Access Swagger**: http://localhost:5000/swagger
+
+Optional manual migrations:
+```bash
+cd backend/Identity/Identity.DataAccess
+dotnet ef database update --context IdentityDbContext
+```
 
 ### Build Solution
 
 ```bash
 dotnet build LinkedIn.sln
-```
-
-### Run Tests
-
-```bash
-dotnet test LinkedIn.sln
 ```
 
 ## 🔐 Authentication
@@ -130,98 +149,111 @@ The API uses JWT Bearer token authentication with:
 - **Access Tokens**: Short-lived (15 min in production, 60 min in development)
 - **Refresh Tokens**: Long-lived (7 days in production, 30 days in development)
 - **Token Rotation**: Old refresh token revoked when refreshed
-- **Secure Storage**: Refresh tokens stored in PostgreSQL
+- **Secure Storage**: Refresh tokens stored in PostgreSQL (`identity` schema)
 
 ### Example: Login and Use Token
 
-1. **Register/Login** to get tokens
+1. **Register/Login** via `/api/auth/register` or `/api/auth/login`
 2. **Copy the access token** from response
-3. **Click "Authorize"** in Swagger UI
+3. Open **Swagger** at `/swagger`, click **Authorize**
 4. **Enter**: `Bearer <your-access-token>`
-5. **Use protected endpoints**
+5. Use protected endpoints (`/api/auth/me`, `/api/profile/me`, etc.)
 
 ## 📦 Modules
 
-### Identity Module (Core)
-- User registration and management
-- JWT token generation and validation
-- Refresh token management
-- ASP.NET Core Identity integration
-- PostgreSQL database with `identity` schema
+### Identity (Core)
+- User registration, JWT, refresh tokens
+- ASP.NET Core Identity
+- Publishes `UserRegisteredEvent` after registration
+- PostgreSQL schema: `identity`
 
-### AccountManagement Facade (BFF)
-- Client-optimized DTOs
-- Request validation
-- DTO mapping from Identity module
-- REST API controllers
-- Orchestration layer
+### Profile (Core)
+- User profiles (name, headline, location, etc.)
+- Created automatically via `UserRegisteredEvent` handler
+- PostgreSQL schema: `profile`
 
-## 🐳 Docker Details
+### Professional (Core)
+- Companies and work experience
+- PostgreSQL schema: `professional`
 
-### Services
-- **linkedin-postgres**: PostgreSQL 16 Alpine
-- **linkedin-api**: .NET 10 API
+### AccountManagement (Facade / BFF)
+- Client-facing auth API at `/api/auth`
+- Maps facade DTOs ↔ Identity via `IIdentityClient`
 
-### Volumes
-- **postgres_data**: Persists database data
+### ProfileManagement (Facade / BFF)
+- Profile API at `/api/profile`
+- Avatar and header file upload (`/uploads/...`)
+- Maps via `IProfileClient`
 
-### Networks
-- **linkedin-network**: Bridge network for service communication
+### ProfessionalManagement (Facade / BFF)
+- Career API at `/api/professional`
+- Maps via `IProfessionalClient`
 
-### Configuration
-All configuration via environment variables in `docker-compose.yml`
-
-For detailed Docker documentation, see [DOCKER.md](./DOCKER.md)
-
-## 📚 Documentation
-
-- **[Architecture Documentation](./backend/README.md)** - Detailed architecture overview
-- **[Docker Setup](./DOCKER.md)** - Complete Docker guide
-- **[Identity Module](./backend/Identity/README.md)** - Identity module details
-- **[Facade.API](./backend/Facade.API/README.md)** - API documentation
-- **[AccountManagement Facade](./backend/AccountManagement/README.md)** - Facade details
+### Facade.API (Host)
+- Composition root: registers all Core + Facade modules
+- JWT, CORS (dev/prod), Swagger (Development only)
+- Static files for uploads
 
 ## 🔄 Data Flow
 
 ```
 Client Application
     ↓ HTTP
-Facade.API (Entry Point)
+Facade.API (Host)
     ↓
-AccountManagement Facade (BFF Layer)
-    ↓
-Identity Module (Core Layer)
-    ↓
-PostgreSQL Database
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement
+    ↓ I*Client (in-process, microservice-ready seam)
+Core Modules: Identity | Profile | Professional
+    ↓ EF Core (separate DbContext per module)
+PostgreSQL (schemas: identity, profile, professional)
 ```
+
+Registration side-effect:
+```
+Identity.UserService → UserRegisteredEvent → Profile handler → empty profile
+```
+
+## 🐳 Docker Details
+
+### Services
+- **linkedin-postgres**: PostgreSQL 16 Alpine
+- **linkedin-api**: .NET 8 API
+
+### Volumes
+- **postgres_data**: Database persistence
+- **profile_uploads**: Uploaded profile files
+
+See [DOCKER.md](./DOCKER.md) for details.
+
+## 📚 Documentation
+
+- **[Docker Setup](./DOCKER.md)** - Complete Docker guide
+- **[Facade.API](./backend/Facade.API/README.md)** - Host API documentation
+- **[Facade.API Integration](./backend/Facade.API/INTEGRATION.md)** - Module integration overview
+- **[AccountManagement Facade](./backend/AccountManagement/README.md)** - Auth facade details
 
 ## 🧪 Testing
 
 ### Using Swagger UI
 
-1. Navigate to http://localhost:5000
-2. Expand `POST /api/account/register`
-3. Click "Try it out"
-4. Fill in the request body
-5. Click "Execute"
-6. Use the returned token for authenticated endpoints
+1. Navigate to http://localhost:5000/swagger
+2. Expand `POST /api/auth/register`
+3. Click "Try it out", send `{ "email": "...", "password": "..." }`
+4. Use returned token for authorized endpoints
 
 ### Using cURL
 
 ```bash
 # Register
-curl -X POST http://localhost:5000/api/account/register \
+curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
-    "userName": "testuser",
-    "password": "Test123!",
-    "firstName": "Test",
-    "lastName": "User"
+    "password": "Test123!"
   }'
 
 # Login
-curl -X POST http://localhost:5000/api/account/login \
+curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -231,57 +263,40 @@ curl -X POST http://localhost:5000/api/account/login \
 
 ## 🚦 Status
 
-✅ **Identity Core Module** - Complete with authentication  
-✅ **AccountManagement Facade** - Complete with REST API  
-✅ **Facade.API** - Complete and integrated  
-✅ **Docker Support** - Complete with docker-compose  
+✅ **Identity Core Module** - Authentication and events  
+✅ **Profile Core Module** - Profiles and event-driven creation  
+✅ **Professional Core Module** - Companies and experience  
+✅ **AccountManagement Facade** - `/api/auth`  
+✅ **ProfileManagement Facade** - `/api/profile` + uploads  
+✅ **ProfessionalManagement Facade** - `/api/professional`  
+✅ **Facade.API** - Single host, all modules integrated  
+✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
-✅ **JWT Authentication** - Complete with refresh tokens  
-✅ **Swagger Documentation** - Interactive API docs  
+✅ **JWT Authentication** - Access + refresh tokens  
 
 ## 🛣️ Roadmap
 
-- [ ] Profile management endpoints
 - [ ] Email verification
 - [ ] Password reset flow
-- [ ] Social media integration modules
-- [ ] Real-time notifications
-- [ ] File upload for profile pictures
+- [ ] Automated test projects
+- [ ] Health check endpoints
+- [ ] Outbox / message bus for domain events (future microservice split)
 - [ ] Admin panel
 - [ ] Analytics and monitoring
 
-## 🤝 Contributing
+## 💡 Tech Stack
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request
+- **.NET 8** / ASP.NET Core Web API
+- **Entity Framework Core 8** + Npgsql
+- **PostgreSQL 16**
+- **ASP.NET Core Identity** + JWT Bearer
+- **Swagger/OpenAPI** (Development)
+- **Docker** + Docker Compose
 
 ## 📝 License
 
 This project is for educational purposes.
 
-## 💡 Tech Stack
-
-- **.NET 10** - Latest .NET framework
-- **ASP.NET Core** - Web API framework
-- **Entity Framework Core 10** - ORM
-- **PostgreSQL 16** - Database
-- **ASP.NET Core Identity** - Authentication
-- **JWT Bearer Tokens** - Stateless auth
-- **Swagger/OpenAPI** - API documentation
-- **Docker** - Containerization
-- **Docker Compose** - Multi-container orchestration
-
-## 📞 Support
-
-For issues or questions:
-- Check the documentation files
-- Review logs: `docker-compose logs api`
-- Check Swagger UI for API details
-- Verify database connectivity
-
 ---
 
-**Built with ❤️ using .NET 10 and Clean Architecture principles**
+**Built with modular monolith architecture — prepared for microservices, deployed as a single application.**
