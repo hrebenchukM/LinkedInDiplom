@@ -10,11 +10,19 @@ public class ProfessionalClient : IProfessionalClient
 
     public ICompanyResource Companies { get; }
 
+    public IAcademyResource Academies { get; }
+
+    public IEducationResource Educations { get; }
+
     public ProfessionalClient(
         IExperienceResource experiences,
-        ICompanyResource companies)
+        ICompanyResource companies,
+        IAcademyResource academies,
+        IEducationResource educations)
     {
         Experiences = experiences;
         Companies = companies;
+        Academies = academies;
+        Educations = educations;
     }
 }

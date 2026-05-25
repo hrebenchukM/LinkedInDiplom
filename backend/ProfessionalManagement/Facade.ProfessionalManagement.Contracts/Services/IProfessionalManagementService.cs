@@ -1,5 +1,7 @@
 ﻿using Facade.ProfessionalManagement.Contracts.DTOs;
+using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
+using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
 using Facade.ProfessionalManagement.Contracts.Responses;
 
@@ -57,4 +59,30 @@ public interface IProfessionalManagementService
     Task<CompanyResponse> DeleteMyCompanyAsync(
         string userId,
         Guid companyId);
+
+    Task<AcademyDto?> GetAcademyByIdAsync(Guid academyId);
+
+    Task<AcademyResponse> CreateAcademyAsync(CreateAcademyRequest request);
+
+    Task<IReadOnlyCollection<EducationDto>> GetMyEducationsAsync(string userId);
+
+    Task<EducationDto?> GetMyEducationByIdAsync(string userId, Guid educationId);
+
+    Task<EducationResponse> CreateMyEducationAsync(
+        string userId,
+        CreateEducationRequest request);
+
+    Task<EducationResponse> UpdateMyEducationAsync(
+        string userId,
+        Guid educationId,
+        UpdateEducationRequest request);
+
+    Task<EducationResponse> PatchMyEducationAsync(
+        string userId,
+        Guid educationId,
+        PatchEducationRequest request);
+
+    Task<EducationResponse> DeleteMyEducationAsync(
+        string userId,
+        Guid educationId);
 }

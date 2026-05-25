@@ -28,10 +28,14 @@ public static class ProfessionalModuleServiceCollectionExtensions
         // Регистрируем сервис опыта работы
         services.AddScoped<IExperienceService, ExperienceService>();
         services.AddScoped<ICompanyService, CompanyService>();
+        services.AddScoped<IAcademyService, AcademyService>();
+        services.AddScoped<IEducationService, EducationService>();
 
         // Регистрируем Resource-слой Professional-модуля
         services.AddScoped<IExperienceResource, ExperienceResource>();
         services.AddScoped<ICompanyResource, CompanyResource>();
+        services.AddScoped<IAcademyResource, AcademyResource>();
+        services.AddScoped<IEducationResource, EducationResource>();
 
         // Регистрируем Client-слой Professional-модуля
         services.AddScoped<IProfessionalClient, ProfessionalClient>();

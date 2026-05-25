@@ -9,4 +9,8 @@ public interface IProfessionalClient
     IExperienceResource Experiences { get; }
 
     ICompanyResource Companies { get; }
+
+    IAcademyResource Academies { get; }
+
+    IEducationResource Educations { get; }
 }
