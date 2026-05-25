@@ -11,6 +11,8 @@ public class ProfessionalDbContext : DbContext
     public DbSet<Academy> Academies { get; set; } = default!;
     public DbSet<Education> Educations { get; set; } = default!;
     public DbSet<Certificate> Certificates { get; set; } = default!;
+    public DbSet<Skill> Skills { get; set; } = default!;
+    public DbSet<UserSkill> UserSkills { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -265,6 +267,74 @@ public class ProfessionalDbContext : DbContext
             entity.HasIndex(e => e.UserId);
 
             entity.HasIndex(e => e.AcademyId);
+        });
+
+        builder.Entity<Skill>(entity =>
+        {
+            entity.ToTable("skills");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("skill_id");
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Description)
+                .HasColumnName("description")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.Name);
+        });
+
+        builder.Entity<UserSkill>(entity =>
+        {
+            entity.ToTable("user_skills");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("user_skill_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.SkillId)
+                .HasColumnName("skill_id")
+                .IsRequired();
+
+            entity.Property(e => e.Level)
+                .HasColumnName("level")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.IsMain)
+                .HasColumnName("is_main");
+
+            entity.Property(e => e.OrderIndex)
+                .HasColumnName("order_index");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasIndex(e => e.SkillId);
+
+            entity.HasIndex(e => new { e.UserId, e.SkillId })
+                .IsUnique();
         });
     }
 }

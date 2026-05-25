@@ -15,4 +15,8 @@ public interface IProfessionalClient
     IEducationResource Educations { get; }
 
     ICertificateResource Certificates { get; }
+
+    ISkillResource Skills { get; }
+
+    IUserSkillResource UserSkills { get; }
 }

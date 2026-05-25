@@ -16,17 +16,25 @@ public class ProfessionalClient : IProfessionalClient
 
     public ICertificateResource Certificates { get; }
 
+    public ISkillResource Skills { get; }
+
+    public IUserSkillResource UserSkills { get; }
+
     public ProfessionalClient(
         IExperienceResource experiences,
         ICompanyResource companies,
         IAcademyResource academies,
         IEducationResource educations,
-        ICertificateResource certificates)
+        ICertificateResource certificates,
+        ISkillResource skills,
+        IUserSkillResource userSkills)
     {
         Experiences = experiences;
         Companies = companies;
         Academies = academies;
         Educations = educations;
         Certificates = certificates;
+        Skills = skills;
+        UserSkills = userSkills;
     }
 }

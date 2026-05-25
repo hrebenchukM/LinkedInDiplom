@@ -31,6 +31,8 @@ public static class ProfessionalModuleServiceCollectionExtensions
         services.AddScoped<IAcademyService, AcademyService>();
         services.AddScoped<IEducationService, EducationService>();
         services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<ISkillService, SkillService>();
+        services.AddScoped<IUserSkillService, UserSkillService>();
 
         // Регистрируем Resource-слой Professional-модуля
         services.AddScoped<IExperienceResource, ExperienceResource>();
@@ -38,6 +40,8 @@ public static class ProfessionalModuleServiceCollectionExtensions
         services.AddScoped<IAcademyResource, AcademyResource>();
         services.AddScoped<IEducationResource, EducationResource>();
         services.AddScoped<ICertificateResource, CertificateResource>();
+        services.AddScoped<ISkillResource, SkillResource>();
+        services.AddScoped<IUserSkillResource, UserSkillResource>();
 
         // Регистрируем Client-слой Professional-модуля
         services.AddScoped<IProfessionalClient, ProfessionalClient>();

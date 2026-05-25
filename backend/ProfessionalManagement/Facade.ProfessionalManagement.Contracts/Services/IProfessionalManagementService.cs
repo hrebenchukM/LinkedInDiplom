@@ -4,6 +4,8 @@ using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
+using Facade.ProfessionalManagement.Contracts.Requests.Skill;
+using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 
 namespace Facade.ProfessionalManagement.Contracts.Services;
@@ -108,4 +110,30 @@ public interface IProfessionalManagementService
     Task<CertificateResponse> DeleteMyCertificateAsync(
         string userId,
         Guid certificateId);
+
+    Task<SkillDto?> GetSkillByIdAsync(Guid skillId);
+
+    Task<SkillResponse> CreateSkillAsync(CreateSkillRequest request);
+
+    Task<IReadOnlyCollection<UserSkillDto>> GetMyUserSkillsAsync(string userId);
+
+    Task<UserSkillDto?> GetMyUserSkillByIdAsync(string userId, Guid userSkillId);
+
+    Task<UserSkillResponse> CreateMyUserSkillAsync(
+        string userId,
+        CreateUserSkillRequest request);
+
+    Task<UserSkillResponse> UpdateMyUserSkillAsync(
+        string userId,
+        Guid userSkillId,
+        UpdateUserSkillRequest request);
+
+    Task<UserSkillResponse> PatchMyUserSkillAsync(
+        string userId,
+        Guid userSkillId,
+        PatchUserSkillRequest request);
+
+    Task<UserSkillResponse> DeleteMyUserSkillAsync(
+        string userId,
+        Guid userSkillId);
 }
