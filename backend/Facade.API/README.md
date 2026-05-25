@@ -95,7 +95,30 @@ dotnet ef database update --context IdentityDbContext
 
 ### Professional — `/api/professional`
 
-Experiences and companies under `/api/professional/me/...` (see Swagger for full list).
+Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` routes comes **only from JWT** (`NameIdentifier` / `sub`).
+
+**Catalog v1** (authenticated create, public get-by-id): Academy, Skill, Language — no catalog update/delete in v1.
+
+**User-owned** (full CRUD under `/me/...`): experiences, companies, educations, certificates, user skills, user languages.
+
+| Area | Method | Path | Auth |
+|------|--------|------|------|
+| Companies | GET | `/api/professional/me/companies` | Yes |
+| Companies | GET | `/api/professional/companies/{companyId}` | No |
+| Companies | POST, PUT, PATCH, DELETE | `/api/professional/me/companies[/{companyId}]` | Yes |
+| Experiences | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/experiences[/{experienceId}]` | Yes |
+| Academies | GET | `/api/professional/academies/{academyId}` | No |
+| Academies | POST | `/api/professional/academies` | Yes |
+| Educations | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/educations[/{educationId}]` | Yes |
+| Certificates | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/certificates[/{certificateId}]` | Yes |
+| Skills | GET | `/api/professional/skills/{skillId}` | No |
+| Skills | POST | `/api/professional/skills` | Yes |
+| User skills | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/skills[/{userSkillId}]` | Yes |
+| Languages | GET | `/api/professional/languages/{languageId}` | No |
+| Languages | POST | `/api/professional/languages` | Yes |
+| User languages | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/languages[/{userLanguageId}]` | Yes |
+
+Full tables and behavior: [Professional module README](../Professional/README.md).
 
 ## Module Integration (Program.cs)
 
@@ -151,3 +174,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 
 - [INTEGRATION.md](./INTEGRATION.md) — integration and data flow details
 - [AccountManagement facade](../AccountManagement/README.md)
+- [Professional module](../Professional/README.md)

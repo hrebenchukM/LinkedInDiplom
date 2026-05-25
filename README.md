@@ -71,7 +71,7 @@ LinkedInDiplom/
 │   │   ├── Profile.Client
 │   │   └── Profile.DI
 │   │
-│   ├── Professional/                # Core: companies & experience (6 projects)
+│   ├── Professional/                # Core: career profile data (6 projects)
 │   │   ├── Professional.Contracts
 │   │   ├── Professional.Services
 │   │   ├── Professional.DataAccess # schema: professional
@@ -100,7 +100,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 |--------------|---------|
 | `/api/auth` | Register, login, refresh, logout, current account |
 | `/api/profile` | Profile CRUD, avatar/header upload |
-| `/api/professional` | Companies and work experience |
+| `/api/professional` | Career data: companies, experience, education, certificates, skills, languages |
 
 ### Auth (`/api/auth`)
 
@@ -173,8 +173,10 @@ The API uses JWT Bearer token authentication with:
 - PostgreSQL schema: `profile`
 
 ### Professional (Core)
-- Companies and work experience
-- PostgreSQL schema: `professional`
+- Modular monolith core module; PostgreSQL schema: `professional`
+- Entities: Companies, Experiences, Academies, Educations, Certificates, Skills, UserSkills, Languages, UserLanguages
+- Exposed to clients via **ProfessionalManagement** facade (`IProfessionalClient` in-process)
+- See [backend/Professional/README.md](./backend/Professional/README.md) for architecture and Swagger routes
 
 ### AccountManagement (Facade / BFF)
 - Client-facing auth API at `/api/auth`
@@ -186,7 +188,9 @@ The API uses JWT Bearer token authentication with:
 - Maps via `IProfileClient`
 
 ### ProfessionalManagement (Facade / BFF)
-- Career API at `/api/professional`
+- Career API at `/api/professional` (.NET 8)
+- Catalog v1 (Academy, Skill, Language): authenticated `POST` + public `GET` by id
+- User data: full CRUD under `/api/professional/me/...`; `userId` from JWT only
 - Maps via `IProfessionalClient`
 
 ### Facade.API (Host)
@@ -231,6 +235,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Facade.API](./backend/Facade.API/README.md)** - Host API documentation
 - **[Facade.API Integration](./backend/Facade.API/INTEGRATION.md)** - Module integration overview
 - **[AccountManagement Facade](./backend/AccountManagement/README.md)** - Auth facade details
+- **[Professional Module](./backend/Professional/README.md)** - Career core module and `/api/professional` endpoints
 
 ## 🧪 Testing
 
@@ -265,7 +270,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 
 ✅ **Identity Core Module** - Authentication and events  
 ✅ **Profile Core Module** - Profiles and event-driven creation  
-✅ **Professional Core Module** - Companies and experience  
+✅ **Professional Core Module** - Companies, experience, education, certificates, skills, languages  
 ✅ **AccountManagement Facade** - `/api/auth`  
 ✅ **ProfileManagement Facade** - `/api/profile` + uploads  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  

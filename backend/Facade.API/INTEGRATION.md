@@ -27,7 +27,7 @@ Controllers are discovered via `AddApplicationPart` from each facade Controllers
 |--------|------------|----------|
 | `/api/auth` | AccountController | register, login, refresh, logout, me |
 | `/api/profile` | ProfileController | me, {userId}, avatar, header |
-| `/api/professional` | ProfessionalController | me/experiences, me/companies |
+| `/api/professional` | ProfessionalController | career: companies, experiences, educations, certificates, skills, languages (see [Professional README](../Professional/README.md)) |
 
 Swagger (Development): **http://localhost:5000/swagger**
 
@@ -91,6 +91,18 @@ HTTP → ProfileController (/api/profile)
     → ProfileService → ProfileDbContext (profile schema)
 ```
 
+## Architecture Flow (Professional)
+
+```
+HTTP → ProfessionalController (/api/professional)
+    → ProfessionalManagementService
+    → IProfessionalClient
+    → *Resource → *Service → ProfessionalDbContext (professional schema)
+```
+
+- **Catalog v1** (`academies`, `skills`, `languages`): `POST` (JWT) + `GET /{id}` (public).
+- **User data** (`/me/...`): JWT required; `userId` from claims only; PATCH merges omitted fields in the service layer.
+
 ## Cross-Module Event
 
 ```
@@ -148,7 +160,9 @@ Facade.API
 3. `GET /api/auth/me`
 4. `GET /api/profile/me` (profile created via event)
 5. Upload avatar via `/api/profile/me/avatar`
-6. Refresh and logout tokens
+6. `POST /api/professional/languages` then `GET /api/professional/languages/{id}` (public)
+7. `POST /api/professional/me/languages` with returned `languageId`
+8. Refresh and logout tokens
 
 ## Future (roadmap, not implemented)
 
@@ -161,4 +175,5 @@ Facade.API
 
 - [Facade.API README](./README.md)
 - [AccountManagement facade](../AccountManagement/README.md)
+- [Professional module README](../Professional/README.md)
 - [Root README](../../README.md)

@@ -50,7 +50,7 @@ linkedin-api            Up       0.0.0.0:5000->8080/tcp
 
 Open: **http://localhost:5000/swagger**
 
-Interactive documentation for `/api/auth`, `/api/profile`, and `/api/professional`.
+Interactive documentation for `/api/auth`, `/api/profile`, and `/api/professional` (companies, experience, education, certificates, skills, languages). See [Professional module README](./backend/Professional/README.md).
 
 ### Option 2: Direct API Call
 
