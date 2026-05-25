@@ -100,7 +100,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 |--------------|---------|
 | `/api/auth` | Register, login, refresh, logout, current account |
 | `/api/profile` | Profile CRUD, avatar/header upload |
-| `/api/professional` | Career data: companies, experience, education, certificates, skills, languages |
+| `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 
 ### Auth (`/api/auth`)
 
@@ -173,10 +173,10 @@ The API uses JWT Bearer token authentication with:
 - PostgreSQL schema: `profile`
 
 ### Professional (Core)
-- Modular monolith core module; PostgreSQL schema: `professional`
-- Entities: Companies, Experiences, Academies, Educations, Certificates, Skills, UserSkills, Languages, UserLanguages
-- Exposed to clients via **ProfessionalManagement** facade (`IProfessionalClient` in-process)
-- See [backend/Professional/README.md](./backend/Professional/README.md) for architecture and Swagger routes
+- **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: `professional` — **fully implemented** for all career tables in `DB_SCHEMA.md` sections 2–3
+- Entities: **Companies**, **Experiences**, **Academies**, **Educations**, **Certificates**, **Skills**, **UserSkills**, **CertificateSkills**, **Languages**, **UserLanguages**, **RecommendedSkillsByPosition**, **Recommendations**
+- Exposed via **ProfessionalManagement** facade (`IProfessionalClient` in-process; microservice-ready seam)
+- See [backend/Professional/README.md](./backend/Professional/README.md) for architecture, security rules, and Swagger routes
 
 ### AccountManagement (Facade / BFF)
 - Client-facing auth API at `/api/auth`
@@ -188,9 +188,12 @@ The API uses JWT Bearer token authentication with:
 - Maps via `IProfileClient`
 
 ### ProfessionalManagement (Facade / BFF)
-- Career API at `/api/professional` (.NET 8)
-- Catalog v1 (Academy, Skill, Language): authenticated `POST` + public `GET` by id
+- Career API at `/api/professional` (.NET 8, modular monolith BFF)
+- Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
 - User data: full CRUD under `/api/professional/me/...`; `userId` from JWT only
+- **Certificate skills:** `/api/professional/me/certificates/{certificateId}/skills` (JWT; link certificate ↔ skill catalog)
+- **Recommended skills by position:** public `GET ?position=`; JWT `POST` / `DELETE /{rspId}`
+- **Recommendations:** public `GET /users/{userId}/recommendations` and `GET /recommendations/{id}`; JWT `POST` / `PATCH` / `DELETE` (author from JWT; soft delete)
 - Maps via `IProfessionalClient`
 
 ### Facade.API (Host)
@@ -270,7 +273,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 
 ✅ **Identity Core Module** - Authentication and events  
 ✅ **Profile Core Module** - Profiles and event-driven creation  
-✅ **Professional Core Module** - Companies, experience, education, certificates, skills, languages  
+✅ **Professional Core Module** - Full `professional` schema: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, recommendations  
 ✅ **AccountManagement Facade** - `/api/auth`  
 ✅ **ProfileManagement Facade** - `/api/profile` + uploads  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  

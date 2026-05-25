@@ -4,6 +4,8 @@ Core module of the LinkedIn Clone **modular monolith** (.NET 8). It owns career-
 
 The module is **not** deployed as a separate microservice today. Boundaries are enforced via projects, contracts, and `IProfessionalClient` — the same seam can later be replaced with HTTP clients without changing the facade surface.
 
+**Status:** The **`professional` schema from `DB_SCHEMA.md` (career + skills/languages + recommendations)** is fully implemented in this module — all tables below have DataAccess, services, client resources, and Facade endpoints. The solution remains a **modular monolith** on **.NET 8**, prepared for future microservice extraction.
+
 ## Architecture
 
 ```
@@ -46,9 +48,9 @@ Facade layer (separate folder `backend/ProfessionalManagement/`):
 | `Facade.ProfessionalManagement.Controllers` | `ProfessionalController` |
 | `Facade.ProfessionalManagement.DI` | `AddProfessionalManagementFacade` |
 
-## Implemented entities
+## Implemented entities (full `professional` schema)
 
-All tables live in schema **`professional`**. User-scoped rows store `user_id` as a string (Identity user id) **without** an EF relationship to `AspNetUsers`, so the Professional module does not reference Identity.DataAccess.
+All tables below live in schema **`professional`**. User-scoped rows store `user_id` (or `author_id`) as a string (Identity user id) **without** an EF relationship to `AspNetUsers`, so the Professional module does not reference Identity.DataAccess.
 
 | Entity | Table | Scope | API pattern (Facade) |
 |--------|-------|-------|----------------------|
@@ -56,15 +58,16 @@ All tables live in schema **`professional`**. User-scoped rows store `user_id` a
 | **Experience** | `experiences` | Per user | `/me/experiences` full CRUD |
 | **Academy** | `academies` | Global catalog | v1: `POST /academies`, `GET /academies/{id}` |
 | **Education** | `educations` | Per user | `/me/educations` full CRUD |
-| **Certificate** | `certificates` | Per user | `/me/certificates` full CRUD |
+| **Certificate** | `certificates` | Per user | `/me/certificates` full CRUD (soft delete) |
 | **Skill** | `skills` | Global catalog | v1: `POST /skills`, `GET /skills/{id}` |
 | **UserSkill** | `user_skills` | Per user | `/me/skills` full CRUD |
+| **CertificateSkill** | `certificate_skills` | Per certificate (owner via `certificates.user_id`) | `/me/certificates/{certificateId}/skills` — see [Certificate skills](#certificate-skills-certificate--skill) |
 | **Language** | `languages` | Global catalog | v1: `POST /languages`, `GET /languages/{id}` |
 | **UserLanguage** | `user_languages` | Per user | `/me/languages` full CRUD |
-| **CertificateSkill** | `certificate_skills` | Per certificate (owner via `certificates.user_id`) | `/me/certificates/{certificateId}/skills` list, get, create, delete |
-| **RecommendedSkillByPosition** | `recommended_skills_by_position` | Global recommendations by job title | `GET /recommended-skills?position=` public; `POST` / `DELETE /{rspId}` JWT |
+| **RecommendedSkillByPosition** | `recommended_skills_by_position` | Global skill hints by job title | `GET /recommended-skills?position=` public; `POST` / `DELETE /{rspId}` JWT |
+| **Recommendation** | `recommendations` | Author → recipient text | `GET /users/{userId}/recommendations` public; `POST` / `PATCH` / `DELETE /{id}` JWT — see [Recommendations](#recommendations-text-endorsements) |
 
-Not implemented yet (see `docs/database/DB_SCHEMA.md`): Recommendations (text endorsements), Posts, Jobs, Messaging, etc.
+**Not in this module** (other `DB_SCHEMA.md` sections): network (`contacts`, `follows`, …), posts, jobs, messaging, etc.
 
 ### Catalog v1 (Academy, Skill, Language)
 
@@ -111,6 +114,22 @@ Global reference data: which **skills** from the catalog are recommended for a g
 | Mutations | **POST** (create link) and **DELETE** (hard delete by `rspId`) only — no PUT/PATCH |
 | DELETE not found | Unknown `rspId` → **404** (`"Recommended skill not found."`) |
 | GET list | Returns all rows for the given `position`, sorted by `created_at` desc; empty array if none |
+
+### Recommendations (text endorsements)
+
+Text recommendations from one user (**author**) to another (**recipient**). Distinct from `recommended_skills_by_position` (job-title skill catalog). No contacts/network workflow in v1.
+
+| Rule | Behavior |
+|------|----------|
+| **GET list** | `GET /users/{userId}/recommendations` — **public**; `userId` = recipient; only `deleted_at IS NULL`; sorted `created_at` desc |
+| **GET by id** | `GET /recommendations/{recommendationId}` — **public**; deleted → **404** |
+| **POST** | **JWT**; `authorId` **only from JWT** (never from body); body `userId` = **recipient**; body `text` required |
+| **Self-write** | `authorId == recipient userId` → **400** (`"You cannot write a recommendation for yourself."`) |
+| **PATCH** | **JWT**; **only author**; changes **text** only; not author / missing / deleted → **404** |
+| **DELETE** | **JWT**; **only author**; **soft delete** (`deleted_at`, `updated_at`); not author / missing / already deleted → **404** |
+| **PUT** | Not implemented |
+| **`/me/recommendations`** | Not implemented in v1 |
+| **Identity check** | Recipient `userId` existence **not** validated in v1 |
 
 ## Swagger endpoints (`ProfessionalController`)
 
@@ -220,7 +239,25 @@ POST body: `{ "skillId": "<guid>" }`. POST checks **ModelState**. Duplicate skil
 
 GET requires non-empty query `position` (URL-encode spaces, e.g. `Software%20Engineer`). POST body: `{ "position": "...", "skillId": "<guid>" }`. POST checks **ModelState**. Duplicate `(position, skillId)` → **400**. Unknown skill → **400**. DELETE unknown `rspId` → **404**.
 
-There is **no** public API to list another user's skills, languages, educations, certificates, or certificate–skill links — only catalog lookups (`academies`, `skills`, `languages`, `companies`, **recommended skills by position**), and authenticated `/me/*` routes.
+### Recommendations (author → recipient)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/professional/users/{userId}/recommendations` | No |
+| GET | `/api/professional/recommendations/{recommendationId}` | No |
+| POST | `/api/professional/recommendations` | Yes |
+| PATCH | `/api/professional/recommendations/{recommendationId}` | Yes |
+| DELETE | `/api/professional/recommendations/{recommendationId}` | Yes |
+
+POST body: `{ "userId": "<recipient>", "text": "..." }` — **no** `authorId` in body. PATCH body: `{ "text": "..." }`. Empty text or self-recommendation on POST → **400**. PATCH/DELETE by non-author → **404**.
+
+### Public vs private summary
+
+**Public (no JWT):** catalog get-by-id (`academies`, `skills`, `languages`), `GET /companies/{id}`, `GET /recommended-skills?position=`, `GET /users/{userId}/recommendations`, `GET /recommendations/{id}`.
+
+**JWT required:** all `/me/*` routes, catalog `POST`, recommended-skills `POST`/`DELETE`, recommendations `POST`/`PATCH`/`DELETE`.
+
+There is **no** public API to list another user's skills, languages, educations, certificates, or certificate–skill links.
 
 ## Registration in Facade.API
 
@@ -244,10 +281,11 @@ Migrations for `ProfessionalDbContext` are applied on API startup together with 
 6. `GET` / `DELETE` certificate skills on your certificate; use another user's `certificateId` → **404**.
 7. Retry duplicate `skillId` / `languageId` on user profile POST → expect **400**.
 8. **Recommended skills by position:** `GET /api/professional/recommended-skills?position=Software%20Engineer` **without** token → **200** (may be `[]`). `POST /api/professional/recommended-skills` with JWT and catalog `skillId` → **200**; repeat same `position` + `skillId` → **400**; invalid `skillId` → **400**. `DELETE /api/professional/recommended-skills/{rspId}` with JWT → **200**; missing `rspId` → **404**. GET without `position` → **400**.
+9. **Recommendations:** Login as user **A** → `POST /api/professional/recommendations` with `{ "userId": "<B>", "text": "..." }` → **200**. POST with `userId` = A (self) → **400**. `GET /api/professional/users/{B}/recommendations` **without** token → **200**. Login as **B** → `PATCH` same recommendation → **404**. Login as **A** → `PATCH` → **200**; `DELETE` → **200**; GET list for B → empty; GET by id → **404**.
 
 ## Related documentation
 
-- [DB schema](../../docs/database/DB_SCHEMA.md) — section 2 (career) and section 3 (skills & languages)
+- [DB schema](../../docs/database/DB_SCHEMA.md) — sections 2–3 (career, skills/languages, recommendations); **Professional module implements all `professional` tables in those sections**
 - [Facade.API README](../Facade.API/README.md) — host and route overview
 - [Facade.API INTEGRATION](../Facade.API/INTEGRATION.md) — module wiring
 - [Root README](../../README.md) — solution-wide overview

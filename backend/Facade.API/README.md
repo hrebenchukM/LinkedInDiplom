@@ -95,13 +95,17 @@ dotnet ef database update --context IdentityDbContext
 
 ### Professional — `/api/professional`
 
-Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` routes comes **only from JWT** (`NameIdentifier` / `sub`).
+Career BFF over the **Professional** core module. The solution is a **modular monolith** on **.NET 8** (`TargetFramework net8.0`); the Professional core owns the full PostgreSQL **`professional`** schema (see [Professional module README](../Professional/README.md)).
+
+`userId` for `/me/*` routes comes **only from JWT** (`NameIdentifier` / `sub`). For recommendations, **`authorId` is JWT-only**; POST body `userId` is the **recipient**.
 
 **Catalog v1** (authenticated create, public get-by-id): Academy, Skill, Language — no catalog update/delete in v1.
 
-**Recommended skills by position** (global, not user data): public GET by `position` query; JWT POST/DELETE — links job title to catalog `skillId`; duplicate → 400.
+**Recommended skills by position** (global): public `GET ?position=`; JWT `POST` / `DELETE /{rspId}`.
 
-**User-owned** (full CRUD under `/me/...`): experiences, companies, educations, certificates, user skills, user languages.
+**Recommendations** (text endorsements): public `GET` list for a user and `GET` by id; JWT `POST` / `PATCH` / `DELETE` (author-only mutations, soft delete).
+
+**User-owned** (full CRUD under `/me/...`): experiences, companies, educations, certificates, user skills, user languages; **certificate skills** nested under `/me/certificates/{certificateId}/skills`.
 
 | Area | Method | Path | Auth |
 |------|--------|------|------|
@@ -113,7 +117,10 @@ Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` 
 | Academies | POST | `/api/professional/academies` | Yes |
 | Educations | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/educations[/{educationId}]` | Yes |
 | Certificates | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/certificates[/{certificateId}]` | Yes |
-| Certificate skills | GET, POST, DELETE | `/api/professional/me/certificates/{certificateId}/skills[/{certificateSkillId}]` | Yes (JWT only; links Certificate ↔ Skill; duplicate → 400; DELETE hard) |
+| Certificate skills | GET | `/api/professional/me/certificates/{certificateId}/skills` | Yes |
+| Certificate skills | GET | `/api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}` | Yes |
+| Certificate skills | POST | `/api/professional/me/certificates/{certificateId}/skills` | Yes (body: `skillId`; duplicate → 400; not owned cert → 404) |
+| Certificate skills | DELETE | `/api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}` | Yes (hard delete) |
 | Skills | GET | `/api/professional/skills/{skillId}` | No |
 | Skills | POST | `/api/professional/skills` | Yes |
 | User skills | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/skills[/{userSkillId}]` | Yes |
@@ -123,8 +130,13 @@ Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` 
 | Recommended skills by position | GET | `/api/professional/recommended-skills?position={position}` | No (requires `position`; blank → 400) |
 | Recommended skills by position | POST | `/api/professional/recommended-skills` | Yes (`position` + `skillId`; skill must exist; duplicate → 400) |
 | Recommended skills by position | DELETE | `/api/professional/recommended-skills/{rspId}` | Yes (not found → 404) |
+| Recommendations | GET | `/api/professional/users/{userId}/recommendations` | No (active only; soft-deleted hidden) |
+| Recommendations | GET | `/api/professional/recommendations/{recommendationId}` | No |
+| Recommendations | POST | `/api/professional/recommendations` | Yes (`userId` = recipient, `text`; author from JWT; self → 400) |
+| Recommendations | PATCH | `/api/professional/recommendations/{recommendationId}` | Yes (author only, `text` only; else → 404) |
+| Recommendations | DELETE | `/api/professional/recommendations/{recommendationId}` | Yes (author only, soft delete; else → 404) |
 
-Full tables and behavior: [Professional module README](../Professional/README.md).
+Full tables, security rules, and Swagger flows: [Professional module README](../Professional/README.md).
 
 ## Module Integration (Program.cs)
 
@@ -175,6 +187,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Swagger at `/swagger` (Development)  
 ✅ Profile uploads + static file serving  
 ✅ Dev/Production security split  
+✅ **Professional module** — full `professional` schema (companies through recommendations)  
 
 ## Related docs
 
