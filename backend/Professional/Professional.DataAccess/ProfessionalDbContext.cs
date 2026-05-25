@@ -17,6 +17,7 @@ public class ProfessionalDbContext : DbContext
     public DbSet<UserLanguage> UserLanguages { get; set; } = default!;
     public DbSet<CertificateSkill> CertificateSkills { get; set; } = default!;
     public DbSet<RecommendedSkillByPosition> RecommendedSkillsByPosition { get; set; } = default!;
+    public DbSet<Recommendation> Recommendations { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -463,6 +464,43 @@ public class ProfessionalDbContext : DbContext
             entity.HasIndex(e => new { e.Position, e.SkillId })
                 .IsUnique()
                 .HasDatabaseName("IX_recommended_skills_by_position_position_skill_id");
+        });
+
+        builder.Entity<Recommendation>(entity =>
+        {
+            entity.ToTable("recommendations");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("recommendation_id");
+
+            entity.Property(e => e.AuthorId)
+                .HasColumnName("author_id")
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.Text)
+                .HasColumnName("text")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_recommendations_user_id");
+
+            entity.HasIndex(e => e.AuthorId)
+                .HasDatabaseName("IX_recommendations_author_id");
         });
     }
 }

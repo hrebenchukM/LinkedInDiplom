@@ -8,6 +8,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
+using Facade.ProfessionalManagement.Contracts.Requests.Recommendation;
 using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
@@ -22,6 +23,7 @@ using Professional.Contracts.Parameters.CertificateSkill;
 using Professional.Contracts.Parameters.Language;
 using Professional.Contracts.Parameters.Skill;
 using Professional.Contracts.Parameters.UserLanguage;
+using Professional.Contracts.Parameters.Recommendation;
 using Professional.Contracts.Parameters.RecommendedSkillByPosition;
 using Professional.Contracts.Parameters.UserSkill;
 
@@ -1181,6 +1183,115 @@ public class ProfessionalManagementService : IProfessionalManagementService
             SkillId = recommendedSkill.SkillId,
             CreatedAt = recommendedSkill.CreatedAt,
             UpdatedAt = recommendedSkill.UpdatedAt
+        };
+    }
+
+    // Получить рекомендации для получателя (публичный список)
+    public async Task<IReadOnlyCollection<RecommendationDto>> GetRecommendationsForUserAsync(string userId)
+    {
+        var recommendations = await _professionalClient.Recommendations.GetRecommendationsForUserAsync(
+            new GetRecommendationsForUserParameters
+            {
+                UserId = userId
+            });
+
+        return recommendations
+            .Select(MapToFacadeDto)
+            .ToList();
+    }
+
+    // Получить одну рекомендацию по Id (публичный)
+    public async Task<RecommendationDto?> GetRecommendationByIdAsync(Guid recommendationId)
+    {
+        var recommendation = await _professionalClient.Recommendations.GetByIdAsync(
+            new GetRecommendationByIdParameters
+            {
+                RecommendationId = recommendationId
+            });
+
+        return recommendation == null ? null : MapToFacadeDto(recommendation);
+    }
+
+    // Создать рекомендацию (authorId из JWT)
+    public async Task<RecommendationResponse> CreateRecommendationAsync(
+        string authorId,
+        CreateRecommendationRequest request)
+    {
+        var result = await _professionalClient.Recommendations.CreateAsync(
+            new CreateRecommendationParameters
+            {
+                AuthorId = authorId,
+                UserId = request.UserId,
+                Text = request.Text
+            });
+
+        return new RecommendationResponse
+        {
+            Success = result.Succeeded,
+            Recommendation = result.Recommendation == null
+                ? null
+                : MapToFacadeDto(result.Recommendation),
+            Errors = result.Errors
+        };
+    }
+
+    // Обновить текст рекомендации (только автор)
+    public async Task<RecommendationResponse> PatchRecommendationAsync(
+        string authorId,
+        Guid recommendationId,
+        PatchRecommendationRequest request)
+    {
+        var result = await _professionalClient.Recommendations.PatchAsync(
+            new PatchRecommendationParameters
+            {
+                AuthorId = authorId,
+                RecommendationId = recommendationId,
+                Text = request.Text
+            });
+
+        return new RecommendationResponse
+        {
+            Success = result.Succeeded,
+            Recommendation = result.Recommendation == null
+                ? null
+                : MapToFacadeDto(result.Recommendation),
+            Errors = result.Errors
+        };
+    }
+
+    // Soft delete рекомендации (только автор)
+    public async Task<RecommendationResponse> DeleteRecommendationAsync(
+        string authorId,
+        Guid recommendationId)
+    {
+        var result = await _professionalClient.Recommendations.DeleteAsync(
+            new DeleteRecommendationParameters
+            {
+                AuthorId = authorId,
+                RecommendationId = recommendationId
+            });
+
+        return new RecommendationResponse
+        {
+            Success = result.Succeeded,
+            Recommendation = result.Recommendation == null
+                ? null
+                : MapToFacadeDto(result.Recommendation),
+            Errors = result.Errors
+        };
+    }
+
+    private static RecommendationDto MapToFacadeDto(
+        Professional.Contracts.DTOs.RecommendationDto recommendation)
+    {
+        return new RecommendationDto
+        {
+            Id = recommendation.Id,
+            AuthorId = recommendation.AuthorId,
+            UserId = recommendation.UserId,
+            Text = recommendation.Text,
+            CreatedAt = recommendation.CreatedAt,
+            UpdatedAt = recommendation.UpdatedAt
         };
     }
 }

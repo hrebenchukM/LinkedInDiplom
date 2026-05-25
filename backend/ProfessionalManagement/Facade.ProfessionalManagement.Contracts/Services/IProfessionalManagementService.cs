@@ -5,6 +5,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
 using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
+using Facade.ProfessionalManagement.Contracts.Requests.Recommendation;
 using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
@@ -193,4 +194,21 @@ public interface IProfessionalManagementService
         CreateRecommendedSkillByPositionRequest request);
 
     Task<RecommendedSkillByPositionResponse> DeleteRecommendedSkillByPositionAsync(Guid rspId);
+
+    Task<IReadOnlyCollection<RecommendationDto>> GetRecommendationsForUserAsync(string userId);
+
+    Task<RecommendationDto?> GetRecommendationByIdAsync(Guid recommendationId);
+
+    Task<RecommendationResponse> CreateRecommendationAsync(
+        string authorId,
+        CreateRecommendationRequest request);
+
+    Task<RecommendationResponse> PatchRecommendationAsync(
+        string authorId,
+        Guid recommendationId,
+        PatchRecommendationRequest request);
+
+    Task<RecommendationResponse> DeleteRecommendationAsync(
+        string authorId,
+        Guid recommendationId);
 }

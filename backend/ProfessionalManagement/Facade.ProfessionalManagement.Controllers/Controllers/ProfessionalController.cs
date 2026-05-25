@@ -8,6 +8,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Experience;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
+using Facade.ProfessionalManagement.Contracts.Requests.Recommendation;
 using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
@@ -1179,6 +1180,115 @@ public class ProfessionalController : ControllerBase
             return Unauthorized();
 
         var response = await _professionalManagementService.DeleteRecommendedSkillByPositionAsync(rspId);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // GET api/professional/users/{userId}/recommendations
+    [HttpGet("users/{userId}/recommendations")]
+    [ProducesResponseType(200)]
+    public async Task<IActionResult> GetRecommendationsForUser(string userId)
+    {
+        var recommendations = await _professionalManagementService.GetRecommendationsForUserAsync(userId);
+
+        return Ok(recommendations);
+    }
+
+    // GET api/professional/recommendations/{recommendationId}
+    [HttpGet("recommendations/{recommendationId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetRecommendationById(Guid recommendationId)
+    {
+        var recommendation = await _professionalManagementService.GetRecommendationByIdAsync(recommendationId);
+
+        if (recommendation == null)
+            return NotFound();
+
+        return Ok(recommendation);
+    }
+
+    // POST api/professional/recommendations
+    [Authorize]
+    [HttpPost("recommendations")]
+    [ProducesResponseType(typeof(RecommendationResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreateRecommendation(
+        [FromBody] CreateRecommendationRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var authorId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(authorId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.CreateRecommendationAsync(
+            authorId,
+            request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // PATCH api/professional/recommendations/{recommendationId}
+    [Authorize]
+    [HttpPatch("recommendations/{recommendationId:guid}")]
+    [ProducesResponseType(typeof(RecommendationResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> PatchRecommendation(
+        Guid recommendationId,
+        [FromBody] PatchRecommendationRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var authorId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(authorId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.PatchRecommendationAsync(
+            authorId,
+            recommendationId,
+            request);
+
+        if (!response.Success)
+        {
+            if (response.Errors.Contains("Text is required."))
+                return BadRequest(response);
+
+            return NotFound(response);
+        }
+
+        return Ok(response);
+    }
+
+    // DELETE api/professional/recommendations/{recommendationId}
+    [Authorize]
+    [HttpDelete("recommendations/{recommendationId:guid}")]
+    [ProducesResponseType(typeof(RecommendationResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteRecommendation(Guid recommendationId)
+    {
+        var authorId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(authorId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.DeleteRecommendationAsync(
+            authorId,
+            recommendationId);
 
         if (!response.Success)
             return NotFound(response);

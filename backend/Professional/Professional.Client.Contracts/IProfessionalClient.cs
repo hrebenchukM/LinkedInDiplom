@@ -27,4 +27,6 @@ public interface IProfessionalClient
     ICertificateSkillResource CertificateSkills { get; }
 
     IRecommendedSkillByPositionResource RecommendedSkillsByPosition { get; }
+
+    IRecommendationResource Recommendations { get; }
 }
