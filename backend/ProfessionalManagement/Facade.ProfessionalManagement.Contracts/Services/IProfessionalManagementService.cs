@@ -4,7 +4,9 @@ using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
+using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
+using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 
@@ -136,4 +138,30 @@ public interface IProfessionalManagementService
     Task<UserSkillResponse> DeleteMyUserSkillAsync(
         string userId,
         Guid userSkillId);
+
+    Task<LanguageDto?> GetLanguageByIdAsync(Guid languageId);
+
+    Task<LanguageResponse> CreateLanguageAsync(CreateLanguageRequest request);
+
+    Task<IReadOnlyCollection<UserLanguageDto>> GetMyUserLanguagesAsync(string userId);
+
+    Task<UserLanguageDto?> GetMyUserLanguageByIdAsync(string userId, Guid userLanguageId);
+
+    Task<UserLanguageResponse> CreateMyUserLanguageAsync(
+        string userId,
+        CreateUserLanguageRequest request);
+
+    Task<UserLanguageResponse> UpdateMyUserLanguageAsync(
+        string userId,
+        Guid userLanguageId,
+        UpdateUserLanguageRequest request);
+
+    Task<UserLanguageResponse> PatchMyUserLanguageAsync(
+        string userId,
+        Guid userLanguageId,
+        PatchUserLanguageRequest request);
+
+    Task<UserLanguageResponse> DeleteMyUserLanguageAsync(
+        string userId,
+        Guid userLanguageId);
 }

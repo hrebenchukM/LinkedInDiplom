@@ -19,4 +19,8 @@ public interface IProfessionalClient
     ISkillResource Skills { get; }
 
     IUserSkillResource UserSkills { get; }
+
+    ILanguageResource Languages { get; }
+
+    IUserLanguageResource UserLanguages { get; }
 }

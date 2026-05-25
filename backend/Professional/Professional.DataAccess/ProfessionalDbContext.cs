@@ -13,6 +13,8 @@ public class ProfessionalDbContext : DbContext
     public DbSet<Certificate> Certificates { get; set; } = default!;
     public DbSet<Skill> Skills { get; set; } = default!;
     public DbSet<UserSkill> UserSkills { get; set; } = default!;
+    public DbSet<Language> Languages { get; set; } = default!;
+    public DbSet<UserLanguage> UserLanguages { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -334,6 +336,64 @@ public class ProfessionalDbContext : DbContext
             entity.HasIndex(e => e.SkillId);
 
             entity.HasIndex(e => new { e.UserId, e.SkillId })
+                .IsUnique();
+        });
+
+        builder.Entity<Language>(entity =>
+        {
+            entity.ToTable("languages");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("language_id");
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.HasIndex(e => e.Name)
+                .HasDatabaseName("IX_languages_name");
+        });
+
+        builder.Entity<UserLanguage>(entity =>
+        {
+            entity.ToTable("user_languages");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("user_language_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.LanguageId)
+                .HasColumnName("language_id")
+                .IsRequired();
+
+            entity.Property(e => e.Level)
+                .HasColumnName("level")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_user_languages_user_id");
+
+            entity.HasIndex(e => e.LanguageId)
+                .HasDatabaseName("IX_user_languages_language_id");
+
+            entity.HasIndex(e => new { e.UserId, e.LanguageId })
                 .IsUnique();
         });
     }
