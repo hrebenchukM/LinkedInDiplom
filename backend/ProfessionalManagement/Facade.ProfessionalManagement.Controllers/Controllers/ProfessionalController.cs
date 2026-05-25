@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
+using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
@@ -638,6 +639,116 @@ public class ProfessionalController : ControllerBase
         var response = await _professionalManagementService.DeleteMyCertificateAsync(
             userId,
             certificateId);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // GET api/professional/me/certificates/{certificateId}/skills
+    [Authorize]
+    [HttpGet("me/certificates/{certificateId:guid}/skills")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMyCertificateSkills(Guid certificateId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var certificateSkills = await _professionalManagementService.GetMyCertificateSkillsAsync(
+            userId,
+            certificateId);
+
+        if (certificateSkills == null)
+            return NotFound();
+
+        return Ok(certificateSkills);
+    }
+
+    // GET api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}
+    [Authorize]
+    [HttpGet("me/certificates/{certificateId:guid}/skills/{certificateSkillId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMyCertificateSkillById(
+        Guid certificateId,
+        Guid certificateSkillId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var certificateSkill = await _professionalManagementService.GetMyCertificateSkillByIdAsync(
+            userId,
+            certificateId,
+            certificateSkillId);
+
+        if (certificateSkill == null)
+            return NotFound();
+
+        return Ok(certificateSkill);
+    }
+
+    // POST api/professional/me/certificates/{certificateId}/skills
+    [Authorize]
+    [HttpPost("me/certificates/{certificateId:guid}/skills")]
+    [ProducesResponseType(typeof(CertificateSkillResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CreateMyCertificateSkill(
+        Guid certificateId,
+        [FromBody] CreateCertificateSkillRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.CreateMyCertificateSkillAsync(
+            userId,
+            certificateId,
+            request);
+
+        if (!response.Success)
+        {
+            if (response.Errors.Contains("Certificate not found."))
+                return NotFound(response);
+
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    // DELETE api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}
+    [Authorize]
+    [HttpDelete("me/certificates/{certificateId:guid}/skills/{certificateSkillId:guid}")]
+    [ProducesResponseType(typeof(CertificateSkillResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteMyCertificateSkill(
+        Guid certificateId,
+        Guid certificateSkillId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.DeleteMyCertificateSkillAsync(
+            userId,
+            certificateId,
+            certificateSkillId);
 
         if (!response.Success)
             return NotFound(response);

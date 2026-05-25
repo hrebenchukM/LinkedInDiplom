@@ -4,6 +4,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
+using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
@@ -16,6 +17,7 @@ using Professional.Contracts.Parameters.Certificate;
 using Professional.Contracts.Parameters.Company;
 using Professional.Contracts.Parameters.Education;
 using Professional.Contracts.Parameters.Experience;
+using Professional.Contracts.Parameters.CertificateSkill;
 using Professional.Contracts.Parameters.Language;
 using Professional.Contracts.Parameters.Skill;
 using Professional.Contracts.Parameters.UserLanguage;
@@ -1005,6 +1007,110 @@ public class ProfessionalManagementService : IProfessionalManagementService
             Level = userLanguage.Level,
             CreatedAt = userLanguage.CreatedAt,
             UpdatedAt = userLanguage.UpdatedAt
+        };
+    }
+
+    // Получить навыки сертификата
+    public async Task<IReadOnlyCollection<CertificateSkillDto>?> GetMyCertificateSkillsAsync(
+        string userId,
+        Guid certificateId)
+    {
+        var certificate = await GetMyCertificateByIdAsync(userId, certificateId);
+
+        if (certificate == null)
+            return null;
+
+        var certificateSkills = await _professionalClient.CertificateSkills.GetCertificateSkillsAsync(
+            new GetCertificateSkillsParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId
+            });
+
+        return certificateSkills
+            .Select(MapToFacadeDto)
+            .ToList();
+    }
+
+    // Получить одну связку сертификата и навыка
+    public async Task<CertificateSkillDto?> GetMyCertificateSkillByIdAsync(
+        string userId,
+        Guid certificateId,
+        Guid certificateSkillId)
+    {
+        var certificate = await GetMyCertificateByIdAsync(userId, certificateId);
+
+        if (certificate == null)
+            return null;
+
+        var certificateSkill = await _professionalClient.CertificateSkills.GetByIdAsync(
+            new GetCertificateSkillByIdParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId,
+                CertificateSkillId = certificateSkillId
+            });
+
+        return certificateSkill == null ? null : MapToFacadeDto(certificateSkill);
+    }
+
+    // Добавить навык к сертификату
+    public async Task<CertificateSkillResponse> CreateMyCertificateSkillAsync(
+        string userId,
+        Guid certificateId,
+        CreateCertificateSkillRequest request)
+    {
+        var result = await _professionalClient.CertificateSkills.CreateAsync(
+            new CreateCertificateSkillParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId,
+                SkillId = request.SkillId
+            });
+
+        return new CertificateSkillResponse
+        {
+            Success = result.Succeeded,
+            CertificateSkill = result.CertificateSkill == null
+                ? null
+                : MapToFacadeDto(result.CertificateSkill),
+            Errors = result.Errors
+        };
+    }
+
+    // Удалить связку сертификата и навыка
+    public async Task<CertificateSkillResponse> DeleteMyCertificateSkillAsync(
+        string userId,
+        Guid certificateId,
+        Guid certificateSkillId)
+    {
+        var result = await _professionalClient.CertificateSkills.DeleteAsync(
+            new DeleteCertificateSkillParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId,
+                CertificateSkillId = certificateSkillId
+            });
+
+        return new CertificateSkillResponse
+        {
+            Success = result.Succeeded,
+            CertificateSkill = result.CertificateSkill == null
+                ? null
+                : MapToFacadeDto(result.CertificateSkill),
+            Errors = result.Errors
+        };
+    }
+
+    private static CertificateSkillDto MapToFacadeDto(
+        Professional.Contracts.DTOs.CertificateSkillDto certificateSkill)
+    {
+        return new CertificateSkillDto
+        {
+            Id = certificateSkill.Id,
+            CertificateId = certificateSkill.CertificateId,
+            SkillId = certificateSkill.SkillId,
+            CreatedAt = certificateSkill.CreatedAt
         };
     }
 }

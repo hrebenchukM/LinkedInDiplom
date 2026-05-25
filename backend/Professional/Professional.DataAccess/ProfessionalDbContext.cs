@@ -15,6 +15,7 @@ public class ProfessionalDbContext : DbContext
     public DbSet<UserSkill> UserSkills { get; set; } = default!;
     public DbSet<Language> Languages { get; set; } = default!;
     public DbSet<UserLanguage> UserLanguages { get; set; } = default!;
+    public DbSet<CertificateSkill> CertificateSkills { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -395,6 +396,37 @@ public class ProfessionalDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.LanguageId })
                 .IsUnique();
+        });
+
+        builder.Entity<CertificateSkill>(entity =>
+        {
+            entity.ToTable("certificate_skills");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("certificate_skill_id");
+
+            entity.Property(e => e.CertificateId)
+                .HasColumnName("certificate_id")
+                .IsRequired();
+
+            entity.Property(e => e.SkillId)
+                .HasColumnName("skill_id")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.HasIndex(e => e.CertificateId)
+                .HasDatabaseName("IX_certificate_skills_certificate_id");
+
+            entity.HasIndex(e => e.SkillId)
+                .HasDatabaseName("IX_certificate_skills_skill_id");
+
+            entity.HasIndex(e => new { e.CertificateId, e.SkillId })
+                .IsUnique()
+                .HasDatabaseName("IX_certificate_skills_certificate_id_skill_id");
         });
     }
 }

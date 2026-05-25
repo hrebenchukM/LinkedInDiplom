@@ -23,4 +23,6 @@ public interface IProfessionalClient
     ILanguageResource Languages { get; }
 
     IUserLanguageResource UserLanguages { get; }
+
+    ICertificateSkillResource CertificateSkills { get; }
 }

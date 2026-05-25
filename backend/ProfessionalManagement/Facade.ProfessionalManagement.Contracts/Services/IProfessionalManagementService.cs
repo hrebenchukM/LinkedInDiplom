@@ -4,6 +4,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
+using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
@@ -164,4 +165,23 @@ public interface IProfessionalManagementService
     Task<UserLanguageResponse> DeleteMyUserLanguageAsync(
         string userId,
         Guid userLanguageId);
+
+    Task<IReadOnlyCollection<CertificateSkillDto>?> GetMyCertificateSkillsAsync(
+        string userId,
+        Guid certificateId);
+
+    Task<CertificateSkillDto?> GetMyCertificateSkillByIdAsync(
+        string userId,
+        Guid certificateId,
+        Guid certificateSkillId);
+
+    Task<CertificateSkillResponse> CreateMyCertificateSkillAsync(
+        string userId,
+        Guid certificateId,
+        CreateCertificateSkillRequest request);
+
+    Task<CertificateSkillResponse> DeleteMyCertificateSkillAsync(
+        string userId,
+        Guid certificateId,
+        Guid certificateSkillId);
 }
