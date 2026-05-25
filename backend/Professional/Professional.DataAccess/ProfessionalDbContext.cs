@@ -10,6 +10,7 @@ public class ProfessionalDbContext : DbContext
     public DbSet<Company> Companies { get; set; } = default!;
     public DbSet<Academy> Academies { get; set; } = default!;
     public DbSet<Education> Educations { get; set; } = default!;
+    public DbSet<Certificate> Certificates { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -198,6 +199,59 @@ public class ProfessionalDbContext : DbContext
             entity.Property(e => e.Source)
                 .HasColumnName("source")
                 .HasMaxLength(200);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasIndex(e => e.AcademyId);
+        });
+
+        builder.Entity<Certificate>(entity =>
+        {
+            entity.ToTable("certificates");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("certificate_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.AcademyId)
+                .HasColumnName("academy_id");
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.DownloadRef)
+                .HasColumnName("download_ref")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.IssueDate)
+                .HasColumnName("issue_date");
+
+            entity.Property(e => e.ExpiryDate)
+                .HasColumnName("expiry_date");
+
+            entity.Property(e => e.AccreditationId)
+                .HasColumnName("accreditation_id")
+                .HasMaxLength(200);
+
+            entity.Property(e => e.OrganizationUrl)
+                .HasColumnName("organization_url")
+                .HasMaxLength(500);
 
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");

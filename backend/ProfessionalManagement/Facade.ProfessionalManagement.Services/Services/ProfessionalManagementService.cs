@@ -1,5 +1,6 @@
 ﻿using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
+using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
@@ -7,6 +8,7 @@ using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
 using Professional.Client.Contracts;
 using Professional.Contracts.Parameters.Academy;
+using Professional.Contracts.Parameters.Certificate;
 using Professional.Contracts.Parameters.Company;
 using Professional.Contracts.Parameters.Education;
 using Professional.Contracts.Parameters.Experience;
@@ -505,6 +507,153 @@ public class ProfessionalManagementService : IProfessionalManagementService
             Source = education.Source,
             CreatedAt = education.CreatedAt,
             UpdatedAt = education.UpdatedAt
+        };
+    }
+
+    // Получить все мои сертификаты
+    public async Task<IReadOnlyCollection<CertificateDto>> GetMyCertificatesAsync(string userId)
+    {
+        var certificates = await _professionalClient.Certificates.GetUserCertificatesAsync(
+            new GetUserCertificatesParameters
+            {
+                UserId = userId
+            });
+
+        return certificates
+            .Select(MapToFacadeDto)
+            .ToList();
+    }
+
+    // Получить один мой сертификат по Id
+    public async Task<CertificateDto?> GetMyCertificateByIdAsync(string userId, Guid certificateId)
+    {
+        var certificate = await _professionalClient.Certificates.GetByIdAsync(
+            new GetCertificateByIdParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId
+            });
+
+        return certificate == null ? null : MapToFacadeDto(certificate);
+    }
+
+    // Создать сертификат
+    public async Task<CertificateResponse> CreateMyCertificateAsync(
+        string userId,
+        CreateCertificateRequest request)
+    {
+        var result = await _professionalClient.Certificates.CreateAsync(
+            new CreateCertificateParameters
+            {
+                UserId = userId,
+                AcademyId = request.AcademyId,
+                Name = request.Name,
+                DownloadRef = request.DownloadRef,
+                IssueDate = request.IssueDate,
+                ExpiryDate = request.ExpiryDate,
+                AccreditationId = request.AccreditationId,
+                OrganizationUrl = request.OrganizationUrl
+            });
+
+        return new CertificateResponse
+        {
+            Success = result.Succeeded,
+            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Errors = result.Errors
+        };
+    }
+
+    // Полностью обновить сертификат
+    public async Task<CertificateResponse> UpdateMyCertificateAsync(
+        string userId,
+        Guid certificateId,
+        UpdateCertificateRequest request)
+    {
+        var result = await _professionalClient.Certificates.UpdateAsync(
+            new UpdateCertificateParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId,
+                AcademyId = request.AcademyId,
+                Name = request.Name,
+                DownloadRef = request.DownloadRef,
+                IssueDate = request.IssueDate,
+                ExpiryDate = request.ExpiryDate,
+                AccreditationId = request.AccreditationId,
+                OrganizationUrl = request.OrganizationUrl
+            });
+
+        return new CertificateResponse
+        {
+            Success = result.Succeeded,
+            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Errors = result.Errors
+        };
+    }
+
+    // Частично обновить сертификат
+    public async Task<CertificateResponse> PatchMyCertificateAsync(
+        string userId,
+        Guid certificateId,
+        PatchCertificateRequest request)
+    {
+        var result = await _professionalClient.Certificates.PatchAsync(
+            new PatchCertificateParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId,
+                AcademyId = request.AcademyId,
+                Name = request.Name,
+                DownloadRef = request.DownloadRef,
+                IssueDate = request.IssueDate,
+                ExpiryDate = request.ExpiryDate,
+                AccreditationId = request.AccreditationId,
+                OrganizationUrl = request.OrganizationUrl
+            });
+
+        return new CertificateResponse
+        {
+            Success = result.Succeeded,
+            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Errors = result.Errors
+        };
+    }
+
+    // Удалить сертификат
+    public async Task<CertificateResponse> DeleteMyCertificateAsync(
+        string userId,
+        Guid certificateId)
+    {
+        var result = await _professionalClient.Certificates.DeleteAsync(
+            new DeleteCertificateParameters
+            {
+                UserId = userId,
+                CertificateId = certificateId
+            });
+
+        return new CertificateResponse
+        {
+            Success = result.Succeeded,
+            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Errors = result.Errors
+        };
+    }
+
+    private static CertificateDto MapToFacadeDto(Professional.Contracts.DTOs.CertificateDto certificate)
+    {
+        return new CertificateDto
+        {
+            Id = certificate.Id,
+            UserId = certificate.UserId,
+            AcademyId = certificate.AcademyId,
+            Name = certificate.Name,
+            DownloadRef = certificate.DownloadRef,
+            IssueDate = certificate.IssueDate,
+            ExpiryDate = certificate.ExpiryDate,
+            AccreditationId = certificate.AccreditationId,
+            OrganizationUrl = certificate.OrganizationUrl,
+            CreatedAt = certificate.CreatedAt,
+            UpdatedAt = certificate.UpdatedAt
         };
     }
 }

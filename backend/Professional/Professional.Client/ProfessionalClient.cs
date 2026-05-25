@@ -14,15 +14,19 @@ public class ProfessionalClient : IProfessionalClient
 
     public IEducationResource Educations { get; }
 
+    public ICertificateResource Certificates { get; }
+
     public ProfessionalClient(
         IExperienceResource experiences,
         ICompanyResource companies,
         IAcademyResource academies,
-        IEducationResource educations)
+        IEducationResource educations,
+        ICertificateResource certificates)
     {
         Experiences = experiences;
         Companies = companies;
         Academies = academies;
         Educations = educations;
+        Certificates = certificates;
     }
 }

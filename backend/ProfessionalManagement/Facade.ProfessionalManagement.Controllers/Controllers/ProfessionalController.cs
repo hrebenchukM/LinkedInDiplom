@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
+using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
@@ -487,6 +488,152 @@ public class ProfessionalController : ControllerBase
         var response = await _professionalManagementService.DeleteMyEducationAsync(
             userId,
             educationId);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // GET api/professional/me/certificates
+    [Authorize]
+    [HttpGet("me/certificates")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyCertificates()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var certificates = await _professionalManagementService.GetMyCertificatesAsync(userId);
+
+        return Ok(certificates);
+    }
+
+    // GET api/professional/me/certificates/{certificateId}
+    [Authorize]
+    [HttpGet("me/certificates/{certificateId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMyCertificateById(Guid certificateId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var certificate = await _professionalManagementService.GetMyCertificateByIdAsync(
+            userId,
+            certificateId);
+
+        if (certificate == null)
+            return NotFound();
+
+        return Ok(certificate);
+    }
+
+    // POST api/professional/me/certificates
+    [Authorize]
+    [HttpPost("me/certificates")]
+    [ProducesResponseType(typeof(CertificateResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreateMyCertificate([FromBody] CreateCertificateRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.CreateMyCertificateAsync(
+            userId,
+            request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // PUT api/professional/me/certificates/{certificateId}
+    [Authorize]
+    [HttpPut("me/certificates/{certificateId:guid}")]
+    [ProducesResponseType(typeof(CertificateResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UpdateMyCertificate(
+        Guid certificateId,
+        [FromBody] UpdateCertificateRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.UpdateMyCertificateAsync(
+            userId,
+            certificateId,
+            request);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // PATCH api/professional/me/certificates/{certificateId}
+    [Authorize]
+    [HttpPatch("me/certificates/{certificateId:guid}")]
+    [ProducesResponseType(typeof(CertificateResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> PatchMyCertificate(
+        Guid certificateId,
+        [FromBody] PatchCertificateRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.PatchMyCertificateAsync(
+            userId,
+            certificateId,
+            request);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/professional/me/certificates/{certificateId}
+    [Authorize]
+    [HttpDelete("me/certificates/{certificateId:guid}")]
+    [ProducesResponseType(typeof(CertificateResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteMyCertificate(Guid certificateId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.DeleteMyCertificateAsync(
+            userId,
+            certificateId);
 
         if (!response.Success)
             return NotFound(response);

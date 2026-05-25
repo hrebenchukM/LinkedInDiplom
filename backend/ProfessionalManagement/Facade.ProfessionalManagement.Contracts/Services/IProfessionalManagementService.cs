@@ -1,5 +1,6 @@
 ﻿using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
+using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Requests.Education;
 using Facade.ProfessionalManagement.Contracts.Requests.Experience;
@@ -85,4 +86,26 @@ public interface IProfessionalManagementService
     Task<EducationResponse> DeleteMyEducationAsync(
         string userId,
         Guid educationId);
+
+    Task<IReadOnlyCollection<CertificateDto>> GetMyCertificatesAsync(string userId);
+
+    Task<CertificateDto?> GetMyCertificateByIdAsync(string userId, Guid certificateId);
+
+    Task<CertificateResponse> CreateMyCertificateAsync(
+        string userId,
+        CreateCertificateRequest request);
+
+    Task<CertificateResponse> UpdateMyCertificateAsync(
+        string userId,
+        Guid certificateId,
+        UpdateCertificateRequest request);
+
+    Task<CertificateResponse> PatchMyCertificateAsync(
+        string userId,
+        Guid certificateId,
+        PatchCertificateRequest request);
+
+    Task<CertificateResponse> DeleteMyCertificateAsync(
+        string userId,
+        Guid certificateId);
 }

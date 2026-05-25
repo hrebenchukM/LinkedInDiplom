@@ -13,4 +13,6 @@ public interface IProfessionalClient
     IAcademyResource Academies { get; }
 
     IEducationResource Educations { get; }
+
+    ICertificateResource Certificates { get; }
 }

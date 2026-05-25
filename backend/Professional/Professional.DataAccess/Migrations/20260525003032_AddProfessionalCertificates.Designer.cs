@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Professional.DataAccess;
@@ -11,9 +12,11 @@ using Professional.DataAccess;
 namespace Professional.DataAccess.Migrations
 {
     [DbContext(typeof(ProfessionalDbContext))]
-    partial class ProfessionalDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260525003032_AddProfessionalCertificates")]
+    partial class AddProfessionalCertificates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
