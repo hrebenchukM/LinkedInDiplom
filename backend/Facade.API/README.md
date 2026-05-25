@@ -111,6 +111,7 @@ Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` 
 | Academies | POST | `/api/professional/academies` | Yes |
 | Educations | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/educations[/{educationId}]` | Yes |
 | Certificates | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/certificates[/{certificateId}]` | Yes |
+| Certificate skills | GET, POST, DELETE | `/api/professional/me/certificates/{certificateId}/skills[/{certificateSkillId}]` | Yes (JWT only; links Certificate ↔ Skill; duplicate → 400; DELETE hard) |
 | Skills | GET | `/api/professional/skills/{skillId}` | No |
 | Skills | POST | `/api/professional/skills` | Yes |
 | User skills | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/skills[/{userSkillId}]` | Yes |

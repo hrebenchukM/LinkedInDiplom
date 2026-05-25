@@ -61,8 +61,9 @@ All tables live in schema **`professional`**. User-scoped rows store `user_id` a
 | **UserSkill** | `user_skills` | Per user | `/me/skills` full CRUD |
 | **Language** | `languages` | Global catalog | v1: `POST /languages`, `GET /languages/{id}` |
 | **UserLanguage** | `user_languages` | Per user | `/me/languages` full CRUD |
+| **CertificateSkill** | `certificate_skills` | Per certificate (owner via `certificates.user_id`) | `/me/certificates/{certificateId}/skills` list, get, create, delete |
 
-Not implemented yet (see `docs/database/DB_SCHEMA.md`): Recommendations, `certificate_skills`, Posts, Jobs, Messaging, etc.
+Not implemented yet (see `docs/database/DB_SCHEMA.md`): Recommendations, Posts, Jobs, Messaging, etc.
 
 ### Catalog v1 (Academy, Skill, Language)
 
@@ -76,10 +77,24 @@ Shared rules:
 
 - Full CRUD: list, get by id, create, update, patch, delete.
 - **`userId` is taken only from JWT** claims (`ClaimTypes.NameIdentifier` or `sub`) in the facade controller — never from the request body.
-- Cannot read or modify another user's rows; foreign `userSkillId` / `userLanguageId` / etc. returns **404**.
-- **POST** duplicate catalog link (same `skill_id` or `language_id` twice) → **400** with message like `"Skill already added."` / `"Language already added."`.
-- **DELETE** on user junction tables is **hard delete** (no `deleted_at` in schema).
+- Cannot read or modify another user's rows; foreign `userSkillId` / `userLanguageId` / `certificateSkillId` / etc. returns **404**.
+- **POST** duplicate catalog link (same `skill_id` or `language_id` twice on user profile) → **400** with message like `"Skill already added."` / `"Language already added."`.
+- **DELETE** on `user_skills`, `user_languages`, and `certificate_skills` is **hard delete** (no `deleted_at` in schema). Certificates themselves use soft delete (`deleted_at`).
 - **PATCH** merges only sent fields (nullable parameters in service; omitted fields are not overwritten).
+
+### Certificate skills (Certificate ↔ Skill)
+
+Junction table linking a **user-owned certificate** to a **skill** from the global catalog (`skills`). There is no `user_id` on `certificate_skills`; ownership is enforced by verifying `certificates.user_id` matches the JWT user.
+
+| Rule | Behavior |
+|------|----------|
+| Auth | **JWT only** on all routes — no public endpoints |
+| `userId` | Taken **only from JWT** (`NameIdentifier` / `sub`), never from the request body |
+| Ownership | Skill can be linked **only to the current user's certificate**; foreign or missing certificate → **404** |
+| Skill exists | `skill_id` must exist in catalog; otherwise **400** (`"Skill not found."`) |
+| Duplicate | Same `skill_id` on the same `certificate_id` twice → **400** (`"Skill already added to certificate."`) |
+| Mutations | **POST** (create link) and **DELETE** (hard delete) only — no PUT/PATCH (no extra fields in schema) |
+| List / GET | If certificate is not found or not owned → **404** (empty list is not returned for invalid certificates) |
 
 ## Swagger endpoints (`ProfessionalController`)
 
@@ -132,6 +147,17 @@ Interactive list: **http://localhost:5000/swagger** (Development).
 | PATCH | `/api/professional/me/certificates/{certificateId}` | Yes |
 | DELETE | `/api/professional/me/certificates/{certificateId}` | Yes |
 
+### Certificate skills (Certificate ↔ Skill, JWT only)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/professional/me/certificates/{certificateId}/skills` | Yes |
+| GET | `/api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}` | Yes |
+| POST | `/api/professional/me/certificates/{certificateId}/skills` | Yes |
+| DELETE | `/api/professional/me/certificates/{certificateId}/skills/{certificateSkillId}` | Yes |
+
+POST body: `{ "skillId": "<guid>" }`. POST checks **ModelState**. Duplicate skill on the same certificate → **400**. Certificate not found or not owned → **404**.
+
 ### Skills (catalog v1)
 
 | Method | Path | Auth |
@@ -168,7 +194,7 @@ Interactive list: **http://localhost:5000/swagger** (Development).
 | PATCH | `/api/professional/me/languages/{userLanguageId}` | Yes |
 | DELETE | `/api/professional/me/languages/{userLanguageId}` | Yes |
 
-There is **no** public API to list another user's skills, languages, educations, or certificates — only catalog lookups and the authenticated `/me/*` routes.
+There is **no** public API to list another user's skills, languages, educations, certificates, or certificate–skill links — only catalog lookups (`academies`, `skills`, `languages`, `companies`) and authenticated `/me/*` routes.
 
 ## Registration in Facade.API
 
@@ -188,7 +214,9 @@ Migrations for `ProfessionalDbContext` are applied on API startup together with 
 2. Create catalog entries: `POST /api/professional/academies`, `/skills`, `/languages`.
 3. `GET` catalog by id **without** token to confirm public read.
 4. Link to profile: `POST /api/professional/me/educations`, `/me/certificates`, `/me/skills`, `/me/languages`.
-5. Retry duplicate `skillId` / `languageId` on POST → expect **400**.
+5. On your certificate: `POST /api/professional/me/certificates/{certificateId}/skills` with a catalog `skillId` → **200**; repeat → **400** (`Skill already added to certificate.`).
+6. `GET` / `DELETE` certificate skills on your certificate; use another user's `certificateId` → **404**.
+7. Retry duplicate `skillId` / `languageId` on user profile POST → expect **400**.
 
 ## Related documentation
 
