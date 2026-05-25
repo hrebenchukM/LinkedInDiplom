@@ -1,5 +1,6 @@
 ﻿using Facade.ProfileManagement.Contracts.DTOs;
 using FacadeMessageSettingsDto = Facade.ProfileManagement.Contracts.DTOs.MessageSettingsDto;
+using FacadeProfileViewDto = Facade.ProfileManagement.Contracts.DTOs.ProfileViewDto;
 using Facade.ProfileManagement.Contracts.Options;
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
@@ -10,6 +11,7 @@ using Profile.Client.Contracts;
 using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
 using Profile.Contracts.Parameters.MessageSettings;
+using Profile.Contracts.Parameters.ProfileView;
 
 namespace Facade.ProfileManagement.Services.Services;
 
@@ -333,6 +335,44 @@ public class ProfileManagementService : IProfileManagementService
         };
     }
 
+    public async Task<ProfileViewResponse> RecordProfileViewAsync(
+        string profileOwnerId,
+        string? viewerUserId,
+        string viewerIp,
+        string? viewerUserAgent,
+        string? source)
+    {
+        var result = await _profileClient.ProfileViews.RecordProfileViewAsync(
+            new RecordProfileViewParameters
+            {
+                ProfileOwnerId = profileOwnerId,
+                ViewerUserId = viewerUserId,
+                ViewerIp = viewerIp,
+                ViewerUserAgent = viewerUserAgent,
+                Source = source
+            });
+
+        return new ProfileViewResponse
+        {
+            Success = result.Succeeded,
+            ProfileView = result.ProfileView == null
+                ? null
+                : MapToFacadeDto(result.ProfileView),
+            Errors = result.Errors
+        };
+    }
+
+    public async Task<IReadOnlyCollection<FacadeProfileViewDto>> GetMyProfileViewsAsync(string userId)
+    {
+        var views = await _profileClient.ProfileViews.GetMyProfileViewsAsync(
+            new GetMyProfileViewsParameters
+            {
+                ProfileOwnerId = userId
+            });
+
+        return views.Select(MapToFacadeDto).ToList();
+    }
+
     private static FacadeMessageSettingsDto MapToFacadeDto(
         Profile.Contracts.DTOs.MessageSettingsDto settings)
     {
@@ -345,6 +385,20 @@ public class ProfileManagementService : IProfileManagementService
             NotificationsEnabled = settings.NotificationsEnabled,
             CreatedAt = settings.CreatedAt,
             UpdatedAt = settings.UpdatedAt
+        };
+    }
+
+    private static FacadeProfileViewDto MapToFacadeDto(Profile.Contracts.DTOs.ProfileViewDto view)
+    {
+        return new FacadeProfileViewDto
+        {
+            Id = view.Id,
+            ProfileOwnerId = view.ProfileOwnerId,
+            ViewerUserId = view.ViewerUserId,
+            ViewerIp = view.ViewerIp,
+            ViewerUserAgent = view.ViewerUserAgent,
+            Source = view.Source,
+            ViewedAt = view.ViewedAt
         };
     }
 }

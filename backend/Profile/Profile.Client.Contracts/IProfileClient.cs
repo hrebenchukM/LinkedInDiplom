@@ -9,4 +9,6 @@ public interface IProfileClient
     IProfileResource Profiles { get; }
 
     IMessageSettingsResource MessageSettings { get; }
+
+    IProfileViewResource ProfileViews { get; }
 }

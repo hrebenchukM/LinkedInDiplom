@@ -42,4 +42,13 @@ public interface IProfileManagementService
     Task<MessageSettingsResponse> PatchMyMessageSettingsAsync(
         string userId,
         PatchMessageSettingsRequest request);
+
+    Task<ProfileViewResponse> RecordProfileViewAsync(
+        string profileOwnerId,
+        string? viewerUserId,
+        string viewerIp,
+        string? viewerUserAgent,
+        string? source);
+
+    Task<IReadOnlyCollection<ProfileViewDto>> GetMyProfileViewsAsync(string userId);
 }

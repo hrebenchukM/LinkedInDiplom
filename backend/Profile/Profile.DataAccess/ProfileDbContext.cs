@@ -8,6 +8,7 @@ public class ProfileDbContext : DbContext
 {
     public DbSet<UserProfile> UserProfiles { get; set; } = default!;
     public DbSet<MessageSettings> MessageSettings { get; set; } = default!;
+    public DbSet<ProfileView> ProfileViews { get; set; } = default!;
 
     public ProfileDbContext(DbContextOptions<ProfileDbContext> options)
         : base(options)
@@ -121,6 +122,45 @@ public class ProfileDbContext : DbContext
             entity.HasIndex(e => e.UserId)
                 .IsUnique()
                 .HasDatabaseName("IX_message_settings_user_id");
+        });
+
+        builder.Entity<ProfileView>(entity =>
+        {
+            entity.ToTable("profile_views");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("pv_id");
+
+            entity.Property(e => e.ProfileOwnerId)
+                .HasColumnName("profile_owner_id")
+                .IsRequired();
+
+            entity.Property(e => e.ViewerUserId)
+                .HasColumnName("viewer_user_id");
+
+            entity.Property(e => e.ViewerIp)
+                .HasColumnName("viewer_ip")
+                .IsRequired()
+                .HasMaxLength(45);
+
+            entity.Property(e => e.ViewerUserAgent)
+                .HasColumnName("viewer_user_agent")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Source)
+                .HasColumnName("source")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ViewedAt)
+                .HasColumnName("viewed_at");
+
+            entity.HasIndex(e => e.ProfileOwnerId)
+                .HasDatabaseName("IX_profile_views_profile_owner_id");
+
+            entity.HasIndex(e => new { e.ProfileOwnerId, e.ViewedAt })
+                .HasDatabaseName("IX_profile_views_profile_owner_id_viewed_at");
         });
     }
 }
