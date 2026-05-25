@@ -7,4 +7,6 @@ namespace Profile.Client.Contracts;
 public interface IProfileClient
 {
     IProfileResource Profiles { get; }
+
+    IMessageSettingsResource MessageSettings { get; }
 }

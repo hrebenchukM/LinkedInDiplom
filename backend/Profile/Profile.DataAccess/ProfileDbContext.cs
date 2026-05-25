@@ -7,6 +7,7 @@ namespace Profile.DataAccess;
 public class ProfileDbContext : DbContext
 {
     public DbSet<UserProfile> UserProfiles { get; set; } = default!;
+    public DbSet<MessageSettings> MessageSettings { get; set; } = default!;
 
     public ProfileDbContext(DbContextOptions<ProfileDbContext> options)
         : base(options)
@@ -85,6 +86,41 @@ public class ProfileDbContext : DbContext
 
             entity.Property(e => e.DeletedAt)
                 .HasColumnName("deleted_at");
+        });
+
+        builder.Entity<MessageSettings>(entity =>
+        {
+            entity.ToTable("message_settings");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("ms_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.OfficeAbsenceEnabled)
+                .HasColumnName("office_absence_enabled")
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.OfficeAbsenceMessage)
+                .HasColumnName("office_absence_message");
+
+            entity.Property(e => e.NotificationsEnabled)
+                .HasColumnName("notifications_enabled")
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId)
+                .IsUnique()
+                .HasDatabaseName("IX_message_settings_user_id");
         });
     }
 }

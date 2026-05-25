@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Facade.ProfileManagement.Contracts.Requests;
+using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -178,5 +179,72 @@ public class ProfileController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+    }
+
+    // GET api/profile/me/message-settings
+    [Authorize]
+    [HttpGet("me/message-settings")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyMessageSettings()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var settings = await _profileManagementService.GetMyMessageSettingsAsync(userId);
+
+        return Ok(settings);
+    }
+
+    // PUT api/profile/me/message-settings
+    [Authorize]
+    [HttpPut("me/message-settings")]
+    [ProducesResponseType(typeof(MessageSettingsResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> UpdateMyMessageSettings(
+        [FromBody] UpdateMessageSettingsRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _profileManagementService.UpdateMyMessageSettingsAsync(userId, request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // PATCH api/profile/me/message-settings
+    [Authorize]
+    [HttpPatch("me/message-settings")]
+    [ProducesResponseType(typeof(MessageSettingsResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> PatchMyMessageSettings(
+        [FromBody] PatchMessageSettingsRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _profileManagementService.PatchMyMessageSettingsAsync(userId, request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
     }
 }

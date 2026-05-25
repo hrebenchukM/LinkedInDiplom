@@ -32,6 +32,7 @@ public static class ProfileModuleServiceCollectionExtensions
         // Регистрируем сервис профиля.
         // Это бизнес-логика Profile-модуля.
         services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IMessageSettingsService, MessageSettingsService>();
 
         // Регистрируем обработчик события UserRegisteredEvent.
         // Когда Identity создаёт пользователя, Profile создаёт пустой профиль.
@@ -43,6 +44,7 @@ public static class ProfileModuleServiceCollectionExtensions
         // Регистрируем Resource-слой Profile-модуля.
         // Это внутренняя точка доступа к ProfileService.
         services.AddScoped<IProfileResource, ProfileResource>();
+        services.AddScoped<IMessageSettingsResource, MessageSettingsResource>();
 
         // Регистрируем Client-слой Profile-модуля.
         // Facade-модули будут обращаться к Profile через IProfileClient,

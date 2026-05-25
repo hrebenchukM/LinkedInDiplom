@@ -1,12 +1,15 @@
 ﻿using Facade.ProfileManagement.Contracts.DTOs;
+using FacadeMessageSettingsDto = Facade.ProfileManagement.Contracts.DTOs.MessageSettingsDto;
 using Facade.ProfileManagement.Contracts.Options;
 using Facade.ProfileManagement.Contracts.Requests;
+using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
 using Microsoft.Extensions.Options;
 using Profile.Client.Contracts;
 using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
+using Profile.Contracts.Parameters.MessageSettings;
 
 namespace Facade.ProfileManagement.Services.Services;
 
@@ -244,6 +247,63 @@ public class ProfileManagementService : IProfileManagementService
         return $"/uploads/profile/{userId}/{folderName}/{newFileName}";
     }
 
+    public async Task<FacadeMessageSettingsDto> GetMyMessageSettingsAsync(string userId)
+    {
+        var settings = await _profileClient.MessageSettings.GetMyMessageSettingsAsync(
+            new GetMyMessageSettingsParameters
+            {
+                UserId = userId
+            });
+
+        return MapToFacadeDto(settings);
+    }
+
+    public async Task<MessageSettingsResponse> UpdateMyMessageSettingsAsync(
+        string userId,
+        UpdateMessageSettingsRequest request)
+    {
+        var result = await _profileClient.MessageSettings.UpdateMyMessageSettingsAsync(
+            new UpdateMessageSettingsParameters
+            {
+                UserId = userId,
+                OfficeAbsenceEnabled = request.OfficeAbsenceEnabled,
+                OfficeAbsenceMessage = request.OfficeAbsenceMessage,
+                NotificationsEnabled = request.NotificationsEnabled
+            });
+
+        return new MessageSettingsResponse
+        {
+            Success = result.Succeeded,
+            MessageSettings = result.MessageSettings == null
+                ? null
+                : MapToFacadeDto(result.MessageSettings),
+            Errors = result.Errors
+        };
+    }
+
+    public async Task<MessageSettingsResponse> PatchMyMessageSettingsAsync(
+        string userId,
+        PatchMessageSettingsRequest request)
+    {
+        var result = await _profileClient.MessageSettings.PatchMyMessageSettingsAsync(
+            new PatchMessageSettingsParameters
+            {
+                UserId = userId,
+                OfficeAbsenceEnabled = request.OfficeAbsenceEnabled,
+                OfficeAbsenceMessage = request.OfficeAbsenceMessage,
+                NotificationsEnabled = request.NotificationsEnabled
+            });
+
+        return new MessageSettingsResponse
+        {
+            Success = result.Succeeded,
+            MessageSettings = result.MessageSettings == null
+                ? null
+                : MapToFacadeDto(result.MessageSettings),
+            Errors = result.Errors
+        };
+    }
+
     private static ProfileDto MapToFacadeDto(UserProfileDto profile)
     {
         return new ProfileDto
@@ -270,6 +330,21 @@ public class ProfileManagementService : IProfileManagementService
 
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
+        };
+    }
+
+    private static FacadeMessageSettingsDto MapToFacadeDto(
+        Profile.Contracts.DTOs.MessageSettingsDto settings)
+    {
+        return new FacadeMessageSettingsDto
+        {
+            Id = settings.Id,
+            UserId = settings.UserId,
+            OfficeAbsenceEnabled = settings.OfficeAbsenceEnabled,
+            OfficeAbsenceMessage = settings.OfficeAbsenceMessage,
+            NotificationsEnabled = settings.NotificationsEnabled,
+            CreatedAt = settings.CreatedAt,
+            UpdatedAt = settings.UpdatedAt
         };
     }
 }

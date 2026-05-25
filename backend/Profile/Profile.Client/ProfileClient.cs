@@ -9,8 +9,11 @@ public class ProfileClient : IProfileClient
 {
     public IProfileResource Profiles { get; }
 
-    public ProfileClient(IProfileResource profiles)
+    public IMessageSettingsResource MessageSettings { get; }
+
+    public ProfileClient(IProfileResource profiles, IMessageSettingsResource messageSettings)
     {
         Profiles = profiles;
+        MessageSettings = messageSettings;
     }
 }

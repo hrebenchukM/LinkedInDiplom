@@ -1,5 +1,6 @@
 ﻿using Facade.ProfileManagement.Contracts.DTOs;
 using Facade.ProfileManagement.Contracts.Requests;
+using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 using Facade.ProfileManagement.Contracts.Responses;
 
 namespace Facade.ProfileManagement.Contracts.Services;
@@ -31,4 +32,14 @@ public interface IProfileManagementService
         Stream fileStream,
         string fileName,
         string contentType);
+
+    Task<MessageSettingsDto> GetMyMessageSettingsAsync(string userId);
+
+    Task<MessageSettingsResponse> UpdateMyMessageSettingsAsync(
+        string userId,
+        UpdateMessageSettingsRequest request);
+
+    Task<MessageSettingsResponse> PatchMyMessageSettingsAsync(
+        string userId,
+        PatchMessageSettingsRequest request);
 }
