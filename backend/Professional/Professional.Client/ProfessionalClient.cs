@@ -26,6 +26,8 @@ public class ProfessionalClient : IProfessionalClient
 
     public ICertificateSkillResource CertificateSkills { get; }
 
+    public IRecommendedSkillByPositionResource RecommendedSkillsByPosition { get; }
+
     public ProfessionalClient(
         IExperienceResource experiences,
         ICompanyResource companies,
@@ -36,7 +38,8 @@ public class ProfessionalClient : IProfessionalClient
         IUserSkillResource userSkills,
         ILanguageResource languages,
         IUserLanguageResource userLanguages,
-        ICertificateSkillResource certificateSkills)
+        ICertificateSkillResource certificateSkills,
+        IRecommendedSkillByPositionResource recommendedSkillsByPosition)
     {
         Experiences = experiences;
         Companies = companies;
@@ -48,5 +51,6 @@ public class ProfessionalClient : IProfessionalClient
         Languages = languages;
         UserLanguages = userLanguages;
         CertificateSkills = certificateSkills;
+        RecommendedSkillsByPosition = recommendedSkillsByPosition;
     }
 }

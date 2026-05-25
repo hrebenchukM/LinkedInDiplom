@@ -25,4 +25,6 @@ public interface IProfessionalClient
     IUserLanguageResource UserLanguages { get; }
 
     ICertificateSkillResource CertificateSkills { get; }
+
+    IRecommendedSkillByPositionResource RecommendedSkillsByPosition { get; }
 }

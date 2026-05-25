@@ -16,6 +16,7 @@ public class ProfessionalDbContext : DbContext
     public DbSet<Language> Languages { get; set; } = default!;
     public DbSet<UserLanguage> UserLanguages { get; set; } = default!;
     public DbSet<CertificateSkill> CertificateSkills { get; set; } = default!;
+    public DbSet<RecommendedSkillByPosition> RecommendedSkillsByPosition { get; set; } = default!;
 
     public ProfessionalDbContext(DbContextOptions<ProfessionalDbContext> options)
         : base(options)
@@ -427,6 +428,41 @@ public class ProfessionalDbContext : DbContext
             entity.HasIndex(e => new { e.CertificateId, e.SkillId })
                 .IsUnique()
                 .HasDatabaseName("IX_certificate_skills_certificate_id_skill_id");
+        });
+
+        builder.Entity<RecommendedSkillByPosition>(entity =>
+        {
+            entity.ToTable("recommended_skills_by_position");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("rsp_id");
+
+            entity.Property(e => e.Position)
+                .HasColumnName("position")
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.SkillId)
+                .HasColumnName("skill_id")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.Position)
+                .HasDatabaseName("IX_recommended_skills_by_position_position");
+
+            entity.HasIndex(e => e.SkillId)
+                .HasDatabaseName("IX_recommended_skills_by_position_skill_id");
+
+            entity.HasIndex(e => new { e.Position, e.SkillId })
+                .IsUnique()
+                .HasDatabaseName("IX_recommended_skills_by_position_position_skill_id");
         });
     }
 }

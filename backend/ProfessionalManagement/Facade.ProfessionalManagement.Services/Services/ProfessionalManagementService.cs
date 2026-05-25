@@ -8,6 +8,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
+using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
@@ -21,6 +22,7 @@ using Professional.Contracts.Parameters.CertificateSkill;
 using Professional.Contracts.Parameters.Language;
 using Professional.Contracts.Parameters.Skill;
 using Professional.Contracts.Parameters.UserLanguage;
+using Professional.Contracts.Parameters.RecommendedSkillByPosition;
 using Professional.Contracts.Parameters.UserSkill;
 
 namespace Facade.ProfessionalManagement.Services.Services;
@@ -1111,6 +1113,74 @@ public class ProfessionalManagementService : IProfessionalManagementService
             CertificateId = certificateSkill.CertificateId,
             SkillId = certificateSkill.SkillId,
             CreatedAt = certificateSkill.CreatedAt
+        };
+    }
+
+    // Получить рекомендованные навыки для должности
+    public async Task<IReadOnlyCollection<RecommendedSkillByPositionDto>> GetRecommendedSkillsByPositionAsync(
+        string position)
+    {
+        var items = await _professionalClient.RecommendedSkillsByPosition.GetRecommendedSkillsByPositionAsync(
+            new GetRecommendedSkillsByPositionParameters
+            {
+                Position = position
+            });
+
+        return items
+            .Select(MapToFacadeDto)
+            .ToList();
+    }
+
+    // Добавить рекомендованный навык к должности
+    public async Task<RecommendedSkillByPositionResponse> CreateRecommendedSkillByPositionAsync(
+        CreateRecommendedSkillByPositionRequest request)
+    {
+        var result = await _professionalClient.RecommendedSkillsByPosition.CreateAsync(
+            new CreateRecommendedSkillByPositionParameters
+            {
+                Position = request.Position,
+                SkillId = request.SkillId
+            });
+
+        return new RecommendedSkillByPositionResponse
+        {
+            Success = result.Succeeded,
+            RecommendedSkillByPosition = result.RecommendedSkillByPosition == null
+                ? null
+                : MapToFacadeDto(result.RecommendedSkillByPosition),
+            Errors = result.Errors
+        };
+    }
+
+    // Удалить рекомендованный навык для должности
+    public async Task<RecommendedSkillByPositionResponse> DeleteRecommendedSkillByPositionAsync(Guid rspId)
+    {
+        var result = await _professionalClient.RecommendedSkillsByPosition.DeleteAsync(
+            new DeleteRecommendedSkillByPositionParameters
+            {
+                RspId = rspId
+            });
+
+        return new RecommendedSkillByPositionResponse
+        {
+            Success = result.Succeeded,
+            RecommendedSkillByPosition = result.RecommendedSkillByPosition == null
+                ? null
+                : MapToFacadeDto(result.RecommendedSkillByPosition),
+            Errors = result.Errors
+        };
+    }
+
+    private static RecommendedSkillByPositionDto MapToFacadeDto(
+        Professional.Contracts.DTOs.RecommendedSkillByPositionDto recommendedSkill)
+    {
+        return new RecommendedSkillByPositionDto
+        {
+            Id = recommendedSkill.Id,
+            Position = recommendedSkill.Position,
+            SkillId = recommendedSkill.SkillId,
+            CreatedAt = recommendedSkill.CreatedAt,
+            UpdatedAt = recommendedSkill.UpdatedAt
         };
     }
 }

@@ -8,6 +8,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Experience;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
+using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
@@ -1117,6 +1118,67 @@ public class ProfessionalController : ControllerBase
         var response = await _professionalManagementService.DeleteMyUserLanguageAsync(
             userId,
             userLanguageId);
+
+        if (!response.Success)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    // GET api/professional/recommended-skills?position={position}
+    [HttpGet("recommended-skills")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetRecommendedSkillsByPosition([FromQuery] string? position)
+    {
+        if (string.IsNullOrWhiteSpace(position))
+            return BadRequest(new { errors = new[] { "Position is required." } });
+
+        var recommendedSkills = await _professionalManagementService.GetRecommendedSkillsByPositionAsync(
+            position);
+
+        return Ok(recommendedSkills);
+    }
+
+    // POST api/professional/recommended-skills
+    [Authorize]
+    [HttpPost("recommended-skills")]
+    [ProducesResponseType(typeof(RecommendedSkillByPositionResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreateRecommendedSkillByPosition(
+        [FromBody] CreateRecommendedSkillByPositionRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.CreateRecommendedSkillByPositionAsync(request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/professional/recommended-skills/{rspId}
+    [Authorize]
+    [HttpDelete("recommended-skills/{rspId:guid}")]
+    [ProducesResponseType(typeof(RecommendedSkillByPositionResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteRecommendedSkillByPosition(Guid rspId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _professionalManagementService.DeleteRecommendedSkillByPositionAsync(rspId);
 
         if (!response.Success)
             return NotFound(response);
