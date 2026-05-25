@@ -99,6 +99,8 @@ Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` 
 
 **Catalog v1** (authenticated create, public get-by-id): Academy, Skill, Language — no catalog update/delete in v1.
 
+**Recommended skills by position** (global, not user data): public GET by `position` query; JWT POST/DELETE — links job title to catalog `skillId`; duplicate → 400.
+
 **User-owned** (full CRUD under `/me/...`): experiences, companies, educations, certificates, user skills, user languages.
 
 | Area | Method | Path | Auth |
@@ -118,6 +120,9 @@ Career BFF over the **Professional** core module (.NET 8). `userId` for `/me/*` 
 | Languages | GET | `/api/professional/languages/{languageId}` | No |
 | Languages | POST | `/api/professional/languages` | Yes |
 | User languages | GET, POST, PUT, PATCH, DELETE | `/api/professional/me/languages[/{userLanguageId}]` | Yes |
+| Recommended skills by position | GET | `/api/professional/recommended-skills?position={position}` | No (requires `position`; blank → 400) |
+| Recommended skills by position | POST | `/api/professional/recommended-skills` | Yes (`position` + `skillId`; skill must exist; duplicate → 400) |
+| Recommended skills by position | DELETE | `/api/professional/recommended-skills/{rspId}` | Yes (not found → 404) |
 
 Full tables and behavior: [Professional module README](../Professional/README.md).
 

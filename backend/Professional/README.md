@@ -62,8 +62,9 @@ All tables live in schema **`professional`**. User-scoped rows store `user_id` a
 | **Language** | `languages` | Global catalog | v1: `POST /languages`, `GET /languages/{id}` |
 | **UserLanguage** | `user_languages` | Per user | `/me/languages` full CRUD |
 | **CertificateSkill** | `certificate_skills` | Per certificate (owner via `certificates.user_id`) | `/me/certificates/{certificateId}/skills` list, get, create, delete |
+| **RecommendedSkillByPosition** | `recommended_skills_by_position` | Global recommendations by job title | `GET /recommended-skills?position=` public; `POST` / `DELETE /{rspId}` JWT |
 
-Not implemented yet (see `docs/database/DB_SCHEMA.md`): Recommendations, Posts, Jobs, Messaging, etc.
+Not implemented yet (see `docs/database/DB_SCHEMA.md`): Recommendations (text endorsements), Posts, Jobs, Messaging, etc.
 
 ### Catalog v1 (Academy, Skill, Language)
 
@@ -95,6 +96,21 @@ Junction table linking a **user-owned certificate** to a **skill** from the glob
 | Duplicate | Same `skill_id` on the same `certificate_id` twice → **400** (`"Skill already added to certificate."`) |
 | Mutations | **POST** (create link) and **DELETE** (hard delete) only — no PUT/PATCH (no extra fields in schema) |
 | List / GET | If certificate is not found or not owned → **404** (empty list is not returned for invalid certificates) |
+
+### Recommended skills by position (global catalog)
+
+Global reference data: which **skills** from the catalog are recommended for a given **position** (job title string, e.g. `"Software Engineer"`). There is **no** `user_id` — not user profile data, so there are **no** `/me/*` routes.
+
+| Rule | Behavior |
+|------|----------|
+| Auth | **GET** — public (no JWT). **POST** / **DELETE** — JWT required |
+| `userId` | **Not used** (not user-scoped) |
+| `position` | Required; trimmed in service; empty after trim → **400** (`"Position is required."`) on POST; GET without query or with blank `position` → **400** |
+| Skill exists | `skillId` must exist in `skills`; otherwise **400** (`"Skill not found."`) |
+| Duplicate | Same `skillId` for the same `position` twice → **400** (`"Skill already added for this position."`); unique index on `(position, skill_id)` |
+| Mutations | **POST** (create link) and **DELETE** (hard delete by `rspId`) only — no PUT/PATCH |
+| DELETE not found | Unknown `rspId` → **404** (`"Recommended skill not found."`) |
+| GET list | Returns all rows for the given `position`, sorted by `created_at` desc; empty array if none |
 
 ## Swagger endpoints (`ProfessionalController`)
 
@@ -194,7 +210,17 @@ POST body: `{ "skillId": "<guid>" }`. POST checks **ModelState**. Duplicate skil
 | PATCH | `/api/professional/me/languages/{userLanguageId}` | Yes |
 | DELETE | `/api/professional/me/languages/{userLanguageId}` | Yes |
 
-There is **no** public API to list another user's skills, languages, educations, certificates, or certificate–skill links — only catalog lookups (`academies`, `skills`, `languages`, `companies`) and authenticated `/me/*` routes.
+### Recommended skills by position (global, not `/me`)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/professional/recommended-skills?position={position}` | No |
+| POST | `/api/professional/recommended-skills` | Yes |
+| DELETE | `/api/professional/recommended-skills/{rspId}` | Yes |
+
+GET requires non-empty query `position` (URL-encode spaces, e.g. `Software%20Engineer`). POST body: `{ "position": "...", "skillId": "<guid>" }`. POST checks **ModelState**. Duplicate `(position, skillId)` → **400**. Unknown skill → **400**. DELETE unknown `rspId` → **404**.
+
+There is **no** public API to list another user's skills, languages, educations, certificates, or certificate–skill links — only catalog lookups (`academies`, `skills`, `languages`, `companies`, **recommended skills by position**), and authenticated `/me/*` routes.
 
 ## Registration in Facade.API
 
@@ -217,6 +243,7 @@ Migrations for `ProfessionalDbContext` are applied on API startup together with 
 5. On your certificate: `POST /api/professional/me/certificates/{certificateId}/skills` with a catalog `skillId` → **200**; repeat → **400** (`Skill already added to certificate.`).
 6. `GET` / `DELETE` certificate skills on your certificate; use another user's `certificateId` → **404**.
 7. Retry duplicate `skillId` / `languageId` on user profile POST → expect **400**.
+8. **Recommended skills by position:** `GET /api/professional/recommended-skills?position=Software%20Engineer` **without** token → **200** (may be `[]`). `POST /api/professional/recommended-skills` with JWT and catalog `skillId` → **200**; repeat same `position` + `skillId` → **400**; invalid `skillId` → **400**. `DELETE /api/professional/recommended-skills/{rspId}` with JWT → **200**; missing `rspId` → **404**. GET without `position` → **400**.
 
 ## Related documentation
 
