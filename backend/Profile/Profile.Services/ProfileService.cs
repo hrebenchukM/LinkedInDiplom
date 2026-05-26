@@ -40,16 +40,22 @@ public class ProfileService : IProfileService
     // Создать пустой профиль для нового пользователя
     public async Task<UserProfileDto> CreateEmptyAsync(string userId)
     {
-        // Проверяем, есть ли уже профиль у этого пользователя
+        // Проверяем, есть ли уже профиль у этого пользователя (включая soft-deleted).
         var existingProfile = await _dbContext.UserProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(p =>
-                p.UserId == userId &&
-                p.DeletedAt == null);
+            .FirstOrDefaultAsync(p => p.UserId == userId);
 
-        // Если профиль уже есть — просто возвращаем его
+        // Если активный профиль уже есть — просто возвращаем его.
         if (existingProfile != null)
+        {
+            if (existingProfile.DeletedAt != null)
+            {
+                throw new InvalidOperationException(
+                    "Profile is soft-deleted and cannot be auto-created without explicit restore.");
+            }
+
             return MapToDto(existingProfile);
+        }
 
         // Создаём новый пустой профиль
         var profile = new UserProfile

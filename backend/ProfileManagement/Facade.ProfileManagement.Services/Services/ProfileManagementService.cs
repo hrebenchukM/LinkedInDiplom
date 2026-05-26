@@ -37,7 +37,19 @@ public class ProfileManagementService : IProfileManagementService
             UserId = userId
         });
 
-        return profile == null ? null : MapToFacadeDto(profile);
+        if (profile != null)
+            return MapToFacadeDto(profile);
+
+        try
+        {
+            var createdProfile = await _profileClient.Profiles.CreateEmptyAsync(userId);
+            return MapToFacadeDto(createdProfile);
+        }
+        catch (InvalidOperationException)
+        {
+            // Soft-deleted профиль не восстанавливаем автоматически без отдельного подтверждения.
+            return null;
+        }
     }
 
     // Получить профиль по UserId
