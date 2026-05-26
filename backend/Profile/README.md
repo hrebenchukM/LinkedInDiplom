@@ -62,7 +62,7 @@ All tables store `user_id` / owner ids as **string** (Identity user id) **withou
 
 - One row per active user (`user_id` unique).
 - Soft-delete column `deleted_at` (queries exclude deleted rows).
-- Created automatically on registration via `CreateEmptyProfileWhenUserRegisteredHandler`.
+- Created on registration via **`UserRegisteredEvent`** (primary path); see [Registration and profile creation](#registration-and-profile-creation) below.
 
 ### `message_settings`
 
@@ -106,7 +106,7 @@ Base route: **`/api/profile`**
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/profile/me` | JWT | Current user's profile |
+| GET | `/api/profile/me` | JWT | Current user's profile (get-or-create empty profile if missing — see fallback below) |
 | PUT | `/api/profile/me` | JWT | Update profile (partial merge) |
 | PATCH | `/api/profile/me` | JWT | Partial update profile |
 | GET | `/api/profile/{userId}` | **Public** | Read another user's profile |
@@ -118,16 +118,44 @@ Base route: **`/api/profile`**
 | POST | `/api/profile/{profileOwnerId}/views?source=` | **Public** (optional JWT) | Record profile view |
 | GET | `/api/profile/me/profile-views` | JWT | List own profile views (max 100) |
 
-## Registration integration
+## Registration and profile creation
+
+Profile creation uses **domain events** (event architecture is kept; Identity does not call Profile services directly).
+
+### Primary path: `UserRegisteredEvent`
+
+After successful registration, Identity publishes **`UserRegisteredEvent`** (in-process via `InMemoryDomainEventPublisher`). The Profile module handles it:
 
 ```
 Identity.UserService.RegisterAsync
-    → UserRegisteredEvent (in-process)
+    → UserRegisteredEvent
     → CreateEmptyProfileWhenUserRegisteredHandler
     → ProfileService.CreateEmptyAsync(userId)
 ```
 
-Profile module depends on **`Identity.Events.Contracts`** only — not on Identity.DataAccess or Identity.Services.
+- **Identity does not depend on Profile** — no project reference from Identity to Profile.
+- **Profile does not depend on Identity implementation** — only on **`Identity.Events.Contracts`** (not `Identity.DataAccess` or `Identity.Services`).
+
+### Fallback: `GET /api/profile/me`
+
+If the event handler did not create a profile (handler failure, transient error, etc.), an authorized user is not left without a profile:
+
+```
+GET /api/profile/me (JWT)
+    → ProfileManagementService.GetMyProfileAsync
+    → GetAsync → null
+    → CreateEmptyAsync(userId)   // fallback
+    → 200 + empty profile
+```
+
+- Fallback runs only for **`/api/profile/me`** (current JWT user), not for public `GET /api/profile/{userId}`.
+- **`CreateEmptyAsync`** is idempotent for active profiles: if a row already exists with `deleted_at == null`, it returns that row (no duplicate; `user_id` is unique).
+- PUT/PATCH `/me` already used the same `CreateEmptyAsync` pattern when the profile was missing.
+
+### Soft-deleted profiles
+
+- Active reads (`GetAsync`, public GET) ignore rows with **`deleted_at != null`**.
+- Fallback **does not restore** a soft-deleted profile automatically. If only a soft-deleted row exists for that `user_id`, `CreateEmptyAsync` refuses to create a second row and `GET /api/profile/me` returns **404** until an explicit restore flow exists (not implemented in v1).
 
 ## Related docs
 

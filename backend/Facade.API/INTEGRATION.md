@@ -60,7 +60,7 @@ Content-Type: application/json
 }
 ```
 
-After registration, Identity publishes `UserRegisteredEvent`; Profile module creates an empty profile asynchronously.
+After registration, Identity publishes **`UserRegisteredEvent`**; Profile module creates an empty profile **in-process** (same HTTP request as register). If that handler fails, **`GET /api/profile/me`** (JWT) creates an empty profile as a **fallback**; soft-deleted profiles are not auto-restored. Identity does not reference Profile projects — only the event contract.
 
 ### Login
 
@@ -108,10 +108,14 @@ HTTP → ProfessionalController (/api/professional)
 ```
 Identity.UserService.Register
     → UserRegisteredEvent
-    → InMemoryDomainEventPublisher
+    → InMemoryDomainEventPublisher (in-process, await handlers)
     → CreateEmptyProfileWhenUserRegisteredHandler (Profile module)
-    → ProfileDbContext
+    → ProfileService.CreateEmptyAsync → ProfileDbContext
 ```
+
+**Fallback (no direct Identity → Profile call):** `GET /api/profile/me` → `ProfileManagementService.GetMyProfileAsync` → if no active profile, `CreateEmptyAsync` for JWT user.
+
+**Boundaries:** Identity has no dependency on Profile; Profile depends only on `Identity.Events.Contracts`. Event-based integration is preserved.
 
 ## Technology Stack
 
@@ -158,7 +162,7 @@ Facade.API
 1. Register via `/api/auth/register`
 2. Login and copy access token
 3. `GET /api/auth/me`
-4. `GET /api/profile/me` (profile created via event)
+4. `GET /api/profile/me` (profile from event, or empty profile via fallback if event did not run)
 5. Upload avatar via `/api/profile/me/avatar`
 6. `POST /api/professional/languages` then `GET /api/professional/languages/{id}` (public)
 7. `POST /api/professional/me/languages` with returned `languageId`

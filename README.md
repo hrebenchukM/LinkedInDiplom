@@ -170,7 +170,7 @@ The API uses JWT Bearer token authentication with:
 ### Profile (Core)
 - **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: **`profile`** — **fully implemented**
 - Tables: **`user_profiles`** (public profile data), **`message_settings`** (private messaging preferences), **`profile_views`** (append-only view event log)
-- Created automatically via `UserRegisteredEvent` handler (`user_profiles`)
+- `user_profiles` created via **`UserRegisteredEvent`** after registration; **`GET /api/profile/me`** creates an empty profile as fallback if the handler did not run (soft-deleted profiles are not auto-restored)
 - Exposed via **ProfileManagement** facade (`IProfileClient` in-process; microservice-ready seam)
 - See [backend/Profile/README.md](./backend/Profile/README.md) for architecture, security rules, and Swagger routes
 
@@ -219,10 +219,11 @@ Core Modules: Identity | Profile | Professional
 PostgreSQL (schemas: identity, profile, professional)
 ```
 
-Registration side-effect:
+Registration side-effect (event architecture; Identity does not call Profile directly):
 ```
-Identity.UserService → UserRegisteredEvent → Profile handler → empty profile
+Identity.UserService → UserRegisteredEvent → Profile handler → empty user_profiles row
 ```
+Fallback if the handler did not create a row: **`GET /api/profile/me`** (JWT) → `CreateEmptyAsync` for the current user.
 
 ## 🐳 Docker Details
 
