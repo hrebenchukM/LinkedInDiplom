@@ -1,0 +1,265 @@
+using Microsoft.EntityFrameworkCore;
+using Network.Contracts.DTOs;
+using Network.Contracts.Parameters.Contact;
+using Network.Contracts.Results;
+using Network.Contracts.Services;
+using Network.DataAccess;
+using Network.DataAccess.Entities;
+
+namespace Network.Services.Services;
+
+// Сервис контактов между пользователями
+public class ContactService : IContactService
+{
+    private const string StatusPending = "pending";
+    private const string StatusAccepted = "accepted";
+    private const string StatusRejected = "rejected";
+    private const string StatusCancelled = "cancelled";
+
+    private readonly NetworkDbContext _dbContext;
+
+    public ContactService(NetworkDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task<ContactResult> SendRequestAsync(SendContactRequestParameters parameters)
+    {
+        if (parameters.RequesterId == parameters.ReceiverId)
+        {
+            return Error("You cannot send a contact request to yourself.");
+        }
+
+        if (await IsBlockedEitherDirectionAsync(parameters.RequesterId, parameters.ReceiverId))
+        {
+            return Error("Cannot send a contact request while a block exists.");
+        }
+
+        var reversePending = await _dbContext.Contacts
+            .AnyAsync(c =>
+                c.RequesterId == parameters.ReceiverId &&
+                c.ReceiverId == parameters.RequesterId &&
+                c.Status == StatusPending);
+
+        if (reversePending)
+        {
+            return Error("A pending contact request already exists in the opposite direction.");
+        }
+
+        var existing = await _dbContext.Contacts
+            .FirstOrDefaultAsync(c =>
+                c.RequesterId == parameters.RequesterId &&
+                c.ReceiverId == parameters.ReceiverId);
+
+        if (existing != null)
+        {
+            if (existing.Status is StatusPending or StatusAccepted)
+            {
+                return Error("Contact request already exists.");
+            }
+
+            var now = DateTime.UtcNow;
+            existing.Status = StatusPending;
+            existing.RequestedAt = now;
+            existing.RespondedAt = null;
+            existing.StatusChangedAt = now;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Success(existing);
+        }
+
+        var contact = new Contact
+        {
+            Id = Guid.NewGuid(),
+            RequesterId = parameters.RequesterId,
+            ReceiverId = parameters.ReceiverId,
+            Status = StatusPending,
+            RequestedAt = DateTime.UtcNow,
+            RespondedAt = null,
+            StatusChangedAt = null
+        };
+
+        _dbContext.Contacts.Add(contact);
+        await _dbContext.SaveChangesAsync();
+
+        return Success(contact);
+    }
+
+    public async Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(GetMyContactsParameters parameters)
+    {
+        var query = _dbContext.Contacts
+            .AsNoTracking()
+            .Where(c =>
+                c.RequesterId == parameters.UserId ||
+                c.ReceiverId == parameters.UserId);
+
+        if (!string.IsNullOrWhiteSpace(parameters.Status))
+        {
+            var status = parameters.Status.Trim();
+            query = query.Where(c => c.Status == status);
+        }
+
+        var contacts = await query
+            .OrderByDescending(c => c.RequestedAt)
+            .ToListAsync();
+
+        return contacts.Select(MapToDto).ToList();
+    }
+
+    public async Task<ContactDto?> GetByIdAsync(GetContactByIdParameters parameters)
+    {
+        var contact = await _dbContext.Contacts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c =>
+                c.Id == parameters.ContactId &&
+                (c.RequesterId == parameters.UserId || c.ReceiverId == parameters.UserId));
+
+        return contact == null ? null : MapToDto(contact);
+    }
+
+    public async Task<ContactResult> AcceptAsync(RespondToContactParameters parameters)
+    {
+        var contact = await FindContactForParticipantAsync(parameters.ContactId, parameters.UserId);
+
+        if (contact == null)
+            return NotFound();
+
+        if (contact.ReceiverId != parameters.UserId)
+            return NotFound();
+
+        if (contact.Status != StatusPending)
+            return Error("Only pending contact requests can be accepted.");
+
+        var now = DateTime.UtcNow;
+        contact.Status = StatusAccepted;
+        contact.RespondedAt = now;
+        contact.StatusChangedAt = now;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Success(contact);
+    }
+
+    public async Task<ContactResult> RejectAsync(RespondToContactParameters parameters)
+    {
+        var contact = await FindContactForParticipantAsync(parameters.ContactId, parameters.UserId);
+
+        if (contact == null)
+            return NotFound();
+
+        if (contact.ReceiverId != parameters.UserId)
+            return NotFound();
+
+        if (contact.Status != StatusPending)
+            return Error("Only pending contact requests can be rejected.");
+
+        var now = DateTime.UtcNow;
+        contact.Status = StatusRejected;
+        contact.RespondedAt = now;
+        contact.StatusChangedAt = now;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Success(contact);
+    }
+
+    public async Task<ContactResult> CancelAsync(CancelContactRequestParameters parameters)
+    {
+        var contact = await FindContactForParticipantAsync(parameters.ContactId, parameters.UserId);
+
+        if (contact == null)
+            return NotFound();
+
+        if (contact.RequesterId != parameters.UserId)
+            return NotFound();
+
+        if (contact.Status != StatusPending)
+            return Error("Only pending contact requests can be cancelled.");
+
+        var now = DateTime.UtcNow;
+        contact.Status = StatusCancelled;
+        contact.StatusChangedAt = now;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Success(contact);
+    }
+
+    public async Task<ContactResult> RemoveAsync(RemoveContactParameters parameters)
+    {
+        var contact = await FindContactForParticipantAsync(parameters.ContactId, parameters.UserId);
+
+        if (contact == null)
+            return NotFound();
+
+        if (contact.Status != StatusAccepted)
+            return Error("Only accepted contacts can be removed.");
+
+        var now = DateTime.UtcNow;
+        contact.Status = StatusCancelled;
+        contact.StatusChangedAt = now;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Success(contact);
+    }
+
+    private async Task<Contact?> FindContactForParticipantAsync(Guid contactId, string userId)
+    {
+        return await _dbContext.Contacts
+            .FirstOrDefaultAsync(c =>
+                c.Id == contactId &&
+                (c.RequesterId == userId || c.ReceiverId == userId));
+    }
+
+    private async Task<bool> IsBlockedEitherDirectionAsync(string userA, string userB)
+    {
+        return await _dbContext.BlockedUsers
+            .AnyAsync(b =>
+                b.UnblockedAt == null &&
+                ((b.UserId == userA && b.BlockedUserId == userB) ||
+                 (b.UserId == userB && b.BlockedUserId == userA)));
+    }
+
+    private static ContactResult Success(Contact contact)
+    {
+        return new ContactResult
+        {
+            Succeeded = true,
+            Contact = MapToDto(contact)
+        };
+    }
+
+    private static ContactResult Error(string message)
+    {
+        return new ContactResult
+        {
+            Succeeded = false,
+            Errors = new[] { message }
+        };
+    }
+
+    private static ContactResult NotFound()
+    {
+        return new ContactResult
+        {
+            Succeeded = false,
+            Errors = new[] { "Contact not found." }
+        };
+    }
+
+    private static ContactDto MapToDto(Contact contact)
+    {
+        return new ContactDto
+        {
+            Id = contact.Id,
+            RequesterId = contact.RequesterId,
+            ReceiverId = contact.ReceiverId,
+            Status = contact.Status,
+            RequestedAt = contact.RequestedAt,
+            RespondedAt = contact.RespondedAt,
+            StatusChangedAt = contact.StatusChangedAt
+        };
+    }
+}
