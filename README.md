@@ -120,7 +120,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 | `/api/network` | Social graph: contacts, follows, blocked users, groups, pages (JWT only) |
-| `/api/content` | Posts, media metadata, post–media links (JWT only) |
+| `/api/content` | Posts, media metadata, post-media links, comments, reactions (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -195,9 +195,9 @@ Details: [Network module README](./backend/Network/README.md).
 
 **Modular monolith prepared for microservices** core + **ContentManagement** BFF (`TargetFramework net8.0`, schema **`content`**). All routes require **JWT**. `authorId` / `userId` is taken **only from JWT** (not from body). Bodies must **not** contain the current user's `userId` or `authorId`.
 
-**Tables:** `posts`, `media`, `post_media`. Migration: **`AddContentModule`**.
+**Tables:** `posts`, `media`, `post_media`, `comments`, `reactions`. Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**.
 
-**Not in v1:** `comments`, `reactions`, `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`. **`group_posts`** deferred until Content + Network integration.
+**Not in v2:** `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`. **`group_posts`** deferred until Content + Network integration.
 
 #### Media
 
@@ -221,7 +221,22 @@ Details: [Network module README](./backend/Network/README.md).
 | `/api/content/me/posts/{postId}/media` | POST, GET |
 | `/api/content/me/posts/{postId}/media/{mediaId}` | DELETE |
 
-**Rules:** visibility v1 `public` / `private`; private post visible only to author; public post readable by any authenticated user; media stores **Url** and **Type** only (no blob); post delete is soft delete (`deleted_at`); attach/detach media owner-only; `"Post not found."` / `"Media not found."` / `"Post media not found."` → **404**; other business errors → **400**.
+#### Comments
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/posts/{postId}/comments` | POST, GET |
+| `/api/content/me/comments/{commentId}` | PATCH, DELETE |
+
+#### Reactions
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/posts/{postId}/reactions` | PUT, DELETE |
+| `/api/content/posts/{postId}/reactions/me` | GET |
+| `/api/content/posts/{postId}/reactions` | GET |
+
+**Rules:** all endpoints require JWT; `userId` is taken only from JWT; visibility v1 `public` / `private`; private post visible only to author; deleted post does not accept comments/reactions; media stores **Url** and **Type** only (no blob); post delete is soft delete (`deleted_at`); comment update/delete author-only and delete is soft delete (`deleted_at`); reaction works via upsert with one reaction per post/user and repeated PUT updates `reaction_type`; reaction DELETE removes row; `comment_count` / `reaction_count` updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` → **404**; other business errors → **400**.
 
 Details: [Content module README](./backend/Content/README.md).
 
@@ -322,17 +337,17 @@ The API uses JWT Bearer token authentication with:
 
 ### Content (Core)
 - **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`content`**
-- Tables: **`posts`**, **`media`**, **`post_media`**
-- Migration: **`AddContentModule`**
-- Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`)
-- Visibility v1: `public` / `private`; media URL + type only; post soft delete; engagement tables not implemented
+- Tables: **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**
+- Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**
+- Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`, `CommentService`/`CommentResource`, `ReactionService`/`ReactionResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`, `Comments`, `Reactions`)
+- Visibility v1: `public` / `private`; media URL + type only; post/comment soft delete; reaction upsert + hard delete
 - **`group_posts`** deferred until Content + Network integration
 - Exposed via **ContentManagement** facade (in-process client; microservice-ready seam)
 - See [backend/Content/README.md](./backend/Content/README.md) for architecture, security rules, and full endpoint list
 
 ### ContentManagement (Facade / BFF)
-- Posts and media API at `/api/content` (.NET 8, modular monolith BFF)
-- **All routes require JWT**; `authorId` from JWT only (never in body)
+- Posts, comments, reactions and media API at `/api/content` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; `authorId`/`userId` from JWT only (never in body)
 - Maps via `IContentClient`
 
 ### ProfessionalManagement (Facade / BFF)
@@ -431,8 +446,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
 ✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, pages (8 tables; `group_posts` deferred)  
 ✅ **NetworkManagement Facade** - `/api/network` (JWT-only; 33 endpoints)  
-✅ **Content Core Module** - Schema `content`: posts, media, post_media (`group_posts` and engagement deferred)  
-✅ **ContentManagement Facade** - `/api/content` (JWT-only; 11 endpoints)  
+✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions (`hashtags/saved_posts/reposts/post_views/mentions/group_posts` deferred)  
+✅ **ContentManagement Facade** - `/api/content` (JWT-only; comments/reactions endpoints added)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  

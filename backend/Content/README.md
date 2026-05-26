@@ -4,7 +4,7 @@ Core module of the LinkedIn Clone **modular monolith**, **prepared for microserv
 
 The module is **not** deployed as a separate microservice today. Boundaries are enforced via projects, contracts, and `IContentClient` — the same seam can later be replaced with HTTP clients without changing the facade surface.
 
-**Status (v1):** Schema **`content`** implements **`posts`**, **`media`**, and **`post_media`** from `DB_SCHEMA.md` (posts and attachments only; engagement and feed tables are out of scope).
+**Status (v2):** Schema **`content`** implements **`posts`**, **`media`**, **`post_media`**, **`comments`**, and **`reactions`** from `DB_SCHEMA.md` (hashtags/saved/reposts/views/mentions and group_posts are out of scope).
 
 ## Architecture
 
@@ -34,7 +34,7 @@ PostgreSQL  schema: content
 |---------|------|
 | `Content.Contracts` | DTOs, parameters, results, service interfaces |
 | `Content.DataAccess` | Entities, EF Core, migrations |
-| `Content.Services` | Business logic (3 domain services) |
+| `Content.Services` | Business logic (5 domain services) |
 | `Content.Client.Contracts` | `IContentClient`, `I*Resource` |
 | `Content.Client` | Resource implementations (delegate to services) |
 | `Content.DI` | `AddContentModule` registration |
@@ -57,6 +57,8 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | **Post** | `posts` | User-authored post; visibility `public` / `private`; soft delete via `deleted_at` |
 | **Media** | `media` | Media metadata (`url`, `type` only — no blob storage) |
 | **PostMedia** | `post_media` | Many-to-many link between post and media; unique `(post_id, media_id)` |
+| **Comment** | `comments` | Comment under a post; optional parent; soft delete via `deleted_at` |
+| **Reaction** | `reactions` | User reaction to post; unique `(user_id, post_id)`; hard delete on unreact |
 
 ### `posts`
 
@@ -81,11 +83,27 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 - **Get by post:** returns links (with nested `media`) for authorized viewers; empty list if post is private and viewer is not the author.
 - Duplicate attach → business error **400** (`"Media is already attached to this post."`).
 
-### Deferred (not in Content module v1)
+### `comments`
+
+- Create only if post exists, not deleted, and viewer has access (private post: author only).
+- `parent_comment_id` is optional.
+- Update/delete allowed only for comment author.
+- Delete is soft delete (`deleted_at`, `updated_at`).
+- `posts.comment_count` is updated in service on create/delete.
+
+### `reactions`
+
+- Allowed reaction types v1: `like`, `celebrate`, `support`, `love`, `insightful`, `funny`.
+- One reaction per `(user_id, post_id)` via unique index.
+- `PUT` works as upsert: first call creates row; repeated call updates `reaction_type`.
+- `DELETE` removes reaction row (hard delete).
+- `posts.reaction_count` is updated in service on create/delete.
+
+### Deferred (not in Content module v2)
 
 | Feature | Reason |
 |---------|--------|
-| **`comments`**, **`reactions`**, **`hashtags`**, **`saved_posts`**, **`reposts`**, **`post_views`**, **`mentions`** | Not implemented in v1; counters on `posts` are placeholders |
+| **`hashtags`**, **`saved_posts`**, **`reposts`**, **`post_views`**, **`mentions`** | Not implemented in v2 |
 | **`group_posts`** | Deferred until **Content + Network** integration (`user_groups` ↔ `posts`); see [Network module README](../Network/README.md) |
 
 ## Services and resources
@@ -95,6 +113,8 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | `PostService` | `PostResource` | Posts (CRUD v1, soft delete) |
 | `MediaService` | `MediaResource` | Media metadata |
 | `PostMediaService` | `PostMediaResource` | Attach / detach / list post media |
+| `CommentService` | `CommentResource` | Comments (create/list/update/soft delete) |
+| `ReactionService` | `ReactionResource` | Reactions (upsert/delete/list) |
 
 Resources delegate to services only (no business logic in the client layer).
 
@@ -107,6 +127,8 @@ In-process entry point for facades and other modules:
 | `Posts` | `IPostResource` |
 | `Media` | `IMediaResource` |
 | `PostMedia` | `IPostMediaResource` |
+| `Comments` | `ICommentResource` |
+| `Reactions` | `IReactionResource` |
 
 Registered in `Content.DI` via `AddContentModule`.
 
@@ -115,6 +137,7 @@ Registered in `Content.DI` via `AddContentModule`.
 | Migration | Description |
 |-----------|-------------|
 | `AddContentModule` | Schema `content`, tables `posts`, `media`, `post_media` |
+| `AddContentCommentsAndReactions` | Tables `comments`, `reactions` |
 
 Applied at startup from `Facade.API` (`ContentDbContext`). History table: `content.__EFMigrationsHistory`.
 
@@ -131,7 +154,11 @@ Applied at startup from `Facade.API` (`ContentDbContext`). History table: `conte
 | **Media** | URL + type only; no blob storage in Content module |
 | **Post delete** | Soft delete via `deleted_at` |
 | **Post media** | Attach/detach allowed only for post owner |
-| **Not found** | `"Post not found."`, `"Media not found."`, `"Post media not found."` → **404** at facade |
+| **Comments** | Create only for accessible post; update/delete only by comment author; delete is soft delete |
+| **Reactions** | Upsert by `(user_id, post_id)`; repeated put updates `reaction_type`; delete removes row |
+| **Deleted post** | Does not accept comments/reactions |
+| **Counters** | `comment_count` and `reaction_count` are updated in service |
+| **Not found** | `"Post not found."`, `"Media not found."`, `"Post media not found."`, `"Comment not found."`, `"Reaction not found."` → **404** at facade |
 | Other business errors | **400** at facade |
 | Target user existence | **Not** validated (no call to Identity/Profile) |
 | **`group_posts`** | **Not implemented** — deferred until Content + Network integration |
@@ -165,6 +192,24 @@ Base route: **`/api/content`**. All routes require JWT.
 | GET | `/api/content/me/posts/{postId}/media` |
 | DELETE | `/api/content/me/posts/{postId}/media/{mediaId}` |
 
+### Comments
+
+| Method | Path |
+|--------|------|
+| POST | `/api/content/posts/{postId}/comments` |
+| GET | `/api/content/posts/{postId}/comments` |
+| PATCH | `/api/content/me/comments/{commentId}` |
+| DELETE | `/api/content/me/comments/{commentId}` |
+
+### Reactions
+
+| Method | Path |
+|--------|------|
+| PUT | `/api/content/posts/{postId}/reactions` |
+| DELETE | `/api/content/posts/{postId}/reactions` |
+| GET | `/api/content/posts/{postId}/reactions/me` |
+| GET | `/api/content/posts/{postId}/reactions` |
+
 ### Request bodies (facade)
 
 | Operation | Body fields |
@@ -173,6 +218,9 @@ Base route: **`/api/content`**. All routes require JWT.
 | Update post | `content`, `visibility` |
 | Create media | `url`, `type` |
 | Attach post media | `mediaId` only |
+| Create comment | `content`, optional `parentCommentId` |
+| Update comment | `content` |
+| Upsert reaction | `reactionType` |
 
 ## Host integration
 
@@ -191,7 +239,7 @@ Migrations: `ContentDbContext` in `ApplyMigrationsAsync` (after Network).
 
 ## Out of scope
 
-- Comments, reactions, hashtags, saved posts, reposts, post views, mentions
+- Hashtags, saved posts, reposts, post views, mentions
 - **`group_posts`** — deferred until Content + Network integration
 - Public (unauthenticated) content endpoints
 - Media file upload / blob storage (URL-only v1)

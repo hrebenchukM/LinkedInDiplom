@@ -227,9 +227,9 @@ Full rules, services, and `INetworkClient`: [Network module README](../Network/R
 
 ### Content — `/api/content`
 
-Posts and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media` (see [Content module README](../Content/README.md)).
+Posts, comments, reactions and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions` (see [Content module README](../Content/README.md)).
 
-**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Engagement tables (`comments`, `reactions`, `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`) are not in v1.
+**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Still out of scope: `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`.
 
 `userId` / `authorId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId` or `authorId`.
 
@@ -258,9 +258,27 @@ Posts and media BFF over the **Content** core module. The solution is a **modula
 | GET | `/api/content/me/posts/{postId}/media` | Yes |
 | DELETE | `/api/content/me/posts/{postId}/media/{mediaId}` | Yes (owner only) |
 
-**Rules:** visibility v1 `public` / `private`; private post visible only to author; media stores **Url** and **Type** only (no blob); post delete is soft delete; attach/detach media owner-only; `"Post not found."` / `"Media not found."` / `"Post media not found."` → **404**; other business errors → **400**; reaction/comment/repost counters are not updated in v1.
+#### Comments
 
-Migrations: `AddContentModule` (applied via `ContentDbContext` on startup; history in schema `content`).
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/posts/{postId}/comments` | Yes (`content`, optional `parentCommentId`) |
+| GET | `/api/content/posts/{postId}/comments` | Yes |
+| PATCH | `/api/content/me/comments/{commentId}` | Yes (author only; `content`) |
+| DELETE | `/api/content/me/comments/{commentId}` | Yes (author only; soft delete) |
+
+#### Reactions
+
+| Method | Path | Auth |
+|--------|------|------|
+| PUT | `/api/content/posts/{postId}/reactions` | Yes (`reactionType`; upsert) |
+| DELETE | `/api/content/posts/{postId}/reactions` | Yes (delete own reaction row) |
+| GET | `/api/content/posts/{postId}/reactions/me` | Yes (returns my reaction or 404) |
+| GET | `/api/content/posts/{postId}/reactions` | Yes |
+
+**Rules:** all content routes require JWT; `userId`/`authorId` comes only from JWT; private post is visible only to author; deleted post does not accept comments/reactions; comment update/delete author-only; comment delete is soft delete (`deleted_at`); one reaction per `(user_id, post_id)`; repeated PUT updates `reaction_type`; DELETE reaction hard-deletes row; `comment_count` and `reaction_count` are updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` → **404**; other business errors → **400**.
+
+Migrations: `AddContentModule`, `AddContentCommentsAndReactions` (applied via `ContentDbContext` on startup; history in schema `content`).
 
 Full rules, services, and `IContentClient`: [Content module README](../Content/README.md).
 
@@ -322,7 +340,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
 ✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Content)  
-✅ **Content module** — schema `content` (`posts`, `media`, `post_media`) at `/api/content` (engagement tables and `group_posts` deferred)  
+✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`) at `/api/content` (`hashtags/saved_posts/reposts/post_views/mentions/group_posts` deferred)  
 
 ## Related docs
 
