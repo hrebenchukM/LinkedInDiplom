@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Facade.ContentManagement.Contracts.Requests.Comment;
+using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
+using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
@@ -21,6 +23,9 @@ public class ContentController : ControllerBase
     private const string PostMediaNotFoundError = "Post media not found.";
     private const string ReactionNotFoundError = "Reaction not found.";
     private const string ParentCommentNotFoundError = "Parent comment not found.";
+    private const string HashtagNotFoundError = "Hashtag not found.";
+    private const string PostHashtagNotFoundError = "Post hashtag not found.";
+    private const string HashtagFollowNotFoundError = "Hashtag follow not found.";
 
     private readonly IContentManagementService _contentManagementService;
 
@@ -421,6 +426,176 @@ public class ContentController : ControllerBase
         return Ok(reactions);
     }
 
+    // POST api/content/hashtags
+    [Authorize]
+    [HttpPost("hashtags")]
+    [ProducesResponseType(typeof(HashtagResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreateHashtag([FromBody] CreateHashtagRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.CreateHashtagAsync(request);
+
+        if (!response.Success)
+            return MapHashtagError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/hashtags/{hashtagId}
+    [Authorize]
+    [HttpGet("hashtags/{hashtagId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetHashtagById(Guid hashtagId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var hashtag = await _contentManagementService.GetHashtagByIdAsync(hashtagId);
+
+        if (hashtag == null)
+            return NotFound();
+
+        return Ok(hashtag);
+    }
+
+    // POST api/content/me/posts/{postId}/hashtags
+    [Authorize]
+    [HttpPost("me/posts/{postId:guid}/hashtags")]
+    [ProducesResponseType(typeof(PostHashtagResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AttachPostHashtag(
+        Guid postId,
+        [FromBody] AttachPostHashtagRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.AttachPostHashtagAsync(userId, postId, request);
+
+        if (!response.Success)
+            return MapPostHashtagError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/posts/{postId}/hashtags
+    [Authorize]
+    [HttpGet("posts/{postId:guid}/hashtags")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetPostHashtags(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var hashtags = await _contentManagementService.GetPostHashtagsAsync(userId, postId);
+
+        return Ok(hashtags);
+    }
+
+    // DELETE api/content/me/posts/{postId}/hashtags/{hashtagId}
+    [Authorize]
+    [HttpDelete("me/posts/{postId:guid}/hashtags/{hashtagId:guid}")]
+    [ProducesResponseType(typeof(PostHashtagResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DetachPostHashtag(Guid postId, Guid hashtagId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.DetachPostHashtagAsync(userId, postId, hashtagId);
+
+        if (!response.Success)
+            return MapPostHashtagError(response);
+
+        return Ok(response);
+    }
+
+    // POST api/content/me/hashtags/{hashtagId}/follow
+    [Authorize]
+    [HttpPost("me/hashtags/{hashtagId:guid}/follow")]
+    [ProducesResponseType(typeof(UserHashtagFollowResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> FollowHashtag(Guid hashtagId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.FollowHashtagAsync(userId, hashtagId);
+
+        if (!response.Success)
+            return MapUserHashtagFollowError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/content/me/hashtags/{hashtagId}/follow
+    [Authorize]
+    [HttpDelete("me/hashtags/{hashtagId:guid}/follow")]
+    [ProducesResponseType(typeof(UserHashtagFollowResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UnfollowHashtag(Guid hashtagId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.UnfollowHashtagAsync(userId, hashtagId);
+
+        if (!response.Success)
+            return MapUserHashtagFollowError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/me/hashtags/following
+    [Authorize]
+    [HttpGet("me/hashtags/following")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyHashtagFollows()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var follows = await _contentManagementService.GetMyHashtagFollowsAsync(userId);
+
+        return Ok(follows);
+    }
+
     private IActionResult MapPostError(PostResponse response)
     {
         if (response.Errors.Contains(PostNotFoundError) ||
@@ -468,6 +643,34 @@ public class ContentController : ControllerBase
     {
         if (response.Errors.Contains(PostNotFoundError) ||
             response.Errors.Contains(ReactionNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapHashtagError(HashtagResponse response)
+    {
+        return BadRequest(response);
+    }
+
+    private IActionResult MapPostHashtagError(PostHashtagResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError) ||
+            response.Errors.Contains(HashtagNotFoundError) ||
+            response.Errors.Contains(PostHashtagNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapUserHashtagFollowError(UserHashtagFollowResponse response)
+    {
+        if (response.Errors.Contains(HashtagNotFoundError) ||
+            response.Errors.Contains(HashtagFollowNotFoundError))
         {
             return NotFound(response);
         }

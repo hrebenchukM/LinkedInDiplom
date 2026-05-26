@@ -15,4 +15,10 @@ public interface IContentClient
     ICommentResource Comments { get; }
 
     IReactionResource Reactions { get; }
+
+    IHashtagResource Hashtags { get; }
+
+    IPostHashtagResource PostHashtags { get; }
+
+    IUserHashtagFollowResource UserHashtagFollows { get; }
 }

@@ -29,12 +29,18 @@ public static class ContentModuleServiceCollectionExtensions
         services.AddScoped<IPostMediaService, PostMediaService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IReactionService, ReactionService>();
+        services.AddScoped<IHashtagService, HashtagService>();
+        services.AddScoped<IPostHashtagService, PostHashtagService>();
+        services.AddScoped<IUserHashtagFollowService, UserHashtagFollowService>();
 
         services.AddScoped<IPostResource, PostResource>();
         services.AddScoped<IMediaResource, MediaResource>();
         services.AddScoped<IPostMediaResource, PostMediaResource>();
         services.AddScoped<ICommentResource, CommentResource>();
         services.AddScoped<IReactionResource, ReactionResource>();
+        services.AddScoped<IHashtagResource, HashtagResource>();
+        services.AddScoped<IPostHashtagResource, PostHashtagResource>();
+        services.AddScoped<IUserHashtagFollowResource, UserHashtagFollowResource>();
 
         services.AddScoped<IContentClient, ContentClient>();
 

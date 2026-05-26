@@ -17,17 +17,29 @@ public class ContentClient : IContentClient
 
     public IReactionResource Reactions { get; }
 
+    public IHashtagResource Hashtags { get; }
+
+    public IPostHashtagResource PostHashtags { get; }
+
+    public IUserHashtagFollowResource UserHashtagFollows { get; }
+
     public ContentClient(
         IPostResource posts,
         IMediaResource media,
         IPostMediaResource postMedia,
         ICommentResource comments,
-        IReactionResource reactions)
+        IReactionResource reactions,
+        IHashtagResource hashtags,
+        IPostHashtagResource postHashtags,
+        IUserHashtagFollowResource userHashtagFollows)
     {
         Posts = posts;
         Media = media;
         PostMedia = postMedia;
         Comments = comments;
         Reactions = reactions;
+        Hashtags = hashtags;
+        PostHashtags = postHashtags;
+        UserHashtagFollows = userHashtagFollows;
     }
 }

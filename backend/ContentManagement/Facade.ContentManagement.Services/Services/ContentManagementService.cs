@@ -1,23 +1,31 @@
 using Content.Client.Contracts;
 using Content.Contracts.Parameters.Comment;
+using Content.Contracts.Parameters.Hashtag;
 using Content.Contracts.Parameters.Media;
 using Content.Contracts.Parameters.Post;
+using Content.Contracts.Parameters.PostHashtag;
 using Content.Contracts.Parameters.PostMedia;
 using Content.Contracts.Parameters.Reaction;
+using Content.Contracts.Parameters.UserHashtagFollow;
 using Content.Contracts.Results;
 using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Comment;
+using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
+using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
 using ContentCommentDto = Content.Contracts.DTOs.CommentDto;
+using ContentHashtagDto = Content.Contracts.DTOs.HashtagDto;
 using ContentMediaDto = Content.Contracts.DTOs.MediaDto;
 using ContentPostDto = Content.Contracts.DTOs.PostDto;
+using ContentPostHashtagDto = Content.Contracts.DTOs.PostHashtagDto;
 using ContentPostMediaDto = Content.Contracts.DTOs.PostMediaDto;
 using ContentReactionDto = Content.Contracts.DTOs.ReactionDto;
+using ContentUserHashtagFollowDto = Content.Contracts.DTOs.UserHashtagFollowDto;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -241,6 +249,96 @@ public class ContentManagementService : IContentManagementService
         return reactions.Select(MapReactionToFacadeDto).ToList();
     }
 
+    public async Task<HashtagResponse> CreateHashtagAsync(CreateHashtagRequest request)
+    {
+        var result = await _contentClient.Hashtags.CreateAsync(new CreateHashtagParameters
+        {
+            Name = request.Name
+        });
+
+        return MapHashtagResult(result);
+    }
+
+    public async Task<HashtagDto?> GetHashtagByIdAsync(Guid hashtagId)
+    {
+        var hashtag = await _contentClient.Hashtags.GetByIdAsync(new GetHashtagByIdParameters
+        {
+            HashtagId = hashtagId
+        });
+
+        return hashtag == null ? null : MapHashtagToFacadeDto(hashtag);
+    }
+
+    public async Task<PostHashtagResponse> AttachPostHashtagAsync(
+        string userId,
+        Guid postId,
+        AttachPostHashtagRequest request)
+    {
+        var result = await _contentClient.PostHashtags.AttachAsync(new AttachHashtagToPostParameters
+        {
+            AuthorId = userId,
+            PostId = postId,
+            HashtagId = request.HashtagId
+        });
+
+        return MapPostHashtagResult(result);
+    }
+
+    public async Task<PostHashtagResponse> DetachPostHashtagAsync(string userId, Guid postId, Guid hashtagId)
+    {
+        var result = await _contentClient.PostHashtags.DetachAsync(new DetachHashtagFromPostParameters
+        {
+            AuthorId = userId,
+            PostId = postId,
+            HashtagId = hashtagId
+        });
+
+        return MapPostHashtagResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<PostHashtagDto>> GetPostHashtagsAsync(string userId, Guid postId)
+    {
+        var links = await _contentClient.PostHashtags.GetByPostIdAsync(new GetPostHashtagsParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        return links.Select(MapPostHashtagToFacadeDto).ToList();
+    }
+
+    public async Task<UserHashtagFollowResponse> FollowHashtagAsync(string userId, Guid hashtagId)
+    {
+        var result = await _contentClient.UserHashtagFollows.FollowAsync(new FollowHashtagParameters
+        {
+            UserId = userId,
+            HashtagId = hashtagId
+        });
+
+        return MapUserHashtagFollowResult(result);
+    }
+
+    public async Task<UserHashtagFollowResponse> UnfollowHashtagAsync(string userId, Guid hashtagId)
+    {
+        var result = await _contentClient.UserHashtagFollows.UnfollowAsync(new UnfollowHashtagParameters
+        {
+            UserId = userId,
+            HashtagId = hashtagId
+        });
+
+        return MapUserHashtagFollowResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<UserHashtagFollowDto>> GetMyHashtagFollowsAsync(string userId)
+    {
+        var follows = await _contentClient.UserHashtagFollows.GetMyFollowsAsync(new GetMyHashtagFollowsParameters
+        {
+            UserId = userId
+        });
+
+        return follows.Select(MapUserHashtagFollowToFacadeDto).ToList();
+    }
+
     private static PostResponse MapPostResult(PostResult result)
     {
         return new PostResponse
@@ -287,6 +385,38 @@ public class ContentManagementService : IContentManagementService
         {
             Success = result.Succeeded,
             Reaction = result.Reaction == null ? null : MapReactionToFacadeDto(result.Reaction),
+            Errors = result.Errors
+        };
+    }
+
+    private static HashtagResponse MapHashtagResult(HashtagResult result)
+    {
+        return new HashtagResponse
+        {
+            Success = result.Succeeded,
+            Hashtag = result.Hashtag == null ? null : MapHashtagToFacadeDto(result.Hashtag),
+            Errors = result.Errors
+        };
+    }
+
+    private static PostHashtagResponse MapPostHashtagResult(PostHashtagResult result)
+    {
+        return new PostHashtagResponse
+        {
+            Success = result.Succeeded,
+            PostHashtag = result.PostHashtag == null ? null : MapPostHashtagToFacadeDto(result.PostHashtag),
+            Errors = result.Errors
+        };
+    }
+
+    private static UserHashtagFollowResponse MapUserHashtagFollowResult(UserHashtagFollowResult result)
+    {
+        return new UserHashtagFollowResponse
+        {
+            Success = result.Succeeded,
+            UserHashtagFollow = result.UserHashtagFollow == null
+                ? null
+                : MapUserHashtagFollowToFacadeDto(result.UserHashtagFollow),
             Errors = result.Errors
         };
     }
@@ -354,6 +484,42 @@ public class ContentManagementService : IContentManagementService
             UserId = reaction.UserId,
             ReactionType = reaction.ReactionType,
             CreatedAt = reaction.CreatedAt
+        };
+    }
+
+    private static HashtagDto MapHashtagToFacadeDto(ContentHashtagDto hashtag)
+    {
+        return new HashtagDto
+        {
+            Id = hashtag.Id,
+            Name = hashtag.Name,
+            CreatedAt = hashtag.CreatedAt,
+            UpdatedAt = hashtag.UpdatedAt
+        };
+    }
+
+    private static PostHashtagDto MapPostHashtagToFacadeDto(ContentPostHashtagDto postHashtag)
+    {
+        return new PostHashtagDto
+        {
+            Id = postHashtag.Id,
+            PostId = postHashtag.PostId,
+            HashtagId = postHashtag.HashtagId,
+            CreatedAt = postHashtag.CreatedAt,
+            Hashtag = postHashtag.Hashtag == null ? null : MapHashtagToFacadeDto(postHashtag.Hashtag)
+        };
+    }
+
+    private static UserHashtagFollowDto MapUserHashtagFollowToFacadeDto(ContentUserHashtagFollowDto follow)
+    {
+        return new UserHashtagFollowDto
+        {
+            Id = follow.Id,
+            UserId = follow.UserId,
+            HashtagId = follow.HashtagId,
+            FollowedAt = follow.FollowedAt,
+            UnfollowedAt = follow.UnfollowedAt,
+            Hashtag = follow.Hashtag == null ? null : MapHashtagToFacadeDto(follow.Hashtag)
         };
     }
 }

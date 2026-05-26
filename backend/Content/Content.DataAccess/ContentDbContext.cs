@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Content.DataAccess;
 
-// DbContext Content-модуля (posts, media, post_media, comments, reactions).
+// DbContext Content-модуля (posts, media, post_media, comments, reactions, hashtags).
 public class ContentDbContext : DbContext
 {
     public DbSet<Post> Posts { get; set; } = default!;
@@ -15,6 +15,12 @@ public class ContentDbContext : DbContext
     public DbSet<Comment> Comments { get; set; } = default!;
 
     public DbSet<Reaction> Reactions { get; set; } = default!;
+
+    public DbSet<Hashtag> Hashtags { get; set; } = default!;
+
+    public DbSet<PostHashtag> PostHashtags { get; set; } = default!;
+
+    public DbSet<UserHashtagFollow> UserHashtagFollows { get; set; } = default!;
 
     public ContentDbContext(DbContextOptions<ContentDbContext> options)
         : base(options)
@@ -208,6 +214,96 @@ public class ContentDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.PostId })
                 .IsUnique()
                 .HasDatabaseName("IX_reactions_user_id_post_id");
+        });
+
+        builder.Entity<Hashtag>(entity =>
+        {
+            entity.ToTable("hashtags");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("hashtag_id");
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.Name)
+                .IsUnique()
+                .HasDatabaseName("IX_hashtags_name");
+        });
+
+        builder.Entity<PostHashtag>(entity =>
+        {
+            entity.ToTable("post_hashtags");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("post_hashtag_id");
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.HashtagId)
+                .HasColumnName("hashtag_id")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_post_hashtags_post_id");
+
+            entity.HasIndex(e => e.HashtagId)
+                .HasDatabaseName("IX_post_hashtags_hashtag_id");
+
+            entity.HasIndex(e => new { e.PostId, e.HashtagId })
+                .IsUnique()
+                .HasDatabaseName("IX_post_hashtags_post_id_hashtag_id");
+        });
+
+        builder.Entity<UserHashtagFollow>(entity =>
+        {
+            entity.ToTable("user_hashtag_follows");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("follow_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.HashtagId)
+                .HasColumnName("hashtag_id")
+                .IsRequired();
+
+            entity.Property(e => e.FollowedAt)
+                .HasColumnName("followed_at");
+
+            entity.Property(e => e.UnfollowedAt)
+                .HasColumnName("unfollowed_at");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_user_hashtag_follows_user_id");
+
+            entity.HasIndex(e => e.HashtagId)
+                .HasDatabaseName("IX_user_hashtag_follows_hashtag_id");
+
+            entity.HasIndex(e => new { e.UserId, e.HashtagId })
+                .IsUnique()
+                .HasDatabaseName("IX_user_hashtag_follows_user_id_hashtag_id");
         });
     }
 }

@@ -1,7 +1,9 @@
 using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Comment;
+using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
+using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
@@ -49,4 +51,23 @@ public interface IContentManagementService
     Task<ReactionDto?> GetMyReactionByPostIdAsync(string userId, Guid postId);
 
     Task<IReadOnlyCollection<ReactionDto>> GetReactionsByPostIdAsync(string userId, Guid postId);
+
+    Task<HashtagResponse> CreateHashtagAsync(CreateHashtagRequest request);
+
+    Task<HashtagDto?> GetHashtagByIdAsync(Guid hashtagId);
+
+    Task<PostHashtagResponse> AttachPostHashtagAsync(
+        string userId,
+        Guid postId,
+        AttachPostHashtagRequest request);
+
+    Task<PostHashtagResponse> DetachPostHashtagAsync(string userId, Guid postId, Guid hashtagId);
+
+    Task<IReadOnlyCollection<PostHashtagDto>> GetPostHashtagsAsync(string userId, Guid postId);
+
+    Task<UserHashtagFollowResponse> FollowHashtagAsync(string userId, Guid hashtagId);
+
+    Task<UserHashtagFollowResponse> UnfollowHashtagAsync(string userId, Guid hashtagId);
+
+    Task<IReadOnlyCollection<UserHashtagFollowDto>> GetMyHashtagFollowsAsync(string userId);
 }
