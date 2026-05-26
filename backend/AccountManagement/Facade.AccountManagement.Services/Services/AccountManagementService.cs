@@ -159,6 +159,39 @@ public class AccountManagementService : IAccountManagementService
         return MapToAccountDto(user);
     }
 
+    // Вход через Google/Facebook — проверяет токен провайдера и возвращает JWT
+    public async Task<ExternalLoginResponse> ExternalLoginAsync(ExternalLoginRequest request)
+    {
+        var result = await _identityClient.ExternalAuth.ExternalLoginAsync(
+            new Identity.Contracts.Parameters.ExternalLoginParameters
+            {
+                Provider = request.Provider,
+                ProviderToken = request.ProviderToken
+            });
+
+        if (!result.Succeeded || result.User == null || result.Token == null)
+        {
+            return new ExternalLoginResponse
+            {
+                Success = false,
+                Errors = result.Errors
+            };
+        }
+
+        return new ExternalLoginResponse
+        {
+            Success = true,
+            Account = MapToAccountDto(result.User),
+            Token = new AuthTokenDto
+            {
+                AccessToken = result.Token.AccessToken,
+                RefreshToken = result.Token.RefreshToken,
+                ExpiresAt = result.Token.AccessTokenExpiresAt,
+                TokenType = result.Token.TokenType
+            }
+        };
+    }
+
     // Маппинг UserDto из Identity в AccountDto фасада
     private static AccountDto MapToAccountDto(Identity.Contracts.DTOs.UserDto user)
     {

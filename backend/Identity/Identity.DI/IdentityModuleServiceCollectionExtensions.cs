@@ -6,7 +6,7 @@ using Identity.Contracts.Configuration;    // JwtSettings
 using Identity.Contracts.Services;         // IUserService, IAuthenticationService, ITokenService
 using Identity.DataAccess;                 // IdentityDbContext
 using Identity.DataAccess.Entities;        // ApplicationUser
-using Identity.Services;                   // UserService, AuthenticationService, TokenService
+using Identity.Services;                   // UserService, AuthenticationService, TokenService, ExternalAuthService
 using Microsoft.AspNetCore.Identity;       // ASP.NET Core Identity
 using Microsoft.EntityFrameworkCore;       // EF Core
 using Microsoft.Extensions.Configuration;  // IConfiguration
@@ -63,6 +63,8 @@ public static class IdentityModuleServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IExternalAuthService, ExternalAuthService>();
+        services.AddHttpClient(); // для запросов к Google/Facebook API
 
         // Регистрируем in-process event publisher
         services.AddScoped<IDomainEventPublisher, InMemoryDomainEventPublisher>();
@@ -70,6 +72,7 @@ public static class IdentityModuleServiceCollectionExtensions
         // Регистрируем Identity.Client слой
         services.AddScoped<IUserResource, UserResource>();
         services.AddScoped<IAuthenticationResource, AuthenticationResource>();
+        services.AddScoped<IExternalAuthResource, ExternalAuthResource>();
         services.AddScoped<IIdentityClient, IdentityClient>();
 
 

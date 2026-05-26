@@ -13,6 +13,9 @@ public interface IAccountManagementService
     // логин
     Task<LoginResponse> LoginAsync(LoginRequest request);
 
+    // вход через Google/Facebook
+    Task<ExternalLoginResponse> ExternalLoginAsync(ExternalLoginRequest request);
+
     // обновление токена
     Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request);
 

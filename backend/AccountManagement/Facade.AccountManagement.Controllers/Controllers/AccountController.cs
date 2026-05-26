@@ -71,6 +71,44 @@ public class AccountController : ControllerBase
         return Ok(response);
     }
 
+    // Вход через Google аккаунт
+    [HttpPost("google")]
+    [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.ExternalLoginResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        request.Provider = "Google";
+        var response = await _accountManagementService.ExternalLoginAsync(request);
+
+        if (!response.Success)
+            return Unauthorized(response);
+
+        return Ok(response);
+    }
+
+    // Вход через Facebook аккаунт
+    [HttpPost("facebook")]
+    [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.ExternalLoginResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> FacebookLogin([FromBody] ExternalLoginRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        request.Provider = "Facebook";
+        var response = await _accountManagementService.ExternalLoginAsync(request);
+
+        if (!response.Success)
+            return Unauthorized(response);
+
+        return Ok(response);
+    }
+
     // POST api/auth/refresh
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(Facade.AccountManagement.Contracts.Responses.RefreshTokenResponse), 200)]

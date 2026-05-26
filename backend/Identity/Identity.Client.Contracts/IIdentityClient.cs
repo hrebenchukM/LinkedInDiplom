@@ -11,4 +11,7 @@ public interface IIdentityClient
 
     // Доступ к операциям авторизации
     IAuthenticationResource Authentication { get; }
+
+    // Внешняя авторизация (Google, Facebook)
+    IExternalAuthResource ExternalAuth { get; }
 }

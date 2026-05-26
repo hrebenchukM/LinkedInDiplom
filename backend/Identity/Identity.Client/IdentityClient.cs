@@ -9,10 +9,12 @@ public class IdentityClient : IIdentityClient
     // Получаем ресурсы через DI
     public IdentityClient(
         IUserResource userResource,
-        IAuthenticationResource authenticationResource)
+        IAuthenticationResource authenticationResource,
+        IExternalAuthResource externalAuthResource)
     {
         Users = userResource;
         Authentication = authenticationResource;
+        ExternalAuth = externalAuthResource;
     }
 
     // Ресурс пользователей
@@ -20,4 +22,7 @@ public class IdentityClient : IIdentityClient
 
     // Ресурс авторизации
     public IAuthenticationResource Authentication { get; }
+
+    // Google/Facebook авторизация
+    public IExternalAuthResource ExternalAuth { get; }
 }
