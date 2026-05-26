@@ -87,6 +87,20 @@ curl http://localhost:5000/api/auth/register \
 4. Enter: `Bearer <your-token>`
 5. Try **GET /api/auth/me** or **GET /api/profile/me**
 
+### Profile module (Swagger checklist)
+
+With **Authorize** enabled (JWT from login):
+
+1. **GET /api/profile/me/message-settings** — returns defaults if no row exists yet
+2. **PUT** or **PATCH /api/profile/me/message-settings** — update your settings
+
+**Profile views** (record + list):
+
+3. **POST /api/profile/{profileOwnerId}/views?source=profile** — works **without** JWT (anonymous view) or **with** JWT (sets `viewerUserId`). Use another user's id as `profileOwnerId` to simulate visiting their profile.
+4. **GET /api/profile/me/profile-views** — **JWT required**; lists views of **your** profile only (last 100, newest first)
+
+See [Profile module README](./backend/Profile/README.md) for security rules.
+
 ## Step 6: View Logs
 
 ```bash

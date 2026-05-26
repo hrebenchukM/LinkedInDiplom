@@ -86,12 +86,23 @@ dotnet ef database update --context IdentityDbContext
 
 ### Profile — `/api/profile`
 
+BFF over the **Profile** core module. The solution is a **modular monolith** on **.NET 8** (`TargetFramework net8.0`); the Profile core owns the full PostgreSQL **`profile`** schema: `user_profiles`, `message_settings`, `profile_views` (see [Profile module README](../Profile/README.md)).
+
+`userId` for `/me/*` routes comes **only from JWT** (`NameIdentifier` / `sub`).
+
+**Profile views:** public `POST` to record a view (optional JWT sets `viewerUserId`; IP and User-Agent from `HttpContext`, not body). Owner-only `GET` list (last 100, newest first).
+
+**Message settings:** private to the owner — all routes under `/me/message-settings` require JWT; not included in public `GET /api/profile/{userId}`.
+
 | Endpoint | Method | Auth |
 |----------|--------|------|
 | `/api/profile/me` | GET, PUT, PATCH | Yes |
 | `/api/profile/{userId}` | GET | No |
 | `/api/profile/me/avatar` | POST | Yes |
 | `/api/profile/me/header` | POST | Yes |
+| `/api/profile/me/message-settings` | GET, PUT, PATCH | Yes |
+| `/api/profile/{profileOwnerId}/views?source=` | POST | No (optional JWT for `viewerUserId`) |
+| `/api/profile/me/profile-views` | GET | Yes |
 
 ### Professional — `/api/professional`
 
@@ -187,10 +198,12 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Swagger at `/swagger` (Development)  
 ✅ Profile uploads + static file serving  
 ✅ Dev/Production security split  
+✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
 
 ## Related docs
 
 - [INTEGRATION.md](./INTEGRATION.md) — integration and data flow details
 - [AccountManagement facade](../AccountManagement/README.md)
+- [Profile module](../Profile/README.md)
 - [Professional module](../Professional/README.md)

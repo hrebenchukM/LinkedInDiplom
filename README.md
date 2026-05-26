@@ -99,7 +99,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | Route prefix | Purpose |
 |--------------|---------|
 | `/api/auth` | Register, login, refresh, logout, current account |
-| `/api/profile` | Profile CRUD, avatar/header upload |
+| `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 
 ### Auth (`/api/auth`)
@@ -168,9 +168,11 @@ The API uses JWT Bearer token authentication with:
 - PostgreSQL schema: `identity`
 
 ### Profile (Core)
-- User profiles (name, headline, location, etc.)
-- Created automatically via `UserRegisteredEvent` handler
-- PostgreSQL schema: `profile`
+- **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: **`profile`** — **fully implemented**
+- Tables: **`user_profiles`** (public profile data), **`message_settings`** (private messaging preferences), **`profile_views`** (append-only view event log)
+- Created automatically via `UserRegisteredEvent` handler (`user_profiles`)
+- Exposed via **ProfileManagement** facade (`IProfileClient` in-process; microservice-ready seam)
+- See [backend/Profile/README.md](./backend/Profile/README.md) for architecture, security rules, and Swagger routes
 
 ### Professional (Core)
 - **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: `professional` — **fully implemented** for all career tables in `DB_SCHEMA.md` sections 2–3
@@ -183,8 +185,10 @@ The API uses JWT Bearer token authentication with:
 - Maps facade DTOs ↔ Identity via `IIdentityClient`
 
 ### ProfileManagement (Facade / BFF)
-- Profile API at `/api/profile`
-- Avatar and header file upload (`/uploads/...`)
+- Profile API at `/api/profile` (.NET 8, modular monolith BFF)
+- Profile CRUD, avatar/header upload (`/uploads/...`)
+- **Message settings:** JWT-only `/api/profile/me/message-settings` (GET get-or-create, PUT/PATCH)
+- **Profile views:** public `POST /api/profile/{profileOwnerId}/views?source=`; JWT `GET /api/profile/me/profile-views` (owner only)
 - Maps via `IProfileClient`
 
 ### ProfessionalManagement (Facade / BFF)
@@ -238,6 +242,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Facade.API](./backend/Facade.API/README.md)** - Host API documentation
 - **[Facade.API Integration](./backend/Facade.API/INTEGRATION.md)** - Module integration overview
 - **[AccountManagement Facade](./backend/AccountManagement/README.md)** - Auth facade details
+- **[Profile Module](./backend/Profile/README.md)** - Profile core module and `/api/profile` endpoints
 - **[Professional Module](./backend/Professional/README.md)** - Career core module and `/api/professional` endpoints
 
 ## 🧪 Testing
@@ -272,10 +277,10 @@ curl -X POST http://localhost:5000/api/auth/login \
 ## 🚦 Status
 
 ✅ **Identity Core Module** - Authentication and events  
-✅ **Profile Core Module** - Profiles and event-driven creation  
+✅ **Profile Core Module** - Full `profile` schema: user profiles, message settings, profile views  
 ✅ **Professional Core Module** - Full `professional` schema: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, recommendations  
 ✅ **AccountManagement Facade** - `/api/auth`  
-✅ **ProfileManagement Facade** - `/api/profile` + uploads  
+✅ **ProfileManagement Facade** - `/api/profile` + uploads + message settings + profile views  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
