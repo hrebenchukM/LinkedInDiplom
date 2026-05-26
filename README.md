@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -87,16 +87,25 @@ LinkedInDiplom/
 │   │   ├── Network.Client
 │   │   └── Network.DI
 │   │
+│   ├── Content/                     # Core: posts & media (6 projects)
+│   │   ├── Content.Contracts
+│   │   ├── Content.Services
+│   │   ├── Content.DataAccess       # schema: content
+│   │   ├── Content.Client.Contracts
+│   │   ├── Content.Client
+│   │   └── Content.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
 │   ├── NetworkManagement/           # Facade: social graph BFF (4 projects)
+│   ├── ContentManagement/           # Facade: posts & media BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
 ├── docker-compose.yml
 ├── Dockerfile
-└── LinkedIn.sln                     # 43 projects
+└── LinkedIn.sln                     # 53 projects
 ```
 
 Each **Core module** follows: `Contracts` → `Services` → `DataAccess`, plus `Client.Contracts` / `Client` (resource pattern) and `DI`.
@@ -111,6 +120,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 | `/api/network` | Social graph: contacts, follows, blocked users, groups, pages (JWT only) |
+| `/api/content` | Posts, media metadata, post–media links (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -180,6 +190,40 @@ Full API documentation (Development): **http://localhost:5000/swagger**
 **Rules:** no self contact/follow/block; duplicate active contact/follow/block → **400**; disallowed or foreign rows → **404**; block prevents contact/follow; unfollow/unblock use `unfollowed_at`/`unblocked_at`; group/page owner created on create; owner cannot leave group; delete group soft-deletes members; page admin add/remove owner-only; `group_posts` deferred.
 
 Details: [Network module README](./backend/Network/README.md).
+
+### Content (`/api/content`)
+
+**Modular monolith prepared for microservices** core + **ContentManagement** BFF (`TargetFramework net8.0`, schema **`content`**). All routes require **JWT**. `authorId` / `userId` is taken **only from JWT** (not from body). Bodies must **not** contain the current user's `userId` or `authorId`.
+
+**Tables:** `posts`, `media`, `post_media`. Migration: **`AddContentModule`**.
+
+**Not in v1:** `comments`, `reactions`, `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`. **`group_posts`** deferred until Content + Network integration.
+
+#### Media
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/media` | POST |
+| `/api/content/media/{mediaId}` | GET |
+
+#### Posts
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/posts` | POST, GET |
+| `/api/content/posts/{postId}` | GET |
+| `/api/content/me/posts/{postId}` | PATCH, DELETE |
+
+#### Post media
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/posts/{postId}/media` | POST, GET |
+| `/api/content/me/posts/{postId}/media/{mediaId}` | DELETE |
+
+**Rules:** visibility v1 `public` / `private`; private post visible only to author; public post readable by any authenticated user; media stores **Url** and **Type** only (no blob); post delete is soft delete (`deleted_at`); attach/detach media owner-only; `"Post not found."` / `"Media not found."` / `"Post media not found."` → **404**; other business errors → **400**.
+
+Details: [Content module README](./backend/Content/README.md).
 
 ## 🛠️ Development
 
@@ -276,6 +320,21 @@ The API uses JWT Bearer token authentication with:
 - v3: pages, page admins, page followers
 - Maps via `INetworkClient`
 
+### Content (Core)
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`content`**
+- Tables: **`posts`**, **`media`**, **`post_media`**
+- Migration: **`AddContentModule`**
+- Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`)
+- Visibility v1: `public` / `private`; media URL + type only; post soft delete; engagement tables not implemented
+- **`group_posts`** deferred until Content + Network integration
+- Exposed via **ContentManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Content/README.md](./backend/Content/README.md) for architecture, security rules, and full endpoint list
+
+### ContentManagement (Facade / BFF)
+- Posts and media API at `/api/content` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; `authorId` from JWT only (never in body)
+- Maps via `IContentClient`
+
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
 - Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
@@ -297,11 +356,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional | Network
+Core Modules: Identity | Profile | Professional | Network | Content
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional, network)
+PostgreSQL (schemas: identity, profile, professional, network, content)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -331,6 +390,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Profile Module](./backend/Profile/README.md)** - Profile core module and `/api/profile` endpoints
 - **[Professional Module](./backend/Professional/README.md)** - Career core module and `/api/professional` endpoints
 - **[Network Module](./backend/Network/README.md)** - Social graph core module and `/api/network` endpoints
+- **[Content Module](./backend/Content/README.md)** - Posts & media core module and `/api/content` endpoints
 
 ## 🧪 Testing
 
@@ -371,6 +431,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
 ✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, pages (8 tables; `group_posts` deferred)  
 ✅ **NetworkManagement Facade** - `/api/network` (JWT-only; 33 endpoints)  
+✅ **Content Core Module** - Schema `content`: posts, media, post_media (`group_posts` and engagement deferred)  
+✅ **ContentManagement Facade** - `/api/content` (JWT-only; 11 endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
