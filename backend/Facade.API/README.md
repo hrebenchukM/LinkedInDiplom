@@ -153,29 +153,75 @@ Full tables, security rules, and Swagger flows: [Professional module README](../
 
 ### Network — `/api/network`
 
-Social graph BFF over the **Network** core module. The solution is a **modular monolith** on **.NET 8** (`TargetFramework net8.0`); the Network core owns PostgreSQL schema **`network`**: `contacts`, `follows`, `blocked_users` (see [Network module README](../Network/README.md)).
+Social graph BFF over the **Network** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Network core owns PostgreSQL schema **`network`**: `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `pages`, `page_admins`, `page_followers` (see [Network module README](../Network/README.md)).
 
-`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** in v1 (no public routes).
+**Deferred:** `group_posts` is not implemented until the **Content/Posts** module (depends on `posts.post_id`).
 
-| Area | Method | Path | Auth |
-|------|--------|------|------|
-| Contacts | POST | `/api/network/me/contacts` | Yes (`receiverId` in body) |
-| Contacts | GET | `/api/network/me/contacts` | Yes |
-| Contacts | GET | `/api/network/me/contacts/{contactId}` | Yes (not participant → 404) |
-| Contacts | PATCH | `/api/network/me/contacts/{contactId}/accept` | Yes (receiver, pending) |
-| Contacts | PATCH | `/api/network/me/contacts/{contactId}/reject` | Yes (receiver, pending) |
-| Contacts | DELETE | `/api/network/me/contacts/{contactId}` | Yes (cancel pending / remove accepted) |
-| Following | POST | `/api/network/me/following` | Yes (`followingId` in body) |
-| Following | DELETE | `/api/network/me/following/{followingId}` | Yes (unfollow → `unfollowed_at`; not found → 404) |
-| Following | GET | `/api/network/me/following` | Yes (active only) |
-| Followers | GET | `/api/network/me/followers` | Yes (active only) |
-| Blocked users | POST | `/api/network/me/blocked-users` | Yes (`blockedUserId` in body) |
-| Blocked users | DELETE | `/api/network/me/blocked-users/{blockedUserId}` | Yes (unblock → `unblocked_at`; not found → 404) |
-| Blocked users | GET | `/api/network/me/blocked-users` | Yes (active only) |
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain `currentUserId`, `requesterId`, `followerId`, or `ownerId`.
 
-**Rules:** cannot contact/follow/block yourself → **400**; active block in either direction blocks new contact/follow → **400**; duplicate active contact/follow/block → **400**; foreign or non-participant rows → **404**.
+#### Contacts
 
-Full rules and table details: [Network module README](../Network/README.md).
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/network/me/contacts` | Yes (`receiverId` in body) |
+| GET | `/api/network/me/contacts` | Yes |
+| GET | `/api/network/me/contacts/{contactId}` | Yes (not participant → 404) |
+| PATCH | `/api/network/me/contacts/{contactId}/accept` | Yes (receiver, pending) |
+| PATCH | `/api/network/me/contacts/{contactId}/reject` | Yes (receiver, pending) |
+| DELETE | `/api/network/me/contacts/{contactId}` | Yes (cancel pending / remove accepted) |
+
+#### Follows
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/network/me/following` | Yes (`followingId` in body) |
+| DELETE | `/api/network/me/following/{followingId}` | Yes (unfollow → `unfollowed_at`; not found → 404) |
+| GET | `/api/network/me/following` | Yes (active only) |
+| GET | `/api/network/me/followers` | Yes (active only) |
+
+#### Blocked users
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/network/me/blocked-users` | Yes (`blockedUserId` in body) |
+| DELETE | `/api/network/me/blocked-users/{blockedUserId}` | Yes (unblock → `unblocked_at`; not found → 404) |
+| GET | `/api/network/me/blocked-users` | Yes (active only) |
+
+#### Groups
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/network/me/groups` | Yes |
+| GET | `/api/network/me/groups` | Yes |
+| GET | `/api/network/me/groups/{groupId}` | Yes (not member → 404) |
+| PATCH | `/api/network/me/groups/{groupId}` | Yes (owner only) |
+| DELETE | `/api/network/me/groups/{groupId}` | Yes (owner only; soft delete group + members) |
+| POST | `/api/network/me/groups/{groupId}/join` | Yes |
+| DELETE | `/api/network/me/groups/{groupId}/membership` | Yes (owner cannot leave) |
+| GET | `/api/network/me/groups/{groupId}/members` | Yes (active members only) |
+
+#### Pages
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/network/me/pages` | Yes |
+| GET | `/api/network/me/pages` | Yes (owned pages) |
+| GET | `/api/network/me/pages/{pageId}` | Yes (owner / admin / follower) |
+| PATCH | `/api/network/me/pages/{pageId}` | Yes (owner only) |
+| DELETE | `/api/network/me/pages/{pageId}` | Yes (owner only) |
+| POST | `/api/network/me/pages/{pageId}/admins` | Yes (owner only; `userId` = target admin) |
+| DELETE | `/api/network/me/pages/{pageId}/admins/{adminUserId}` | Yes (owner only) |
+| GET | `/api/network/me/pages/{pageId}/admins` | Yes |
+| POST | `/api/network/me/pages/{pageId}/follow` | Yes |
+| DELETE | `/api/network/me/pages/{pageId}/follow` | Yes |
+| GET | `/api/network/me/pages/following` | Yes |
+| GET | `/api/network/me/pages/{pageId}/followers` | Yes (owner or active admin) |
+
+**Rules:** cannot contact/follow/block yourself → **400**; active block in either direction blocks new contact/follow → **400**; duplicate active contact/follow/block → **400**; foreign or disallowed rows → **404**; unfollow/unblock retain rows (`unfollowed_at` / `unblocked_at`); group/page owner rows created on create; `group_posts` deferred until Posts module.
+
+Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkPages` (applied via `NetworkDbContext` on startup).
+
+Full rules, services, and `INetworkClient`: [Network module README](../Network/README.md).
 
 ## Module Integration (Program.cs)
 
@@ -231,7 +277,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Dev/Production security split  
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
-✅ **Network module** — schema `network` (`contacts`, `follows`, `blocked_users`) at `/api/network`  
+✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Posts)  
 
 ## Related docs
 

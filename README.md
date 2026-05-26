@@ -110,7 +110,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/auth` | Register, login, refresh, logout, current account |
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
-| `/api/network` | Social graph: contacts, follows, blocked users (JWT only in v1) |
+| `/api/network` | Social graph: contacts, follows, blocked users, groups, pages (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -126,25 +126,60 @@ Full API documentation (Development): **http://localhost:5000/swagger**
 
 ### Network (`/api/network`)
 
-All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body). Request bodies: `receiverId`, `followingId`, or `blockedUserId` only.
+**Modular monolith** core + **NetworkManagement** BFF (`TargetFramework net8.0`, schema **`network`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body). Bodies must **not** contain `currentUserId`, `requesterId`, `followerId`, or `ownerId`.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/network/me/contacts` | POST | Send contact request |
-| `/api/network/me/contacts` | GET | List my contacts |
-| `/api/network/me/contacts/{contactId}` | GET | Get contact (participant only) |
-| `/api/network/me/contacts/{contactId}/accept` | PATCH | Accept pending request |
-| `/api/network/me/contacts/{contactId}/reject` | PATCH | Reject pending request |
-| `/api/network/me/contacts/{contactId}` | DELETE | Cancel pending or remove accepted contact |
-| `/api/network/me/following` | POST | Follow user |
-| `/api/network/me/following/{followingId}` | DELETE | Unfollow (sets `unfollowed_at`) |
-| `/api/network/me/following` | GET | My active following |
-| `/api/network/me/followers` | GET | My active followers |
-| `/api/network/me/blocked-users` | POST | Block user |
-| `/api/network/me/blocked-users/{blockedUserId}` | DELETE | Unblock (sets `unblocked_at`) |
-| `/api/network/me/blocked-users` | GET | My active blocks |
+**Tables:** `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `pages`, `page_admins`, `page_followers`. **`group_posts`** is deferred until the Content/Posts module (`posts.post_id`).
 
-**Rules:** no self contact/follow/block; active block prevents contact/follow; duplicates → **400**; foreign rows → **404**. Details: [Network module README](./backend/Network/README.md).
+#### Contacts
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/network/me/contacts` | POST, GET |
+| `/api/network/me/contacts/{contactId}` | GET |
+| `/api/network/me/contacts/{contactId}/accept` | PATCH |
+| `/api/network/me/contacts/{contactId}/reject` | PATCH |
+| `/api/network/me/contacts/{contactId}` | DELETE |
+
+#### Follows
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/network/me/following` | POST, GET |
+| `/api/network/me/following/{followingId}` | DELETE |
+| `/api/network/me/followers` | GET |
+
+#### Blocked users
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/network/me/blocked-users` | POST, GET |
+| `/api/network/me/blocked-users/{blockedUserId}` | DELETE |
+
+#### Groups
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/network/me/groups` | POST, GET |
+| `/api/network/me/groups/{groupId}` | GET, PATCH, DELETE |
+| `/api/network/me/groups/{groupId}/join` | POST |
+| `/api/network/me/groups/{groupId}/membership` | DELETE |
+| `/api/network/me/groups/{groupId}/members` | GET |
+
+#### Pages
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/network/me/pages` | POST, GET |
+| `/api/network/me/pages/{pageId}` | GET, PATCH, DELETE |
+| `/api/network/me/pages/{pageId}/admins` | POST, GET |
+| `/api/network/me/pages/{pageId}/admins/{adminUserId}` | DELETE |
+| `/api/network/me/pages/{pageId}/follow` | POST, DELETE |
+| `/api/network/me/pages/following` | GET |
+| `/api/network/me/pages/{pageId}/followers` | GET |
+
+**Rules:** no self contact/follow/block; duplicate active contact/follow/block → **400**; disallowed or foreign rows → **404**; block prevents contact/follow; unfollow/unblock use `unfollowed_at`/`unblocked_at`; group/page owner created on create; owner cannot leave group; delete group soft-deletes members; page admin add/remove owner-only; `group_posts` deferred.
+
+Details: [Network module README](./backend/Network/README.md).
 
 ## 🛠️ Development
 
@@ -224,18 +259,21 @@ The API uses JWT Bearer token authentication with:
 - Maps via `IProfileClient`
 
 ### Network (Core)
-- **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: **`network`**
-- Tables: **`contacts`** (request/accept lifecycle), **`follows`** (soft unfollow via `unfollowed_at`), **`blocked_users`** (soft unblock via `unblocked_at`)
-- No EF reference to Identity/Profile in v1; target user existence is not validated
-- Exposed via **NetworkManagement** facade (`INetworkClient` in-process; microservice-ready seam)
-- See [backend/Network/README.md](./backend/Network/README.md) for architecture, security rules, and Swagger routes
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`network`**
+- Tables: **`contacts`**, **`follows`**, **`blocked_users`**, **`user_groups`**, **`group_members`**, **`pages`**, **`page_admins`**, **`page_followers`**
+- Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkPages`
+- Services/resources: `ContactService`/`ContactResource` through `PageFollowerService`/`PageFollowerResource`; facade uses **`INetworkClient`** (`Contacts`, `Follows`, `BlockedUsers`, `UserGroups`, `GroupMembers`, `Pages`, `PageAdmins`, `PageFollowers`)
+- **`group_posts`** not implemented — deferred until Content/Posts module (`posts.post_id`)
+- No EF reference to Identity/Profile; target user existence is not validated
+- Exposed via **NetworkManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Network/README.md](./backend/Network/README.md) for architecture, security rules, and full endpoint list
 
 ### NetworkManagement (Facade / BFF)
 - Social graph API at `/api/network` (.NET 8, modular monolith BFF)
-- **All routes require JWT**; `userId` from JWT only (never from body for current user)
-- Contacts: send, list, get, accept, reject, delete (cancel/remove)
-- Follows: follow, unfollow, following, followers
-- Blocked users: block, unblock, list
+- **All routes require JWT**; `userId` from JWT only (never `ownerId`/`requesterId`/`followerId` in body)
+- v1: contacts, follows, blocked users
+- v2: user groups, group membership (join/leave/members)
+- v3: pages, page admins, page followers
 - Maps via `INetworkClient`
 
 ### ProfessionalManagement (Facade / BFF)
@@ -331,8 +369,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **AccountManagement Facade** - `/api/auth`  
 ✅ **ProfileManagement Facade** - `/api/profile` + uploads + message settings + profile views  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
-✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users  
-✅ **NetworkManagement Facade** - `/api/network` (JWT-only in v1)  
+✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, pages (8 tables; `group_posts` deferred)  
+✅ **NetworkManagement Facade** - `/api/network` (JWT-only; 33 endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
