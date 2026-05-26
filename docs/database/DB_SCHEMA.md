@@ -126,7 +126,7 @@ Ref: profile_views.profile_owner_id > AspNetUsers.user_id
 Ref: profile_views.viewer_user_id > AspNetUsers.user_id
 
 
-// Просмотры постов
+// Просмотры постов (not implemented in Content v3)
 Table post_views {
   post_view_id Guid [primary key]
 
@@ -477,6 +477,15 @@ Table page_followers {
 Ref: page_followers.page_id > pages.page_id
 Ref: page_followers.user_id > AspNetUsers.user_id 
 // 🟢 5. Контент: Posts / Media / Comments / Hashtags / Saved / Reposts
+// PostgreSQL schema: content
+//
+// Implementation status (Content module, .NET 8):
+//   v1 — posts, media, post_media          (migration AddContentModule)
+//   v2 — comments, reactions                (migration AddContentCommentsAndReactions)
+//   v3 — hashtags, post_hashtags, user_hashtag_follows (migration AddContentHashtagsAndFollows)
+//   not implemented — saved_posts, reposts, post_views (see above), mentions, group_posts (Network)
+//
+// EF: no FK to AspNetUsers; user_id stored as string. Hashtag name unique (normalized trim+lower in service).
 
 Table posts {
   post_id Guid [primary key]
@@ -554,17 +563,17 @@ Ref: comments.post_id > posts.post_id
 Ref: comments.user_id > AspNetUsers.user_id
 Ref: comments.parent_comment_id > comments.comment_id
 
-// Хэштеги
+// Хэштеги (v3 — implemented)
 Table hashtags {
   hashtag_id Guid [primary key]
 
-  name varchar
+  name varchar [unique, note: 'max 100; normalized trim+lower in service']
 
   created_at datetime
   updated_at datetime
 }
 
-// Хэштеги постов
+// Хэштеги постов (v3 — implemented)
 Table post_hashtags {
   post_hashtag_id Guid [primary key]
 
@@ -572,26 +581,34 @@ Table post_hashtags {
   hashtag_id Guid
 
   created_at datetime
+
+  indexes {
+    (post_id, hashtag_id) [unique]
+  }
 }
 
 Ref: post_hashtags.post_id > posts.post_id
 Ref: post_hashtags.hashtag_id > hashtags.hashtag_id
 
-// Подписки на хэштеги
+// Подписки на хэштеги (v3 — implemented; soft unfollow via unfollowed_at)
 Table user_hashtag_follows {
-  user_hashtag_follow_id Guid [primary key]
+  follow_id Guid [primary key]
 
   user_id varchar
   hashtag_id Guid
 
   followed_at datetime
   unfollowed_at datetime
+
+  indexes {
+    (user_id, hashtag_id) [unique]
+  }
 }
 
 Ref: user_hashtag_follows.user_id > AspNetUsers.user_id
 Ref: user_hashtag_follows.hashtag_id > hashtags.hashtag_id
 
-// Сохранённые посты
+// Сохранённые посты (not implemented in Content v3)
 Table saved_posts {
   saved_post_id Guid [primary key]
 
