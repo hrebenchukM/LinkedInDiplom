@@ -26,6 +26,9 @@
 		<ProjectReference Include="..\Professional\Professional.DI\Professional.DI.csproj" />
 		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.DI\Facade.ProfessionalManagement.DI.csproj" />
 		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.Controllers\Facade.ProfessionalManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Network\Network.DI\Network.DI.csproj" />
+		<ProjectReference Include="..\NetworkManagement\Facade.NetworkManagement.DI\Facade.NetworkManagement.DI.csproj" />
+		<ProjectReference Include="..\NetworkManagement\Facade.NetworkManagement.Controllers\Facade.NetworkManagement.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>

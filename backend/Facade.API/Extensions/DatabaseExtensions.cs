@@ -1,5 +1,6 @@
 ﻿using Identity.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Network.DataAccess;
 using Profile.DataAccess;
 using Professional.DataAccess;
 namespace Facade.API.Extensions;
@@ -41,6 +42,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Professional-модуля
             await professionalContext.Database.MigrateAsync();
+
+            // Получаем NetworkDbContext из DI
+            var networkContext = services.GetRequiredService<NetworkDbContext>();
+
+            // Применяем миграции Network-модуля
+            await networkContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

@@ -13,7 +13,10 @@ using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
 using Professional.DI;
 using Facade.ProfessionalManagement.Controllers.Controllers;
 using Facade.ProfessionalManagement.DI;
+using Facade.NetworkManagement.Controllers.Controllers;
+using Facade.NetworkManagement.DI;
 using Facade.ProfileManagement.Contracts.Options;
+using Network.DI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +40,7 @@ builder.Services.AddIdentityModule(configuration, connectionString);
 // а не как отдельный HTTP-микросервис.
 builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
+builder.Services.AddNetworkModule(configuration, connectionString);
 
 // Подключаем AccountManagement facade
 builder.Services.AddAccountManagementFacade();
@@ -44,11 +48,13 @@ builder.Services.AddAccountManagementFacade();
 // Подключаем ProfileManagement facade
 builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
+builder.Services.AddNetworkManagementFacade();
 // Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileController).Assembly)
-    .AddApplicationPart(typeof(ProfessionalController).Assembly);
+    .AddApplicationPart(typeof(ProfessionalController).Assembly)
+    .AddApplicationPart(typeof(NetworkController).Assembly);
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");
