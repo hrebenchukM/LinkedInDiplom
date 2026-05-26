@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -23,13 +23,15 @@ Facade Modules (BFF)
     ├── Facade.AccountManagement      → /api/auth
     ├── Facade.ProfileManagement      → /api/profile
     ├── Facade.ProfessionalManagement → /api/professional
-    └── Facade.NetworkManagement      → /api/network
+    ├── Facade.NetworkManagement      → /api/network
+    └── Facade.ContentManagement      → /api/content
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
     ├── Profile       (schema: profile)
     ├── Professional  (schema: professional)
-    └── Network       (schema: network)
+    ├── Network       (schema: network)
+    └── Content       (schema: content)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -223,6 +225,45 @@ Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkPages` (applied v
 
 Full rules, services, and `INetworkClient`: [Network module README](../Network/README.md).
 
+### Content — `/api/content`
+
+Posts and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media` (see [Content module README](../Content/README.md)).
+
+**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Engagement tables (`comments`, `reactions`, `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`) are not in v1.
+
+`userId` / `authorId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId` or `authorId`.
+
+#### Media
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/media` | Yes (`url`, `type` in body) |
+| GET | `/api/content/media/{mediaId}` | Yes |
+
+#### Posts
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts` | Yes (`content`, optional `visibility`, optional `mediaIds`) |
+| GET | `/api/content/me/posts` | Yes (author's posts) |
+| GET | `/api/content/posts/{postId}` | Yes (public: any JWT user; private: author only) |
+| PATCH | `/api/content/me/posts/{postId}` | Yes (author only; `content`, `visibility`) |
+| DELETE | `/api/content/me/posts/{postId}` | Yes (author only; soft delete via `deleted_at`) |
+
+#### Post media
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts/{postId}/media` | Yes (`mediaId` in body; owner only) |
+| GET | `/api/content/me/posts/{postId}/media` | Yes |
+| DELETE | `/api/content/me/posts/{postId}/media/{mediaId}` | Yes (owner only) |
+
+**Rules:** visibility v1 `public` / `private`; private post visible only to author; media stores **Url** and **Type** only (no blob); post delete is soft delete; attach/detach media owner-only; `"Post not found."` / `"Media not found."` / `"Post media not found."` → **404**; other business errors → **400**; reaction/comment/repost counters are not updated in v1.
+
+Migrations: `AddContentModule` (applied via `ContentDbContext` on startup; history in schema `content`).
+
+Full rules, services, and `IContentClient`: [Content module README](../Content/README.md).
+
 ## Module Integration (Program.cs)
 
 ```csharp
@@ -230,17 +271,20 @@ builder.Services.AddIdentityModule(configuration, connectionString);
 builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
 builder.Services.AddNetworkModule(configuration, connectionString);
+builder.Services.AddContentModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
+builder.Services.AddContentManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileController).Assembly)
     .AddApplicationPart(typeof(ProfessionalController).Assembly)
-    .AddApplicationPart(typeof(NetworkController).Assembly);
+    .AddApplicationPart(typeof(NetworkController).Assembly)
+    .AddApplicationPart(typeof(ContentController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -277,7 +321,8 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Dev/Production security split  
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
-✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Posts)  
+✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Content)  
+✅ **Content module** — schema `content` (`posts`, `media`, `post_media`) at `/api/content` (engagement tables and `group_posts` deferred)  
 
 ## Related docs
 
@@ -286,3 +331,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [Profile module](../Profile/README.md)
 - [Professional module](../Professional/README.md)
 - [Network module](../Network/README.md)
+- [Content module](../Content/README.md)

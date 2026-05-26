@@ -15,7 +15,10 @@ using Facade.ProfessionalManagement.Controllers.Controllers;
 using Facade.ProfessionalManagement.DI;
 using Facade.NetworkManagement.Controllers.Controllers;
 using Facade.NetworkManagement.DI;
+using Facade.ContentManagement.Controllers.Controllers;
+using Facade.ContentManagement.DI;
 using Facade.ProfileManagement.Contracts.Options;
+using Content.DI;
 using Network.DI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,12 +52,14 @@ builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
+builder.Services.AddContentManagementFacade();
 // Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileController).Assembly)
     .AddApplicationPart(typeof(ProfessionalController).Assembly)
-    .AddApplicationPart(typeof(NetworkController).Assembly);
+    .AddApplicationPart(typeof(NetworkController).Assembly)
+    .AddApplicationPart(typeof(ContentController).Assembly);
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");

@@ -1,4 +1,5 @@
-﻿using Identity.DataAccess;
+﻿using Content.DataAccess;
+using Identity.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Network.DataAccess;
 using Profile.DataAccess;
@@ -48,6 +49,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Network-модуля
             await networkContext.Database.MigrateAsync();
+
+            // Получаем ContentDbContext из DI
+            var contentContext = services.GetRequiredService<ContentDbContext>();
+
+            // Применяем миграции Content-модуля
+            await contentContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");
