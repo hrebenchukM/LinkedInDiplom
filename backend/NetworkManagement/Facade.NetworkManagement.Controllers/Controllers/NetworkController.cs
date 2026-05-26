@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
+using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -16,6 +17,8 @@ public class NetworkController : ControllerBase
     private const string ContactNotFoundError = "Contact not found.";
     private const string FollowNotFoundError = "Follow not found.";
     private const string BlockNotFoundError = "Block not found.";
+    private const string GroupNotFoundError = "Group not found.";
+    private const string GroupMembershipNotFoundError = "Group membership not found.";
 
     private readonly INetworkManagementService _networkManagementService;
 
@@ -303,10 +306,200 @@ public class NetworkController : ControllerBase
         return Ok(blocks);
     }
 
+    // POST api/network/me/groups
+    [Authorize]
+    [HttpPost("me/groups")]
+    [ProducesResponseType(typeof(UserGroupResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreateUserGroup([FromBody] CreateUserGroupRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.CreateUserGroupAsync(userId, request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/groups
+    [Authorize]
+    [HttpGet("me/groups")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyUserGroups()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var groups = await _networkManagementService.GetMyUserGroupsAsync(userId);
+
+        return Ok(groups);
+    }
+
+    // GET api/network/me/groups/{groupId}
+    [Authorize]
+    [HttpGet("me/groups/{groupId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMyUserGroupById(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var group = await _networkManagementService.GetMyUserGroupByIdAsync(userId, groupId);
+
+        if (group == null)
+            return NotFound();
+
+        return Ok(group);
+    }
+
+    // PATCH api/network/me/groups/{groupId}
+    [Authorize]
+    [HttpPatch("me/groups/{groupId:guid}")]
+    [ProducesResponseType(typeof(UserGroupResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UpdateUserGroup(
+        Guid groupId,
+        [FromBody] UpdateUserGroupRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.UpdateUserGroupAsync(userId, groupId, request);
+
+        if (!response.Success)
+            return MapUserGroupError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/groups/{groupId}
+    [Authorize]
+    [HttpDelete("me/groups/{groupId:guid}")]
+    [ProducesResponseType(typeof(UserGroupResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteUserGroup(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.DeleteUserGroupAsync(userId, groupId);
+
+        if (!response.Success)
+            return MapUserGroupError(response);
+
+        return Ok(response);
+    }
+
+    // POST api/network/me/groups/{groupId}/join
+    [Authorize]
+    [HttpPost("me/groups/{groupId:guid}/join")]
+    [ProducesResponseType(typeof(GroupMemberResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> JoinGroup(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.JoinGroupAsync(userId, groupId);
+
+        if (!response.Success)
+            return MapGroupMemberError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/groups/{groupId}/membership
+    [Authorize]
+    [HttpDelete("me/groups/{groupId:guid}/membership")]
+    [ProducesResponseType(typeof(GroupMemberResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> LeaveGroup(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.LeaveGroupAsync(userId, groupId);
+
+        if (!response.Success)
+            return MapGroupMemberError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/groups/{groupId}/members
+    [Authorize]
+    [HttpGet("me/groups/{groupId:guid}/members")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetGroupMembers(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var members = await _networkManagementService.GetGroupMembersAsync(userId, groupId);
+
+        return Ok(members);
+    }
+
     private IActionResult MapContactError(ContactResponse response)
     {
         if (response.Errors.Contains(ContactNotFoundError))
             return NotFound(response);
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapUserGroupError(UserGroupResponse response)
+    {
+        if (response.Errors.Contains(GroupNotFoundError))
+            return NotFound(response);
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapGroupMemberError(GroupMemberResponse response)
+    {
+        if (response.Errors.Contains(GroupNotFoundError) ||
+            response.Errors.Contains(GroupMembershipNotFoundError))
+        {
+            return NotFound(response);
+        }
 
         return BadRequest(response);
     }

@@ -13,13 +13,21 @@ public class NetworkClient : INetworkClient
 
     public IBlockedUserResource BlockedUsers { get; }
 
+    public IUserGroupResource UserGroups { get; }
+
+    public IGroupMemberResource GroupMembers { get; }
+
     public NetworkClient(
         IContactResource contacts,
         IFollowResource follows,
-        IBlockedUserResource blockedUsers)
+        IBlockedUserResource blockedUsers,
+        IUserGroupResource userGroups,
+        IGroupMemberResource groupMembers)
     {
         Contacts = contacts;
         Follows = follows;
         BlockedUsers = blockedUsers;
+        UserGroups = userGroups;
+        GroupMembers = groupMembers;
     }
 }

@@ -2,16 +2,21 @@ using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
+using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
 using Network.Client.Contracts;
 using Network.Contracts.Parameters.BlockedUser;
 using Network.Contracts.Parameters.Contact;
 using Network.Contracts.Parameters.Follow;
+using Network.Contracts.Parameters.GroupMember;
+using Network.Contracts.Parameters.UserGroup;
 using Network.Contracts.Results;
 using NetworkContactDto = Network.Contracts.DTOs.ContactDto;
 using NetworkFollowDto = Network.Contracts.DTOs.FollowDto;
 using NetworkBlockedUserDto = Network.Contracts.DTOs.BlockedUserDto;
+using NetworkUserGroupDto = Network.Contracts.DTOs.UserGroupDto;
+using NetworkGroupMemberDto = Network.Contracts.DTOs.GroupMemberDto;
 
 namespace Facade.NetworkManagement.Services.Services;
 
@@ -204,6 +209,101 @@ public class NetworkManagementService : INetworkManagementService
         return blocks.Select(MapBlockedUserToFacadeDto).ToList();
     }
 
+    public async Task<UserGroupResponse> CreateUserGroupAsync(string userId, CreateUserGroupRequest request)
+    {
+        var result = await _networkClient.UserGroups.CreateAsync(new CreateUserGroupParameters
+        {
+            OwnerId = userId,
+            Name = request.Name,
+            Description = request.Description,
+            AvatarUrl = request.AvatarUrl
+        });
+
+        return MapUserGroupResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<UserGroupDto>> GetMyUserGroupsAsync(string userId)
+    {
+        var groups = await _networkClient.UserGroups.GetMyGroupsAsync(new GetMyUserGroupsParameters
+        {
+            UserId = userId
+        });
+
+        return groups.Select(MapUserGroupToFacadeDto).ToList();
+    }
+
+    public async Task<UserGroupDto?> GetMyUserGroupByIdAsync(string userId, Guid groupId)
+    {
+        var group = await _networkClient.UserGroups.GetByIdAsync(new GetUserGroupByIdParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        return group == null ? null : MapUserGroupToFacadeDto(group);
+    }
+
+    public async Task<UserGroupResponse> UpdateUserGroupAsync(
+        string userId,
+        Guid groupId,
+        UpdateUserGroupRequest request)
+    {
+        var result = await _networkClient.UserGroups.UpdateAsync(new UpdateUserGroupParameters
+        {
+            OwnerId = userId,
+            GroupId = groupId,
+            Name = request.Name,
+            Description = request.Description,
+            AvatarUrl = request.AvatarUrl
+        });
+
+        return MapUserGroupResult(result);
+    }
+
+    public async Task<UserGroupResponse> DeleteUserGroupAsync(string userId, Guid groupId)
+    {
+        var result = await _networkClient.UserGroups.DeleteAsync(new DeleteUserGroupParameters
+        {
+            OwnerId = userId,
+            GroupId = groupId
+        });
+
+        return MapUserGroupResult(result);
+    }
+
+    public async Task<GroupMemberResponse> JoinGroupAsync(string userId, Guid groupId)
+    {
+        var result = await _networkClient.GroupMembers.JoinAsync(new JoinGroupParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        return MapGroupMemberResult(result);
+    }
+
+    public async Task<GroupMemberResponse> LeaveGroupAsync(string userId, Guid groupId)
+    {
+        var result = await _networkClient.GroupMembers.LeaveAsync(new LeaveGroupParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        return MapGroupMemberResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<GroupMemberDto>> GetGroupMembersAsync(string userId, Guid groupId)
+    {
+        var members = await _networkClient.GroupMembers.GetGroupMembersAsync(new GetGroupMembersParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        return members.Select(MapGroupMemberToFacadeDto).ToList();
+    }
+
     private static ContactResponse MapContactResult(ContactResult result)
     {
         return new ContactResponse
@@ -230,6 +330,26 @@ public class NetworkManagementService : INetworkManagementService
         {
             Success = result.Succeeded,
             BlockedUser = result.BlockedUser == null ? null : MapBlockedUserToFacadeDto(result.BlockedUser),
+            Errors = result.Errors
+        };
+    }
+
+    private static UserGroupResponse MapUserGroupResult(UserGroupResult result)
+    {
+        return new UserGroupResponse
+        {
+            Success = result.Succeeded,
+            UserGroup = result.UserGroup == null ? null : MapUserGroupToFacadeDto(result.UserGroup),
+            Errors = result.Errors
+        };
+    }
+
+    private static GroupMemberResponse MapGroupMemberResult(GroupMemberResult result)
+    {
+        return new GroupMemberResponse
+        {
+            Success = result.Succeeded,
+            GroupMember = result.GroupMember == null ? null : MapGroupMemberToFacadeDto(result.GroupMember),
             Errors = result.Errors
         };
     }
@@ -269,6 +389,33 @@ public class NetworkManagementService : INetworkManagementService
             BlockedUserId = blockedUser.BlockedUserId,
             BlockedAt = blockedUser.BlockedAt,
             UnblockedAt = blockedUser.UnblockedAt
+        };
+    }
+
+    private static UserGroupDto MapUserGroupToFacadeDto(NetworkUserGroupDto userGroup)
+    {
+        return new UserGroupDto
+        {
+            Id = userGroup.Id,
+            OwnerId = userGroup.OwnerId,
+            Name = userGroup.Name,
+            Description = userGroup.Description,
+            AvatarUrl = userGroup.AvatarUrl,
+            CreatedAt = userGroup.CreatedAt,
+            UpdatedAt = userGroup.UpdatedAt
+        };
+    }
+
+    private static GroupMemberDto MapGroupMemberToFacadeDto(NetworkGroupMemberDto groupMember)
+    {
+        return new GroupMemberDto
+        {
+            Id = groupMember.Id,
+            GroupId = groupMember.GroupId,
+            UserId = groupMember.UserId,
+            Role = groupMember.Role,
+            CreatedAt = groupMember.CreatedAt,
+            UpdatedAt = groupMember.UpdatedAt
         };
     }
 }

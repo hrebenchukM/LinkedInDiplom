@@ -2,6 +2,7 @@ using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
+using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
 
 namespace Facade.NetworkManagement.Contracts.Services;
@@ -34,4 +35,20 @@ public interface INetworkManagementService
     Task<BlockedUserResponse> UnblockUserAsync(string userId, string blockedUserId);
 
     Task<IReadOnlyCollection<BlockedUserDto>> GetMyBlockedUsersAsync(string userId);
+
+    Task<UserGroupResponse> CreateUserGroupAsync(string userId, CreateUserGroupRequest request);
+
+    Task<IReadOnlyCollection<UserGroupDto>> GetMyUserGroupsAsync(string userId);
+
+    Task<UserGroupDto?> GetMyUserGroupByIdAsync(string userId, Guid groupId);
+
+    Task<UserGroupResponse> UpdateUserGroupAsync(string userId, Guid groupId, UpdateUserGroupRequest request);
+
+    Task<UserGroupResponse> DeleteUserGroupAsync(string userId, Guid groupId);
+
+    Task<GroupMemberResponse> JoinGroupAsync(string userId, Guid groupId);
+
+    Task<GroupMemberResponse> LeaveGroupAsync(string userId, Guid groupId);
+
+    Task<IReadOnlyCollection<GroupMemberDto>> GetGroupMembersAsync(string userId, Guid groupId);
 }

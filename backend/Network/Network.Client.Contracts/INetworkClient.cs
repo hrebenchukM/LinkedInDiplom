@@ -11,4 +11,8 @@ public interface INetworkClient
     IFollowResource Follows { get; }
 
     IBlockedUserResource BlockedUsers { get; }
+
+    IUserGroupResource UserGroups { get; }
+
+    IGroupMemberResource GroupMembers { get; }
 }
