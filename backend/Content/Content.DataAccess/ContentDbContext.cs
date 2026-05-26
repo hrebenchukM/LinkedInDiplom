@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Content.DataAccess;
 
-// DbContext Content-модуля (posts, media, post_media).
+// DbContext Content-модуля (posts, media, post_media, comments, reactions).
 public class ContentDbContext : DbContext
 {
     public DbSet<Post> Posts { get; set; } = default!;
@@ -11,6 +11,10 @@ public class ContentDbContext : DbContext
     public DbSet<Media> Media { get; set; } = default!;
 
     public DbSet<PostMedia> PostMedia { get; set; } = default!;
+
+    public DbSet<Comment> Comments { get; set; } = default!;
+
+    public DbSet<Reaction> Reactions { get; set; } = default!;
 
     public ContentDbContext(DbContextOptions<ContentDbContext> options)
         : base(options)
@@ -128,6 +132,82 @@ public class ContentDbContext : DbContext
             entity.HasIndex(e => new { e.PostId, e.MediaId })
                 .IsUnique()
                 .HasDatabaseName("IX_post_media_post_id_media_id");
+        });
+
+        builder.Entity<Comment>(entity =>
+        {
+            entity.ToTable("comments");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("comment_id");
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.ParentCommentId)
+                .HasColumnName("parent_comment_id");
+
+            entity.Property(e => e.Content)
+                .HasColumnName("content")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_comments_post_id");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_comments_user_id");
+
+            entity.HasIndex(e => e.ParentCommentId)
+                .HasDatabaseName("IX_comments_parent_comment_id");
+        });
+
+        builder.Entity<Reaction>(entity =>
+        {
+            entity.ToTable("reactions");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("reaction_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.ReactionType)
+                .HasColumnName("reaction_type")
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_reactions_post_id");
+
+            entity.HasIndex(e => new { e.UserId, e.PostId })
+                .IsUnique()
+                .HasDatabaseName("IX_reactions_user_id_post_id");
         });
     }
 }

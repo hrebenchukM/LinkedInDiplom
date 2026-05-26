@@ -1,17 +1,23 @@
 using Content.Client.Contracts;
+using Content.Contracts.Parameters.Comment;
 using Content.Contracts.Parameters.Media;
 using Content.Contracts.Parameters.Post;
 using Content.Contracts.Parameters.PostMedia;
+using Content.Contracts.Parameters.Reaction;
 using Content.Contracts.Results;
 using Facade.ContentManagement.Contracts.DTOs;
+using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
+using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
-using ContentPostDto = Content.Contracts.DTOs.PostDto;
+using ContentCommentDto = Content.Contracts.DTOs.CommentDto;
 using ContentMediaDto = Content.Contracts.DTOs.MediaDto;
+using ContentPostDto = Content.Contracts.DTOs.PostDto;
 using ContentPostMediaDto = Content.Contracts.DTOs.PostMediaDto;
+using ContentReactionDto = Content.Contracts.DTOs.ReactionDto;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -143,6 +149,98 @@ public class ContentManagementService : IContentManagementService
         return links.Select(MapPostMediaToFacadeDto).ToList();
     }
 
+    public async Task<CommentResponse> CreateCommentAsync(string userId, Guid postId, CreateCommentRequest request)
+    {
+        var result = await _contentClient.Comments.CreateAsync(new CreateCommentParameters
+        {
+            AuthorId = userId,
+            PostId = postId,
+            Content = request.Content,
+            ParentCommentId = request.ParentCommentId
+        });
+
+        return MapCommentResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<CommentDto>> GetCommentsByPostIdAsync(string userId, Guid postId)
+    {
+        var comments = await _contentClient.Comments.GetByPostIdAsync(new GetCommentsByPostParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        return comments.Select(MapCommentToFacadeDto).ToList();
+    }
+
+    public async Task<CommentResponse> UpdateCommentAsync(string userId, Guid commentId, UpdateCommentRequest request)
+    {
+        var result = await _contentClient.Comments.UpdateAsync(new UpdateCommentParameters
+        {
+            AuthorId = userId,
+            CommentId = commentId,
+            Content = request.Content
+        });
+
+        return MapCommentResult(result);
+    }
+
+    public async Task<CommentResponse> DeleteCommentAsync(string userId, Guid commentId)
+    {
+        var result = await _contentClient.Comments.DeleteAsync(new DeleteCommentParameters
+        {
+            AuthorId = userId,
+            CommentId = commentId
+        });
+
+        return MapCommentResult(result);
+    }
+
+    public async Task<ReactionResponse> UpsertReactionAsync(string userId, Guid postId, UpsertReactionRequest request)
+    {
+        var result = await _contentClient.Reactions.UpsertAsync(new UpsertReactionParameters
+        {
+            UserId = userId,
+            PostId = postId,
+            ReactionType = request.ReactionType
+        });
+
+        return MapReactionResult(result);
+    }
+
+    public async Task<ReactionResponse> DeleteReactionAsync(string userId, Guid postId)
+    {
+        var result = await _contentClient.Reactions.DeleteAsync(new DeleteReactionParameters
+        {
+            UserId = userId,
+            PostId = postId
+        });
+
+        return MapReactionResult(result);
+    }
+
+    public async Task<ReactionDto?> GetMyReactionByPostIdAsync(string userId, Guid postId)
+    {
+        var reaction = await _contentClient.Reactions.GetMyByPostIdAsync(new GetMyReactionParameters
+        {
+            UserId = userId,
+            PostId = postId
+        });
+
+        return reaction == null ? null : MapReactionToFacadeDto(reaction);
+    }
+
+    public async Task<IReadOnlyCollection<ReactionDto>> GetReactionsByPostIdAsync(string userId, Guid postId)
+    {
+        var reactions = await _contentClient.Reactions.GetByPostIdAsync(new GetReactionsByPostParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        return reactions.Select(MapReactionToFacadeDto).ToList();
+    }
+
     private static PostResponse MapPostResult(PostResult result)
     {
         return new PostResponse
@@ -169,6 +267,26 @@ public class ContentManagementService : IContentManagementService
         {
             Success = result.Succeeded,
             PostMedia = result.PostMedia == null ? null : MapPostMediaToFacadeDto(result.PostMedia),
+            Errors = result.Errors
+        };
+    }
+
+    private static CommentResponse MapCommentResult(CommentResult result)
+    {
+        return new CommentResponse
+        {
+            Success = result.Succeeded,
+            Comment = result.Comment == null ? null : MapCommentToFacadeDto(result.Comment),
+            Errors = result.Errors
+        };
+    }
+
+    private static ReactionResponse MapReactionResult(ReactionResult result)
+    {
+        return new ReactionResponse
+        {
+            Success = result.Succeeded,
+            Reaction = result.Reaction == null ? null : MapReactionToFacadeDto(result.Reaction),
             Errors = result.Errors
         };
     }
@@ -210,6 +328,32 @@ public class ContentManagementService : IContentManagementService
             MediaId = postMedia.MediaId,
             CreatedAt = postMedia.CreatedAt,
             Media = postMedia.Media == null ? null : MapMediaToFacadeDto(postMedia.Media)
+        };
+    }
+
+    private static CommentDto MapCommentToFacadeDto(ContentCommentDto comment)
+    {
+        return new CommentDto
+        {
+            Id = comment.Id,
+            PostId = comment.PostId,
+            UserId = comment.UserId,
+            ParentCommentId = comment.ParentCommentId,
+            Content = comment.Content,
+            CreatedAt = comment.CreatedAt,
+            UpdatedAt = comment.UpdatedAt
+        };
+    }
+
+    private static ReactionDto MapReactionToFacadeDto(ContentReactionDto reaction)
+    {
+        return new ReactionDto
+        {
+            Id = reaction.Id,
+            PostId = reaction.PostId,
+            UserId = reaction.UserId,
+            ReactionType = reaction.ReactionType,
+            CreatedAt = reaction.CreatedAt
         };
     }
 }

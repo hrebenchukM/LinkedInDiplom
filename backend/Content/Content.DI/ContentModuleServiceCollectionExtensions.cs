@@ -27,10 +27,14 @@ public static class ContentModuleServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IPostMediaService, PostMediaService>();
+        services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IReactionService, ReactionService>();
 
         services.AddScoped<IPostResource, PostResource>();
         services.AddScoped<IMediaResource, MediaResource>();
         services.AddScoped<IPostMediaResource, PostMediaResource>();
+        services.AddScoped<ICommentResource, CommentResource>();
+        services.AddScoped<IReactionResource, ReactionResource>();
 
         services.AddScoped<IContentClient, ContentClient>();
 

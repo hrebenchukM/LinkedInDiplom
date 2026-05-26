@@ -13,13 +13,21 @@ public class ContentClient : IContentClient
 
     public IPostMediaResource PostMedia { get; }
 
+    public ICommentResource Comments { get; }
+
+    public IReactionResource Reactions { get; }
+
     public ContentClient(
         IPostResource posts,
         IMediaResource media,
-        IPostMediaResource postMedia)
+        IPostMediaResource postMedia,
+        ICommentResource comments,
+        IReactionResource reactions)
     {
         Posts = posts;
         Media = media;
         PostMedia = postMedia;
+        Comments = comments;
+        Reactions = reactions;
     }
 }

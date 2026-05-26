@@ -11,4 +11,8 @@ public interface IContentClient
     IMediaResource Media { get; }
 
     IPostMediaResource PostMedia { get; }
+
+    ICommentResource Comments { get; }
+
+    IReactionResource Reactions { get; }
 }

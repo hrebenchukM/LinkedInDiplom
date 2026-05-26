@@ -1,7 +1,9 @@
 using Facade.ContentManagement.Contracts.DTOs;
+using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
+using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
 
 namespace Facade.ContentManagement.Contracts.Services;
@@ -31,4 +33,20 @@ public interface IContentManagementService
     Task<PostMediaResponse> DetachPostMediaAsync(string userId, Guid postId, Guid mediaId);
 
     Task<IReadOnlyCollection<PostMediaDto>> GetPostMediaAsync(string userId, Guid postId);
+
+    Task<CommentResponse> CreateCommentAsync(string userId, Guid postId, CreateCommentRequest request);
+
+    Task<IReadOnlyCollection<CommentDto>> GetCommentsByPostIdAsync(string userId, Guid postId);
+
+    Task<CommentResponse> UpdateCommentAsync(string userId, Guid commentId, UpdateCommentRequest request);
+
+    Task<CommentResponse> DeleteCommentAsync(string userId, Guid commentId);
+
+    Task<ReactionResponse> UpsertReactionAsync(string userId, Guid postId, UpsertReactionRequest request);
+
+    Task<ReactionResponse> DeleteReactionAsync(string userId, Guid postId);
+
+    Task<ReactionDto?> GetMyReactionByPostIdAsync(string userId, Guid postId);
+
+    Task<IReadOnlyCollection<ReactionDto>> GetReactionsByPostIdAsync(string userId, Guid postId);
 }
