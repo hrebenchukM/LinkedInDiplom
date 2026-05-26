@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -22,12 +22,14 @@ Facade.API (Host / composition root)
 Facade Modules (BFF)
     ├── Facade.AccountManagement      → /api/auth
     ├── Facade.ProfileManagement      → /api/profile
-    └── Facade.ProfessionalManagement → /api/professional
+    ├── Facade.ProfessionalManagement → /api/professional
+    └── Facade.NetworkManagement      → /api/network
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
     ├── Profile       (schema: profile)
-    └── Professional  (schema: professional)
+    ├── Professional  (schema: professional)
+    └── Network       (schema: network)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -149,21 +151,50 @@ Career BFF over the **Professional** core module. The solution is a **modular mo
 
 Full tables, security rules, and Swagger flows: [Professional module README](../Professional/README.md).
 
+### Network — `/api/network`
+
+Social graph BFF over the **Network** core module. The solution is a **modular monolith** on **.NET 8** (`TargetFramework net8.0`); the Network core owns PostgreSQL schema **`network`**: `contacts`, `follows`, `blocked_users` (see [Network module README](../Network/README.md)).
+
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** in v1 (no public routes).
+
+| Area | Method | Path | Auth |
+|------|--------|------|------|
+| Contacts | POST | `/api/network/me/contacts` | Yes (`receiverId` in body) |
+| Contacts | GET | `/api/network/me/contacts` | Yes |
+| Contacts | GET | `/api/network/me/contacts/{contactId}` | Yes (not participant → 404) |
+| Contacts | PATCH | `/api/network/me/contacts/{contactId}/accept` | Yes (receiver, pending) |
+| Contacts | PATCH | `/api/network/me/contacts/{contactId}/reject` | Yes (receiver, pending) |
+| Contacts | DELETE | `/api/network/me/contacts/{contactId}` | Yes (cancel pending / remove accepted) |
+| Following | POST | `/api/network/me/following` | Yes (`followingId` in body) |
+| Following | DELETE | `/api/network/me/following/{followingId}` | Yes (unfollow → `unfollowed_at`; not found → 404) |
+| Following | GET | `/api/network/me/following` | Yes (active only) |
+| Followers | GET | `/api/network/me/followers` | Yes (active only) |
+| Blocked users | POST | `/api/network/me/blocked-users` | Yes (`blockedUserId` in body) |
+| Blocked users | DELETE | `/api/network/me/blocked-users/{blockedUserId}` | Yes (unblock → `unblocked_at`; not found → 404) |
+| Blocked users | GET | `/api/network/me/blocked-users` | Yes (active only) |
+
+**Rules:** cannot contact/follow/block yourself → **400**; active block in either direction blocks new contact/follow → **400**; duplicate active contact/follow/block → **400**; foreign or non-participant rows → **404**.
+
+Full rules and table details: [Network module README](../Network/README.md).
+
 ## Module Integration (Program.cs)
 
 ```csharp
 builder.Services.AddIdentityModule(configuration, connectionString);
 builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
+builder.Services.AddNetworkModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
+builder.Services.AddNetworkManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileController).Assembly)
-    .AddApplicationPart(typeof(ProfessionalController).Assembly);
+    .AddApplicationPart(typeof(ProfessionalController).Assembly)
+    .AddApplicationPart(typeof(NetworkController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -200,6 +231,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Dev/Production security split  
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
+✅ **Network module** — schema `network` (`contacts`, `follows`, `blocked_users`) at `/api/network`  
 
 ## Related docs
 
@@ -207,3 +239,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [AccountManagement facade](../AccountManagement/README.md)
 - [Profile module](../Profile/README.md)
 - [Professional module](../Professional/README.md)
+- [Network module](../Network/README.md)

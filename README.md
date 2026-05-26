@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -79,15 +79,24 @@ LinkedInDiplom/
 │   │   ├── Professional.Client
 │   │   └── Professional.DI
 │   │
+│   ├── Network/                     # Core: social graph (6 projects)
+│   │   ├── Network.Contracts
+│   │   ├── Network.Services
+│   │   ├── Network.DataAccess       # schema: network
+│   │   ├── Network.Client.Contracts
+│   │   ├── Network.Client
+│   │   └── Network.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
+│   ├── NetworkManagement/           # Facade: social graph BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
 ├── docker-compose.yml
 ├── Dockerfile
-└── LinkedIn.sln                     # 33 projects
+└── LinkedIn.sln                     # 43 projects
 ```
 
 Each **Core module** follows: `Contracts` → `Services` → `DataAccess`, plus `Client.Contracts` / `Client` (resource pattern) and `DI`.
@@ -101,6 +110,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/auth` | Register, login, refresh, logout, current account |
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
+| `/api/network` | Social graph: contacts, follows, blocked users (JWT only in v1) |
 
 ### Auth (`/api/auth`)
 
@@ -113,6 +123,28 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/auth/me` | GET | Current account (JWT required) |
 
 Full API documentation (Development): **http://localhost:5000/swagger**
+
+### Network (`/api/network`)
+
+All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body). Request bodies: `receiverId`, `followingId`, or `blockedUserId` only.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/network/me/contacts` | POST | Send contact request |
+| `/api/network/me/contacts` | GET | List my contacts |
+| `/api/network/me/contacts/{contactId}` | GET | Get contact (participant only) |
+| `/api/network/me/contacts/{contactId}/accept` | PATCH | Accept pending request |
+| `/api/network/me/contacts/{contactId}/reject` | PATCH | Reject pending request |
+| `/api/network/me/contacts/{contactId}` | DELETE | Cancel pending or remove accepted contact |
+| `/api/network/me/following` | POST | Follow user |
+| `/api/network/me/following/{followingId}` | DELETE | Unfollow (sets `unfollowed_at`) |
+| `/api/network/me/following` | GET | My active following |
+| `/api/network/me/followers` | GET | My active followers |
+| `/api/network/me/blocked-users` | POST | Block user |
+| `/api/network/me/blocked-users/{blockedUserId}` | DELETE | Unblock (sets `unblocked_at`) |
+| `/api/network/me/blocked-users` | GET | My active blocks |
+
+**Rules:** no self contact/follow/block; active block prevents contact/follow; duplicates → **400**; foreign rows → **404**. Details: [Network module README](./backend/Network/README.md).
 
 ## 🛠️ Development
 
@@ -157,7 +189,7 @@ The API uses JWT Bearer token authentication with:
 2. **Copy the access token** from response
 3. Open **Swagger** at `/swagger`, click **Authorize**
 4. **Enter**: `Bearer <your-access-token>`
-5. Use protected endpoints (`/api/auth/me`, `/api/profile/me`, etc.)
+5. Use protected endpoints (`/api/auth/me`, `/api/profile/me`, `/api/network/me/contacts`, etc.)
 
 ## 📦 Modules
 
@@ -191,6 +223,21 @@ The API uses JWT Bearer token authentication with:
 - **Profile views:** public `POST /api/profile/{profileOwnerId}/views?source=`; JWT `GET /api/profile/me/profile-views` (owner only)
 - Maps via `IProfileClient`
 
+### Network (Core)
+- **Modular monolith** core module (**TargetFramework net8.0**); PostgreSQL schema: **`network`**
+- Tables: **`contacts`** (request/accept lifecycle), **`follows`** (soft unfollow via `unfollowed_at`), **`blocked_users`** (soft unblock via `unblocked_at`)
+- No EF reference to Identity/Profile in v1; target user existence is not validated
+- Exposed via **NetworkManagement** facade (`INetworkClient` in-process; microservice-ready seam)
+- See [backend/Network/README.md](./backend/Network/README.md) for architecture, security rules, and Swagger routes
+
+### NetworkManagement (Facade / BFF)
+- Social graph API at `/api/network` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; `userId` from JWT only (never from body for current user)
+- Contacts: send, list, get, accept, reject, delete (cancel/remove)
+- Follows: follow, unfollow, following, followers
+- Blocked users: block, unblock, list
+- Maps via `INetworkClient`
+
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
 - Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
@@ -212,11 +259,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional
+Core Modules: Identity | Profile | Professional | Network
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional)
+PostgreSQL (schemas: identity, profile, professional, network)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -245,6 +292,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[AccountManagement Facade](./backend/AccountManagement/README.md)** - Auth facade details
 - **[Profile Module](./backend/Profile/README.md)** - Profile core module and `/api/profile` endpoints
 - **[Professional Module](./backend/Professional/README.md)** - Career core module and `/api/professional` endpoints
+- **[Network Module](./backend/Network/README.md)** - Social graph core module and `/api/network` endpoints
 
 ## 🧪 Testing
 
@@ -283,6 +331,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **AccountManagement Facade** - `/api/auth`  
 ✅ **ProfileManagement Facade** - `/api/profile` + uploads + message settings + profile views  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
+✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users  
+✅ **NetworkManagement Facade** - `/api/network` (JWT-only in v1)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
