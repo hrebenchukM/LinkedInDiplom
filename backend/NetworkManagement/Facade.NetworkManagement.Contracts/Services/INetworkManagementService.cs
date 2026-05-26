@@ -3,6 +3,8 @@ using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
 using Facade.NetworkManagement.Contracts.Requests.Group;
+using Facade.NetworkManagement.Contracts.Requests.Page;
+using Facade.NetworkManagement.Contracts.Requests.PageAdmin;
 using Facade.NetworkManagement.Contracts.Responses;
 
 namespace Facade.NetworkManagement.Contracts.Services;
@@ -51,4 +53,28 @@ public interface INetworkManagementService
     Task<GroupMemberResponse> LeaveGroupAsync(string userId, Guid groupId);
 
     Task<IReadOnlyCollection<GroupMemberDto>> GetGroupMembersAsync(string userId, Guid groupId);
+
+    Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request);
+
+    Task<IReadOnlyCollection<PageDto>> GetMyPagesAsync(string userId);
+
+    Task<PageDto?> GetMyPageByIdAsync(string userId, Guid pageId);
+
+    Task<PageResponse> UpdatePageAsync(string userId, Guid pageId, UpdatePageRequest request);
+
+    Task<PageResponse> DeletePageAsync(string userId, Guid pageId);
+
+    Task<PageAdminResponse> AddPageAdminAsync(string userId, Guid pageId, AddPageAdminRequest request);
+
+    Task<PageAdminResponse> RemovePageAdminAsync(string userId, Guid pageId, string adminUserId);
+
+    Task<IReadOnlyCollection<PageAdminDto>> GetPageAdminsAsync(string userId, Guid pageId);
+
+    Task<PageFollowerResponse> FollowPageAsync(string userId, Guid pageId);
+
+    Task<PageFollowerResponse> UnfollowPageAsync(string userId, Guid pageId);
+
+    Task<IReadOnlyCollection<PageDto>> GetMyFollowedPagesAsync(string userId);
+
+    Task<IReadOnlyCollection<PageFollowerDto>> GetPageFollowersAsync(string userId, Guid pageId);
 }

@@ -17,17 +17,29 @@ public class NetworkClient : INetworkClient
 
     public IGroupMemberResource GroupMembers { get; }
 
+    public IPageResource Pages { get; }
+
+    public IPageAdminResource PageAdmins { get; }
+
+    public IPageFollowerResource PageFollowers { get; }
+
     public NetworkClient(
         IContactResource contacts,
         IFollowResource follows,
         IBlockedUserResource blockedUsers,
         IUserGroupResource userGroups,
-        IGroupMemberResource groupMembers)
+        IGroupMemberResource groupMembers,
+        IPageResource pages,
+        IPageAdminResource pageAdmins,
+        IPageFollowerResource pageFollowers)
     {
         Contacts = contacts;
         Follows = follows;
         BlockedUsers = blockedUsers;
         UserGroups = userGroups;
         GroupMembers = groupMembers;
+        Pages = pages;
+        PageAdmins = pageAdmins;
+        PageFollowers = pageFollowers;
     }
 }

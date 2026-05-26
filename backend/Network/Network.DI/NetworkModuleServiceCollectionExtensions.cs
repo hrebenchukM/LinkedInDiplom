@@ -29,12 +29,18 @@ public static class NetworkModuleServiceCollectionExtensions
         services.AddScoped<IBlockedUserService, BlockedUserService>();
         services.AddScoped<IUserGroupService, UserGroupService>();
         services.AddScoped<IGroupMemberService, GroupMemberService>();
+        services.AddScoped<IPageService, PageService>();
+        services.AddScoped<IPageAdminService, PageAdminService>();
+        services.AddScoped<IPageFollowerService, PageFollowerService>();
 
         services.AddScoped<IContactResource, ContactResource>();
         services.AddScoped<IFollowResource, FollowResource>();
         services.AddScoped<IBlockedUserResource, BlockedUserResource>();
         services.AddScoped<IUserGroupResource, UserGroupResource>();
         services.AddScoped<IGroupMemberResource, GroupMemberResource>();
+        services.AddScoped<IPageResource, PageResource>();
+        services.AddScoped<IPageAdminResource, PageAdminResource>();
+        services.AddScoped<IPageFollowerResource, PageFollowerResource>();
 
         services.AddScoped<INetworkClient, NetworkClient>();
 

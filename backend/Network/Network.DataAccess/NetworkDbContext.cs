@@ -3,7 +3,7 @@ using Network.DataAccess.Entities;
 
 namespace Network.DataAccess;
 
-// DbContext Network-модуля (социальный граф: contacts, follows, blocked_users, groups).
+// DbContext Network-модуля (социальный граф: contacts, follows, blocked_users, groups, pages).
 public class NetworkDbContext : DbContext
 {
     public DbSet<Contact> Contacts { get; set; } = default!;
@@ -11,6 +11,9 @@ public class NetworkDbContext : DbContext
     public DbSet<BlockedUser> BlockedUsers { get; set; } = default!;
     public DbSet<UserGroup> UserGroups { get; set; } = default!;
     public DbSet<GroupMember> GroupMembers { get; set; } = default!;
+    public DbSet<Page> Pages { get; set; } = default!;
+    public DbSet<PageAdmin> PageAdmins { get; set; } = default!;
+    public DbSet<PageFollower> PageFollowers { get; set; } = default!;
 
     public NetworkDbContext(DbContextOptions<NetworkDbContext> options)
         : base(options)
@@ -208,6 +211,117 @@ public class NetworkDbContext : DbContext
             entity.HasIndex(e => new { e.GroupId, e.UserId })
                 .IsUnique()
                 .HasDatabaseName("IX_group_members_group_id_user_id");
+        });
+
+        builder.Entity<Page>(entity =>
+        {
+            entity.ToTable("pages");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("page_id");
+
+            entity.Property(e => e.OwnerId)
+                .HasColumnName("owner_id")
+                .IsRequired();
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Description)
+                .HasColumnName("description");
+
+            entity.Property(e => e.LogoUrl)
+                .HasColumnName("logo_url")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
+
+            entity.HasIndex(e => e.OwnerId)
+                .HasDatabaseName("IX_pages_owner_id");
+        });
+
+        builder.Entity<PageAdmin>(entity =>
+        {
+            entity.ToTable("page_admins");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("page_admin_id");
+
+            entity.Property(e => e.PageId)
+                .HasColumnName("page_id")
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.Role)
+                .HasColumnName("role")
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.AssignedAt)
+                .HasColumnName("assigned_at");
+
+            entity.Property(e => e.RevokedAt)
+                .HasColumnName("revoked_at");
+
+            entity.HasIndex(e => e.PageId)
+                .HasDatabaseName("IX_page_admins_page_id");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_page_admins_user_id");
+
+            entity.HasIndex(e => new { e.PageId, e.UserId })
+                .IsUnique()
+                .HasDatabaseName("IX_page_admins_page_id_user_id");
+        });
+
+        builder.Entity<PageFollower>(entity =>
+        {
+            entity.ToTable("page_followers");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("page_follower_id");
+
+            entity.Property(e => e.PageId)
+                .HasColumnName("page_id")
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.FollowedAt)
+                .HasColumnName("followed_at");
+
+            entity.Property(e => e.UnfollowedAt)
+                .HasColumnName("unfollowed_at");
+
+            entity.HasIndex(e => e.PageId)
+                .HasDatabaseName("IX_page_followers_page_id");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_page_followers_user_id");
+
+            entity.HasIndex(e => new { e.PageId, e.UserId })
+                .IsUnique()
+                .HasDatabaseName("IX_page_followers_page_id_user_id");
         });
     }
 }

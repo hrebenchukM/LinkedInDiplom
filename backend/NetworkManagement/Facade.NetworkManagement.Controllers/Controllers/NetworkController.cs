@@ -3,6 +3,8 @@ using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
 using Facade.NetworkManagement.Contracts.Requests.Group;
+using Facade.NetworkManagement.Contracts.Requests.Page;
+using Facade.NetworkManagement.Contracts.Requests.PageAdmin;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +21,9 @@ public class NetworkController : ControllerBase
     private const string BlockNotFoundError = "Block not found.";
     private const string GroupNotFoundError = "Group not found.";
     private const string GroupMembershipNotFoundError = "Group membership not found.";
+    private const string PageNotFoundError = "Page not found.";
+    private const string PageAdminNotFoundError = "Page admin not found.";
+    private const string PageFollowNotFoundError = "Page follow not found.";
 
     private readonly INetworkManagementService _networkManagementService;
 
@@ -477,6 +482,259 @@ public class NetworkController : ControllerBase
         return Ok(members);
     }
 
+    // POST api/network/me/pages
+    [Authorize]
+    [HttpPost("me/pages")]
+    [ProducesResponseType(typeof(PageResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> CreatePage([FromBody] CreatePageRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.CreatePageAsync(userId, request);
+
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/pages
+    [Authorize]
+    [HttpGet("me/pages")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyPages()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var pages = await _networkManagementService.GetMyPagesAsync(userId);
+
+        return Ok(pages);
+    }
+
+    // GET api/network/me/pages/following
+    [Authorize]
+    [HttpGet("me/pages/following")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyFollowedPages()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var pages = await _networkManagementService.GetMyFollowedPagesAsync(userId);
+
+        return Ok(pages);
+    }
+
+    // GET api/network/me/pages/{pageId}
+    [Authorize]
+    [HttpGet("me/pages/{pageId:guid}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMyPageById(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var page = await _networkManagementService.GetMyPageByIdAsync(userId, pageId);
+
+        if (page == null)
+            return NotFound();
+
+        return Ok(page);
+    }
+
+    // PATCH api/network/me/pages/{pageId}
+    [Authorize]
+    [HttpPatch("me/pages/{pageId:guid}")]
+    [ProducesResponseType(typeof(PageResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UpdatePage(
+        Guid pageId,
+        [FromBody] UpdatePageRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.UpdatePageAsync(userId, pageId, request);
+
+        if (!response.Success)
+            return MapPageError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/pages/{pageId}
+    [Authorize]
+    [HttpDelete("me/pages/{pageId:guid}")]
+    [ProducesResponseType(typeof(PageResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeletePage(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.DeletePageAsync(userId, pageId);
+
+        if (!response.Success)
+            return MapPageError(response);
+
+        return Ok(response);
+    }
+
+    // POST api/network/me/pages/{pageId}/admins
+    [Authorize]
+    [HttpPost("me/pages/{pageId:guid}/admins")]
+    [ProducesResponseType(typeof(PageAdminResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AddPageAdmin(
+        Guid pageId,
+        [FromBody] AddPageAdminRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.AddPageAdminAsync(userId, pageId, request);
+
+        if (!response.Success)
+            return MapPageAdminError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/pages/{pageId}/admins/{adminUserId}
+    [Authorize]
+    [HttpDelete("me/pages/{pageId:guid}/admins/{adminUserId}")]
+    [ProducesResponseType(typeof(PageAdminResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> RemovePageAdmin(Guid pageId, string adminUserId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.RemovePageAdminAsync(userId, pageId, adminUserId);
+
+        if (!response.Success)
+            return MapPageAdminError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/pages/{pageId}/admins
+    [Authorize]
+    [HttpGet("me/pages/{pageId:guid}/admins")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetPageAdmins(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var admins = await _networkManagementService.GetPageAdminsAsync(userId, pageId);
+
+        return Ok(admins);
+    }
+
+    // POST api/network/me/pages/{pageId}/follow
+    [Authorize]
+    [HttpPost("me/pages/{pageId:guid}/follow")]
+    [ProducesResponseType(typeof(PageFollowerResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> FollowPage(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.FollowPageAsync(userId, pageId);
+
+        if (!response.Success)
+            return MapPageFollowerError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/pages/{pageId}/follow
+    [Authorize]
+    [HttpDelete("me/pages/{pageId:guid}/follow")]
+    [ProducesResponseType(typeof(PageFollowerResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UnfollowPage(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.UnfollowPageAsync(userId, pageId);
+
+        if (!response.Success)
+            return MapPageFollowerError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/pages/{pageId}/followers
+    [Authorize]
+    [HttpGet("me/pages/{pageId:guid}/followers")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetPageFollowers(Guid pageId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var followers = await _networkManagementService.GetPageFollowersAsync(userId, pageId);
+
+        return Ok(followers);
+    }
+
     private IActionResult MapContactError(ContactResponse response)
     {
         if (response.Errors.Contains(ContactNotFoundError))
@@ -497,6 +755,36 @@ public class NetworkController : ControllerBase
     {
         if (response.Errors.Contains(GroupNotFoundError) ||
             response.Errors.Contains(GroupMembershipNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapPageError(PageResponse response)
+    {
+        if (response.Errors.Contains(PageNotFoundError))
+            return NotFound(response);
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapPageAdminError(PageAdminResponse response)
+    {
+        if (response.Errors.Contains(PageNotFoundError) ||
+            response.Errors.Contains(PageAdminNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapPageFollowerError(PageFollowerResponse response)
+    {
+        if (response.Errors.Contains(PageNotFoundError) ||
+            response.Errors.Contains(PageFollowNotFoundError))
         {
             return NotFound(response);
         }

@@ -15,4 +15,10 @@ public interface INetworkClient
     IUserGroupResource UserGroups { get; }
 
     IGroupMemberResource GroupMembers { get; }
+
+    IPageResource Pages { get; }
+
+    IPageAdminResource PageAdmins { get; }
+
+    IPageFollowerResource PageFollowers { get; }
 }

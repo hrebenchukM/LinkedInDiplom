@@ -3,6 +3,8 @@ using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
 using Facade.NetworkManagement.Contracts.Requests.Group;
+using Facade.NetworkManagement.Contracts.Requests.Page;
+using Facade.NetworkManagement.Contracts.Requests.PageAdmin;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
 using Network.Client.Contracts;
@@ -10,6 +12,9 @@ using Network.Contracts.Parameters.BlockedUser;
 using Network.Contracts.Parameters.Contact;
 using Network.Contracts.Parameters.Follow;
 using Network.Contracts.Parameters.GroupMember;
+using Network.Contracts.Parameters.Page;
+using Network.Contracts.Parameters.PageAdmin;
+using Network.Contracts.Parameters.PageFollower;
 using Network.Contracts.Parameters.UserGroup;
 using Network.Contracts.Results;
 using NetworkContactDto = Network.Contracts.DTOs.ContactDto;
@@ -17,6 +22,9 @@ using NetworkFollowDto = Network.Contracts.DTOs.FollowDto;
 using NetworkBlockedUserDto = Network.Contracts.DTOs.BlockedUserDto;
 using NetworkUserGroupDto = Network.Contracts.DTOs.UserGroupDto;
 using NetworkGroupMemberDto = Network.Contracts.DTOs.GroupMemberDto;
+using NetworkPageDto = Network.Contracts.DTOs.PageDto;
+using NetworkPageAdminDto = Network.Contracts.DTOs.PageAdminDto;
+using NetworkPageFollowerDto = Network.Contracts.DTOs.PageFollowerDto;
 
 namespace Facade.NetworkManagement.Services.Services;
 
@@ -304,6 +312,150 @@ public class NetworkManagementService : INetworkManagementService
         return members.Select(MapGroupMemberToFacadeDto).ToList();
     }
 
+    public async Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request)
+    {
+        var result = await _networkClient.Pages.CreateAsync(new CreatePageParameters
+        {
+            OwnerId = userId,
+            Name = request.Name,
+            Description = request.Description,
+            LogoUrl = request.LogoUrl
+        });
+
+        return MapPageResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<PageDto>> GetMyPagesAsync(string userId)
+    {
+        var pages = await _networkClient.Pages.GetMyPagesAsync(new GetMyPagesParameters
+        {
+            OwnerId = userId
+        });
+
+        return pages.Select(MapPageToFacadeDto).ToList();
+    }
+
+    public async Task<PageDto?> GetMyPageByIdAsync(string userId, Guid pageId)
+    {
+        var page = await _networkClient.Pages.GetByIdAsync(new GetPageByIdParameters
+        {
+            UserId = userId,
+            PageId = pageId
+        });
+
+        return page == null ? null : MapPageToFacadeDto(page);
+    }
+
+    public async Task<PageResponse> UpdatePageAsync(string userId, Guid pageId, UpdatePageRequest request)
+    {
+        var result = await _networkClient.Pages.UpdateAsync(new UpdatePageParameters
+        {
+            OwnerId = userId,
+            PageId = pageId,
+            Name = request.Name,
+            Description = request.Description,
+            LogoUrl = request.LogoUrl
+        });
+
+        return MapPageResult(result);
+    }
+
+    public async Task<PageResponse> DeletePageAsync(string userId, Guid pageId)
+    {
+        var result = await _networkClient.Pages.DeleteAsync(new DeletePageParameters
+        {
+            OwnerId = userId,
+            PageId = pageId
+        });
+
+        return MapPageResult(result);
+    }
+
+    public async Task<PageAdminResponse> AddPageAdminAsync(
+        string userId,
+        Guid pageId,
+        AddPageAdminRequest request)
+    {
+        var result = await _networkClient.PageAdmins.AddAdminAsync(new AddPageAdminParameters
+        {
+            OwnerId = userId,
+            PageId = pageId,
+            UserId = request.UserId
+        });
+
+        return MapPageAdminResult(result);
+    }
+
+    public async Task<PageAdminResponse> RemovePageAdminAsync(
+        string userId,
+        Guid pageId,
+        string adminUserId)
+    {
+        var result = await _networkClient.PageAdmins.RemoveAdminAsync(new RemovePageAdminParameters
+        {
+            OwnerId = userId,
+            PageId = pageId,
+            UserId = adminUserId
+        });
+
+        return MapPageAdminResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<PageAdminDto>> GetPageAdminsAsync(string userId, Guid pageId)
+    {
+        var admins = await _networkClient.PageAdmins.GetPageAdminsAsync(new GetPageAdminsParameters
+        {
+            UserId = userId,
+            PageId = pageId
+        });
+
+        return admins.Select(MapPageAdminToFacadeDto).ToList();
+    }
+
+    public async Task<PageFollowerResponse> FollowPageAsync(string userId, Guid pageId)
+    {
+        var result = await _networkClient.PageFollowers.FollowPageAsync(new FollowPageParameters
+        {
+            UserId = userId,
+            PageId = pageId
+        });
+
+        return MapPageFollowerResult(result);
+    }
+
+    public async Task<PageFollowerResponse> UnfollowPageAsync(string userId, Guid pageId)
+    {
+        var result = await _networkClient.PageFollowers.UnfollowPageAsync(new UnfollowPageParameters
+        {
+            UserId = userId,
+            PageId = pageId
+        });
+
+        return MapPageFollowerResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<PageDto>> GetMyFollowedPagesAsync(string userId)
+    {
+        var pages = await _networkClient.PageFollowers.GetMyFollowedPagesAsync(
+            new GetMyFollowedPagesParameters
+            {
+                UserId = userId
+            });
+
+        return pages.Select(MapPageToFacadeDto).ToList();
+    }
+
+    public async Task<IReadOnlyCollection<PageFollowerDto>> GetPageFollowersAsync(string userId, Guid pageId)
+    {
+        var followers = await _networkClient.PageFollowers.GetPageFollowersAsync(new GetPageFollowersParameters
+        {
+            UserId = userId,
+            PageId = pageId
+        });
+
+        return followers.Select(MapPageFollowerToFacadeDto).ToList();
+    }
+
     private static ContactResponse MapContactResult(ContactResult result)
     {
         return new ContactResponse
@@ -350,6 +502,38 @@ public class NetworkManagementService : INetworkManagementService
         {
             Success = result.Succeeded,
             GroupMember = result.GroupMember == null ? null : MapGroupMemberToFacadeDto(result.GroupMember),
+            Errors = result.Errors
+        };
+    }
+
+    private static PageResponse MapPageResult(PageResult result)
+    {
+        return new PageResponse
+        {
+            Success = result.Succeeded,
+            Page = result.Page == null ? null : MapPageToFacadeDto(result.Page),
+            Errors = result.Errors
+        };
+    }
+
+    private static PageAdminResponse MapPageAdminResult(PageAdminResult result)
+    {
+        return new PageAdminResponse
+        {
+            Success = result.Succeeded,
+            PageAdmin = result.PageAdmin == null ? null : MapPageAdminToFacadeDto(result.PageAdmin),
+            Errors = result.Errors
+        };
+    }
+
+    private static PageFollowerResponse MapPageFollowerResult(PageFollowerResult result)
+    {
+        return new PageFollowerResponse
+        {
+            Success = result.Succeeded,
+            PageFollower = result.PageFollower == null
+                ? null
+                : MapPageFollowerToFacadeDto(result.PageFollower),
             Errors = result.Errors
         };
     }
@@ -416,6 +600,45 @@ public class NetworkManagementService : INetworkManagementService
             Role = groupMember.Role,
             CreatedAt = groupMember.CreatedAt,
             UpdatedAt = groupMember.UpdatedAt
+        };
+    }
+
+    private static PageDto MapPageToFacadeDto(NetworkPageDto page)
+    {
+        return new PageDto
+        {
+            Id = page.Id,
+            OwnerId = page.OwnerId,
+            Name = page.Name,
+            Description = page.Description,
+            LogoUrl = page.LogoUrl,
+            CreatedAt = page.CreatedAt,
+            UpdatedAt = page.UpdatedAt
+        };
+    }
+
+    private static PageAdminDto MapPageAdminToFacadeDto(NetworkPageAdminDto pageAdmin)
+    {
+        return new PageAdminDto
+        {
+            Id = pageAdmin.Id,
+            PageId = pageAdmin.PageId,
+            UserId = pageAdmin.UserId,
+            Role = pageAdmin.Role,
+            AssignedAt = pageAdmin.AssignedAt,
+            RevokedAt = pageAdmin.RevokedAt
+        };
+    }
+
+    private static PageFollowerDto MapPageFollowerToFacadeDto(NetworkPageFollowerDto pageFollower)
+    {
+        return new PageFollowerDto
+        {
+            Id = pageFollower.Id,
+            PageId = pageFollower.PageId,
+            UserId = pageFollower.UserId,
+            FollowedAt = pageFollower.FollowedAt,
+            UnfollowedAt = pageFollower.UnfollowedAt
         };
     }
 }
