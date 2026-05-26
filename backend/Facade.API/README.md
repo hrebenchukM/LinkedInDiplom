@@ -227,9 +227,9 @@ Full rules, services, and `INetworkClient`: [Network module README](../Network/R
 
 ### Content — `/api/content`
 
-Posts, comments, reactions and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions` (see [Content module README](../Content/README.md)).
+Posts, comments, reactions, hashtags and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows` (see [Content module README](../Content/README.md)).
 
-**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Still out of scope: `hashtags`, `saved_posts`, `reposts`, `post_views`, `mentions`.
+**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Still out of scope: `saved_posts`, `reposts`, `post_views`, `mentions`.
 
 `userId` / `authorId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId` or `authorId`.
 
@@ -276,9 +276,32 @@ Posts, comments, reactions and media BFF over the **Content** core module. The s
 | GET | `/api/content/posts/{postId}/reactions/me` | Yes (returns my reaction or 404) |
 | GET | `/api/content/posts/{postId}/reactions` | Yes |
 
-**Rules:** all content routes require JWT; `userId`/`authorId` comes only from JWT; private post is visible only to author; deleted post does not accept comments/reactions; comment update/delete author-only; comment delete is soft delete (`deleted_at`); one reaction per `(user_id, post_id)`; repeated PUT updates `reaction_type`; DELETE reaction hard-deletes row; `comment_count` and `reaction_count` are updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` → **404**; other business errors → **400**.
+#### Hashtags
 
-Migrations: `AddContentModule`, `AddContentCommentsAndReactions` (applied via `ContentDbContext` on startup; history in schema `content`).
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/hashtags` | Yes (`name` in body; normalized trim + lower in service) |
+| GET | `/api/content/hashtags/{hashtagId}` | Yes |
+
+#### Post hashtags
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts/{postId}/hashtags` | Yes (`hashtagId` in body; post owner only) |
+| GET | `/api/content/posts/{postId}/hashtags` | Yes (private post: empty list for non-author) |
+| DELETE | `/api/content/me/posts/{postId}/hashtags/{hashtagId}` | Yes (post owner only; hard delete link) |
+
+#### User hashtag follows
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/hashtags/{hashtagId}/follow` | Yes (JWT user only) |
+| DELETE | `/api/content/me/hashtags/{hashtagId}/follow` | Yes (soft unfollow) |
+| GET | `/api/content/me/hashtags/following` | Yes (active follows only) |
+
+**Rules:** all content routes require JWT; `userId`/`authorId` comes only from JWT; private post is visible only to author; deleted post does not accept comments/reactions; comment update/delete author-only; comment delete is soft delete (`deleted_at`); one reaction per `(user_id, post_id)`; repeated PUT updates `reaction_type`; DELETE reaction hard-deletes row; hashtag name normalized trim + lower; duplicate hashtag name → **400**; post hashtag attach/detach post owner only; duplicate post hashtag → **400**; user hashtag follow/unfollow JWT user only; duplicate active follow → **400**; re-follow after unfollow reactivates row; `comment_count` and `reaction_count` are updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` / `"Hashtag not found."` / `"Post hashtag not found."` / `"Hashtag follow not found."` → **404**; other business errors → **400**.
+
+Migrations: `AddContentModule`, `AddContentCommentsAndReactions`, `AddContentHashtagsAndFollows` (applied via `ContentDbContext` on startup; history in schema `content`).
 
 Full rules, services, and `IContentClient`: [Content module README](../Content/README.md).
 
@@ -340,7 +363,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
 ✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Content)  
-✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`) at `/api/content` (`hashtags/saved_posts/reposts/post_views/mentions/group_posts` deferred)  
+✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`) at `/api/content` (`saved_posts/reposts/post_views/mentions/group_posts` deferred)  
 
 ## Related docs
 

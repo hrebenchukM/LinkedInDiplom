@@ -4,7 +4,7 @@ Core module of the LinkedIn Clone **modular monolith**, **prepared for microserv
 
 The module is **not** deployed as a separate microservice today. Boundaries are enforced via projects, contracts, and `IContentClient` — the same seam can later be replaced with HTTP clients without changing the facade surface.
 
-**Status (v2):** Schema **`content`** implements **`posts`**, **`media`**, **`post_media`**, **`comments`**, and **`reactions`** from `DB_SCHEMA.md` (hashtags/saved/reposts/views/mentions and group_posts are out of scope).
+**Status (v3):** Schema **`content`** implements **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**, **`hashtags`**, **`post_hashtags`**, and **`user_hashtag_follows`** from `DB_SCHEMA.md` (`saved_posts` / `reposts` / `post_views` / `mentions` and `group_posts` are still out of scope).
 
 ## Architecture
 
@@ -34,7 +34,7 @@ PostgreSQL  schema: content
 |---------|------|
 | `Content.Contracts` | DTOs, parameters, results, service interfaces |
 | `Content.DataAccess` | Entities, EF Core, migrations |
-| `Content.Services` | Business logic (5 domain services) |
+| `Content.Services` | Business logic (8 domain services) |
 | `Content.Client.Contracts` | `IContentClient`, `I*Resource` |
 | `Content.Client` | Resource implementations (delegate to services) |
 | `Content.DI` | `AddContentModule` registration |
@@ -59,6 +59,9 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | **PostMedia** | `post_media` | Many-to-many link between post and media; unique `(post_id, media_id)` |
 | **Comment** | `comments` | Comment under a post; optional parent; soft delete via `deleted_at` |
 | **Reaction** | `reactions` | User reaction to post; unique `(user_id, post_id)`; hard delete on unreact |
+| **Hashtag** | `hashtags` | Normalized hashtag name; unique `name` |
+| **PostHashtag** | `post_hashtags` | Many-to-many link between post and hashtag; unique `(post_id, hashtag_id)` |
+| **UserHashtagFollow** | `user_hashtag_follows` | User subscription to hashtag; soft unfollow via `unfollowed_at` |
 
 ### `posts`
 
@@ -99,11 +102,33 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 - `DELETE` removes reaction row (hard delete).
 - `posts.reaction_count` is updated in service on create/delete.
 
-### Deferred (not in Content module v2)
+### `hashtags`
+
+- **Name** is normalized in service: `trim` + `ToLowerInvariant`.
+- Empty name after trim → `"Hashtag name is required."` → **400** at facade.
+- Duplicate name → `"Hashtag already exists."` → **400** at facade.
+- **Create:** `created_at = UtcNow`, `updated_at = null`.
+
+### `post_hashtags`
+
+- **Attach / detach:** post owner only (`authorId` from JWT at facade).
+- **Get by post:** returns links (with nested `hashtag`) for authorized viewers; empty list if post is private and viewer is not the author.
+- Duplicate attach → **400** (`"Post hashtag already exists."`).
+- **Detach:** hard delete of link row.
+
+### `user_hashtag_follows`
+
+- **Follow / unfollow:** current JWT user only.
+- Active follow: `unfollowed_at == null`.
+- Duplicate active follow → **400** (`"Already following this hashtag."`).
+- **Re-follow** after unfollow reactivates the existing row (`unfollowed_at = null`, `followed_at = UtcNow`).
+- **Unfollow:** soft unfollow (`unfollowed_at = UtcNow`).
+
+### Deferred (not in Content module v3)
 
 | Feature | Reason |
 |---------|--------|
-| **`hashtags`**, **`saved_posts`**, **`reposts`**, **`post_views`**, **`mentions`** | Not implemented in v2 |
+| **`saved_posts`**, **`reposts`**, **`post_views`**, **`mentions`** | Not implemented in v3 |
 | **`group_posts`** | Deferred until **Content + Network** integration (`user_groups` ↔ `posts`); see [Network module README](../Network/README.md) |
 
 ## Services and resources
@@ -115,6 +140,9 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | `PostMediaService` | `PostMediaResource` | Attach / detach / list post media |
 | `CommentService` | `CommentResource` | Comments (create/list/update/soft delete) |
 | `ReactionService` | `ReactionResource` | Reactions (upsert/delete/list) |
+| `HashtagService` | `HashtagResource` | Hashtags (create/get by id/get by name) |
+| `PostHashtagService` | `PostHashtagResource` | Attach / detach / list post hashtags |
+| `UserHashtagFollowService` | `UserHashtagFollowResource` | Follow / unfollow / list my hashtag follows |
 
 Resources delegate to services only (no business logic in the client layer).
 
@@ -129,6 +157,9 @@ In-process entry point for facades and other modules:
 | `PostMedia` | `IPostMediaResource` |
 | `Comments` | `ICommentResource` |
 | `Reactions` | `IReactionResource` |
+| `Hashtags` | `IHashtagResource` |
+| `PostHashtags` | `IPostHashtagResource` |
+| `UserHashtagFollows` | `IUserHashtagFollowResource` |
 
 Registered in `Content.DI` via `AddContentModule`.
 
@@ -138,6 +169,7 @@ Registered in `Content.DI` via `AddContentModule`.
 |-----------|-------------|
 | `AddContentModule` | Schema `content`, tables `posts`, `media`, `post_media` |
 | `AddContentCommentsAndReactions` | Tables `comments`, `reactions` |
+| `AddContentHashtagsAndFollows` | Tables `hashtags`, `post_hashtags`, `user_hashtag_follows` |
 
 Applied at startup from `Facade.API` (`ContentDbContext`). History table: `content.__EFMigrationsHistory`.
 
@@ -156,9 +188,12 @@ Applied at startup from `Facade.API` (`ContentDbContext`). History table: `conte
 | **Post media** | Attach/detach allowed only for post owner |
 | **Comments** | Create only for accessible post; update/delete only by comment author; delete is soft delete |
 | **Reactions** | Upsert by `(user_id, post_id)`; repeated put updates `reaction_type`; delete removes row |
-| **Deleted post** | Does not accept comments/reactions |
+| **Hashtags** | Name normalized `trim` + lower; duplicate name → **400** |
+| **Post hashtags** | Attach/detach allowed only for post owner; duplicate link → **400**; detach is hard delete |
+| **User hashtag follows** | Follow/unfollow for JWT user only; duplicate active follow → **400**; re-follow after unfollow reactivates row |
+| **Deleted post** | Does not accept comments/reactions; private/deleted post rules apply to hashtag lists |
 | **Counters** | `comment_count` and `reaction_count` are updated in service |
-| **Not found** | `"Post not found."`, `"Media not found."`, `"Post media not found."`, `"Comment not found."`, `"Reaction not found."` → **404** at facade |
+| **Not found** | `"Post not found."`, `"Media not found."`, `"Post media not found."`, `"Comment not found."`, `"Reaction not found."`, `"Hashtag not found."`, `"Post hashtag not found."`, `"Hashtag follow not found."` → **404** at facade |
 | Other business errors | **400** at facade |
 | Target user existence | **Not** validated (no call to Identity/Profile) |
 | **`group_posts`** | **Not implemented** — deferred until Content + Network integration |
@@ -210,6 +245,29 @@ Base route: **`/api/content`**. All routes require JWT.
 | GET | `/api/content/posts/{postId}/reactions/me` |
 | GET | `/api/content/posts/{postId}/reactions` |
 
+### Hashtags
+
+| Method | Path |
+|--------|------|
+| POST | `/api/content/hashtags` |
+| GET | `/api/content/hashtags/{hashtagId}` |
+
+### Post hashtags
+
+| Method | Path |
+|--------|------|
+| POST | `/api/content/me/posts/{postId}/hashtags` |
+| GET | `/api/content/posts/{postId}/hashtags` |
+| DELETE | `/api/content/me/posts/{postId}/hashtags/{hashtagId}` |
+
+### User hashtag follows
+
+| Method | Path |
+|--------|------|
+| POST | `/api/content/me/hashtags/{hashtagId}/follow` |
+| DELETE | `/api/content/me/hashtags/{hashtagId}/follow` |
+| GET | `/api/content/me/hashtags/following` |
+
 ### Request bodies (facade)
 
 | Operation | Body fields |
@@ -221,6 +279,8 @@ Base route: **`/api/content`**. All routes require JWT.
 | Create comment | `content`, optional `parentCommentId` |
 | Update comment | `content` |
 | Upsert reaction | `reactionType` |
+| Create hashtag | `name` only |
+| Attach post hashtag | `hashtagId` only |
 
 ## Host integration
 
@@ -239,7 +299,7 @@ Migrations: `ContentDbContext` in `ApplyMigrationsAsync` (after Network).
 
 ## Out of scope
 
-- Hashtags, saved posts, reposts, post views, mentions
+- Saved posts, reposts, post views, mentions
 - **`group_posts`** — deferred until Content + Network integration
 - Public (unauthenticated) content endpoints
 - Media file upload / blob storage (URL-only v1)
