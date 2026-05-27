@@ -1,6 +1,7 @@
 ﻿using Content.DataAccess;
 using Identity.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Messaging.DataAccess;
 using Network.DataAccess;
 using Profile.DataAccess;
 using Professional.DataAccess;
@@ -55,6 +56,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Content-модуля
             await contentContext.Database.MigrateAsync();
+
+            // Получаем MessagingDbContext из DI
+            var messagingContext = services.GetRequiredService<MessagingDbContext>();
+
+            // Применяем миграции Messaging-модуля
+            await messagingContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");
