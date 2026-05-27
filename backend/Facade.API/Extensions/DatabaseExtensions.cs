@@ -4,6 +4,7 @@ using Jobs.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Messaging.DataAccess;
 using Network.DataAccess;
+using Notifications.DataAccess;
 using Profile.DataAccess;
 using Professional.DataAccess;
 namespace Facade.API.Extensions;
@@ -69,6 +70,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Jobs-модуля
             await jobsContext.Database.MigrateAsync();
+
+            // Получаем NotificationsDbContext из DI
+            var notificationsContext = services.GetRequiredService<NotificationsDbContext>();
+
+            // Применяем миграции Notifications-модуля
+            await notificationsContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

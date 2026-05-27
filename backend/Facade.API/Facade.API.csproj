@@ -38,6 +38,9 @@
 		<ProjectReference Include="..\Jobs\Jobs.DI\Jobs.DI.csproj" />
 		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.DI\Facade.JobsManagement.DI.csproj" />
 		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.Controllers\Facade.JobsManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Notifications\Notifications.DI\Notifications.DI.csproj" />
+		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.DI\Facade.NotificationsManagement.DI.csproj" />
+		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.Controllers\Facade.NotificationsManagement.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>
