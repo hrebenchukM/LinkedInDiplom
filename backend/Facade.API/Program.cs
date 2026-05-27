@@ -23,8 +23,11 @@ using Facade.NotificationsManagement.Controllers.Controllers;
 using Facade.NotificationsManagement.DI;
 using Facade.JobsManagement.Controllers.Controllers;
 using Facade.JobsManagement.DI;
+using Facade.EventsManagement.Controllers.Controllers;
+using Facade.EventsManagement.DI;
 using Facade.ProfileManagement.Contracts.Options;
 using Content.DI;
+using Events.DI;
 using Jobs.DI;
 using Messaging.DI;
 using Network.DI;
@@ -57,6 +60,7 @@ builder.Services.AddContentModule(configuration, connectionString);
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);
+builder.Services.AddEventsModule(configuration, connectionString);
 
 // Подключаем AccountManagement facade
 builder.Services.AddAccountManagementFacade();
@@ -69,6 +73,7 @@ builder.Services.AddContentManagementFacade();
 builder.Services.AddMessagingManagementFacade();
 builder.Services.AddJobsManagementFacade();
 builder.Services.AddNotificationsManagementFacade();
+builder.Services.AddEventsManagementFacade();
 // Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
@@ -78,7 +83,8 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(ContentController).Assembly)
     .AddApplicationPart(typeof(MessagingController).Assembly)
     .AddApplicationPart(typeof(JobsController).Assembly)
-    .AddApplicationPart(typeof(NotificationsController).Assembly);
+    .AddApplicationPart(typeof(NotificationsController).Assembly)
+    .AddApplicationPart(typeof(EventsController).Assembly);
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");

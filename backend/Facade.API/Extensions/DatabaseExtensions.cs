@@ -1,4 +1,5 @@
 ﻿using Content.DataAccess;
+using Events.DataAccess;
 using Identity.DataAccess;
 using Jobs.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Notifications-модуля
             await notificationsContext.Database.MigrateAsync();
+
+            // Получаем EventsDbContext из DI
+            var eventsContext = services.GetRequiredService<EventsDbContext>();
+
+            // Применяем миграции Events-модуля
+            await eventsContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

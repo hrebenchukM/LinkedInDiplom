@@ -41,6 +41,9 @@
 		<ProjectReference Include="..\Notifications\Notifications.DI\Notifications.DI.csproj" />
 		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.DI\Facade.NotificationsManagement.DI.csproj" />
 		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.Controllers\Facade.NotificationsManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Events\Events.DI\Events.DI.csproj" />
+		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.DI\Facade.EventsManagement.DI.csproj" />
+		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.Controllers\Facade.EventsManagement.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>
