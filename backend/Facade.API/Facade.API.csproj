@@ -35,6 +35,9 @@
 		<ProjectReference Include="..\Messaging\Messaging.DI\Messaging.DI.csproj" />
 		<ProjectReference Include="..\MessagingManagement\Facade.MessagingManagement.DI\Facade.MessagingManagement.DI.csproj" />
 		<ProjectReference Include="..\MessagingManagement\Facade.MessagingManagement.Controllers\Facade.MessagingManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Jobs\Jobs.DI\Jobs.DI.csproj" />
+		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.DI\Facade.JobsManagement.DI.csproj" />
+		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.Controllers\Facade.JobsManagement.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>

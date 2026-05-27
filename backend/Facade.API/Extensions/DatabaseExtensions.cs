@@ -1,5 +1,6 @@
 ﻿using Content.DataAccess;
 using Identity.DataAccess;
+using Jobs.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Messaging.DataAccess;
 using Network.DataAccess;
@@ -62,6 +63,12 @@ public static class DatabaseExtensions
 
             // Применяем миграции Messaging-модуля
             await messagingContext.Database.MigrateAsync();
+
+            // Получаем JobsDbContext из DI
+            var jobsContext = services.GetRequiredService<JobsDbContext>();
+
+            // Применяем миграции Jobs-модуля
+            await jobsContext.Database.MigrateAsync();
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");
