@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging, Jobs)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -111,6 +111,14 @@ LinkedInDiplom/
 │   │   ├── Jobs.Client
 │   │   └── Jobs.DI
 │   │
+│   ├── Notifications/               # Core: notifications & activity (6 projects)
+│   │   ├── Notifications.Contracts
+│   │   ├── Notifications.Services
+│   │   ├── Notifications.DataAccess # schema: notifications
+│   │   ├── Notifications.Client.Contracts
+│   │   ├── Notifications.Client
+│   │   └── Notifications.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
@@ -118,6 +126,7 @@ LinkedInDiplom/
 │   ├── ContentManagement/           # Facade: posts & media BFF (4 projects)
 │   ├── MessagingManagement/         # Facade: messaging BFF (4 projects)
 │   ├── JobsManagement/              # Facade: jobs BFF (4 projects)
+│   ├── NotificationsManagement/     # Facade: notifications BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
@@ -141,6 +150,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/content` | Posts, media, comments, reactions, hashtags, saved posts, reposts, post views, mentions (JWT only) |
 | `/api/messaging` | Chats, members, messages, reads, message media (JWT only) |
 | `/api/jobs` | Vacancies, favorites, applications, search queries/results, recommended queries (JWT only) |
+| `/api/notifications` | Notifications inbox and user activity (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -421,6 +431,32 @@ Details: [Messaging module README](./backend/Messaging/README.md).
 
 Details: [Jobs module README](./backend/Jobs/README.md).
 
+### Notifications (`/api/notifications`)
+
+**Modular monolith prepared for microservices** core + **NotificationsManagement** BFF (`TargetFramework net8.0`, schema **`notifications`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body).
+
+**Tables:** `notifications`, `user_activity`. Migration: **`AddNotificationsModule`**.
+
+#### Notifications
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/notifications/me` | GET |
+| `/api/notifications/me/{notificationId}` | GET |
+| `/api/notifications/me/{notificationId}/read` | PATCH |
+| `/api/notifications/me/read-all` | PATCH |
+| `/api/notifications/me/{notificationId}` | DELETE |
+
+#### User activity
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/notifications/me/activity` | POST, GET |
+
+**Rules:** all endpoints require JWT; `userId` from JWT only; body does not contain current user id; notifications are owner-only; mark read/delete are owner-only; delete notification is soft delete (`deleted_at`); mark read is idempotent; mark all read succeeds even with 0 unread rows; user_activity is append-only; list endpoints may return `200` + `[]`; single/mutation for foreign records return `404`; public facade `POST` for creating notification is not added in v1; notification creation is available in core/client for future cross-module calls; SignalR/WebSocket/realtime are not implemented.
+
+Details: [Notifications module README](./backend/Notifications/README.md).
+
 ## 🛠️ Development
 
 ### Run Locally (without Docker)
@@ -557,6 +593,15 @@ The API uses JWT Bearer token authentication with:
 - Exposed via **JobsManagement** facade (in-process client; microservice-ready seam)
 - See [backend/Jobs/README.md](./backend/Jobs/README.md)
 
+### Notifications (Core)
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`notifications`**
+- Tables: **`notifications`**, **`user_activity`**
+- Migration: **`AddNotificationsModule`**
+- Services/resources: `NotificationService`/`NotificationResource`, `UserActivityService`/`UserActivityResource`
+- Facade uses **`INotificationsClient`** (`Notifications`, `UserActivity`)
+- Exposed via **NotificationsManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Notifications/README.md](./backend/Notifications/README.md)
+
 ### JobsManagement (Facade / BFF)
 - Jobs API at `/api/jobs` (.NET 8, modular monolith BFF)
 - **All routes require JWT**; current `userId` from JWT only (never from request body)
@@ -567,6 +612,20 @@ The API uses JWT Bearer token authentication with:
 - Recommended queries in v1 are JWT-only without admin-role check
 - Foreign/inaccessible records return `404`
 - Maps via `IJobsClient`
+
+### NotificationsManagement (Facade / BFF)
+- Notifications API at `/api/notifications` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; current `userId` from JWT only (never from request body)
+- Notifications are owner-only; mark read/delete are owner-only
+- `DELETE` notification is soft delete (`deleted_at`)
+- mark read is idempotent; mark all read succeeds even with 0 unread
+- `user_activity` endpoints are append-only
+- List endpoints can return `200 + []`
+- Single/mutation for foreign records return `404`
+- Public facade `POST /api/notifications` is intentionally not added in v1
+- Notification create remains available in core/client for future cross-module orchestration
+- SignalR/WebSocket/realtime are not implemented in v1
+- Maps via `INotificationsClient`
 
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
@@ -589,11 +648,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement | JobsManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement | JobsManagement | NotificationsManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional | Network | Content | Messaging | Jobs
+Core Modules: Identity | Profile | Professional | Network | Content | Messaging | Jobs | Notifications
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional, network, content, messaging, jobs)
+PostgreSQL (schemas: identity, profile, professional, network, content, messaging, jobs, notifications)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -626,6 +685,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Content Module](./backend/Content/README.md)** - Posts & media core module and `/api/content` endpoints
 - **[Messaging Module](./backend/Messaging/README.md)** - Messaging core module and `/api/messaging` endpoints
 - **[Jobs Module](./backend/Jobs/README.md)** - Jobs core module and `/api/jobs` endpoints
+- **[Notifications Module](./backend/Notifications/README.md)** - Notifications core module and `/api/notifications` endpoints
 
 ## 🧪 Testing
 
@@ -672,6 +732,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **MessagingManagement Facade** - `/api/messaging` (JWT-only; chats/messages/reads/media endpoints)  
 ✅ **Jobs Core Module** - Schema `jobs`: vacancies, user_vacancies_favorites, job_applications, job_search_queries, job_search_results, recommended_job_queries (migration `AddJobsModule`)  
 ✅ **JobsManagement Facade** - `/api/jobs` (JWT-only; vacancies/favorites/applications/search/recommended queries endpoints)  
+✅ **Notifications Core Module** - Schema `notifications`: notifications, user_activity (migration `AddNotificationsModule`)  
+✅ **NotificationsManagement Facade** - `/api/notifications` (JWT-only; notifications inbox and user activity endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  

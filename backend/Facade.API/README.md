@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`, `JobsManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`, `Jobs`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`, `JobsManagement`, `NotificationsManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`, `Jobs`, `Notifications`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -26,7 +26,8 @@ Facade Modules (BFF)
     ├── Facade.NetworkManagement      → /api/network
     ├── Facade.ContentManagement      → /api/content
     ├── Facade.MessagingManagement    → /api/messaging
-    └── Facade.JobsManagement         → /api/jobs
+    ├── Facade.JobsManagement         → /api/jobs
+    └── Facade.NotificationsManagement → /api/notifications
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
@@ -35,7 +36,8 @@ Core Modules
     ├── Network       (schema: network)
     ├── Content       (schema: content)
     ├── Messaging     (schema: messaging)
-    └── Jobs          (schema: jobs)
+    ├── Jobs          (schema: jobs)
+    └── Notifications (schema: notifications)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -429,6 +431,37 @@ Rules:
 
 Migration: `AddJobsModule` (applied via `JobsDbContext` on startup; history in schema `jobs`).
 
+### Notifications — `/api/notifications`
+
+Notifications BFF over the **Notifications** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Notifications core owns PostgreSQL schema **`notifications`**: `notifications`, `user_activity` (see [Notifications module README](../Notifications/README.md)).
+
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain current user id.
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/notifications/me` | Yes |
+| GET | `/api/notifications/me/{notificationId}` | Yes |
+| PATCH | `/api/notifications/me/{notificationId}/read` | Yes |
+| PATCH | `/api/notifications/me/read-all` | Yes |
+| DELETE | `/api/notifications/me/{notificationId}` | Yes |
+| POST | `/api/notifications/me/activity` | Yes |
+| GET | `/api/notifications/me/activity` | Yes |
+
+Rules:
+- notifications are owner-only;
+- mark read/delete are owner-only;
+- delete notification is soft delete (`deleted_at`);
+- mark read is idempotent;
+- mark all read returns success even with 0 unread rows;
+- `user_activity` is append-only;
+- list GET endpoints may return `200` + empty array;
+- single/mutation for foreign records return `404`;
+- public `POST /api/notifications` is intentionally not added in v1;
+- notification creation remains available through core/client for future cross-module calls;
+- SignalR/WebSocket/realtime are not implemented in v1.
+
+Migration: `AddNotificationsModule` (applied via `NotificationsDbContext` on startup; history in schema `notifications`).
+
 ## Module Integration (Program.cs)
 
 ```csharp
@@ -439,6 +472,7 @@ builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddContentModule(configuration, connectionString);
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
+builder.Services.AddNotificationsModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
@@ -447,6 +481,7 @@ builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
 builder.Services.AddMessagingManagementFacade();
 builder.Services.AddJobsManagementFacade();
+builder.Services.AddNotificationsManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
@@ -455,7 +490,8 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(NetworkController).Assembly)
     .AddApplicationPart(typeof(ContentController).Assembly)
     .AddApplicationPart(typeof(MessagingController).Assembly)
-    .AddApplicationPart(typeof(JobsController).Assembly);
+    .AddApplicationPart(typeof(JobsController).Assembly)
+    .AddApplicationPart(typeof(NotificationsController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -496,6 +532,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` orchestration via NetworkManagement + `IContentClient`)  
 ✅ **Messaging module** — schema `messaging` (`chats`, `chat_members`, `messages`, `message_reads`, `message_media`) at `/api/messaging`  
 ✅ **Jobs module** — schema `jobs` (`vacancies`, `user_vacancies_favorites`, `job_applications`, `job_search_queries`, `job_search_results`, `recommended_job_queries`) at `/api/jobs`  
+✅ **Notifications module** — schema `notifications` (`notifications`, `user_activity`) at `/api/notifications`  
 
 ## Related docs
 
@@ -507,3 +544,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [Content module](../Content/README.md)
 - [Messaging module](../Messaging/README.md)
 - [Jobs module](../Jobs/README.md)
+- [Notifications module](../Notifications/README.md)

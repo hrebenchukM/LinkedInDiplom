@@ -842,6 +842,13 @@ Table recommended_job_queries {
   created_at datetime
 }
 // 🟢 8. Notifications + Mentions
+// PostgreSQL schema: notifications
+//
+// Implementation status (Notifications module, .NET 8):
+//   v1 — notifications, user_activity
+//        (migration AddNotificationsModule)
+//
+// EF: no FK to AspNetUsers; user_id stored as string.
 
 Table notifications {
   notification_id Guid [primary key]
@@ -849,36 +856,45 @@ Table notifications {
   user_id varchar
   actor_user_id varchar
 
-  type varchar
-  title varchar
+  type varchar [note: 'required, max 50']
+  title varchar [note: 'required, max 250']
   body text
 
-  entity_type varchar
+  entity_type varchar [note: 'nullable, max 50']
   entity_id Guid
 
-  is_read boolean
+  is_read boolean [note: 'required, default false']
 
   created_at datetime
   updated_at datetime
-  deleted_at datetime
+  deleted_at datetime [note: 'soft delete/archive']
+
+  indexes {
+    (user_id, created_at) [name: 'IX_notifications_user_id_created_at']
+    (user_id, is_read) [name: 'IX_notifications_user_id_is_read']
+  }
 }
 
 Ref: notifications.user_id > AspNetUsers.user_id
 Ref: notifications.actor_user_id > AspNetUsers.user_id
 
-// Audit / Activity log
+// Audit / Activity log (append-only)
 Table user_activity {
   activity_id Guid [primary key]
 
   user_id varchar
 
-  action varchar
-  entity_type varchar
+  action varchar [note: 'required, max 50']
+  entity_type varchar [note: 'nullable, max 50']
   entity_id Guid
 
-  meta json
+  meta json [note: 'jsonb in PostgreSQL']
 
   created_at datetime
+
+  indexes {
+    (user_id, created_at) [name: 'IX_user_activity_user_id_created_at']
+  }
 }
 
 Ref: user_activity.user_id > AspNetUsers.user_id

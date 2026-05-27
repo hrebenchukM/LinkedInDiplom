@@ -1,6 +1,6 @@
 # Facade.API — Module Integration
 
-Overview of how **Facade.API** hosts the modular monolith: **seven Core** modules, **seven Facade (BFF)** modules, one PostgreSQL database with separate schemas.
+Overview of how **Facade.API** hosts the modular monolith: **eight Core** modules, **eight Facade (BFF)** modules, one PostgreSQL database with separate schemas.
 
 ## Summary
 
@@ -19,6 +19,7 @@ Overview of how **Facade.API** hosts the modular monolith: **seven Core** module
 | Core | Content | `AddContentModule` |
 | Core | Messaging | `AddMessagingModule` |
 | Core | Jobs | `AddJobsModule` |
+| Core | Notifications | `AddNotificationsModule` |
 | Facade | AccountManagement | `AddAccountManagementFacade` |
 | Facade | ProfileManagement | `AddProfileManagementFacade` |
 | Facade | ProfessionalManagement | `AddProfessionalManagementFacade` |
@@ -26,6 +27,7 @@ Overview of how **Facade.API** hosts the modular monolith: **seven Core** module
 | Facade | ContentManagement | `AddContentManagementFacade` |
 | Facade | MessagingManagement | `AddMessagingManagementFacade` |
 | Facade | JobsManagement | `AddJobsManagementFacade` |
+| Facade | NotificationsManagement | `AddNotificationsManagementFacade` |
 
 Controllers are discovered via `AddApplicationPart` from each facade Controllers assembly.
 
@@ -40,6 +42,7 @@ Controllers are discovered via `AddApplicationPart` from each facade Controllers
 | `/api/content` | ContentController | posts, media, comments, reactions, hashtags, saved posts, reposts, views, mentions |
 | `/api/messaging` | MessagingController | chats, members, messages, reads, message media |
 | `/api/jobs` | JobsController | vacancies, favorites, applications, search queries/results, recommended queries |
+| `/api/notifications` | NotificationsController | notifications inbox and user activity |
 
 Swagger (Development): **http://localhost:5000/swagger**
 
@@ -166,6 +169,30 @@ HTTP → JobsController (/api/jobs)
 - Recommended queries in v1 are JWT-only (no admin role check).
 - Foreign/inaccessible records return `404`.
 
+## Architecture Flow (Notifications)
+
+```
+HTTP → NotificationsController (/api/notifications)
+    → NotificationsManagementService
+    → INotificationsClient
+    → *Resource → *Service → NotificationsDbContext (notifications schema)
+```
+
+- All notifications endpoints require JWT.
+- `userId` is taken only from JWT claims (`NameIdentifier` / `sub`).
+- Request bodies do not contain current user id.
+- User sees only own notifications.
+- Mark-read and delete are owner-only.
+- Delete notification is soft delete (`deleted_at`).
+- Mark-read is idempotent.
+- Mark-all-read succeeds even when there are 0 unread rows.
+- `user_activity` is append-only.
+- List endpoints may return `200` + empty array.
+- Single/mutation endpoints return `404` for foreign/inaccessible records.
+- Public facade `POST` for notification creation is not implemented in v1.
+- Notification creation remains available in core/client for future cross-module orchestration.
+- SignalR/WebSocket/realtime are not implemented in v1.
+
 ## Cross-Module Event
 
 ```
@@ -183,7 +210,7 @@ Identity.UserService.Register
 ## Technology Stack
 
 - **.NET 8**, ASP.NET Core, EF Core 8, Npgsql
-- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`
+- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`, `notifications`
 - **JWT** + ASP.NET Core Identity
 - **Swashbuckle** (Development)
 
@@ -191,13 +218,13 @@ Identity.UserService.Register
 
 - One connection string (`DefaultConnection`)
 - Separate `DbContext` per module
-- Migrations applied on startup for all module contexts, including `MessagingDbContext` and `JobsDbContext`
+- Migrations applied on startup for all module contexts, including `MessagingDbContext`, `JobsDbContext`, and `NotificationsDbContext`
 
 ## Project Dependencies (simplified)
 
 ```
 Facade.API
-├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI, Jobs.DI
+├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI, Jobs.DI, Notifications.DI
 ├── Facade.AccountManagement.DI
 ├── Facade.ProfileManagement.DI
 ├── Facade.ProfessionalManagement.DI
@@ -205,6 +232,7 @@ Facade.API
 ├── Facade.ContentManagement.DI
 ├── Facade.MessagingManagement.DI
 ├── Facade.JobsManagement.DI
+├── Facade.NotificationsManagement.DI
 └── Facade.*.Controllers (ApplicationPart)
 ```
 
@@ -212,14 +240,14 @@ Facade.API
 
 | Seam | Current | Future option |
 |------|---------|---------------|
-| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` / `IJobsClient` | In-process | HTTP SDK |
+| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` / `IJobsClient` / `INotificationsClient` | In-process | HTTP SDK |
 | `Identity.Events.Contracts` | In-memory publisher | Message bus |
 | DbContext per module | Shared PostgreSQL | Split databases |
 
 ## Success Metrics
 
 ✅ **53 projects** in `LinkedIn.sln`  
-✅ **7 core + 7 facade** modules integrated  
+✅ **8 core + 8 facade** modules integrated  
 ✅ **JWT** authentication  
 ✅ **Swagger** at `/swagger` (Development)  
 ✅ **Modular monolith** with BFF + resource/client pattern  
@@ -237,7 +265,9 @@ Facade.API
 9. `POST /api/messaging/me/messages/{messageId}/read` then `GET /api/messaging/me/messages/{messageId}/reads`
 10. `POST /api/jobs/me/vacancies` then `GET /api/jobs/vacancies`
 11. `POST /api/jobs/me/vacancies/{vacancyId}/apply` then `GET /api/jobs/me/applications`
-12. Refresh and logout tokens
+12. `POST /api/notifications/me/activity` then `GET /api/notifications/me/activity`
+13. `GET /api/notifications/me` then `PATCH /api/notifications/me/read-all`
+14. Refresh and logout tokens
 
 ## Future (roadmap, not implemented)
 
@@ -255,4 +285,5 @@ Facade.API
 - [Content module README](../Content/README.md)
 - [Messaging module README](../Messaging/README.md)
 - [Jobs module README](../Jobs/README.md)
+- [Notifications module README](../Notifications/README.md)
 - [Root README](../../README.md)
