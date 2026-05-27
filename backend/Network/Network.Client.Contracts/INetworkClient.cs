@@ -16,6 +16,8 @@ public interface INetworkClient
 
     IGroupMemberResource GroupMembers { get; }
 
+    IGroupPostResource GroupPosts { get; }
+
     IPageResource Pages { get; }
 
     IPageAdminResource PageAdmins { get; }

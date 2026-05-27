@@ -7,10 +7,13 @@ using Facade.NetworkManagement.Contracts.Requests.Page;
 using Facade.NetworkManagement.Contracts.Requests.PageAdmin;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
+using Content.Client.Contracts;
+using Content.Contracts.Parameters.Post;
 using Network.Client.Contracts;
 using Network.Contracts.Parameters.BlockedUser;
 using Network.Contracts.Parameters.Contact;
 using Network.Contracts.Parameters.Follow;
+using Network.Contracts.Parameters.GroupPost;
 using Network.Contracts.Parameters.GroupMember;
 using Network.Contracts.Parameters.Page;
 using Network.Contracts.Parameters.PageAdmin;
@@ -25,6 +28,7 @@ using NetworkGroupMemberDto = Network.Contracts.DTOs.GroupMemberDto;
 using NetworkPageDto = Network.Contracts.DTOs.PageDto;
 using NetworkPageAdminDto = Network.Contracts.DTOs.PageAdminDto;
 using NetworkPageFollowerDto = Network.Contracts.DTOs.PageFollowerDto;
+using NetworkGroupPostDto = Network.Contracts.DTOs.GroupPostDto;
 
 namespace Facade.NetworkManagement.Services.Services;
 
@@ -36,10 +40,12 @@ public class NetworkManagementService : INetworkManagementService
     private const string StatusAccepted = "accepted";
 
     private readonly INetworkClient _networkClient;
+    private readonly IContentClient _contentClient;
 
-    public NetworkManagementService(INetworkClient networkClient)
+    public NetworkManagementService(INetworkClient networkClient, IContentClient contentClient)
     {
         _networkClient = networkClient;
+        _contentClient = contentClient;
     }
 
     public async Task<ContactResponse> SendContactRequestAsync(string userId, SendContactRequest request)
@@ -312,6 +318,82 @@ public class NetworkManagementService : INetworkManagementService
         return members.Select(MapGroupMemberToFacadeDto).ToList();
     }
 
+    public async Task<GroupPostResponse> AttachPostToGroupAsync(string userId, Guid groupId, Guid postId)
+    {
+        var post = await _contentClient.Posts.GetByIdAsync(new GetPostByIdParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        if (post == null || post.UserId != userId)
+        {
+            return new GroupPostResponse
+            {
+                Success = false,
+                Errors = new[] { "Post not found." }
+            };
+        }
+
+        var result = await _networkClient.GroupPosts.AttachPostToGroupAsync(new AttachGroupPostParameters
+        {
+            UserId = userId,
+            GroupId = groupId,
+            PostId = postId
+        });
+
+        return MapGroupPostResult(result);
+    }
+
+    public async Task<GroupPostResponse> DetachPostFromGroupAsync(string userId, Guid groupId, Guid postId)
+    {
+        var post = await _contentClient.Posts.GetByIdAsync(new GetPostByIdParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        if (post == null || post.UserId != userId)
+        {
+            return new GroupPostResponse
+            {
+                Success = false,
+                Errors = new[] { "Post not found." }
+            };
+        }
+
+        var result = await _networkClient.GroupPosts.DetachPostFromGroupAsync(new DetachGroupPostParameters
+        {
+            UserId = userId,
+            GroupId = groupId,
+            PostId = postId
+        });
+
+        return MapGroupPostResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<GroupPostDto>?> GetGroupPostsAsync(string userId, Guid groupId)
+    {
+        var group = await _networkClient.UserGroups.GetByIdAsync(new GetUserGroupByIdParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        if (group == null)
+        {
+            return null;
+        }
+
+        var groupPosts = await _networkClient.GroupPosts.GetGroupPostsAsync(new GetGroupPostsParameters
+        {
+            UserId = userId,
+            GroupId = groupId
+        });
+
+        return groupPosts.Select(MapGroupPostToFacadeDto).ToList();
+    }
+
     public async Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request)
     {
         var result = await _networkClient.Pages.CreateAsync(new CreatePageParameters
@@ -506,6 +588,16 @@ public class NetworkManagementService : INetworkManagementService
         };
     }
 
+    private static GroupPostResponse MapGroupPostResult(GroupPostResult result)
+    {
+        return new GroupPostResponse
+        {
+            Success = result.Succeeded,
+            GroupPost = result.GroupPost == null ? null : MapGroupPostToFacadeDto(result.GroupPost),
+            Errors = result.Errors
+        };
+    }
+
     private static PageResponse MapPageResult(PageResult result)
     {
         return new PageResponse
@@ -600,6 +692,17 @@ public class NetworkManagementService : INetworkManagementService
             Role = groupMember.Role,
             CreatedAt = groupMember.CreatedAt,
             UpdatedAt = groupMember.UpdatedAt
+        };
+    }
+
+    private static GroupPostDto MapGroupPostToFacadeDto(NetworkGroupPostDto groupPost)
+    {
+        return new GroupPostDto
+        {
+            Id = groupPost.Id,
+            GroupId = groupPost.GroupId,
+            PostId = groupPost.PostId,
+            CreatedAt = groupPost.CreatedAt
         };
     }
 

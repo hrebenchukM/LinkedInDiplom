@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Facade.NetworkManagement.Contracts\Facade.NetworkManagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Content\Content.Client.Contracts\Content.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Content\Content.Contracts\Content.Contracts.csproj" />
     <ProjectReference Include="..\..\Network\Network.Client.Contracts\Network.Client.Contracts.csproj" />
     <ProjectReference Include="..\..\Network\Network.Contracts\Network.Contracts.csproj" />
   </ItemGroup>

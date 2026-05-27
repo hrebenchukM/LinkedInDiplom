@@ -17,6 +17,8 @@ public class NetworkClient : INetworkClient
 
     public IGroupMemberResource GroupMembers { get; }
 
+    public IGroupPostResource GroupPosts { get; }
+
     public IPageResource Pages { get; }
 
     public IPageAdminResource PageAdmins { get; }
@@ -29,6 +31,7 @@ public class NetworkClient : INetworkClient
         IBlockedUserResource blockedUsers,
         IUserGroupResource userGroups,
         IGroupMemberResource groupMembers,
+        IGroupPostResource groupPosts,
         IPageResource pages,
         IPageAdminResource pageAdmins,
         IPageFollowerResource pageFollowers)
@@ -38,6 +41,7 @@ public class NetworkClient : INetworkClient
         BlockedUsers = blockedUsers;
         UserGroups = userGroups;
         GroupMembers = groupMembers;
+        GroupPosts = groupPosts;
         Pages = pages;
         PageAdmins = pageAdmins;
         PageFollowers = pageFollowers;

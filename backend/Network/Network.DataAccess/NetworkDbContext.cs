@@ -11,6 +11,7 @@ public class NetworkDbContext : DbContext
     public DbSet<BlockedUser> BlockedUsers { get; set; } = default!;
     public DbSet<UserGroup> UserGroups { get; set; } = default!;
     public DbSet<GroupMember> GroupMembers { get; set; } = default!;
+    public DbSet<GroupPost> GroupPosts { get; set; } = default!;
     public DbSet<Page> Pages { get; set; } = default!;
     public DbSet<PageAdmin> PageAdmins { get; set; } = default!;
     public DbSet<PageFollower> PageFollowers { get; set; } = default!;
@@ -211,6 +212,38 @@ public class NetworkDbContext : DbContext
             entity.HasIndex(e => new { e.GroupId, e.UserId })
                 .IsUnique()
                 .HasDatabaseName("IX_group_members_group_id_user_id");
+        });
+
+        builder.Entity<GroupPost>(entity =>
+        {
+            entity.ToTable("group_posts");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("group_post_id");
+
+            entity.Property(e => e.GroupId)
+                .HasColumnName("group_id")
+                .IsRequired();
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+
+            entity.HasIndex(e => e.GroupId)
+                .HasDatabaseName("IX_group_posts_group_id");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_group_posts_post_id");
+
+            entity.HasIndex(e => new { e.GroupId, e.PostId })
+                .IsUnique()
+                .HasDatabaseName("IX_group_posts_group_id_post_id");
         });
 
         builder.Entity<Page>(entity =>

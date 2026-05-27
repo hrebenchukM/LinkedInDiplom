@@ -54,6 +54,12 @@ public interface INetworkManagementService
 
     Task<IReadOnlyCollection<GroupMemberDto>> GetGroupMembersAsync(string userId, Guid groupId);
 
+    Task<GroupPostResponse> AttachPostToGroupAsync(string userId, Guid groupId, Guid postId);
+
+    Task<GroupPostResponse> DetachPostFromGroupAsync(string userId, Guid groupId, Guid postId);
+
+    Task<IReadOnlyCollection<GroupPostDto>?> GetGroupPostsAsync(string userId, Guid groupId);
+
     Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request);
 
     Task<IReadOnlyCollection<PageDto>> GetMyPagesAsync(string userId);

@@ -21,6 +21,9 @@ public class NetworkController : ControllerBase
     private const string BlockNotFoundError = "Block not found.";
     private const string GroupNotFoundError = "Group not found.";
     private const string GroupMembershipNotFoundError = "Group membership not found.";
+    private const string GroupPostNotFoundError = "Group post not found.";
+    private const string GroupPostAlreadyExistsError = "Group post already exists.";
+    private const string PostNotFoundError = "Post not found.";
     private const string PageNotFoundError = "Page not found.";
     private const string PageAdminNotFoundError = "Page admin not found.";
     private const string PageFollowNotFoundError = "Page follow not found.";
@@ -482,6 +485,71 @@ public class NetworkController : ControllerBase
         return Ok(members);
     }
 
+    // POST api/network/me/groups/{groupId}/posts/{postId}
+    [Authorize]
+    [HttpPost("me/groups/{groupId:guid}/posts/{postId:guid}")]
+    [ProducesResponseType(typeof(GroupPostResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AttachPostToGroup(Guid groupId, Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.AttachPostToGroupAsync(userId, groupId, postId);
+
+        if (!response.Success)
+            return MapGroupPostError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/groups/{groupId}/posts/{postId}
+    [Authorize]
+    [HttpDelete("me/groups/{groupId:guid}/posts/{postId:guid}")]
+    [ProducesResponseType(typeof(GroupPostResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DetachPostFromGroup(Guid groupId, Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _networkManagementService.DetachPostFromGroupAsync(userId, groupId, postId);
+
+        if (!response.Success)
+            return MapGroupPostError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/network/me/groups/{groupId}/posts
+    [Authorize]
+    [HttpGet("me/groups/{groupId:guid}/posts")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetGroupPosts(Guid groupId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var groupPosts = await _networkManagementService.GetGroupPostsAsync(userId, groupId);
+
+        if (groupPosts == null)
+            return NotFound();
+
+        return Ok(groupPosts);
+    }
+
     // POST api/network/me/pages
     [Authorize]
     [HttpPost("me/pages")]
@@ -757,6 +825,23 @@ public class NetworkController : ControllerBase
             response.Errors.Contains(GroupMembershipNotFoundError))
         {
             return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapGroupPostError(GroupPostResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError) ||
+            response.Errors.Contains(GroupNotFoundError) ||
+            response.Errors.Contains(GroupPostNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        if (response.Errors.Contains(GroupPostAlreadyExistsError))
+        {
+            return BadRequest(response);
         }
 
         return BadRequest(response);

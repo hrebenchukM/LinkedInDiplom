@@ -29,6 +29,7 @@ public static class NetworkModuleServiceCollectionExtensions
         services.AddScoped<IBlockedUserService, BlockedUserService>();
         services.AddScoped<IUserGroupService, UserGroupService>();
         services.AddScoped<IGroupMemberService, GroupMemberService>();
+        services.AddScoped<IGroupPostService, GroupPostService>();
         services.AddScoped<IPageService, PageService>();
         services.AddScoped<IPageAdminService, PageAdminService>();
         services.AddScoped<IPageFollowerService, PageFollowerService>();
@@ -38,6 +39,7 @@ public static class NetworkModuleServiceCollectionExtensions
         services.AddScoped<IBlockedUserResource, BlockedUserResource>();
         services.AddScoped<IUserGroupResource, UserGroupResource>();
         services.AddScoped<IGroupMemberResource, GroupMemberResource>();
+        services.AddScoped<IGroupPostResource, GroupPostResource>();
         services.AddScoped<IPageResource, PageResource>();
         services.AddScoped<IPageAdminResource, PageAdminResource>();
         services.AddScoped<IPageFollowerResource, PageFollowerResource>();
