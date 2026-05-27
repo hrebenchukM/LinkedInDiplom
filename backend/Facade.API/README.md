@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`, `JobsManagement`, `NotificationsManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`, `Jobs`, `Notifications`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`, `JobsManagement`, `NotificationsManagement`, `EventsManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`, `Jobs`, `Notifications`, `Events`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -28,6 +28,7 @@ Facade Modules (BFF)
     ├── Facade.MessagingManagement    → /api/messaging
     ├── Facade.JobsManagement         → /api/jobs
     └── Facade.NotificationsManagement → /api/notifications
+    └── Facade.EventsManagement        → /api/events
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
@@ -37,7 +38,8 @@ Core Modules
     ├── Content       (schema: content)
     ├── Messaging     (schema: messaging)
     ├── Jobs          (schema: jobs)
-    └── Notifications (schema: notifications)
+    ├── Notifications (schema: notifications)
+    └── Events        (schema: events)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -462,6 +464,47 @@ Rules:
 
 Migration: `AddNotificationsModule` (applied via `NotificationsDbContext` on startup; history in schema `notifications`).
 
+### Events — `/api/events`
+
+Events BFF over the **Events** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Events core owns PostgreSQL schema **`events`**: `events`, `event_attendees`, `event_schedule`, `event_speakers`, `event_speaker_map` (see [Events module README](../Events/README.md)).
+
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT**. Request bodies must **not** contain current user id. `OrganizerId` is set from JWT on the facade; `OrganizerType` comes from create/update request.
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/events/me` | Yes |
+| GET | `/api/events/me` | Yes |
+| GET | `/api/events/{eventId}` | Yes |
+| PATCH | `/api/events/me/{eventId}` | Yes |
+| DELETE | `/api/events/me/{eventId}` | Yes |
+| POST | `/api/events/me/{eventId}/join` | Yes |
+| DELETE | `/api/events/me/{eventId}/attendance` | Yes |
+| GET | `/api/events/{eventId}/attendees` | Yes |
+| POST | `/api/events/me/{eventId}/schedule` | Yes |
+| GET | `/api/events/{eventId}/schedule` | Yes |
+| PATCH | `/api/events/me/{eventId}/schedule/{scheduleId}` | Yes |
+| DELETE | `/api/events/me/{eventId}/schedule/{scheduleId}` | Yes |
+| POST | `/api/events/me/speakers` | Yes |
+| GET | `/api/events/me/speakers/{speakerId}` | Yes |
+| PATCH | `/api/events/me/speakers/{speakerId}` | Yes |
+| DELETE | `/api/events/me/speakers/{speakerId}` | Yes |
+| POST | `/api/events/me/{eventId}/speakers` | Yes |
+| DELETE | `/api/events/me/{eventId}/speakers/{speakerId}` | Yes |
+| GET | `/api/events/{eventId}/speakers` | Yes |
+
+Rules:
+- create/update/delete event — owner-only (`OrganizerId` from JWT);
+- join/leave attendee — current user only;
+- duplicate attendee returns `400`;
+- schedule create/update/delete — owner-only;
+- speaker create/update/delete — JWT-only in v1 (no speaker ownership model);
+- speaker map attach/detach — owner-only;
+- duplicate speaker map returns `400`;
+- foreign/inaccessible single-resource and mutations return `404`;
+- integrations with Notifications/Content/Network are not added in v1.
+
+Migration: `AddEventsModule` (applied via `EventsDbContext` on startup; history in schema `events`).
+
 ## Module Integration (Program.cs)
 
 ```csharp
@@ -473,6 +516,7 @@ builder.Services.AddContentModule(configuration, connectionString);
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);
+builder.Services.AddEventsModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
@@ -482,6 +526,7 @@ builder.Services.AddContentManagementFacade();
 builder.Services.AddMessagingManagementFacade();
 builder.Services.AddJobsManagementFacade();
 builder.Services.AddNotificationsManagementFacade();
+builder.Services.AddEventsManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
@@ -491,7 +536,8 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(ContentController).Assembly)
     .AddApplicationPart(typeof(MessagingController).Assembly)
     .AddApplicationPart(typeof(JobsController).Assembly)
-    .AddApplicationPart(typeof(NotificationsController).Assembly);
+    .AddApplicationPart(typeof(NotificationsController).Assembly)
+    .AddApplicationPart(typeof(EventsController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -533,6 +579,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Messaging module** — schema `messaging` (`chats`, `chat_members`, `messages`, `message_reads`, `message_media`) at `/api/messaging`  
 ✅ **Jobs module** — schema `jobs` (`vacancies`, `user_vacancies_favorites`, `job_applications`, `job_search_queries`, `job_search_results`, `recommended_job_queries`) at `/api/jobs`  
 ✅ **Notifications module** — schema `notifications` (`notifications`, `user_activity`) at `/api/notifications`  
+✅ **Events module** — schema `events` (`events`, `event_attendees`, `event_schedule`, `event_speakers`, `event_speaker_map`) at `/api/events`  
 
 ## Related docs
 
@@ -545,3 +592,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [Messaging module](../Messaging/README.md)
 - [Jobs module](../Jobs/README.md)
 - [Notifications module](../Notifications/README.md)
+- [Events module](../Events/README.md)

@@ -912,88 +912,113 @@ Table mentions {
 
 Ref: mentions.post_id > posts.post_id
 Ref: mentions.mentioned_user_id > AspNetUsers.user_id
-// 🟢 9. Events (Network → Events)
+// 🟢 9. Events
+// PostgreSQL schema: events
+//
+// Implementation status (Events module, .NET 8):
+//   v1 — events, event_attendees, event_schedule, event_speakers, event_speaker_map
+//        (migration AddEventsModule)
+//
+// EF: no FK to AspNetUsers/Profile/Company; organizer_id and user_id stored as string.
+// Logical refs below are documentation-only.
 
 Table events {
   event_id Guid [primary key]
 
-  organizer_type varchar
-  organizer_id varchar
+  organizer_type varchar [note: 'required, max 50']
+  organizer_id varchar [note: 'required; v1 owner = JWT user']
 
-  title varchar
+  title varchar [note: 'required, max 250']
   description text
 
-  cover_image_url varchar
-  location varchar
+  cover_image_url varchar [note: 'nullable, max 500']
+  location varchar [note: 'nullable, max 250']
 
-  is_online boolean
-  external_link varchar
-  timezone varchar
+  is_online boolean [note: 'required, default false']
+  external_link varchar [note: 'nullable, max 500']
+  timezone varchar [note: 'nullable, max 100']
 
-  visibility varchar
-  allow_comments boolean
+  visibility varchar [note: 'required, max 50, default public']
+  allow_comments boolean [note: 'required, default true']
 
-  start_at datetime
+  start_at datetime [note: 'required']
   end_at datetime
 
-  created_at datetime
+  created_at datetime [note: 'required']
   updated_at datetime
-  deleted_at datetime
+  deleted_at datetime [note: 'soft delete']
+
+  indexes {
+    (organizer_id, created_at) [name: 'IX_events_organizer_id_created_at']
+    (start_at) [name: 'IX_events_start_at']
+  }
 }
 
-// Участники событий
 Table event_attendees {
   event_attendee_id Guid [primary key]
 
-  event_id Guid
-  user_id varchar
+  event_id Guid [note: 'required']
+  user_id varchar [note: 'required']
 
-  status varchar
+  status varchar [note: 'required, max 50; e.g. joined, left']
 
-  joined_at datetime
+  joined_at datetime [note: 'required']
   updated_at datetime
-  deleted_at datetime
+  deleted_at datetime [note: 'soft leave']
+
+  indexes {
+    (event_id, status) [name: 'IX_event_attendees_event_id_status']
+    (user_id) [name: 'IX_event_attendees_user_id']
+    (event_id, user_id) [unique, name: 'IX_event_attendees_event_id_user_id']
+  }
 }
 
 Ref: event_attendees.event_id > events.event_id
 Ref: event_attendees.user_id > AspNetUsers.user_id
 
-// Расписание события
 Table event_schedule {
   schedule_id Guid [primary key]
 
-  event_id Guid
+  event_id Guid [note: 'required']
 
-  time_label varchar
-  title varchar
-  speaker_name varchar
+  time_label varchar [note: 'nullable, max 100']
+  title varchar [note: 'required, max 250']
+  speaker_name varchar [note: 'nullable, max 250']
 
-  order_index int
+  order_index int [note: 'required']
 
-  created_at datetime
+  created_at datetime [note: 'required']
+
+  indexes {
+    (event_id, order_index) [name: 'IX_event_schedule_event_id_order_index']
+  }
 }
 
 Ref: event_schedule.event_id > events.event_id
 
-// Спикеры
 Table event_speakers {
   speaker_id Guid [primary key]
 
-  name varchar
-  title varchar
-  avatar_url varchar
+  name varchar [note: 'required, max 250']
+  title varchar [note: 'nullable, max 250']
+  avatar_url varchar [note: 'nullable, max 500']
 
-  created_at datetime
+  created_at datetime [note: 'required']
 }
 
-// Связь события и спикеров
 Table event_speaker_map {
   event_speaker_map_id Guid [primary key]
 
-  event_id Guid
-  speaker_id Guid
+  event_id Guid [note: 'required']
+  speaker_id Guid [note: 'required']
 
-  order_index int
+  order_index int [note: 'required']
+
+  indexes {
+    (event_id) [name: 'IX_event_speaker_map_event_id']
+    (speaker_id) [name: 'IX_event_speaker_map_speaker_id']
+    (event_id, speaker_id) [unique, name: 'IX_event_speaker_map_event_id_speaker_id']
+  }
 }
 
 Ref: event_speaker_map.event_id > events.event_id

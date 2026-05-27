@@ -1,6 +1,6 @@
 # Facade.API — Module Integration
 
-Overview of how **Facade.API** hosts the modular monolith: **eight Core** modules, **eight Facade (BFF)** modules, one PostgreSQL database with separate schemas.
+Overview of how **Facade.API** hosts the modular monolith: **nine Core** modules, **nine Facade (BFF)** modules, one PostgreSQL database with separate schemas.
 
 ## Summary
 
@@ -20,6 +20,7 @@ Overview of how **Facade.API** hosts the modular monolith: **eight Core** module
 | Core | Messaging | `AddMessagingModule` |
 | Core | Jobs | `AddJobsModule` |
 | Core | Notifications | `AddNotificationsModule` |
+| Core | Events | `AddEventsModule` |
 | Facade | AccountManagement | `AddAccountManagementFacade` |
 | Facade | ProfileManagement | `AddProfileManagementFacade` |
 | Facade | ProfessionalManagement | `AddProfessionalManagementFacade` |
@@ -28,6 +29,7 @@ Overview of how **Facade.API** hosts the modular monolith: **eight Core** module
 | Facade | MessagingManagement | `AddMessagingManagementFacade` |
 | Facade | JobsManagement | `AddJobsManagementFacade` |
 | Facade | NotificationsManagement | `AddNotificationsManagementFacade` |
+| Facade | EventsManagement | `AddEventsManagementFacade` |
 
 Controllers are discovered via `AddApplicationPart` from each facade Controllers assembly.
 
@@ -43,6 +45,7 @@ Controllers are discovered via `AddApplicationPart` from each facade Controllers
 | `/api/messaging` | MessagingController | chats, members, messages, reads, message media |
 | `/api/jobs` | JobsController | vacancies, favorites, applications, search queries/results, recommended queries |
 | `/api/notifications` | NotificationsController | notifications inbox and user activity |
+| `/api/events` | EventsController | events, attendees, schedule, speakers |
 
 Swagger (Development): **http://localhost:5000/swagger**
 
@@ -193,6 +196,31 @@ HTTP → NotificationsController (/api/notifications)
 - Notification creation remains available in core/client for future cross-module orchestration.
 - SignalR/WebSocket/realtime are not implemented in v1.
 
+## Architecture Flow (Events)
+
+```
+HTTP → EventsController (/api/events)
+    → EventsManagementService
+    → IEventsClient
+    → *Resource → *Service → EventsDbContext (events schema)
+```
+
+- All events endpoints require JWT.
+- `userId` is taken only from JWT claims (`NameIdentifier` / `sub`).
+- Request bodies do not contain current user id.
+- `OrganizerId` is set from JWT on the facade; `OrganizerType` comes from request.
+- Event owner in v1: `OrganizerId == current userId`.
+- Create/update/delete event — owner-only.
+- Join/leave attendee — current user only.
+- Duplicate attendee returns `400`.
+- Schedule create/update/delete — owner-only.
+- Speaker create/update/delete — JWT-only in v1 (no speaker ownership model).
+- Speaker map attach/detach — owner-only.
+- Duplicate speaker map returns `400`.
+- Foreign/inaccessible single-resource and mutations return `404`.
+- List GET endpoints may return `200` + empty array.
+- Cross-module integrations with Notifications, Content, and Network are not implemented in v1.
+
 ## Cross-Module Event
 
 ```
@@ -210,7 +238,7 @@ Identity.UserService.Register
 ## Technology Stack
 
 - **.NET 8**, ASP.NET Core, EF Core 8, Npgsql
-- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`, `notifications`
+- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`, `notifications`, `events`
 - **JWT** + ASP.NET Core Identity
 - **Swashbuckle** (Development)
 
@@ -218,13 +246,14 @@ Identity.UserService.Register
 
 - One connection string (`DefaultConnection`)
 - Separate `DbContext` per module
-- Migrations applied on startup for all module contexts, including `MessagingDbContext`, `JobsDbContext`, and `NotificationsDbContext`
+- Migrations applied on startup for all module contexts, including `MessagingDbContext`, `JobsDbContext`, `NotificationsDbContext`, and `EventsDbContext`
+- Migration order: Identity → Profile → Professional → Network → Content → Messaging → Jobs → Notifications → Events
 
 ## Project Dependencies (simplified)
 
 ```
 Facade.API
-├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI, Jobs.DI, Notifications.DI
+├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI, Jobs.DI, Notifications.DI, Events.DI
 ├── Facade.AccountManagement.DI
 ├── Facade.ProfileManagement.DI
 ├── Facade.ProfessionalManagement.DI
@@ -233,6 +262,7 @@ Facade.API
 ├── Facade.MessagingManagement.DI
 ├── Facade.JobsManagement.DI
 ├── Facade.NotificationsManagement.DI
+├── Facade.EventsManagement.DI
 └── Facade.*.Controllers (ApplicationPart)
 ```
 
@@ -240,14 +270,14 @@ Facade.API
 
 | Seam | Current | Future option |
 |------|---------|---------------|
-| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` / `IJobsClient` / `INotificationsClient` | In-process | HTTP SDK |
+| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` / `IJobsClient` / `INotificationsClient` / `IEventsClient` | In-process | HTTP SDK |
 | `Identity.Events.Contracts` | In-memory publisher | Message bus |
 | DbContext per module | Shared PostgreSQL | Split databases |
 
 ## Success Metrics
 
-✅ **53 projects** in `LinkedIn.sln`  
-✅ **8 core + 8 facade** modules integrated  
+✅ **63 projects** in `LinkedIn.sln`  
+✅ **9 core + 9 facade** modules integrated  
 ✅ **JWT** authentication  
 ✅ **Swagger** at `/swagger` (Development)  
 ✅ **Modular monolith** with BFF + resource/client pattern  
@@ -267,7 +297,9 @@ Facade.API
 11. `POST /api/jobs/me/vacancies/{vacancyId}/apply` then `GET /api/jobs/me/applications`
 12. `POST /api/notifications/me/activity` then `GET /api/notifications/me/activity`
 13. `GET /api/notifications/me` then `PATCH /api/notifications/me/read-all`
-14. Refresh and logout tokens
+14. `POST /api/events/me` then `GET /api/events/me`
+15. `POST /api/events/me/{eventId}/join` then `GET /api/events/{eventId}/attendees`
+16. Refresh and logout tokens
 
 ## Future (roadmap, not implemented)
 
@@ -286,4 +318,5 @@ Facade.API
 - [Messaging module README](../Messaging/README.md)
 - [Jobs module README](../Jobs/README.md)
 - [Notifications module README](../Notifications/README.md)
+- [Events module README](../Events/README.md)
 - [Root README](../../README.md)

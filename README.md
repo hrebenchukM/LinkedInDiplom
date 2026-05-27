@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications, Events)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -119,6 +119,14 @@ LinkedInDiplom/
 │   │   ├── Notifications.Client
 │   │   └── Notifications.DI
 │   │
+│   ├── Events/                      # Core: events & attendees (6 projects)
+│   │   ├── Events.Contracts
+│   │   ├── Events.Services
+│   │   ├── Events.DataAccess        # schema: events
+│   │   ├── Events.Client.Contracts
+│   │   ├── Events.Client
+│   │   └── Events.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
@@ -127,12 +135,13 @@ LinkedInDiplom/
 │   ├── MessagingManagement/         # Facade: messaging BFF (4 projects)
 │   ├── JobsManagement/              # Facade: jobs BFF (4 projects)
 │   ├── NotificationsManagement/     # Facade: notifications BFF (4 projects)
+│   ├── EventsManagement/            # Facade: events BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
 ├── docker-compose.yml
 ├── Dockerfile
-└── LinkedIn.sln                     # 53 projects
+└── LinkedIn.sln                     # 63 projects
 ```
 
 Each **Core module** follows: `Contracts` → `Services` → `DataAccess`, plus `Client.Contracts` / `Client` (resource pattern) and `DI`.
@@ -151,6 +160,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/messaging` | Chats, members, messages, reads, message media (JWT only) |
 | `/api/jobs` | Vacancies, favorites, applications, search queries/results, recommended queries (JWT only) |
 | `/api/notifications` | Notifications inbox and user activity (JWT only) |
+| `/api/events` | Events, attendees, schedule, speakers (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -457,6 +467,50 @@ Details: [Jobs module README](./backend/Jobs/README.md).
 
 Details: [Notifications module README](./backend/Notifications/README.md).
 
+### Events (`/api/events`)
+
+**Modular monolith prepared for microservices** core + **EventsManagement** BFF (`TargetFramework net8.0`, schema **`events`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body). `OrganizerId` is set from JWT; `OrganizerType` comes from request.
+
+**Tables:** `events`, `event_attendees`, `event_schedule`, `event_speakers`, `event_speaker_map`. Migration: **`AddEventsModule`**.
+
+#### Events
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/events/me` | POST, GET |
+| `/api/events/{eventId}` | GET |
+| `/api/events/me/{eventId}` | PATCH, DELETE |
+
+#### Attendees
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/events/me/{eventId}/join` | POST |
+| `/api/events/me/{eventId}/attendance` | DELETE |
+| `/api/events/{eventId}/attendees` | GET |
+
+#### Schedule
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/events/me/{eventId}/schedule` | POST |
+| `/api/events/{eventId}/schedule` | GET |
+| `/api/events/me/{eventId}/schedule/{scheduleId}` | PATCH, DELETE |
+
+#### Speakers
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/events/me/speakers` | POST |
+| `/api/events/me/speakers/{speakerId}` | GET, PATCH, DELETE |
+| `/api/events/me/{eventId}/speakers` | POST |
+| `/api/events/me/{eventId}/speakers/{speakerId}` | DELETE |
+| `/api/events/{eventId}/speakers` | GET |
+
+**Rules:** all endpoints require JWT; `userId` from JWT only; body does not contain current user id; `OrganizerId` from JWT; `OrganizerType` from request; create/update/delete event — owner-only; join/leave attendee — current user; duplicate attendee returns **400**; schedule create/update/delete — owner-only; speaker create/update/delete — JWT-only in v1 (no ownership model); speaker map attach/detach — owner-only; duplicate speaker map returns **400**; foreign/inaccessible single/mutation returns **404**; integrations with Notifications/Content/Network are not added in v1.
+
+Details: [Events module README](./backend/Events/README.md).
+
 ## 🛠️ Development
 
 ### Run Locally (without Docker)
@@ -627,6 +681,28 @@ The API uses JWT Bearer token authentication with:
 - SignalR/WebSocket/realtime are not implemented in v1
 - Maps via `INotificationsClient`
 
+### Events (Core)
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`events`**
+- Tables: **`events`**, **`event_attendees`**, **`event_schedule`**, **`event_speakers`**, **`event_speaker_map`**
+- Migration: **`AddEventsModule`**
+- Services/resources: `EventService`/`EventResource`, `EventAttendeeService`/`EventAttendeeResource`, `EventScheduleService`/`EventScheduleResource`, `EventSpeakerService`/`EventSpeakerResource`, `EventSpeakerMapService`/`EventSpeakerMapResource`
+- Facade uses **`IEventsClient`** (`Events`, `Attendees`, `Schedule`, `Speakers`, `SpeakerMap`)
+- Exposed via **EventsManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Events/README.md](./backend/Events/README.md)
+
+### EventsManagement (Facade / BFF)
+- Events API at `/api/events` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; current `userId` from JWT only (never from request body)
+- `OrganizerId` from JWT; `OrganizerType` from request
+- Event create/update/delete is owner-only
+- Join/leave attendee is current-user only; duplicate attendee returns `400`
+- Schedule create/update/delete is owner-only
+- Speaker create/update/delete is JWT-only in v1 (no speaker ownership model)
+- Speaker map attach/detach is owner-only; duplicate map returns `400`
+- Foreign/inaccessible single-resource and mutations return `404`
+- No cross-module integrations with Notifications/Content/Network in v1
+- Maps via `IEventsClient`
+
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
 - Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
@@ -648,11 +724,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement | JobsManagement | NotificationsManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement | JobsManagement | NotificationsManagement | EventsManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional | Network | Content | Messaging | Jobs | Notifications
+Core Modules: Identity | Profile | Professional | Network | Content | Messaging | Jobs | Notifications | Events
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional, network, content, messaging, jobs, notifications)
+PostgreSQL (schemas: identity, profile, professional, network, content, messaging, jobs, notifications, events)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -686,6 +762,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Messaging Module](./backend/Messaging/README.md)** - Messaging core module and `/api/messaging` endpoints
 - **[Jobs Module](./backend/Jobs/README.md)** - Jobs core module and `/api/jobs` endpoints
 - **[Notifications Module](./backend/Notifications/README.md)** - Notifications core module and `/api/notifications` endpoints
+- **[Events Module](./backend/Events/README.md)** - Events core module and `/api/events` endpoints
 
 ## 🧪 Testing
 
@@ -734,6 +811,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **JobsManagement Facade** - `/api/jobs` (JWT-only; vacancies/favorites/applications/search/recommended queries endpoints)  
 ✅ **Notifications Core Module** - Schema `notifications`: notifications, user_activity (migration `AddNotificationsModule`)  
 ✅ **NotificationsManagement Facade** - `/api/notifications` (JWT-only; notifications inbox and user activity endpoints)  
+✅ **Events Core Module** - Schema `events`: events, event_attendees, event_schedule, event_speakers, event_speaker_map (migration `AddEventsModule`)  
+✅ **EventsManagement Facade** - `/api/events` (JWT-only; events, attendees, schedule, speakers endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
