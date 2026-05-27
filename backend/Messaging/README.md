@@ -7,6 +7,7 @@ Target framework: **`net8.0`**.
 
 - Module schema: **`messaging`**
 - Initial migration: **`AddMessagingModule`**
+- Audit status: **passed** (critical issues not found)
 - Core scope:
   - `chats`
   - `chat_members`
@@ -99,9 +100,19 @@ Implemented services/resources:
 - User sees only own active chats (active membership, active chat).
 - Sending a message is allowed only for active chat members.
 - Edit/delete message is allowed only for the sender.
+- v1 behavior: sender can edit/delete own message even if they left the chat later.
 - Mark-read is allowed only for active chat members.
 - Message read is idempotent.
 - Message media attach is allowed only for the message sender.
 - Message media stores only URL/reference metadata (no blob in DB).
-- Foreign/inaccessible chats or messages return `404`.
+- List GET endpoints may return `200` + empty array when resource is inaccessible or empty:
+  - `GET /api/messaging/me/chats/{chatId}/members`
+  - `GET /api/messaging/me/chats/{chatId}/messages`
+  - `GET /api/messaging/me/messages/{messageId}/reads`
+  - `GET /api/messaging/me/messages/{messageId}/media`
+- Single-resource endpoints and mutations return `404` for foreign/inaccessible resources:
+  - `GET /api/messaging/me/chats/{chatId}`
+  - `GET /api/messaging/me/messages/{messageId}`
+  - `POST` message/read/media when access is missing
+- v1 behavior: chat join is open by `chatId` (no invite/approval flow yet).
 - SignalR/WebSocket and real-time delivery are not implemented yet.

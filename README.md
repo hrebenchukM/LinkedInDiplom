@@ -346,7 +346,18 @@ Details: [Content module README](./backend/Content/README.md).
 | `/api/messaging/me/messages/{messageId}/media` | POST, GET |
 | `/api/messaging/me/messages/{messageId}/media/{messageMediaId}` | DELETE |
 
-**Rules:** all endpoints require JWT; current user id comes from JWT only; body does not carry current user id; user sees only active chats where membership is active; send/mark read only for active chat members; edit/delete only by sender; message read is idempotent; media attach only by sender and stores URL/reference only (no blob); foreign chats/messages return **404**; SignalR/WebSocket and real-time delivery are not implemented.
+**Rules:** all endpoints require JWT; current user id comes from JWT only; body does not carry current user id; user sees only active chats where membership is active; send/mark read only for active chat members; edit/delete only by sender (v1: sender can edit/delete own message after leaving chat); message read is idempotent; media attach only by sender and stores URL/reference only (no blob); v1 join is open by `chatId` (no invite/approval); SignalR/WebSocket and real-time delivery are not implemented.
+
+**Response behavior (audit-verified):**
+- List GET endpoints may return **`200` + empty array** for inaccessible or empty resources:
+  - `GET /api/messaging/me/chats/{chatId}/members`
+  - `GET /api/messaging/me/chats/{chatId}/messages`
+  - `GET /api/messaging/me/messages/{messageId}/reads`
+  - `GET /api/messaging/me/messages/{messageId}/media`
+- Single-resource endpoints and mutations return **`404`** for foreign/inaccessible resources:
+  - `GET /api/messaging/me/chats/{chatId}`
+  - `GET /api/messaging/me/messages/{messageId}`
+  - `POST` message/read/media when access is missing
 
 Details: [Messaging module README](./backend/Messaging/README.md).
 
@@ -474,6 +485,7 @@ The API uses JWT Bearer token authentication with:
 - Messaging API at `/api/messaging` (.NET 8, modular monolith BFF)
 - **All routes require JWT**; current `userId` from JWT only (never from request body)
 - Chat visibility only for active members; sender-only message edit/delete/media attach; message read idempotent
+- Messaging audit: **passed**, critical issues not found
 - Maps via `IMessagingClient`
 
 ### ProfessionalManagement (Facade / BFF)

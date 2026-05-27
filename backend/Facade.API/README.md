@@ -347,6 +347,7 @@ Full rules, services, and `IContentClient`: [Content module README](../Content/R
 Chats/messages BFF over the **Messaging** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Messaging core owns PostgreSQL schema **`messaging`**: `chats`, `chat_members`, `messages`, `message_reads`, `message_media` (see [Messaging module README](../Messaging/README.md)).
 
 `userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain current user id.
+Messaging audit status: **passed** (critical issues not found).
 
 | Method | Path | Auth |
 |--------|------|------|
@@ -368,7 +369,18 @@ Chats/messages BFF over the **Messaging** core module. The solution is a **modul
 | GET | `/api/messaging/me/messages/{messageId}/media` | Yes |
 | DELETE | `/api/messaging/me/messages/{messageId}/media/{messageMediaId}` | Yes |
 
-**Rules:** user sees only own active chats; send/mark read only for active chat members; edit/delete only by sender; message read is idempotent; media attach only by sender and stores URL/reference only; foreign chats/messages return **404**; SignalR/WebSocket and real-time delivery are not implemented.
+**Rules:** user sees only own active chats; send/mark read only for active chat members; edit/delete only by sender (v1: sender can edit/delete own message after leaving chat); message read is idempotent; media attach only by sender and stores URL/reference only (no blob); join chat in v1 is open by `chatId` (no invite/approval); SignalR/WebSocket and real-time delivery are not implemented.
+
+**Response behavior:** list GET endpoints may return **`200` + empty array** for inaccessible or empty resources:
+- `GET /api/messaging/me/chats/{chatId}/members`
+- `GET /api/messaging/me/chats/{chatId}/messages`
+- `GET /api/messaging/me/messages/{messageId}/reads`
+- `GET /api/messaging/me/messages/{messageId}/media`
+
+Single-resource endpoints and mutations return **`404`** for foreign/inaccessible resources:
+- `GET /api/messaging/me/chats/{chatId}`
+- `GET /api/messaging/me/messages/{messageId}`
+- `POST` message/read/media when access is missing
 
 Migrations: `AddMessagingModule` (applied via `MessagingDbContext` on startup; history in schema `messaging`).
 
