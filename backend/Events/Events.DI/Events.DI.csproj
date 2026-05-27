@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Events.Contracts\Events.Contracts.csproj" />
+    <ProjectReference Include="..\Events.Services\Events.Services.csproj" />
+    <ProjectReference Include="..\Events.DataAccess\Events.DataAccess.csproj" />
+    <ProjectReference Include="..\Events.Client\Events.Client.csproj" />
+    <ProjectReference Include="..\Events.Client.Contracts\Events.Client.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
