@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging, Jobs)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -103,12 +103,21 @@ LinkedInDiplom/
 │   │   ├── Messaging.Client
 │   │   └── Messaging.DI
 │   │
+│   ├── Jobs/                        # Core: vacancies & job search (6 projects)
+│   │   ├── Jobs.Contracts
+│   │   ├── Jobs.Services
+│   │   ├── Jobs.DataAccess          # schema: jobs
+│   │   ├── Jobs.Client.Contracts
+│   │   ├── Jobs.Client
+│   │   └── Jobs.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
 │   ├── NetworkManagement/           # Facade: social graph BFF (4 projects)
 │   ├── ContentManagement/           # Facade: posts & media BFF (4 projects)
 │   ├── MessagingManagement/         # Facade: messaging BFF (4 projects)
+│   ├── JobsManagement/              # Facade: jobs BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
@@ -131,6 +140,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/network` | Social graph: contacts, follows, blocked users, groups, group posts, pages (JWT only) |
 | `/api/content` | Posts, media, comments, reactions, hashtags, saved posts, reposts, post views, mentions (JWT only) |
 | `/api/messaging` | Chats, members, messages, reads, message media (JWT only) |
+| `/api/jobs` | Vacancies, favorites, applications, search queries/results, recommended queries (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -361,6 +371,56 @@ Details: [Content module README](./backend/Content/README.md).
 
 Details: [Messaging module README](./backend/Messaging/README.md).
 
+### Jobs (`/api/jobs`)
+
+**Modular monolith prepared for microservices** core + **JobsManagement** BFF (`TargetFramework net8.0`, schema **`jobs`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body).
+
+**Tables:** `vacancies`, `user_vacancies_favorites`, `job_applications`, `job_search_queries`, `job_search_results`, `recommended_job_queries`. Migration: **`AddJobsModule`**.
+
+#### Vacancies
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/jobs/me/vacancies` | POST |
+| `/api/jobs/vacancies` | GET |
+| `/api/jobs/vacancies/{vacancyId}` | GET |
+| `/api/jobs/me/vacancies/{vacancyId}` | PATCH, DELETE |
+
+#### Favorites
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/jobs/me/favorites/{vacancyId}` | POST, DELETE |
+| `/api/jobs/me/favorites` | GET |
+
+#### Applications
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/jobs/me/vacancies/{vacancyId}/apply` | POST |
+| `/api/jobs/me/applications/{applicationId}` | DELETE |
+| `/api/jobs/me/applications` | GET |
+| `/api/jobs/me/vacancies/{vacancyId}/applications` | GET |
+
+#### Search queries/results
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/jobs/me/search-queries` | POST, GET |
+| `/api/jobs/me/search-queries/{searchId}` | GET, DELETE |
+| `/api/jobs/me/search-queries/{searchId}/results` | GET |
+
+#### Recommended queries
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/jobs/recommended-queries` | POST, GET |
+| `/api/jobs/recommended-queries/{recommendedQueryId}` | DELETE |
+
+**Rules:** all jobs endpoints require JWT; `userId` from JWT only; body does not contain current user id; vacancy create/update/delete is owner-only (`PostedBy`); `CompanyId` in v1 comes from request without Company service validation; favorite/apply actions are current-user only; duplicate favorite/application returns **400**; cannot apply to own vacancy; search queries/results are current-user scoped; recommended queries are JWT-only in v1 (no admin role check); foreign/inaccessible records return **404**.
+
+Details: [Jobs module README](./backend/Jobs/README.md).
+
 ## 🛠️ Development
 
 ### Run Locally (without Docker)
@@ -488,6 +548,26 @@ The API uses JWT Bearer token authentication with:
 - Messaging audit: **passed**, critical issues not found
 - Maps via `IMessagingClient`
 
+### Jobs (Core)
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`jobs`**
+- Tables: **`vacancies`**, **`user_vacancies_favorites`**, **`job_applications`**, **`job_search_queries`**, **`job_search_results`**, **`recommended_job_queries`**
+- Migration: **`AddJobsModule`**
+- Services/resources: `VacancyService`/`VacancyResource`, `UserVacancyFavoriteService`/`UserVacancyFavoriteResource`, `JobApplicationService`/`JobApplicationResource`, `JobSearchQueryService`/`JobSearchQueryResource`, `JobSearchResultService`/`JobSearchResultResource`, `RecommendedJobQueryService`/`RecommendedJobQueryResource`
+- Facade uses **`IJobsClient`** (`Vacancies`, `Favorites`, `Applications`, `SearchQueries`, `SearchResults`, `RecommendedQueries`)
+- Exposed via **JobsManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Jobs/README.md](./backend/Jobs/README.md)
+
+### JobsManagement (Facade / BFF)
+- Jobs API at `/api/jobs` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; current `userId` from JWT only (never from request body)
+- Vacancy create/update/delete is owner-only (`PostedBy` from JWT)
+- `CompanyId` in v1 comes from request body; no Company service validation in v1
+- Favorite/apply/search actions are current-user only
+- Duplicate favorite/application returns `400`; applying to own vacancy is forbidden
+- Recommended queries in v1 are JWT-only without admin-role check
+- Foreign/inaccessible records return `404`
+- Maps via `IJobsClient`
+
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
 - Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
@@ -509,11 +589,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement | JobsManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional | Network | Content | Messaging
+Core Modules: Identity | Profile | Professional | Network | Content | Messaging | Jobs
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional, network, content, messaging)
+PostgreSQL (schemas: identity, profile, professional, network, content, messaging, jobs)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -545,6 +625,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Network Module](./backend/Network/README.md)** - Social graph core module and `/api/network` endpoints
 - **[Content Module](./backend/Content/README.md)** - Posts & media core module and `/api/content` endpoints
 - **[Messaging Module](./backend/Messaging/README.md)** - Messaging core module and `/api/messaging` endpoints
+- **[Jobs Module](./backend/Jobs/README.md)** - Jobs core module and `/api/jobs` endpoints
 
 ## 🧪 Testing
 
@@ -589,6 +670,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **ContentManagement Facade** - `/api/content` (JWT-only; v4 saved/reposts/views/mentions endpoints added)  
 ✅ **Messaging Core Module** - Schema `messaging`: chats, chat_members, messages, message_reads, message_media (migration `AddMessagingModule`)  
 ✅ **MessagingManagement Facade** - `/api/messaging` (JWT-only; chats/messages/reads/media endpoints)  
+✅ **Jobs Core Module** - Schema `jobs`: vacancies, user_vacancies_favorites, job_applications, job_search_queries, job_search_results, recommended_job_queries (migration `AddJobsModule`)  
+✅ **JobsManagement Facade** - `/api/jobs` (JWT-only; vacancies/favorites/applications/search/recommended queries endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  

@@ -724,6 +724,14 @@ Table message_media {
 Ref: message_media.message_id > messages.message_id
 
 // 🟢 7. Jobs (Vacancies, Applications, Job search)
+// PostgreSQL schema: jobs
+//
+// Implementation status (Jobs module, .NET 8):
+//   v1 — vacancies, user_vacancies_favorites, job_applications,
+//        job_search_queries, job_search_results, recommended_job_queries
+//        (migration AddJobsModule)
+//
+// EF: no FK to AspNetUsers or companies table; user_id and posted_by stored as string.
 
 Table vacancies {
   vacancy_id Guid [primary key]
@@ -731,14 +739,14 @@ Table vacancies {
   company_id Guid
   posted_by varchar
 
-  title varchar
-  job_type varchar
-  schedule varchar
-  location varchar
+  title varchar [note: 'required, max 200']
+  job_type varchar [note: 'nullable, max 100']
+  schedule varchar [note: 'nullable, max 100']
+  location varchar [note: 'nullable, max 200']
 
-  salary_from int
-  salary_to int
-  salary_currency varchar
+  salary_from decimal
+  salary_to decimal
+  salary_currency varchar [note: 'nullable, max 10']
 
   description text
 
@@ -747,18 +755,21 @@ Table vacancies {
   deleted_at datetime
 }
 
-Ref: vacancies.company_id > companies.company_id
 Ref: vacancies.posted_by > AspNetUsers.user_id
 
-// Избранные вакансии
+// Избранные вакансии (soft remove via deleted_at)
 Table user_vacancies_favorites {
-  uvf_id Guid [primary key]
+  favorite_id Guid [primary key]
 
   user_id varchar
   vacancy_id Guid
 
   created_at datetime
   deleted_at datetime
+
+  indexes {
+    (user_id, vacancy_id) [unique]
+  }
 }
 
 Ref: user_vacancies_favorites.user_id > AspNetUsers.user_id
@@ -766,29 +777,33 @@ Ref: user_vacancies_favorites.vacancy_id > vacancies.vacancy_id
 
 // Отклики
 Table job_applications {
-  job_application_id Guid [primary key]
+  application_id Guid [primary key]
 
   vacancy_id Guid
   user_id varchar
 
-  status varchar
+  status varchar [note: 'required, max 50']
 
   applied_at datetime
   status_changed_at datetime
   withdrawn_at datetime
+
+  indexes {
+    (vacancy_id, user_id) [unique]
+  }
 }
 
 Ref: job_applications.vacancy_id > vacancies.vacancy_id
 Ref: job_applications.user_id > AspNetUsers.user_id
 
-// История поисков
+// История поисков (soft delete via deleted_at)
 Table job_search_queries {
-  job_search_id Guid [primary key]
+  search_id Guid [primary key]
 
   user_id varchar
 
-  query varchar
-  location varchar
+  query varchar [note: 'nullable, max 300']
+  location varchar [note: 'nullable, max 200']
   radius int
 
   created_at datetime
@@ -798,9 +813,9 @@ Table job_search_queries {
 
 Ref: job_search_queries.user_id > AspNetUsers.user_id
 
-// Результаты поисков
+// Результаты поисков (soft delete via deleted_at)
 Table job_search_results {
-  job_search_result_id Guid [primary key]
+  result_id Guid [primary key]
 
   search_id Guid
   vacancy_id Guid
@@ -809,16 +824,20 @@ Table job_search_results {
 
   created_at datetime
   deleted_at datetime
+
+  indexes {
+    (search_id, vacancy_id) [unique]
+  }
 }
 
-Ref: job_search_results.search_id > job_search_queries.job_search_id
+Ref: job_search_results.search_id > job_search_queries.search_id
 Ref: job_search_results.vacancy_id > vacancies.vacancy_id
 
 // Рекомендованные запросы
 Table recommended_job_queries {
-  recommended_job_query_id Guid [primary key]
+  recommended_query_id Guid [primary key]
 
-  query varchar
+  query varchar [note: 'required, max 300']
 
   created_at datetime
 }

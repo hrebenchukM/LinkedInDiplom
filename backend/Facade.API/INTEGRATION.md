@@ -1,6 +1,6 @@
 # Facade.API — Module Integration
 
-Overview of how **Facade.API** hosts the modular monolith: **six Core** modules, **six Facade (BFF)** modules, one PostgreSQL database with separate schemas.
+Overview of how **Facade.API** hosts the modular monolith: **seven Core** modules, **seven Facade (BFF)** modules, one PostgreSQL database with separate schemas.
 
 ## Summary
 
@@ -18,12 +18,14 @@ Overview of how **Facade.API** hosts the modular monolith: **six Core** modules,
 | Core | Network | `AddNetworkModule` |
 | Core | Content | `AddContentModule` |
 | Core | Messaging | `AddMessagingModule` |
+| Core | Jobs | `AddJobsModule` |
 | Facade | AccountManagement | `AddAccountManagementFacade` |
 | Facade | ProfileManagement | `AddProfileManagementFacade` |
 | Facade | ProfessionalManagement | `AddProfessionalManagementFacade` |
 | Facade | NetworkManagement | `AddNetworkManagementFacade` |
 | Facade | ContentManagement | `AddContentManagementFacade` |
 | Facade | MessagingManagement | `AddMessagingManagementFacade` |
+| Facade | JobsManagement | `AddJobsManagementFacade` |
 
 Controllers are discovered via `AddApplicationPart` from each facade Controllers assembly.
 
@@ -37,6 +39,7 @@ Controllers are discovered via `AddApplicationPart` from each facade Controllers
 | `/api/network` | NetworkController | contacts, follows, blocked users, groups, group posts, pages |
 | `/api/content` | ContentController | posts, media, comments, reactions, hashtags, saved posts, reposts, views, mentions |
 | `/api/messaging` | MessagingController | chats, members, messages, reads, message media |
+| `/api/jobs` | JobsController | vacancies, favorites, applications, search queries/results, recommended queries |
 
 Swagger (Development): **http://localhost:5000/swagger**
 
@@ -142,6 +145,27 @@ HTTP → MessagingController (/api/messaging)
 - v1 join is open by `chatId` (no invite/approval flow yet).
 - v1 behavior: sender can edit/delete own message even if they left the chat later.
 
+## Architecture Flow (Jobs)
+
+```
+HTTP → JobsController (/api/jobs)
+    → JobsManagementService
+    → IJobsClient
+    → *Resource → *Service → JobsDbContext (jobs schema)
+```
+
+- All jobs endpoints require JWT.
+- `userId` is taken only from JWT claims (`NameIdentifier` / `sub`).
+- Request bodies do not contain current user id.
+- Vacancy create/update/delete is owner-only (`PostedBy` == JWT user).
+- `CompanyId` in v1 comes from request body (no Company service validation).
+- Favorite/apply actions are current-user only.
+- Duplicate favorite/application returns `400`.
+- Cannot apply to own vacancy.
+- Search queries/results are scoped to current user's search.
+- Recommended queries in v1 are JWT-only (no admin role check).
+- Foreign/inaccessible records return `404`.
+
 ## Cross-Module Event
 
 ```
@@ -159,8 +183,7 @@ Identity.UserService.Register
 ## Technology Stack
 
 - **.NET 8**, ASP.NET Core, EF Core 8, Npgsql
-- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`
-- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`
+- **PostgreSQL 16** — schemas: `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`
 - **JWT** + ASP.NET Core Identity
 - **Swashbuckle** (Development)
 
@@ -168,19 +191,20 @@ Identity.UserService.Register
 
 - One connection string (`DefaultConnection`)
 - Separate `DbContext` per module
-- Migrations applied on startup for all module contexts, including `MessagingDbContext`
+- Migrations applied on startup for all module contexts, including `MessagingDbContext` and `JobsDbContext`
 
 ## Project Dependencies (simplified)
 
 ```
 Facade.API
-├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI
+├── Identity.DI, Profile.DI, Professional.DI, Network.DI, Content.DI, Messaging.DI, Jobs.DI
 ├── Facade.AccountManagement.DI
 ├── Facade.ProfileManagement.DI
 ├── Facade.ProfessionalManagement.DI
 ├── Facade.NetworkManagement.DI
 ├── Facade.ContentManagement.DI
 ├── Facade.MessagingManagement.DI
+├── Facade.JobsManagement.DI
 └── Facade.*.Controllers (ApplicationPart)
 ```
 
@@ -188,14 +212,14 @@ Facade.API
 
 | Seam | Current | Future option |
 |------|---------|---------------|
-| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` | In-process | HTTP SDK |
+| `IIdentityClient` / `IProfileClient` / `IProfessionalClient` / `INetworkClient` / `IContentClient` / `IMessagingClient` / `IJobsClient` | In-process | HTTP SDK |
 | `Identity.Events.Contracts` | In-memory publisher | Message bus |
 | DbContext per module | Shared PostgreSQL | Split databases |
 
 ## Success Metrics
 
 ✅ **53 projects** in `LinkedIn.sln`  
-✅ **6 core + 6 facade** modules integrated  
+✅ **7 core + 7 facade** modules integrated  
 ✅ **JWT** authentication  
 ✅ **Swagger** at `/swagger` (Development)  
 ✅ **Modular monolith** with BFF + resource/client pattern  
@@ -211,7 +235,9 @@ Facade.API
 7. `POST /api/professional/me/languages` with returned `languageId`
 8. `POST /api/messaging/me/chats` → `POST /api/messaging/me/chats/{chatId}/messages`
 9. `POST /api/messaging/me/messages/{messageId}/read` then `GET /api/messaging/me/messages/{messageId}/reads`
-10. Refresh and logout tokens
+10. `POST /api/jobs/me/vacancies` then `GET /api/jobs/vacancies`
+11. `POST /api/jobs/me/vacancies/{vacancyId}/apply` then `GET /api/jobs/me/applications`
+12. Refresh and logout tokens
 
 ## Future (roadmap, not implemented)
 
@@ -228,4 +254,5 @@ Facade.API
 - [Network module README](../Network/README.md)
 - [Content module README](../Content/README.md)
 - [Messaging module README](../Messaging/README.md)
+- [Jobs module README](../Jobs/README.md)
 - [Root README](../../README.md)

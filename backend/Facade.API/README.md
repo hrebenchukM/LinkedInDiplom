@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`, `JobsManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`, `Jobs`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -25,7 +25,8 @@ Facade Modules (BFF)
     ├── Facade.ProfessionalManagement → /api/professional
     ├── Facade.NetworkManagement      → /api/network
     ├── Facade.ContentManagement      → /api/content
-    └── Facade.MessagingManagement    → /api/messaging
+    ├── Facade.MessagingManagement    → /api/messaging
+    └── Facade.JobsManagement         → /api/jobs
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
@@ -33,7 +34,8 @@ Core Modules
     ├── Professional  (schema: professional)
     ├── Network       (schema: network)
     ├── Content       (schema: content)
-    └── Messaging     (schema: messaging)
+    ├── Messaging     (schema: messaging)
+    └── Jobs          (schema: jobs)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -386,6 +388,47 @@ Migrations: `AddMessagingModule` (applied via `MessagingDbContext` on startup; h
 
 Full rules, services, and `IMessagingClient`: [Messaging module README](../Messaging/README.md).
 
+### Jobs — `/api/jobs`
+
+Jobs BFF over the **Jobs** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Jobs core owns PostgreSQL schema **`jobs`**: `vacancies`, `user_vacancies_favorites`, `job_applications`, `job_search_queries`, `job_search_results`, `recommended_job_queries` (see [Jobs module README](../Jobs/README.md)).
+
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain current user id.
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/jobs/me/vacancies` | Yes |
+| GET | `/api/jobs/vacancies` | Yes |
+| GET | `/api/jobs/vacancies/{vacancyId}` | Yes |
+| PATCH | `/api/jobs/me/vacancies/{vacancyId}` | Yes |
+| DELETE | `/api/jobs/me/vacancies/{vacancyId}` | Yes |
+| POST | `/api/jobs/me/favorites/{vacancyId}` | Yes |
+| DELETE | `/api/jobs/me/favorites/{vacancyId}` | Yes |
+| GET | `/api/jobs/me/favorites` | Yes |
+| POST | `/api/jobs/me/vacancies/{vacancyId}/apply` | Yes |
+| DELETE | `/api/jobs/me/applications/{applicationId}` | Yes |
+| GET | `/api/jobs/me/applications` | Yes |
+| GET | `/api/jobs/me/vacancies/{vacancyId}/applications` | Yes |
+| POST | `/api/jobs/me/search-queries` | Yes |
+| GET | `/api/jobs/me/search-queries` | Yes |
+| GET | `/api/jobs/me/search-queries/{searchId}` | Yes |
+| DELETE | `/api/jobs/me/search-queries/{searchId}` | Yes |
+| GET | `/api/jobs/me/search-queries/{searchId}/results` | Yes |
+| POST | `/api/jobs/recommended-queries` | Yes |
+| GET | `/api/jobs/recommended-queries` | Yes |
+| DELETE | `/api/jobs/recommended-queries/{recommendedQueryId}` | Yes |
+
+Rules:
+- vacancy create/update/delete — only owner via `PostedBy` (from JWT);
+- `CompanyId` in v1 is passed from request, without Company service validation;
+- favorite/apply actions are current-user only;
+- duplicate favorite/application returns `400`;
+- cannot apply to own vacancy (`400`);
+- search queries and search results are scoped to current user;
+- recommended queries in v1 are JWT-only (no admin-role check);
+- foreign/inaccessible records return `404` (`Vacancy/Favorite/Application/Search query/Recommended query not found`), other business errors return `400`.
+
+Migration: `AddJobsModule` (applied via `JobsDbContext` on startup; history in schema `jobs`).
+
 ## Module Integration (Program.cs)
 
 ```csharp
@@ -395,6 +438,7 @@ builder.Services.AddProfessionalModule(configuration, connectionString);
 builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddContentModule(configuration, connectionString);
 builder.Services.AddMessagingModule(configuration, connectionString);
+builder.Services.AddJobsModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
@@ -402,6 +446,7 @@ builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
 builder.Services.AddMessagingManagementFacade();
+builder.Services.AddJobsManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
@@ -409,7 +454,8 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(ProfessionalController).Assembly)
     .AddApplicationPart(typeof(NetworkController).Assembly)
     .AddApplicationPart(typeof(ContentController).Assembly)
-    .AddApplicationPart(typeof(MessagingController).Assembly);
+    .AddApplicationPart(typeof(MessagingController).Assembly)
+    .AddApplicationPart(typeof(JobsController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -449,6 +495,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, `group_posts`, pages) at `/api/network`  
 ✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` orchestration via NetworkManagement + `IContentClient`)  
 ✅ **Messaging module** — schema `messaging` (`chats`, `chat_members`, `messages`, `message_reads`, `message_media`) at `/api/messaging`  
+✅ **Jobs module** — schema `jobs` (`vacancies`, `user_vacancies_favorites`, `job_applications`, `job_search_queries`, `job_search_results`, `recommended_job_queries`) at `/api/jobs`  
 
 ## Related docs
 
@@ -459,3 +506,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [Network module](../Network/README.md)
 - [Content module](../Content/README.md)
 - [Messaging module](../Messaging/README.md)
+- [Jobs module](../Jobs/README.md)
