@@ -119,7 +119,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/auth` | Register, login, refresh, logout, current account |
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
-| `/api/network` | Social graph: contacts, follows, blocked users, groups, pages (JWT only) |
+| `/api/network` | Social graph: contacts, follows, blocked users, groups, group posts, pages (JWT only) |
 | `/api/content` | Posts, media, comments, reactions, hashtags, saved posts, reposts, post views, mentions (JWT only) |
 
 ### Auth (`/api/auth`)
@@ -138,7 +138,7 @@ Full API documentation (Development): **http://localhost:5000/swagger**
 
 **Modular monolith** core + **NetworkManagement** BFF (`TargetFramework net8.0`, schema **`network`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body). Bodies must **not** contain `currentUserId`, `requesterId`, `followerId`, or `ownerId`.
 
-**Tables:** `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `pages`, `page_admins`, `page_followers`. **`group_posts`** is deferred until the Content/Posts module (`posts.post_id`).
+**Tables:** `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `group_posts`, `pages`, `page_admins`, `page_followers`. `group_posts` is implemented as a separate Network + Content phase (table in schema `network`).
 
 #### Contacts
 
@@ -174,6 +174,8 @@ Full API documentation (Development): **http://localhost:5000/swagger**
 | `/api/network/me/groups/{groupId}/join` | POST |
 | `/api/network/me/groups/{groupId}/membership` | DELETE |
 | `/api/network/me/groups/{groupId}/members` | GET |
+| `/api/network/me/groups/{groupId}/posts/{postId}` | POST, DELETE |
+| `/api/network/me/groups/{groupId}/posts` | GET |
 
 #### Pages
 
@@ -187,7 +189,7 @@ Full API documentation (Development): **http://localhost:5000/swagger**
 | `/api/network/me/pages/following` | GET |
 | `/api/network/me/pages/{pageId}/followers` | GET |
 
-**Rules:** no self contact/follow/block; duplicate active contact/follow/block → **400**; disallowed or foreign rows → **404**; block prevents contact/follow; unfollow/unblock use `unfollowed_at`/`unblocked_at`; group/page owner created on create; owner cannot leave group; delete group soft-deletes members; page admin add/remove owner-only; `group_posts` deferred.
+**Rules:** no self contact/follow/block; duplicate active contact/follow/block → **400**; disallowed or foreign rows → **404**; block prevents contact/follow; unfollow/unblock use `unfollowed_at`/`unblocked_at`; group/page owner created on create; owner cannot leave group; delete group soft-deletes members; page admin add/remove owner-only; for group posts: JWT-only, `userId` only from JWT, group must be active, user must be active member, post must exist and belong to current user, deleted post cannot be attached, duplicate group_post → **400**, foreign group/no membership/foreign post → **404**.
 
 Details: [Network module README](./backend/Network/README.md).
 
@@ -197,7 +199,7 @@ Details: [Network module README](./backend/Network/README.md).
 
 **Tables:** `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`. Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**, **`AddContentSavedRepostsViewsMentions`**.
 
-**Not in v4:** **`group_posts`** — deferred until Content + Network integration (separate phase).
+`group_posts` is implemented in **Network** (`network.group_posts`) as a separate Network + Content phase; Content ownership checks are orchestrated in `Facade.NetworkManagement`.
 
 #### Media
 
@@ -371,10 +373,10 @@ The API uses JWT Bearer token authentication with:
 
 ### Network (Core)
 - **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`network`**
-- Tables: **`contacts`**, **`follows`**, **`blocked_users`**, **`user_groups`**, **`group_members`**, **`pages`**, **`page_admins`**, **`page_followers`**
-- Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkPages`
-- Services/resources: `ContactService`/`ContactResource` through `PageFollowerService`/`PageFollowerResource`; facade uses **`INetworkClient`** (`Contacts`, `Follows`, `BlockedUsers`, `UserGroups`, `GroupMembers`, `Pages`, `PageAdmins`, `PageFollowers`)
-- **`group_posts`** not implemented — deferred until Content/Posts module (`posts.post_id`)
+- Tables: **`contacts`**, **`follows`**, **`blocked_users`**, **`user_groups`**, **`group_members`**, **`group_posts`**, **`pages`**, **`page_admins`**, **`page_followers`**
+- Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkGroupPosts`, `AddNetworkPages`
+- Services/resources: `ContactService`/`ContactResource` through `PageFollowerService`/`PageFollowerResource`, including `GroupPostService`/`GroupPostResource`; facade uses **`INetworkClient`** (`Contacts`, `Follows`, `BlockedUsers`, `UserGroups`, `GroupMembers`, `GroupPosts`, `Pages`, `PageAdmins`, `PageFollowers`)
+- Network core has no direct dependency on `Content.DataAccess`; post ownership is checked in `Facade.NetworkManagement` via `IContentClient`
 - No EF reference to Identity/Profile; target user existence is not validated
 - Exposed via **NetworkManagement** facade (in-process client; microservice-ready seam)
 - See [backend/Network/README.md](./backend/Network/README.md) for architecture, security rules, and full endpoint list
@@ -384,6 +386,7 @@ The API uses JWT Bearer token authentication with:
 - **All routes require JWT**; `userId` from JWT only (never `ownerId`/`requesterId`/`followerId` in body)
 - v1: contacts, follows, blocked users
 - v2: user groups, group membership (join/leave/members)
+- group_posts phase: attach/list/detach group posts via Network + Content orchestration
 - v3: pages, page admins, page followers
 - Maps via `INetworkClient`
 
@@ -393,7 +396,7 @@ The API uses JWT Bearer token authentication with:
 - Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**, **`AddContentSavedRepostsViewsMentions`**
 - Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`, `CommentService`/`CommentResource`, `ReactionService`/`ReactionResource`, `HashtagService`/`HashtagResource`, `PostHashtagService`/`PostHashtagResource`, `UserHashtagFollowService`/`UserHashtagFollowResource`, `SavedPostService`/`SavedPostResource`, `RepostService`/`RepostResource`, `PostViewService`/`PostViewResource`, `MentionService`/`MentionResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`, `Comments`, `Reactions`, `Hashtags`, `PostHashtags`, `UserHashtagFollows`, `SavedPosts`, `Reposts`, `PostViews`, `Mentions`)
 - Visibility v1: `public` / `private`; media URL + type only; post/comment soft delete; reaction upsert + hard delete; saved/repost reactivation; `repost_count` in service
-- **`group_posts`** deferred until Content + Network integration (separate phase)
+- `group_posts` lives in Network schema; Content is used for ownership checks via `IContentClient` in `Facade.NetworkManagement`
 - Exposed via **ContentManagement** facade (in-process client; microservice-ready seam)
 - See [backend/Content/README.md](./backend/Content/README.md) for architecture, security rules, and full endpoint list
 
@@ -497,9 +500,9 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **AccountManagement Facade** - `/api/auth`  
 ✅ **ProfileManagement Facade** - `/api/profile` + uploads + message settings + profile views  
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
-✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, pages (8 tables; `group_posts` deferred)  
-✅ **NetworkManagement Facade** - `/api/network` (JWT-only; 33 endpoints)  
-✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions, hashtags, post_hashtags, user_hashtag_follows, saved_posts, reposts, post_views, mentions (`group_posts` deferred — separate phase)  
+✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, group_posts, pages (9 tables; migration `AddNetworkGroupPosts`)  
+✅ **NetworkManagement Facade** - `/api/network` (JWT-only; includes group_posts endpoints with ownership orchestration via `IContentClient`)  
+✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions, hashtags, post_hashtags, user_hashtag_follows, saved_posts, reposts, post_views, mentions (group_posts table is in Network schema)  
 ✅ **ContentManagement Facade** - `/api/content` (JWT-only; v4 saved/reposts/views/mentions endpoints added)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  

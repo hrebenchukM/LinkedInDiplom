@@ -417,7 +417,7 @@ Table group_members {
 Ref: group_members.group_id > user_groups.group_id
 Ref: group_members.user_id > AspNetUsers.user_id
 
-// Посты групп (not implemented — Network + Content phase)
+// Посты групп (implemented — Network + Content phase; migration AddNetworkGroupPosts)
 Table group_posts {
   group_post_id Guid [primary key]
 
@@ -484,7 +484,7 @@ Ref: page_followers.user_id > AspNetUsers.user_id
 //   v2 — comments, reactions                (migration AddContentCommentsAndReactions)
 //   v3 — hashtags, post_hashtags, user_hashtag_follows (migration AddContentHashtagsAndFollows)
 //   v4 — saved_posts, reposts, post_views, mentions (migration AddContentSavedRepostsViewsMentions)
-//   not implemented — group_posts (Network + Content integration; separate phase)
+//   group_posts is implemented in Network schema (migration AddNetworkGroupPosts); ownership check is orchestrated in Facade.NetworkManagement via IContentClient
 //
 // EF: no FK to AspNetUsers; user_id stored as string. Hashtag name unique (normalized trim+lower in service).
 

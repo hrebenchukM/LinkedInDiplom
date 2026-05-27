@@ -155,9 +155,9 @@ Full tables, security rules, and Swagger flows: [Professional module README](../
 
 ### Network — `/api/network`
 
-Social graph BFF over the **Network** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Network core owns PostgreSQL schema **`network`**: `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `pages`, `page_admins`, `page_followers` (see [Network module README](../Network/README.md)).
+Social graph BFF over the **Network** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Network core owns PostgreSQL schema **`network`**: `contacts`, `follows`, `blocked_users`, `user_groups`, `group_members`, `group_posts`, `pages`, `page_admins`, `page_followers` (see [Network module README](../Network/README.md)).
 
-**Deferred:** `group_posts` is not implemented until the **Content/Posts** module (depends on `posts.post_id`).
+`group_posts` is implemented as a separate **Network + Content** phase: table/entity/service/resource live in Network; post ownership is verified in `Facade.NetworkManagement` via `IContentClient`.
 
 `userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain `currentUserId`, `requesterId`, `followerId`, or `ownerId`.
 
@@ -201,6 +201,9 @@ Social graph BFF over the **Network** core module. The solution is a **modular m
 | POST | `/api/network/me/groups/{groupId}/join` | Yes |
 | DELETE | `/api/network/me/groups/{groupId}/membership` | Yes (owner cannot leave) |
 | GET | `/api/network/me/groups/{groupId}/members` | Yes (active members only) |
+| POST | `/api/network/me/groups/{groupId}/posts/{postId}` | Yes (JWT user must own post) |
+| GET | `/api/network/me/groups/{groupId}/posts` | Yes (active member only) |
+| DELETE | `/api/network/me/groups/{groupId}/posts/{postId}` | Yes (JWT user must own post) |
 
 #### Pages
 
@@ -219,9 +222,9 @@ Social graph BFF over the **Network** core module. The solution is a **modular m
 | GET | `/api/network/me/pages/following` | Yes |
 | GET | `/api/network/me/pages/{pageId}/followers` | Yes (owner or active admin) |
 
-**Rules:** cannot contact/follow/block yourself → **400**; active block in either direction blocks new contact/follow → **400**; duplicate active contact/follow/block → **400**; foreign or disallowed rows → **404**; unfollow/unblock retain rows (`unfollowed_at` / `unblocked_at`); group/page owner rows created on create; `group_posts` deferred until Posts module.
+**Rules:** cannot contact/follow/block yourself → **400**; active block in either direction blocks new contact/follow → **400**; duplicate active contact/follow/block → **400**; foreign or disallowed rows → **404**; unfollow/unblock retain rows (`unfollowed_at` / `unblocked_at`); group/page owner rows created on create; for `group_posts` all endpoints are JWT-only, `userId` comes only from JWT, group must be active, user must be active member, post must exist and belong to current user, deleted post cannot be attached, duplicate group_post → **400**, foreign group/no membership/foreign post → **404**.
 
-Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkPages` (applied via `NetworkDbContext` on startup).
+Migrations: `AddNetworkModule`, `AddNetworkGroups`, `AddNetworkGroupPosts`, `AddNetworkPages` (applied via `NetworkDbContext` on startup).
 
 Full rules, services, and `INetworkClient`: [Network module README](../Network/README.md).
 
@@ -229,7 +232,7 @@ Full rules, services, and `INetworkClient`: [Network module README](../Network/R
 
 Posts, comments, reactions, hashtags, saved posts, reposts, post views, mentions and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions` (see [Content module README](../Content/README.md)).
 
-**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration (separate phase).
+`group_posts` is handled by **NetworkManagement** endpoints under `/api/network`; Content remains owner of posts while ownership checks are done through `IContentClient`.
 
 `userId` / `authorId` / `viewerUserId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId`, `authorId`, or `viewerUserId`.
 
@@ -394,8 +397,8 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ Dev/Production security split  
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
-✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Content)  
-✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` deferred — separate Network + Content phase)  
+✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, `group_posts`, pages) at `/api/network`  
+✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` orchestration via NetworkManagement + `IContentClient`)  
 
 ## Related docs
 

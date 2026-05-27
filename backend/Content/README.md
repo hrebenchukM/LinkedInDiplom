@@ -4,7 +4,7 @@ Core module of the LinkedIn Clone **modular monolith**, **prepared for microserv
 
 The module is **not** deployed as a separate microservice today. Boundaries are enforced via projects, contracts, and `IContentClient` — the same seam can later be replaced with HTTP clients without changing the facade surface.
 
-**Status (v4):** Schema **`content`** implements **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**, **`hashtags`**, **`post_hashtags`**, **`user_hashtag_follows`**, **`saved_posts`**, **`reposts`**, **`post_views`**, and **`mentions`** from `DB_SCHEMA.md` (`group_posts` is still out of scope — separate Network + Content phase).
+**Status (v4 + group_posts integration):** Schema **`content`** implements **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**, **`hashtags`**, **`post_hashtags`**, **`user_hashtag_follows`**, **`saved_posts`**, **`reposts`**, **`post_views`**, and **`mentions`** from `DB_SCHEMA.md`. `group_posts` is implemented as a separate **Network + Content** phase in schema `network`.
 
 ## Architecture
 
@@ -160,11 +160,11 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 - Duplicate active mention → **400** (`"Mention already exists."`).
 - Re-add after soft delete reactivates row.
 
-### Deferred (not in Content module v4)
+### Cross-module integration (Network + Content)
 
 | Feature | Reason |
 |---------|--------|
-| **`group_posts`** | Deferred until **Content + Network** integration (`user_groups` ↔ `posts`); see [Network module README](../Network/README.md) |
+| **`group_posts`** | Implemented in **Network** (`network.group_posts`, migration `AddNetworkGroupPosts`). `Facade.NetworkManagement` validates post ownership via `IContentClient.Posts.GetByIdAsync`; Content core itself stays decoupled from Network data access. |
 
 ## Services and resources
 
@@ -244,7 +244,7 @@ Applied at startup from `Facade.API` (`ContentDbContext`). History table: `conte
 | **Not found** | `"Post not found."`, `"Media not found."`, `"Post media not found."`, `"Comment not found."`, `"Reaction not found."`, `"Hashtag not found."`, `"Post hashtag not found."`, `"Hashtag follow not found."`, `"Saved post not found."`, `"Repost not found."`, `"Mention not found."` → **404** at facade |
 | Other business errors | **400** at facade |
 | Target user existence | **Not** validated (no call to Identity/Profile) |
-| **`group_posts`** | **Not implemented** — deferred until Content + Network integration |
+| **`group_posts`** | Implemented in Network schema; Content participates through facade orchestration only (`IContentClient` post checks) |
 
 ## API endpoints (Facade)
 
@@ -382,7 +382,7 @@ Migrations: `ContentDbContext` in `ApplyMigrationsAsync` (after Network).
 
 ## Out of scope
 
-- **`group_posts`** — deferred until Content + Network integration (separate phase)
+- Direct writes to `network.group_posts` from Content core (managed by Network core + `Facade.NetworkManagement` orchestration)
 - Public (unauthenticated) content endpoints
 - Media file upload / blob storage (URL-only v1)
 - Cross-module validation that users exist in Identity

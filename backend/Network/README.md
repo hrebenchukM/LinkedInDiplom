@@ -4,7 +4,7 @@ Core module of the LinkedIn Clone **modular monolith**, **prepared for microserv
 
 The module is **not** deployed as a separate microservice today. Boundaries are enforced via projects, contracts, and `INetworkClient` — the same seam can later be replaced with HTTP clients without changing the facade surface.
 
-**Status (v1 + v2 + v3):** Schema **`network`** implements the social graph tables from `DB_SCHEMA.md` in scope: **`contacts`**, **`follows`**, **`blocked_users`**, **`user_groups`**, **`group_members`**, **`pages`**, **`page_admins`**, **`page_followers`**.
+**Status (v1 + v2 + v3 + group_posts phase):** Schema **`network`** implements the social graph tables from `DB_SCHEMA.md` in scope: **`contacts`**, **`follows`**, **`blocked_users`**, **`user_groups`**, **`group_members`**, **`group_posts`**, **`pages`**, **`page_admins`**, **`page_followers`**.
 
 ## Architecture
 
@@ -59,15 +59,10 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | **BlockedUser** | `blocked_users` | User blocks another; soft unblock via `unblocked_at` |
 | **UserGroup** | `user_groups` | User-owned group; soft delete via `deleted_at` |
 | **GroupMember** | `group_members` | Group membership with role; soft leave via `deleted_at` |
+| **GroupPost** | `group_posts` | Link between `user_groups` and Content `posts` (`post_id`), created in separate Network + Content phase |
 | **Page** | `pages` | User-owned page; soft delete via `deleted_at` |
 | **PageAdmin** | `page_admins` | Page administrator; revoke via `revoked_at` |
 | **PageFollower** | `page_followers` | Page subscription; soft unfollow via `unfollowed_at` |
-
-### Deferred (not in Network module yet)
-
-| Table | Reason |
-|-------|--------|
-| **`group_posts`** | Depends on **`posts.post_id`** from the future **Content/Posts** module. Will link `user_groups` ↔ `posts` when Posts exists. Documented in [DB_SCHEMA.md](../../docs/database/DB_SCHEMA.md) only. |
 
 ### `contacts`
 
@@ -102,6 +97,14 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 - **Join / leave:** member soft-leave via `deleted_at`; **owner cannot leave**.
 - **Members list:** only for active members of a non-deleted group (unauthorized → empty list).
 
+### `group_posts`
+
+- Stored in **schema `network`** as integration table between groups and posts.
+- Network core validates only **active group** + **active membership**.
+- Post ownership/existence is orchestrated in `Facade.NetworkManagement` through `IContentClient` (no direct `Network.Services` dependency on `Content.DataAccess`).
+- Unique link `(group_id, post_id)`; duplicate attach returns `"Group post already exists."`.
+- Attach is denied for deleted/foreign posts at facade level (`"Post not found."`).
+
 ### `pages` / `page_admins` / `page_followers`
 
 - **Create page:** inserts `pages` row and `page_admins` row for owner with `role = owner`.
@@ -123,6 +126,7 @@ All tables store user ids as **string** (Identity user id) **without** an EF rel
 | `BlockedUserService` | `BlockedUserResource` | Blocked users |
 | `UserGroupService` | `UserGroupResource` | Groups |
 | `GroupMemberService` | `GroupMemberResource` | Group membership |
+| `GroupPostService` | `GroupPostResource` | Group posts links |
 | `PageService` | `PageResource` | Pages |
 | `PageAdminService` | `PageAdminResource` | Page admins |
 | `PageFollowerService` | `PageFollowerResource` | Page followers |
@@ -140,6 +144,7 @@ In-process entry point for facades and other modules:
 | `BlockedUsers` | `IBlockedUserResource` |
 | `UserGroups` | `IUserGroupResource` |
 | `GroupMembers` | `IGroupMemberResource` |
+| `GroupPosts` | `IGroupPostResource` |
 | `Pages` | `IPageResource` |
 | `PageAdmins` | `IPageAdminResource` |
 | `PageFollowers` | `IPageFollowerResource` |
@@ -152,6 +157,7 @@ Registered in `Network.DI` via `AddNetworkModule`.
 |-----------|-------------|
 | `AddNetworkModule` | Schema `network`, tables `contacts`, `follows`, `blocked_users` |
 | `AddNetworkGroups` | Tables `user_groups`, `group_members` |
+| `AddNetworkGroupPosts` | Table `group_posts` |
 | `AddNetworkPages` | Tables `pages`, `page_admins`, `page_followers` |
 
 Applied at startup from `Facade.API` (`NetworkDbContext`). History table: `network.__EFMigrationsHistory`.
@@ -174,7 +180,7 @@ Applied at startup from `Facade.API` (`NetworkDbContext`). History table: `netwo
 | Update / delete page | **Owner only** |
 | Add / remove page admin | **Owner only** |
 | Page follow / unfollow | Via `followed_at` / `unfollowed_at` on `page_followers` |
-| `group_posts` | **Not implemented** until Content/Posts module |
+| `group_posts` | Implemented in `network`; active group + active membership validated in Network core; post ownership/existence validated in facade via `IContentClient` |
 | Target user existence | **Not** validated (no call to Identity/Profile) |
 
 ## API endpoints (Facade)
@@ -221,6 +227,9 @@ Base route: **`/api/network`**. All routes require JWT.
 | POST | `/api/network/me/groups/{groupId}/join` |
 | DELETE | `/api/network/me/groups/{groupId}/membership` |
 | GET | `/api/network/me/groups/{groupId}/members` |
+| POST | `/api/network/me/groups/{groupId}/posts/{postId}` |
+| GET | `/api/network/me/groups/{groupId}/posts` |
+| DELETE | `/api/network/me/groups/{groupId}/posts/{postId}` |
 
 ### Pages
 
@@ -256,7 +265,6 @@ Migrations: `NetworkDbContext` in `ApplyMigrationsAsync` (after Professional).
 
 ## Out of scope
 
-- **`group_posts`** — deferred until Content/Posts module (`posts.post_id`)
 - Public (unauthenticated) network endpoints
 - Cross-module validation that target users exist in Identity
 - HTTP microservice deployment (in-process `INetworkClient` only)
