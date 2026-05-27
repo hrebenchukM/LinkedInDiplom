@@ -21,4 +21,12 @@ public interface IContentClient
     IPostHashtagResource PostHashtags { get; }
 
     IUserHashtagFollowResource UserHashtagFollows { get; }
+
+    ISavedPostResource SavedPosts { get; }
+
+    IRepostResource Reposts { get; }
+
+    IPostViewResource PostViews { get; }
+
+    IMentionResource Mentions { get; }
 }

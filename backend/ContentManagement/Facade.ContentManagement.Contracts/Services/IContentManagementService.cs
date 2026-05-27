@@ -5,6 +5,7 @@ using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
+using Facade.ContentManagement.Contracts.Requests.Mention;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
 
@@ -70,4 +71,33 @@ public interface IContentManagementService
     Task<UserHashtagFollowResponse> UnfollowHashtagAsync(string userId, Guid hashtagId);
 
     Task<IReadOnlyCollection<UserHashtagFollowDto>> GetMyHashtagFollowsAsync(string userId);
+
+    Task<SavedPostResponse> SavePostAsync(string userId, Guid postId);
+
+    Task<SavedPostResponse> UnsavePostAsync(string userId, Guid postId);
+
+    Task<IReadOnlyCollection<SavedPostDto>> GetMySavedPostsAsync(string userId);
+
+    Task<RepostResponse> RepostPostAsync(string userId, Guid postId);
+
+    Task<RepostResponse> UnrepostPostAsync(string userId, Guid postId);
+
+    Task<IReadOnlyCollection<RepostDto>> GetMyRepostsAsync(string userId);
+
+    Task<IReadOnlyCollection<RepostDto>> GetRepostsByPostIdAsync(string userId, Guid postId);
+
+    Task<PostViewResponse> RecordPostViewAsync(
+        string userId,
+        Guid postId,
+        string viewerIp,
+        string? viewerUserAgent,
+        string? source);
+
+    Task<IReadOnlyCollection<PostViewDto>?> GetPostViewsAsync(string userId, Guid postId);
+
+    Task<MentionResponse> AddMentionAsync(string userId, Guid postId, AddMentionRequest request);
+
+    Task<MentionResponse> RemoveMentionAsync(string userId, Guid postId, string mentionedUserId);
+
+    Task<IReadOnlyCollection<MentionDto>> GetMentionsByPostIdAsync(string userId, Guid postId);
 }

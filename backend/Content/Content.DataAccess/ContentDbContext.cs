@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Content.DataAccess;
 
-// DbContext Content-модуля (posts, media, post_media, comments, reactions, hashtags).
+// DbContext Content-модуля (posts, media, comments, reactions, hashtags, saved, reposts, views, mentions).
 public class ContentDbContext : DbContext
 {
     public DbSet<Post> Posts { get; set; } = default!;
@@ -21,6 +21,14 @@ public class ContentDbContext : DbContext
     public DbSet<PostHashtag> PostHashtags { get; set; } = default!;
 
     public DbSet<UserHashtagFollow> UserHashtagFollows { get; set; } = default!;
+
+    public DbSet<SavedPost> SavedPosts { get; set; } = default!;
+
+    public DbSet<Repost> Reposts { get; set; } = default!;
+
+    public DbSet<PostView> PostViews { get; set; } = default!;
+
+    public DbSet<Mention> Mentions { get; set; } = default!;
 
     public ContentDbContext(DbContextOptions<ContentDbContext> options)
         : base(options)
@@ -304,6 +312,147 @@ public class ContentDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.HashtagId })
                 .IsUnique()
                 .HasDatabaseName("IX_user_hashtag_follows_user_id_hashtag_id");
+        });
+
+        builder.Entity<SavedPost>(entity =>
+        {
+            entity.ToTable("saved_posts");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("saved_post_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.SavedAt)
+                .HasColumnName("saved_at");
+
+            entity.Property(e => e.UnsavedAt)
+                .HasColumnName("unsaved_at");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_saved_posts_user_id");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_saved_posts_post_id");
+
+            entity.HasIndex(e => new { e.UserId, e.PostId })
+                .IsUnique()
+                .HasDatabaseName("IX_saved_posts_user_id_post_id");
+        });
+
+        builder.Entity<Repost>(entity =>
+        {
+            entity.ToTable("reposts");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("repost_id");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .IsRequired();
+
+            entity.Property(e => e.OriginalPostId)
+                .HasColumnName("original_post_id")
+                .IsRequired();
+
+            entity.Property(e => e.RepostedAt)
+                .HasColumnName("reposted_at");
+
+            entity.Property(e => e.RemovedAt)
+                .HasColumnName("removed_at");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_reposts_user_id");
+
+            entity.HasIndex(e => e.OriginalPostId)
+                .HasDatabaseName("IX_reposts_original_post_id");
+
+            entity.HasIndex(e => new { e.UserId, e.OriginalPostId })
+                .IsUnique()
+                .HasDatabaseName("IX_reposts_user_id_original_post_id");
+        });
+
+        builder.Entity<PostView>(entity =>
+        {
+            entity.ToTable("post_views");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("post_view_id");
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.ViewerUserId)
+                .HasColumnName("viewer_user_id");
+
+            entity.Property(e => e.ViewerIp)
+                .HasColumnName("viewer_ip")
+                .IsRequired()
+                .HasMaxLength(45);
+
+            entity.Property(e => e.ViewerUserAgent)
+                .HasColumnName("viewer_user_agent")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Source)
+                .HasColumnName("source")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ViewedAt)
+                .HasColumnName("viewed_at");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_post_views_post_id");
+
+            entity.HasIndex(e => new { e.PostId, e.ViewedAt })
+                .HasDatabaseName("IX_post_views_post_id_viewed_at");
+        });
+
+        builder.Entity<Mention>(entity =>
+        {
+            entity.ToTable("mentions");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("mention_id");
+
+            entity.Property(e => e.PostId)
+                .HasColumnName("post_id")
+                .IsRequired();
+
+            entity.Property(e => e.MentionedUserId)
+                .HasColumnName("mentioned_user_id")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
+
+            entity.HasIndex(e => e.PostId)
+                .HasDatabaseName("IX_mentions_post_id");
+
+            entity.HasIndex(e => e.MentionedUserId)
+                .HasDatabaseName("IX_mentions_mentioned_user_id");
+
+            entity.HasIndex(e => new { e.PostId, e.MentionedUserId })
+                .IsUnique()
+                .HasDatabaseName("IX_mentions_post_id_mentioned_user_id");
         });
     }
 }

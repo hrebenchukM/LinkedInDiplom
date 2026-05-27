@@ -5,6 +5,7 @@ using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
+using Facade.ContentManagement.Contracts.Requests.Mention;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
@@ -26,6 +27,9 @@ public class ContentController : ControllerBase
     private const string HashtagNotFoundError = "Hashtag not found.";
     private const string PostHashtagNotFoundError = "Post hashtag not found.";
     private const string HashtagFollowNotFoundError = "Hashtag follow not found.";
+    private const string SavedPostNotFoundError = "Saved post not found.";
+    private const string RepostNotFoundError = "Repost not found.";
+    private const string MentionNotFoundError = "Mention not found.";
 
     private readonly IContentManagementService _contentManagementService;
 
@@ -596,6 +600,269 @@ public class ContentController : ControllerBase
         return Ok(follows);
     }
 
+    // POST api/content/me/posts/{postId}/save
+    [Authorize]
+    [HttpPost("me/posts/{postId:guid}/save")]
+    [ProducesResponseType(typeof(SavedPostResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> SavePost(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.SavePostAsync(userId, postId);
+
+        if (!response.Success)
+            return MapSavedPostError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/content/me/posts/{postId}/save
+    [Authorize]
+    [HttpDelete("me/posts/{postId:guid}/save")]
+    [ProducesResponseType(typeof(SavedPostResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UnsavePost(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.UnsavePostAsync(userId, postId);
+
+        if (!response.Success)
+            return MapSavedPostError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/me/saved-posts
+    [Authorize]
+    [HttpGet("me/saved-posts")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMySavedPosts()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var savedPosts = await _contentManagementService.GetMySavedPostsAsync(userId);
+
+        return Ok(savedPosts);
+    }
+
+    // POST api/content/me/posts/{postId}/repost
+    [Authorize]
+    [HttpPost("me/posts/{postId:guid}/repost")]
+    [ProducesResponseType(typeof(RepostResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> RepostPost(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.RepostPostAsync(userId, postId);
+
+        if (!response.Success)
+            return MapRepostError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/content/me/posts/{postId}/repost
+    [Authorize]
+    [HttpDelete("me/posts/{postId:guid}/repost")]
+    [ProducesResponseType(typeof(RepostResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UnrepostPost(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.UnrepostPostAsync(userId, postId);
+
+        if (!response.Success)
+            return MapRepostError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/me/reposts
+    [Authorize]
+    [HttpGet("me/reposts")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyReposts()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var reposts = await _contentManagementService.GetMyRepostsAsync(userId);
+
+        return Ok(reposts);
+    }
+
+    // GET api/content/posts/{postId}/reposts
+    [Authorize]
+    [HttpGet("posts/{postId:guid}/reposts")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetRepostsByPostId(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var reposts = await _contentManagementService.GetRepostsByPostIdAsync(userId, postId);
+
+        return Ok(reposts);
+    }
+
+    // POST api/content/posts/{postId}/views
+    [Authorize]
+    [HttpPost("posts/{postId:guid}/views")]
+    [ProducesResponseType(typeof(PostViewResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> RecordPostView(Guid postId, [FromQuery] string? source)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var viewerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        if (string.IsNullOrWhiteSpace(viewerIp))
+            viewerIp = "unknown";
+
+        var viewerUserAgent = Request.Headers.UserAgent.ToString();
+
+        if (string.IsNullOrWhiteSpace(viewerUserAgent))
+            viewerUserAgent = null;
+
+        var response = await _contentManagementService.RecordPostViewAsync(
+            userId,
+            postId,
+            viewerIp,
+            viewerUserAgent,
+            source);
+
+        if (!response.Success)
+            return MapPostViewError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/me/posts/{postId}/views
+    [Authorize]
+    [HttpGet("me/posts/{postId:guid}/views")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetPostViews(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var views = await _contentManagementService.GetPostViewsAsync(userId, postId);
+
+        if (views == null)
+        {
+            return NotFound(new PostViewResponse
+            {
+                Success = false,
+                Errors = new[] { PostNotFoundError }
+            });
+        }
+
+        return Ok(views);
+    }
+
+    // POST api/content/me/posts/{postId}/mentions
+    [Authorize]
+    [HttpPost("me/posts/{postId:guid}/mentions")]
+    [ProducesResponseType(typeof(MentionResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AddMention(Guid postId, [FromBody] AddMentionRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.AddMentionAsync(userId, postId, request);
+
+        if (!response.Success)
+            return MapMentionError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/content/me/posts/{postId}/mentions/{mentionedUserId}
+    [Authorize]
+    [HttpDelete("me/posts/{postId:guid}/mentions/{mentionedUserId}")]
+    [ProducesResponseType(typeof(MentionResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> RemoveMention(Guid postId, string mentionedUserId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await _contentManagementService.RemoveMentionAsync(userId, postId, mentionedUserId);
+
+        if (!response.Success)
+            return MapMentionError(response);
+
+        return Ok(response);
+    }
+
+    // GET api/content/posts/{postId}/mentions
+    [Authorize]
+    [HttpGet("posts/{postId:guid}/mentions")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMentionsByPostId(Guid postId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var mentions = await _contentManagementService.GetMentionsByPostIdAsync(userId, postId);
+
+        return Ok(mentions);
+    }
+
     private IActionResult MapPostError(PostResponse response)
     {
         if (response.Errors.Contains(PostNotFoundError) ||
@@ -671,6 +938,49 @@ public class ContentController : ControllerBase
     {
         if (response.Errors.Contains(HashtagNotFoundError) ||
             response.Errors.Contains(HashtagFollowNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapSavedPostError(SavedPostResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError) ||
+            response.Errors.Contains(SavedPostNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapRepostError(RepostResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError) ||
+            response.Errors.Contains(RepostNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapPostViewError(PostViewResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError))
+        {
+            return NotFound(response);
+        }
+
+        return BadRequest(response);
+    }
+
+    private IActionResult MapMentionError(MentionResponse response)
+    {
+        if (response.Errors.Contains(PostNotFoundError) ||
+            response.Errors.Contains(MentionNotFoundError))
         {
             return NotFound(response);
         }

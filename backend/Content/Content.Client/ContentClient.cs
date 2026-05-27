@@ -23,6 +23,14 @@ public class ContentClient : IContentClient
 
     public IUserHashtagFollowResource UserHashtagFollows { get; }
 
+    public ISavedPostResource SavedPosts { get; }
+
+    public IRepostResource Reposts { get; }
+
+    public IPostViewResource PostViews { get; }
+
+    public IMentionResource Mentions { get; }
+
     public ContentClient(
         IPostResource posts,
         IMediaResource media,
@@ -31,7 +39,11 @@ public class ContentClient : IContentClient
         IReactionResource reactions,
         IHashtagResource hashtags,
         IPostHashtagResource postHashtags,
-        IUserHashtagFollowResource userHashtagFollows)
+        IUserHashtagFollowResource userHashtagFollows,
+        ISavedPostResource savedPosts,
+        IRepostResource reposts,
+        IPostViewResource postViews,
+        IMentionResource mentions)
     {
         Posts = posts;
         Media = media;
@@ -41,5 +53,9 @@ public class ContentClient : IContentClient
         Hashtags = hashtags;
         PostHashtags = postHashtags;
         UserHashtagFollows = userHashtagFollows;
+        SavedPosts = savedPosts;
+        Reposts = reposts;
+        PostViews = postViews;
+        Mentions = mentions;
     }
 }

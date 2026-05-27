@@ -32,6 +32,10 @@ public static class ContentModuleServiceCollectionExtensions
         services.AddScoped<IHashtagService, HashtagService>();
         services.AddScoped<IPostHashtagService, PostHashtagService>();
         services.AddScoped<IUserHashtagFollowService, UserHashtagFollowService>();
+        services.AddScoped<ISavedPostService, SavedPostService>();
+        services.AddScoped<IRepostService, RepostService>();
+        services.AddScoped<IPostViewService, PostViewService>();
+        services.AddScoped<IMentionService, MentionService>();
 
         services.AddScoped<IPostResource, PostResource>();
         services.AddScoped<IMediaResource, MediaResource>();
@@ -41,6 +45,10 @@ public static class ContentModuleServiceCollectionExtensions
         services.AddScoped<IHashtagResource, HashtagResource>();
         services.AddScoped<IPostHashtagResource, PostHashtagResource>();
         services.AddScoped<IUserHashtagFollowResource, UserHashtagFollowResource>();
+        services.AddScoped<ISavedPostResource, SavedPostResource>();
+        services.AddScoped<IRepostResource, RepostResource>();
+        services.AddScoped<IPostViewResource, PostViewResource>();
+        services.AddScoped<IMentionResource, MentionResource>();
 
         services.AddScoped<IContentClient, ContentClient>();
 

@@ -3,9 +3,13 @@ using Content.Contracts.Parameters.Comment;
 using Content.Contracts.Parameters.Hashtag;
 using Content.Contracts.Parameters.Media;
 using Content.Contracts.Parameters.Post;
+using Content.Contracts.Parameters.Mention;
 using Content.Contracts.Parameters.PostHashtag;
 using Content.Contracts.Parameters.PostMedia;
+using Content.Contracts.Parameters.PostView;
 using Content.Contracts.Parameters.Reaction;
+using Content.Contracts.Parameters.Repost;
+using Content.Contracts.Parameters.SavedPost;
 using Content.Contracts.Parameters.UserHashtagFollow;
 using Content.Contracts.Results;
 using Facade.ContentManagement.Contracts.DTOs;
@@ -13,6 +17,7 @@ using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.Post;
+using Facade.ContentManagement.Contracts.Requests.Mention;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
@@ -21,10 +26,14 @@ using Facade.ContentManagement.Contracts.Services;
 using ContentCommentDto = Content.Contracts.DTOs.CommentDto;
 using ContentHashtagDto = Content.Contracts.DTOs.HashtagDto;
 using ContentMediaDto = Content.Contracts.DTOs.MediaDto;
+using ContentMentionDto = Content.Contracts.DTOs.MentionDto;
 using ContentPostDto = Content.Contracts.DTOs.PostDto;
 using ContentPostHashtagDto = Content.Contracts.DTOs.PostHashtagDto;
 using ContentPostMediaDto = Content.Contracts.DTOs.PostMediaDto;
+using ContentPostViewDto = Content.Contracts.DTOs.PostViewDto;
 using ContentReactionDto = Content.Contracts.DTOs.ReactionDto;
+using ContentRepostDto = Content.Contracts.DTOs.RepostDto;
+using ContentSavedPostDto = Content.Contracts.DTOs.SavedPostDto;
 using ContentUserHashtagFollowDto = Content.Contracts.DTOs.UserHashtagFollowDto;
 
 namespace Facade.ContentManagement.Services.Services;
@@ -339,6 +348,157 @@ public class ContentManagementService : IContentManagementService
         return follows.Select(MapUserHashtagFollowToFacadeDto).ToList();
     }
 
+    public async Task<SavedPostResponse> SavePostAsync(string userId, Guid postId)
+    {
+        var result = await _contentClient.SavedPosts.SaveAsync(new SavePostParameters
+        {
+            UserId = userId,
+            PostId = postId
+        });
+
+        return MapSavedPostResult(result);
+    }
+
+    public async Task<SavedPostResponse> UnsavePostAsync(string userId, Guid postId)
+    {
+        var result = await _contentClient.SavedPosts.UnsaveAsync(new UnsavePostParameters
+        {
+            UserId = userId,
+            PostId = postId
+        });
+
+        return MapSavedPostResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<SavedPostDto>> GetMySavedPostsAsync(string userId)
+    {
+        var savedPosts = await _contentClient.SavedPosts.GetMySavedPostsAsync(new GetMySavedPostsParameters
+        {
+            UserId = userId
+        });
+
+        return savedPosts.Select(MapSavedPostToFacadeDto).ToList();
+    }
+
+    public async Task<RepostResponse> RepostPostAsync(string userId, Guid postId)
+    {
+        var result = await _contentClient.Reposts.RepostAsync(new RepostPostParameters
+        {
+            UserId = userId,
+            OriginalPostId = postId
+        });
+
+        return MapRepostResult(result);
+    }
+
+    public async Task<RepostResponse> UnrepostPostAsync(string userId, Guid postId)
+    {
+        var result = await _contentClient.Reposts.UnrepostAsync(new UnrepostPostParameters
+        {
+            UserId = userId,
+            OriginalPostId = postId
+        });
+
+        return MapRepostResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<RepostDto>> GetMyRepostsAsync(string userId)
+    {
+        var reposts = await _contentClient.Reposts.GetMyRepostsAsync(new GetMyRepostsParameters
+        {
+            UserId = userId
+        });
+
+        return reposts.Select(MapRepostToFacadeDto).ToList();
+    }
+
+    public async Task<IReadOnlyCollection<RepostDto>> GetRepostsByPostIdAsync(string userId, Guid postId)
+    {
+        var reposts = await _contentClient.Reposts.GetByPostIdAsync(new GetRepostsByPostParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        return reposts.Select(MapRepostToFacadeDto).ToList();
+    }
+
+    public async Task<PostViewResponse> RecordPostViewAsync(
+        string userId,
+        Guid postId,
+        string viewerIp,
+        string? viewerUserAgent,
+        string? source)
+    {
+        var result = await _contentClient.PostViews.RecordAsync(new RecordPostViewParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId,
+            ViewerIp = viewerIp,
+            ViewerUserAgent = viewerUserAgent,
+            Source = source
+        });
+
+        return MapPostViewResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<PostViewDto>?> GetPostViewsAsync(string userId, Guid postId)
+    {
+        var post = await _contentClient.Posts.GetByIdAsync(new GetPostByIdParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        if (post == null || post.UserId != userId)
+        {
+            return null;
+        }
+
+        var views = await _contentClient.PostViews.GetByPostIdAsync(new GetPostViewsParameters
+        {
+            AuthorId = userId,
+            PostId = postId
+        });
+
+        return views.Select(MapPostViewToFacadeDto).ToList();
+    }
+
+    public async Task<MentionResponse> AddMentionAsync(string userId, Guid postId, AddMentionRequest request)
+    {
+        var result = await _contentClient.Mentions.AddAsync(new AddMentionParameters
+        {
+            AuthorId = userId,
+            PostId = postId,
+            MentionedUserId = request.MentionedUserId
+        });
+
+        return MapMentionResult(result);
+    }
+
+    public async Task<MentionResponse> RemoveMentionAsync(string userId, Guid postId, string mentionedUserId)
+    {
+        var result = await _contentClient.Mentions.RemoveAsync(new RemoveMentionParameters
+        {
+            AuthorId = userId,
+            PostId = postId,
+            MentionedUserId = mentionedUserId
+        });
+
+        return MapMentionResult(result);
+    }
+
+    public async Task<IReadOnlyCollection<MentionDto>> GetMentionsByPostIdAsync(string userId, Guid postId)
+    {
+        var mentions = await _contentClient.Mentions.GetByPostIdAsync(new GetMentionsByPostParameters
+        {
+            ViewerUserId = userId,
+            PostId = postId
+        });
+
+        return mentions.Select(MapMentionToFacadeDto).ToList();
+    }
+
     private static PostResponse MapPostResult(PostResult result)
     {
         return new PostResponse
@@ -417,6 +577,46 @@ public class ContentManagementService : IContentManagementService
             UserHashtagFollow = result.UserHashtagFollow == null
                 ? null
                 : MapUserHashtagFollowToFacadeDto(result.UserHashtagFollow),
+            Errors = result.Errors
+        };
+    }
+
+    private static SavedPostResponse MapSavedPostResult(SavedPostResult result)
+    {
+        return new SavedPostResponse
+        {
+            Success = result.Succeeded,
+            SavedPost = result.SavedPost == null ? null : MapSavedPostToFacadeDto(result.SavedPost),
+            Errors = result.Errors
+        };
+    }
+
+    private static RepostResponse MapRepostResult(RepostResult result)
+    {
+        return new RepostResponse
+        {
+            Success = result.Succeeded,
+            Repost = result.Repost == null ? null : MapRepostToFacadeDto(result.Repost),
+            Errors = result.Errors
+        };
+    }
+
+    private static PostViewResponse MapPostViewResult(PostViewResult result)
+    {
+        return new PostViewResponse
+        {
+            Success = result.Succeeded,
+            PostView = result.PostView == null ? null : MapPostViewToFacadeDto(result.PostView),
+            Errors = result.Errors
+        };
+    }
+
+    private static MentionResponse MapMentionResult(MentionResult result)
+    {
+        return new MentionResponse
+        {
+            Success = result.Succeeded,
+            Mention = result.Mention == null ? null : MapMentionToFacadeDto(result.Mention),
             Errors = result.Errors
         };
     }
@@ -520,6 +720,57 @@ public class ContentManagementService : IContentManagementService
             FollowedAt = follow.FollowedAt,
             UnfollowedAt = follow.UnfollowedAt,
             Hashtag = follow.Hashtag == null ? null : MapHashtagToFacadeDto(follow.Hashtag)
+        };
+    }
+
+    private static SavedPostDto MapSavedPostToFacadeDto(ContentSavedPostDto savedPost)
+    {
+        return new SavedPostDto
+        {
+            Id = savedPost.Id,
+            UserId = savedPost.UserId,
+            PostId = savedPost.PostId,
+            SavedAt = savedPost.SavedAt,
+            UnsavedAt = savedPost.UnsavedAt,
+            Post = savedPost.Post == null ? null : MapPostToFacadeDto(savedPost.Post)
+        };
+    }
+
+    private static RepostDto MapRepostToFacadeDto(ContentRepostDto repost)
+    {
+        return new RepostDto
+        {
+            Id = repost.Id,
+            UserId = repost.UserId,
+            OriginalPostId = repost.OriginalPostId,
+            RepostedAt = repost.RepostedAt,
+            RemovedAt = repost.RemovedAt,
+            OriginalPost = repost.OriginalPost == null ? null : MapPostToFacadeDto(repost.OriginalPost)
+        };
+    }
+
+    private static PostViewDto MapPostViewToFacadeDto(ContentPostViewDto postView)
+    {
+        return new PostViewDto
+        {
+            Id = postView.Id,
+            PostId = postView.PostId,
+            ViewerUserId = postView.ViewerUserId,
+            ViewerIp = postView.ViewerIp,
+            ViewerUserAgent = postView.ViewerUserAgent,
+            Source = postView.Source,
+            ViewedAt = postView.ViewedAt
+        };
+    }
+
+    private static MentionDto MapMentionToFacadeDto(ContentMentionDto mention)
+    {
+        return new MentionDto
+        {
+            Id = mention.Id,
+            PostId = mention.PostId,
+            MentionedUserId = mention.MentionedUserId,
+            CreatedAt = mention.CreatedAt
         };
     }
 }
