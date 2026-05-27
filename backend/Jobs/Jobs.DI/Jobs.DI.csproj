@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobs.Contracts\Jobs.Contracts.csproj" />
+    <ProjectReference Include="..\Jobs.Services\Jobs.Services.csproj" />
+    <ProjectReference Include="..\Jobs.DataAccess\Jobs.DataAccess.csproj" />
+    <ProjectReference Include="..\Jobs.Client\Jobs.Client.csproj" />
+    <ProjectReference Include="..\Jobs.Client.Contracts\Jobs.Client.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
