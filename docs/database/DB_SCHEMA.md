@@ -637,7 +637,14 @@ Table reposts {
 Ref: reposts.user_id > AspNetUsers.user_id
 Ref: reposts.original_post_id > posts.post_id
 
-// 🟢 6. Messaging (Chats, Messages, Read receipts)
+// 🟢 6. Messaging (Chats, Messages, Read receipts, Message media)
+// PostgreSQL schema: messaging
+//
+// Implementation status (Messaging module, .NET 8):
+//   v1 — chats, chat_members, messages, message_reads, message_media
+//        (migration AddMessagingModule)
+//
+// EF: no FK to AspNetUsers; user_id stored as string.
 
 Table chats {
   chat_id Guid [primary key]
@@ -657,15 +664,13 @@ Table chat_members {
   chat_id Guid
   user_id varchar
 
-  folder varchar
-  status varchar
-
-  is_favorite boolean
-  has_unread boolean
-
+  folder varchar [note: 'nullable, max 50']
   joined_at datetime
-  updated_at datetime
   left_at datetime
+
+  indexes {
+    (chat_id, user_id) [unique]
+  }
 }
 
 Ref: chat_members.chat_id > chats.chat_id
@@ -680,11 +685,9 @@ Table messages {
 
   content text
 
-  sent_at datetime
+  created_at datetime
   edited_at datetime
   deleted_at datetime
-
-  is_draft boolean
 }
 
 Ref: messages.chat_id > chats.chat_id
@@ -698,23 +701,27 @@ Table message_reads {
   user_id varchar
 
   read_at datetime
+
+  indexes {
+    (message_id, user_id) [unique]
+  }
 }
 
 Ref: message_reads.message_id > messages.message_id
 Ref: message_reads.user_id > AspNetUsers.user_id
 
-// Медиа сообщений
+// Медиа сообщений (хранится URL/reference, без blob)
 Table message_media {
   message_media_id Guid [primary key]
 
   message_id Guid
-  media_id Guid
+  media_url varchar
+  media_type varchar
 
   created_at datetime
 }
 
 Ref: message_media.message_id > messages.message_id
-Ref: message_media.media_id > media.media_id
 
 // 🟢 7. Jobs (Vacancies, Applications, Job search)
 

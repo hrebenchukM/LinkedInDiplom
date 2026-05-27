@@ -17,7 +17,7 @@ docker-compose up -d
 That's it! The application will:
 - ✅ Start PostgreSQL database
 - ✅ Build and start the API
-- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content)
+- ✅ Apply database migrations automatically (Identity, Profile, Professional, Network, Content, Messaging)
 - ✅ Be ready to accept requests
 
 ### Stop the application
@@ -95,11 +95,20 @@ LinkedInDiplom/
 │   │   ├── Content.Client
 │   │   └── Content.DI
 │   │
+│   ├── Messaging/                   # Core: chats & messages (6 projects)
+│   │   ├── Messaging.Contracts
+│   │   ├── Messaging.Services
+│   │   ├── Messaging.DataAccess     # schema: messaging
+│   │   ├── Messaging.Client.Contracts
+│   │   ├── Messaging.Client
+│   │   └── Messaging.DI
+│   │
 │   ├── AccountManagement/           # Facade: auth BFF (4 projects)
 │   ├── ProfileManagement/           # Facade: profile BFF (4 projects)
 │   ├── ProfessionalManagement/      # Facade: career BFF (4 projects)
 │   ├── NetworkManagement/           # Facade: social graph BFF (4 projects)
 │   ├── ContentManagement/           # Facade: posts & media BFF (4 projects)
+│   ├── MessagingManagement/         # Facade: messaging BFF (4 projects)
 │   │
 │   └── Facade.API/                  # Host: single entry point
 │
@@ -121,6 +130,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 | `/api/network` | Social graph: contacts, follows, blocked users, groups, group posts, pages (JWT only) |
 | `/api/content` | Posts, media, comments, reactions, hashtags, saved posts, reposts, post views, mentions (JWT only) |
+| `/api/messaging` | Chats, members, messages, reads, message media (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -294,6 +304,52 @@ Details: [Network module README](./backend/Network/README.md).
 
 Details: [Content module README](./backend/Content/README.md).
 
+### Messaging (`/api/messaging`)
+
+**Modular monolith prepared for microservices** core + **MessagingManagement** BFF (`TargetFramework net8.0`, schema **`messaging`**). All routes require **JWT**. Current `userId` is taken **only from JWT** (not from body).
+
+**Tables:** `chats`, `chat_members`, `messages`, `message_reads`, `message_media`. Migration: **`AddMessagingModule`**.
+
+#### Chats
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/messaging/me/chats` | POST, GET |
+| `/api/messaging/me/chats/{chatId}` | GET, DELETE |
+
+#### Members
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/messaging/me/chats/{chatId}/join` | POST |
+| `/api/messaging/me/chats/{chatId}/membership` | DELETE |
+| `/api/messaging/me/chats/{chatId}/members` | GET |
+
+#### Messages
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/messaging/me/chats/{chatId}/messages` | POST, GET |
+| `/api/messaging/me/messages/{messageId}` | GET, PATCH, DELETE |
+
+#### Reads
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/messaging/me/messages/{messageId}/read` | POST |
+| `/api/messaging/me/messages/{messageId}/reads` | GET |
+
+#### Message media
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/messaging/me/messages/{messageId}/media` | POST, GET |
+| `/api/messaging/me/messages/{messageId}/media/{messageMediaId}` | DELETE |
+
+**Rules:** all endpoints require JWT; current user id comes from JWT only; body does not carry current user id; user sees only active chats where membership is active; send/mark read only for active chat members; edit/delete only by sender; message read is idempotent; media attach only by sender and stores URL/reference only (no blob); foreign chats/messages return **404**; SignalR/WebSocket and real-time delivery are not implemented.
+
+Details: [Messaging module README](./backend/Messaging/README.md).
+
 ## 🛠️ Development
 
 ### Run Locally (without Docker)
@@ -406,6 +462,20 @@ The API uses JWT Bearer token authentication with:
 - Saved posts, reposts, post views (append-only), mentions (author-only add/remove)
 - Maps via `IContentClient`
 
+### Messaging (Core)
+- **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`messaging`**
+- Tables: **`chats`**, **`chat_members`**, **`messages`**, **`message_reads`**, **`message_media`**
+- Migration: **`AddMessagingModule`**
+- Services/resources: `ChatService`/`ChatResource`, `ChatMemberService`/`ChatMemberResource`, `MessageService`/`MessageResource`, `MessageReadService`/`MessageReadResource`, `MessageMediaService`/`MessageMediaResource`; facade uses **`IMessagingClient`** (`Chats`, `ChatMembers`, `Messages`, `MessageReads`, `MessageMedia`)
+- Exposed via **MessagingManagement** facade (in-process client; microservice-ready seam)
+- See [backend/Messaging/README.md](./backend/Messaging/README.md)
+
+### MessagingManagement (Facade / BFF)
+- Messaging API at `/api/messaging` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; current `userId` from JWT only (never from request body)
+- Chat visibility only for active members; sender-only message edit/delete/media attach; message read idempotent
+- Maps via `IMessagingClient`
+
 ### ProfessionalManagement (Facade / BFF)
 - Career API at `/api/professional` (.NET 8, modular monolith BFF)
 - Catalog v1 (Academy, Skill, Language): JWT `POST` + public `GET` by id
@@ -427,11 +497,11 @@ Client Application
     ↓ HTTP
 Facade.API (Host)
     ↓
-Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement
+Facade Modules (BFF): AccountManagement | ProfileManagement | ProfessionalManagement | NetworkManagement | ContentManagement | MessagingManagement
     ↓ I*Client (in-process, microservice-ready seam)
-Core Modules: Identity | Profile | Professional | Network | Content
+Core Modules: Identity | Profile | Professional | Network | Content | Messaging
     ↓ EF Core (separate DbContext per module)
-PostgreSQL (schemas: identity, profile, professional, network, content)
+PostgreSQL (schemas: identity, profile, professional, network, content, messaging)
 ```
 
 Registration side-effect (event architecture; Identity does not call Profile directly):
@@ -462,6 +532,7 @@ See [DOCKER.md](./DOCKER.md) for details.
 - **[Professional Module](./backend/Professional/README.md)** - Career core module and `/api/professional` endpoints
 - **[Network Module](./backend/Network/README.md)** - Social graph core module and `/api/network` endpoints
 - **[Content Module](./backend/Content/README.md)** - Posts & media core module and `/api/content` endpoints
+- **[Messaging Module](./backend/Messaging/README.md)** - Messaging core module and `/api/messaging` endpoints
 
 ## 🧪 Testing
 
@@ -504,6 +575,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **NetworkManagement Facade** - `/api/network` (JWT-only; includes group_posts endpoints with ownership orchestration via `IContentClient`)  
 ✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions, hashtags, post_hashtags, user_hashtag_follows, saved_posts, reposts, post_views, mentions (group_posts table is in Network schema)  
 ✅ **ContentManagement Facade** - `/api/content` (JWT-only; v4 saved/reposts/views/mentions endpoints added)  
+✅ **Messaging Core Module** - Schema `messaging`: chats, chat_members, messages, message_reads, message_media (migration `AddMessagingModule`)  
+✅ **MessagingManagement Facade** - `/api/messaging` (JWT-only; chats/messages/reads/media endpoints)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  

@@ -5,8 +5,8 @@ The main entry point for the LinkedIn Clone backend. This **modular monolith hos
 ## Overview
 
 Facade.API:
-- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`)
-- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`)
+- Hosts facade controllers (`AccountManagement`, `ProfileManagement`, `ProfessionalManagement`, `NetworkManagement`, `ContentManagement`, `MessagingManagement`)
+- Registers core modules via DI (`Identity`, `Profile`, `Professional`, `Network`, `Content`, `Messaging`)
 - Configures JWT authentication, CORS (Development vs Production), Swagger (Development only)
 - Applies EF Core migrations on startup
 - Serves uploaded files from `/uploads`
@@ -24,14 +24,16 @@ Facade Modules (BFF)
     ├── Facade.ProfileManagement      → /api/profile
     ├── Facade.ProfessionalManagement → /api/professional
     ├── Facade.NetworkManagement      → /api/network
-    └── Facade.ContentManagement      → /api/content
+    ├── Facade.ContentManagement      → /api/content
+    └── Facade.MessagingManagement    → /api/messaging
     ↓ I*Client (in-process, microservice-ready seam)
 Core Modules
     ├── Identity      (schema: identity)
     ├── Profile       (schema: profile)
     ├── Professional  (schema: professional)
     ├── Network       (schema: network)
-    └── Content       (schema: content)
+    ├── Content       (schema: content)
+    └── Messaging     (schema: messaging)
     ↓
 PostgreSQL (single database, logical separation by schema)
 ```
@@ -340,6 +342,38 @@ Migrations: `AddContentModule`, `AddContentCommentsAndReactions`, `AddContentHas
 
 Full rules, services, and `IContentClient`: [Content module README](../Content/README.md).
 
+### Messaging — `/api/messaging`
+
+Chats/messages BFF over the **Messaging** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Messaging core owns PostgreSQL schema **`messaging`**: `chats`, `chat_members`, `messages`, `message_reads`, `message_media` (see [Messaging module README](../Messaging/README.md)).
+
+`userId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain current user id.
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/messaging/me/chats` | Yes |
+| GET | `/api/messaging/me/chats` | Yes |
+| GET | `/api/messaging/me/chats/{chatId}` | Yes |
+| DELETE | `/api/messaging/me/chats/{chatId}` | Yes |
+| POST | `/api/messaging/me/chats/{chatId}/join` | Yes |
+| DELETE | `/api/messaging/me/chats/{chatId}/membership` | Yes |
+| GET | `/api/messaging/me/chats/{chatId}/members` | Yes |
+| POST | `/api/messaging/me/chats/{chatId}/messages` | Yes |
+| GET | `/api/messaging/me/chats/{chatId}/messages` | Yes |
+| GET | `/api/messaging/me/messages/{messageId}` | Yes |
+| PATCH | `/api/messaging/me/messages/{messageId}` | Yes |
+| DELETE | `/api/messaging/me/messages/{messageId}` | Yes |
+| POST | `/api/messaging/me/messages/{messageId}/read` | Yes |
+| GET | `/api/messaging/me/messages/{messageId}/reads` | Yes |
+| POST | `/api/messaging/me/messages/{messageId}/media` | Yes |
+| GET | `/api/messaging/me/messages/{messageId}/media` | Yes |
+| DELETE | `/api/messaging/me/messages/{messageId}/media/{messageMediaId}` | Yes |
+
+**Rules:** user sees only own active chats; send/mark read only for active chat members; edit/delete only by sender; message read is idempotent; media attach only by sender and stores URL/reference only; foreign chats/messages return **404**; SignalR/WebSocket and real-time delivery are not implemented.
+
+Migrations: `AddMessagingModule` (applied via `MessagingDbContext` on startup; history in schema `messaging`).
+
+Full rules, services, and `IMessagingClient`: [Messaging module README](../Messaging/README.md).
+
 ## Module Integration (Program.cs)
 
 ```csharp
@@ -348,19 +382,22 @@ builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
 builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddContentModule(configuration, connectionString);
+builder.Services.AddMessagingModule(configuration, connectionString);
 
 builder.Services.AddAccountManagementFacade();
 builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
+builder.Services.AddMessagingManagementFacade();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileController).Assembly)
     .AddApplicationPart(typeof(ProfessionalController).Assembly)
     .AddApplicationPart(typeof(NetworkController).Assembly)
-    .AddApplicationPart(typeof(ContentController).Assembly);
+    .AddApplicationPart(typeof(ContentController).Assembly)
+    .AddApplicationPart(typeof(MessagingController).Assembly);
 ```
 
 ## Middleware Pipeline
@@ -399,6 +436,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
 ✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, `group_posts`, pages) at `/api/network`  
 ✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` orchestration via NetworkManagement + `IContentClient`)  
+✅ **Messaging module** — schema `messaging` (`chats`, `chat_members`, `messages`, `message_reads`, `message_media`) at `/api/messaging`  
 
 ## Related docs
 
@@ -408,3 +446,4 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 - [Professional module](../Professional/README.md)
 - [Network module](../Network/README.md)
 - [Content module](../Content/README.md)
+- [Messaging module](../Messaging/README.md)
