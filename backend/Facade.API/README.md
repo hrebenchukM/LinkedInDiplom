@@ -227,11 +227,11 @@ Full rules, services, and `INetworkClient`: [Network module README](../Network/R
 
 ### Content — `/api/content`
 
-Posts, comments, reactions, hashtags and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows` (see [Content module README](../Content/README.md)).
+Posts, comments, reactions, hashtags, saved posts, reposts, post views, mentions and media BFF over the **Content** core module. The solution is a **modular monolith prepared for microservices** on **.NET 8** (`TargetFramework net8.0`); the Content core owns PostgreSQL schema **`content`**: `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions` (see [Content module README](../Content/README.md)).
 
-**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration. Still out of scope: `saved_posts`, `reposts`, `post_views`, `mentions`.
+**Deferred:** `group_posts` (Network) is not implemented until **Content + Network** integration (separate phase).
 
-`userId` / `authorId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId` or `authorId`.
+`userId` / `authorId` / `viewerUserId` for all routes comes **only from JWT** (`NameIdentifier` / `sub`). **All endpoints require JWT** (no public routes). Request bodies must **not** contain the current user's `userId`, `authorId`, or `viewerUserId`.
 
 #### Media
 
@@ -299,9 +299,41 @@ Posts, comments, reactions, hashtags and media BFF over the **Content** core mod
 | DELETE | `/api/content/me/hashtags/{hashtagId}/follow` | Yes (soft unfollow) |
 | GET | `/api/content/me/hashtags/following` | Yes (active follows only) |
 
-**Rules:** all content routes require JWT; `userId`/`authorId` comes only from JWT; private post is visible only to author; deleted post does not accept comments/reactions; comment update/delete author-only; comment delete is soft delete (`deleted_at`); one reaction per `(user_id, post_id)`; repeated PUT updates `reaction_type`; DELETE reaction hard-deletes row; hashtag name normalized trim + lower; duplicate hashtag name → **400**; post hashtag attach/detach post owner only; duplicate post hashtag → **400**; user hashtag follow/unfollow JWT user only; duplicate active follow → **400**; re-follow after unfollow reactivates row; `comment_count` and `reaction_count` are updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` / `"Hashtag not found."` / `"Post hashtag not found."` / `"Hashtag follow not found."` → **404**; other business errors → **400**.
+#### Saved posts
 
-Migrations: `AddContentModule`, `AddContentCommentsAndReactions`, `AddContentHashtagsAndFollows` (applied via `ContentDbContext` on startup; history in schema `content`).
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts/{postId}/save` | Yes (JWT user only) |
+| DELETE | `/api/content/me/posts/{postId}/save` | Yes |
+| GET | `/api/content/me/saved-posts` | Yes (active saves only) |
+
+#### Reposts
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts/{postId}/repost` | Yes (cannot repost own post) |
+| DELETE | `/api/content/me/posts/{postId}/repost` | Yes |
+| GET | `/api/content/me/reposts` | Yes |
+| GET | `/api/content/posts/{postId}/reposts` | Yes (private post: empty list for non-author) |
+
+#### Post views
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/posts/{postId}/views` | Yes (`?source=` optional; IP/User-Agent from `HttpContext`) |
+| GET | `/api/content/me/posts/{postId}/views` | Yes (post author only) |
+
+#### Mentions
+
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/content/me/posts/{postId}/mentions` | Yes (`mentionedUserId` in body; author only) |
+| DELETE | `/api/content/me/posts/{postId}/mentions/{mentionedUserId}` | Yes (author only) |
+| GET | `/api/content/posts/{postId}/mentions` | Yes (private post: empty list for non-author) |
+
+**Rules:** all content routes require JWT; `userId`/`authorId`/`viewerUserId` comes only from JWT; private post visible only to author; saved posts save/unsave with reactivation; duplicate active save → **400**; repost own post forbidden; duplicate active repost → **400**; `repost_count` updated in service; post views append-only; record view IP/User-Agent from `HttpContext`; GET post views author-only; mentions add/remove author-only; self-mention → **400**; duplicate active mention → **400**; hashtag/reaction/comment rules unchanged; `"Post not found."` / `"Saved post not found."` / `"Repost not found."` / `"Mention not found."` / other listed not-found messages → **404**; other business errors → **400**.
+
+Migrations: `AddContentModule`, `AddContentCommentsAndReactions`, `AddContentHashtagsAndFollows`, `AddContentSavedRepostsViewsMentions` (applied via `ContentDbContext` on startup; history in schema `content`).
 
 Full rules, services, and `IContentClient`: [Content module README](../Content/README.md).
 
@@ -363,7 +395,7 @@ Docker is supported via root `Dockerfile` and `docker-compose.yml` (.NET 8 runti
 ✅ **Profile module** — full `profile` schema (`user_profiles`, `message_settings`, `profile_views`)  
 ✅ **Professional module** — full `professional` schema (companies through recommendations)  
 ✅ **Network module** — schema `network` (contacts, follows, blocked users, groups, pages) at `/api/network` (`group_posts` deferred until Content)  
-✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`) at `/api/content` (`saved_posts/reposts/post_views/mentions/group_posts` deferred)  
+✅ **Content module** — schema `content` (`posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`) at `/api/content` (`group_posts` deferred — separate Network + Content phase)  
 
 ## Related docs
 

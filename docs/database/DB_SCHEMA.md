@@ -126,7 +126,7 @@ Ref: profile_views.profile_owner_id > AspNetUsers.user_id
 Ref: profile_views.viewer_user_id > AspNetUsers.user_id
 
 
-// Просмотры постов (not implemented in Content v3)
+// Просмотры постов (v4 — implemented in Content; append-only)
 Table post_views {
   post_view_id Guid [primary key]
 
@@ -417,7 +417,7 @@ Table group_members {
 Ref: group_members.group_id > user_groups.group_id
 Ref: group_members.user_id > AspNetUsers.user_id
 
-// Посты групп
+// Посты групп (not implemented — Network + Content phase)
 Table group_posts {
   group_post_id Guid [primary key]
 
@@ -483,7 +483,8 @@ Ref: page_followers.user_id > AspNetUsers.user_id
 //   v1 — posts, media, post_media          (migration AddContentModule)
 //   v2 — comments, reactions                (migration AddContentCommentsAndReactions)
 //   v3 — hashtags, post_hashtags, user_hashtag_follows (migration AddContentHashtagsAndFollows)
-//   not implemented — saved_posts, reposts, post_views (see above), mentions, group_posts (Network)
+//   v4 — saved_posts, reposts, post_views, mentions (migration AddContentSavedRepostsViewsMentions)
+//   not implemented — group_posts (Network + Content integration; separate phase)
 //
 // EF: no FK to AspNetUsers; user_id stored as string. Hashtag name unique (normalized trim+lower in service).
 
@@ -608,7 +609,7 @@ Table user_hashtag_follows {
 Ref: user_hashtag_follows.user_id > AspNetUsers.user_id
 Ref: user_hashtag_follows.hashtag_id > hashtags.hashtag_id
 
-// Сохранённые посты (not implemented in Content v3)
+// Сохранённые посты (v4 — implemented; soft unsave via unsaved_at)
 Table saved_posts {
   saved_post_id Guid [primary key]
 
@@ -622,7 +623,7 @@ Table saved_posts {
 Ref: saved_posts.user_id > AspNetUsers.user_id
 Ref: saved_posts.post_id > posts.post_id
 
-// Репосты
+// Репосты (v4 — implemented; soft remove via removed_at; repost_count on posts)
 Table reposts {
   repost_id Guid [primary key]
 
@@ -856,7 +857,7 @@ Table user_activity {
 
 Ref: user_activity.user_id > AspNetUsers.user_id
 
-// Mentions
+// Mentions (v4 — implemented in Content; soft delete via deleted_at)
 Table mentions {
   mention_id Guid [primary key]
 

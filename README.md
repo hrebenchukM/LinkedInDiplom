@@ -120,7 +120,7 @@ Each **Facade module** follows: `Facade.*.Contracts` → `Facade.*.Services` →
 | `/api/profile` | Profile CRUD, avatar/header upload, message settings, profile views |
 | `/api/professional` | Career data: companies, experience, education, certificates, skills, languages, certificate skills, recommended skills by position, text recommendations |
 | `/api/network` | Social graph: contacts, follows, blocked users, groups, pages (JWT only) |
-| `/api/content` | Posts, media metadata, post-media links, comments, reactions, hashtags, post hashtags, hashtag follows (JWT only) |
+| `/api/content` | Posts, media, comments, reactions, hashtags, saved posts, reposts, post views, mentions (JWT only) |
 
 ### Auth (`/api/auth`)
 
@@ -193,11 +193,11 @@ Details: [Network module README](./backend/Network/README.md).
 
 ### Content (`/api/content`)
 
-**Modular monolith prepared for microservices** core + **ContentManagement** BFF (`TargetFramework net8.0`, schema **`content`**). All routes require **JWT**. `authorId` / `userId` is taken **only from JWT** (not from body). Bodies must **not** contain the current user's `userId` or `authorId`.
+**Modular monolith prepared for microservices** core + **ContentManagement** BFF (`TargetFramework net8.0`, schema **`content`**). All routes require **JWT**. `authorId` / `userId` / `viewerUserId` is taken **only from JWT** (not from body). Bodies must **not** contain the current user's `userId`, `authorId`, or `viewerUserId`.
 
-**Tables:** `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`. Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**.
+**Tables:** `posts`, `media`, `post_media`, `comments`, `reactions`, `hashtags`, `post_hashtags`, `user_hashtag_follows`, `saved_posts`, `reposts`, `post_views`, `mentions`. Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**, **`AddContentSavedRepostsViewsMentions`**.
 
-**Not in v3:** `saved_posts`, `reposts`, `post_views`, `mentions`. **`group_posts`** deferred until Content + Network integration.
+**Not in v4:** **`group_posts`** — deferred until Content + Network integration (separate phase).
 
 #### Media
 
@@ -258,7 +258,37 @@ Details: [Network module README](./backend/Network/README.md).
 | `/api/content/me/hashtags/{hashtagId}/follow` | POST, DELETE |
 | `/api/content/me/hashtags/following` | GET |
 
-**Rules:** all endpoints require JWT; `userId`/`authorId` is taken only from JWT; visibility v1 `public` / `private`; private post visible only to author; deleted post does not accept comments/reactions; media stores **Url** and **Type** only (no blob); post delete is soft delete (`deleted_at`); comment update/delete author-only and delete is soft delete (`deleted_at`); reaction works via upsert with one reaction per post/user and repeated PUT updates `reaction_type`; reaction DELETE removes row; hashtag name normalized trim + lower; duplicate hashtag name → **400**; post hashtag attach/detach post owner only; duplicate post hashtag → **400**; user hashtag follow/unfollow JWT user only; duplicate active follow → **400**; re-follow after unfollow reactivates row; `comment_count` / `reaction_count` updated in service; `"Post not found."` / `"Media not found."` / `"Post media not found."` / `"Comment not found."` / `"Reaction not found."` / `"Hashtag not found."` / `"Post hashtag not found."` / `"Hashtag follow not found."` → **404**; other business errors → **400**.
+#### Saved posts
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/posts/{postId}/save` | POST, DELETE |
+| `/api/content/me/saved-posts` | GET |
+
+#### Reposts
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/posts/{postId}/repost` | POST, DELETE |
+| `/api/content/me/reposts` | GET |
+| `/api/content/posts/{postId}/reposts` | GET |
+
+#### Post views
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/posts/{postId}/views` | POST (`?source=`) |
+| `/api/content/me/posts/{postId}/views` | GET (author only) |
+
+#### Mentions
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/content/me/posts/{postId}/mentions` | POST |
+| `/api/content/me/posts/{postId}/mentions/{mentionedUserId}` | DELETE |
+| `/api/content/posts/{postId}/mentions` | GET |
+
+**Rules:** all endpoints require JWT; `userId`/`authorId`/`viewerUserId` from JWT only; saved posts save/unsave with reactivation; duplicate active save → **400**; repost own post forbidden; duplicate active repost → **400**; `repost_count` updated in service; post views append-only; IP/User-Agent from `HttpContext`; GET post views author-only; mentions author-only; self-mention → **400**; duplicate active mention → **400**; v1–v3 rules unchanged; `"Post not found."` / `"Saved post not found."` / `"Repost not found."` / `"Mention not found."` and other listed not-found → **404**; other business errors → **400**.
 
 Details: [Content module README](./backend/Content/README.md).
 
@@ -359,18 +389,18 @@ The API uses JWT Bearer token authentication with:
 
 ### Content (Core)
 - **Modular monolith prepared for microservices** (**TargetFramework net8.0**); PostgreSQL schema: **`content`**
-- Tables: **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**, **`hashtags`**, **`post_hashtags`**, **`user_hashtag_follows`**
-- Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**
-- Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`, `CommentService`/`CommentResource`, `ReactionService`/`ReactionResource`, `HashtagService`/`HashtagResource`, `PostHashtagService`/`PostHashtagResource`, `UserHashtagFollowService`/`UserHashtagFollowResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`, `Comments`, `Reactions`, `Hashtags`, `PostHashtags`, `UserHashtagFollows`)
-- Visibility v1: `public` / `private`; media URL + type only; post/comment soft delete; reaction upsert + hard delete
-- **`group_posts`** deferred until Content + Network integration
+- Tables: **`posts`**, **`media`**, **`post_media`**, **`comments`**, **`reactions`**, **`hashtags`**, **`post_hashtags`**, **`user_hashtag_follows`**, **`saved_posts`**, **`reposts`**, **`post_views`**, **`mentions`**
+- Migrations: **`AddContentModule`**, **`AddContentCommentsAndReactions`**, **`AddContentHashtagsAndFollows`**, **`AddContentSavedRepostsViewsMentions`**
+- Services/resources: `PostService`/`PostResource`, `MediaService`/`MediaResource`, `PostMediaService`/`PostMediaResource`, `CommentService`/`CommentResource`, `ReactionService`/`ReactionResource`, `HashtagService`/`HashtagResource`, `PostHashtagService`/`PostHashtagResource`, `UserHashtagFollowService`/`UserHashtagFollowResource`, `SavedPostService`/`SavedPostResource`, `RepostService`/`RepostResource`, `PostViewService`/`PostViewResource`, `MentionService`/`MentionResource`; facade uses **`IContentClient`** (`Posts`, `Media`, `PostMedia`, `Comments`, `Reactions`, `Hashtags`, `PostHashtags`, `UserHashtagFollows`, `SavedPosts`, `Reposts`, `PostViews`, `Mentions`)
+- Visibility v1: `public` / `private`; media URL + type only; post/comment soft delete; reaction upsert + hard delete; saved/repost reactivation; `repost_count` in service
+- **`group_posts`** deferred until Content + Network integration (separate phase)
 - Exposed via **ContentManagement** facade (in-process client; microservice-ready seam)
 - See [backend/Content/README.md](./backend/Content/README.md) for architecture, security rules, and full endpoint list
 
 ### ContentManagement (Facade / BFF)
-- Posts, comments, reactions, hashtags and media API at `/api/content` (.NET 8, modular monolith BFF)
-- **All routes require JWT**; `authorId`/`userId` from JWT only (never in body)
-- Hashtags: create/get; post hashtags attach/list/detach; user hashtag follow/unfollow/list following
+- Posts, comments, reactions, hashtags, saved posts, reposts, post views, mentions and media API at `/api/content` (.NET 8, modular monolith BFF)
+- **All routes require JWT**; `authorId`/`userId`/`viewerUserId` from JWT only (never in body)
+- Saved posts, reposts, post views (append-only), mentions (author-only add/remove)
 - Maps via `IContentClient`
 
 ### ProfessionalManagement (Facade / BFF)
@@ -469,8 +499,8 @@ curl -X POST http://localhost:5000/api/auth/login \
 ✅ **ProfessionalManagement Facade** - `/api/professional`  
 ✅ **Network Core Module** - Schema `network`: contacts, follows, blocked users, groups, pages (8 tables; `group_posts` deferred)  
 ✅ **NetworkManagement Facade** - `/api/network` (JWT-only; 33 endpoints)  
-✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions, hashtags, post_hashtags, user_hashtag_follows (`saved_posts/reposts/post_views/mentions/group_posts` deferred)  
-✅ **ContentManagement Facade** - `/api/content` (JWT-only; hashtags/post hashtags/hashtag follows endpoints added)  
+✅ **Content Core Module** - Schema `content`: posts, media, post_media, comments, reactions, hashtags, post_hashtags, user_hashtag_follows, saved_posts, reposts, post_views, mentions (`group_posts` deferred — separate phase)  
+✅ **ContentManagement Facade** - `/api/content` (JWT-only; v4 saved/reposts/views/mentions endpoints added)  
 ✅ **Facade.API** - Single host, all modules integrated  
 ✅ **Docker Support** - docker-compose with PostgreSQL and uploads volume  
 ✅ **Database Migrations** - Automatic on startup  
