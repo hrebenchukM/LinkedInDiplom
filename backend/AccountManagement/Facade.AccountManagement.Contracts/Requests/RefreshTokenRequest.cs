@@ -2,7 +2,7 @@
 
 namespace Facade.AccountManagement.Contracts.Requests;
 
-// Запрос обновления токена
+// Запрос от фронта обновления токена
 public record RefreshTokenRequest
 {
     [Required]

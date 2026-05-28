@@ -5,6 +5,7 @@ using Identity.Contracts.Services;
 
 namespace Identity.Client.Resources;
 
+//прослойка, чтобы  проект был готов к микросервисам. —ейчас он просто вызывает сервис напр€мую, а в будущем его можно заменить на HTTP-клиент.
 public class ExternalAuthResource : IExternalAuthResource
 {
     private readonly IExternalAuthService _externalAuthService;

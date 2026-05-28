@@ -13,6 +13,7 @@ namespace Facade.ContentManagement.Controllers.Controllers;
 /// </summary>
 public abstract class ContentManagementControllerBase : ControllerBase
 {
+    //Это список стандартных ошибок.
     protected const string PostNotFoundError = "Post not found.";
     protected const string CommentNotFoundError = "Comment not found.";
     protected const string MediaNotFoundError = "Media not found.";
@@ -33,6 +34,7 @@ public abstract class ContentManagementControllerBase : ControllerBase
         ContentService = contentManagementService;
     }
 
+    // Это список ошибок, которые считаются 404 Not Found.
     private static readonly HashSet<string> PostAndMediaNotFoundErrors = new(StringComparer.Ordinal)
     {
         PostNotFoundError,
@@ -100,8 +102,11 @@ public abstract class ContentManagementControllerBase : ControllerBase
         MentionNotFoundError
     };
 
-    private static readonly HashSet<string> NoNotFoundErrors = new(StringComparer.Ordinal);
+    private static readonly HashSet<string> NoNotFoundErrors = new(StringComparer.Ordinal);//А если ошибка другая — вернёт:400 Bad Request
 
+    //Это готовый метод для ошибок поста.Он говорит:
+    //Проверь ошибки в PostResponse.Если там ошибка “post not found” или “media not found” — верни 404. Иначе 400.
+    //Чтобы в каждом контроллере не писать одно и то же вручную.
     protected IActionResult MapPostError(PostResponse response) =>
         MapErrors(response, response.Errors, PostAndMediaNotFoundErrors);
 
@@ -138,11 +143,19 @@ public abstract class ContentManagementControllerBase : ControllerBase
     protected IActionResult MapMentionError(MentionResponse response) =>
         MapErrors(response, response.Errors, MentionNotFoundErrors);
 
+    //Это достаёт id текущего пользователя из JWT-токена.
+    //Он проверяет два варианта:
+
+    //ClaimTypes.NameIdentifier
+    //sub
     protected string? GetCurrentUserId() =>
         // Поддерживаем оба варианта claim: NameIdentifier и sub.
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 
+
+    //Если среди ошибок есть ошибка “не найдено” — верни 404.
+    //Если ошибка другая — верни 400.
     protected IActionResult MapErrors<TResponse>(
         TResponse response,
         IEnumerable<string> errors,
@@ -156,3 +169,9 @@ public abstract class ContentManagementControllerBase : ControllerBase
         return new BadRequestObjectResult(response);
     }
 }
+//общая база для всех Content-контроллеров.
+//не дублировать код
+//единым способом получать userId из токена
+//единым способом обрабатывать ошибки
+//возвращать правильные HTTP-коды
+//держать общий ContentService

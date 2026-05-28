@@ -19,6 +19,7 @@ public class UserResource : IUserResource
     }
 
     // Просто передаём вызов в сервис
+    // прослойка, чтобы  проект был готов к микросервисам. Сейчас он просто вызывает сервис напрямую, а в будущем его можно заменить на HTTP-клиент.
     public Task<UserDto?> GetAsync(GetUserByIdParameters parameters)
         => _userService.GetAsync(parameters);
 

@@ -1,7 +1,7 @@
 using Facade.AccountManagement.Contracts.DTOs;
 
 namespace Facade.AccountManagement.Contracts.Responses;
-
+//ответ бэка после входа через Google.
 public class ExternalLoginResponse
 {
     public bool Success { get; set; }

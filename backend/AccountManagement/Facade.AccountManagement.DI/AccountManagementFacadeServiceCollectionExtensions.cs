@@ -17,3 +17,6 @@ public static class AccountManagementFacadeServiceCollectionExtensions
         return services;
     }
 }
+//этот DI-файл заранее объяснил программе:
+//если просят IAccountManagementService, дай AccountManagementService.
+//Внедрение зависимостей — это когда класс не создаёт нужные ему объекты сам, а получает их готовыми снаружи.

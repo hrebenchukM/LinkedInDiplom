@@ -14,3 +14,23 @@ public record RefreshTokenResult
     // Список ошибок, если обновление не удалось
     public IEnumerable<string> Errors { get; init; } = Array.Empty<string>();
 }
+
+//что сервис вернул
+//Result = ответ внутри backend-а от сервиса
+//Response = ответ наружу, который уходит на frontend
+
+//Frontend
+//   ↓
+//RefreshTokenRequest
+//   ↓
+//Facade Controller
+//   ↓
+//RefreshTokenParameters
+//   ↓
+//Identity Service
+//   ↓
+//RefreshTokenResult
+//   ↓
+//Facade превращает в RefreshTokenResponse
+//   ↓
+//Frontend

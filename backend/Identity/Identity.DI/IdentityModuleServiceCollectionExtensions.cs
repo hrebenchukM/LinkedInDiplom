@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using static System.Net.WebRequestMethods;
 
 namespace Identity.DI;
 
@@ -27,6 +28,7 @@ public static class IdentityModuleServiceCollectionExtensions
         IConfiguration configuration,
         string connectionString)
     {
+        //Это берёт настройки токена из appsettings.json.чтобы backend умел создавать JWT access token.
         services.Configure<JwtSettings>(options =>
         {
             configuration.GetSection("JwtSettings").Bind(options);
@@ -59,15 +61,31 @@ public static class IdentityModuleServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IExternalAuthService, ExternalAuthService>();
+       
+        //Нужно, чтобы backend мог делать HTTP - запросы.
+        //Например, для Google login backend может проверить токен у Google.
         services.AddHttpClient();
 
+        //для внутренних событий.пользователь зарегистрировался
+        //события хранятся/обрабатываются внутри приложения в памяти.
         services.AddScoped<IDomainEventPublisher, InMemoryDomainEventPublisher>();
+
+        //Это переходники между Identity.Client и настоящими сервисами.
+        //Сейчас:Resource → вызывает сервис напрямую
+        //Потом можно сделать:Resource → отправляет HTTP-запрос в Identity microservice
 
         services.AddScoped<IUserResource, UserResource>();
         services.AddScoped<IAuthenticationResource, AuthenticationResource>();
         services.AddScoped<IExternalAuthResource, ExternalAuthResource>();
+        //лавный клиент Identity-модуля.
         services.AddScoped<IIdentityClient, IdentityClient>();
 
         return services;
     }
 }
+
+//снова Dependency Injection:
+//файл говорит ASP.NET:
+//“Подключи базу, пользователей, пароли, JWT, сервисы, Google login, ресурсы и IdentityClient.”
+//То есть чтобы в Program.cs не писать 100 строк, ты пишешь одну.builder.Services.AddIdentityModule(configuration, connectionString);
+//И весь Identity-модуль подключается.

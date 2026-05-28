@@ -1,4 +1,6 @@
-﻿namespace Identity.Events.Contracts.Events;
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace Identity.Events.Contracts.Events;
 
 // Событие: пользователь зарегистрировался
 public record UserRegisteredEvent
@@ -25,3 +27,17 @@ public record UserRegisteredEvent
 //отправить email
 //создать профиль
 //записать лог
+
+
+//UserRegisteredEvent - бумажка с информацией
+//        ↓
+//Profile module создаёт профиль
+//        ↓
+//Email module отправляет письмо
+//        ↓
+//ActivityLog пишет лог
+//        ↓
+//Notifications создаёт уведомление
+
+
+//А IDomainEventPublisher — это тот, кто эту бумажку раздаёт всем заинтересованным обработчикам.

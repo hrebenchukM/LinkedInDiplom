@@ -4,7 +4,7 @@ using Identity.Contracts.Results;
 namespace Identity.Client.Contracts.Resources;
 
 // Ресурс для авторизации и токенов
-public interface IAuthenticationResource
+public interface IAuthenticationResource//(договор)
 {
     // Логин
     Task<LoginResult> LoginAsync(LoginParameters parameters);
@@ -18,3 +18,11 @@ public interface IAuthenticationResource
     // Отозвать все refresh tokens пользователя
     Task<RevokeTokenResult> RevokeAllUserTokensAsync(string userId);
 }
+
+//Чтобы Facade/IdentityClient не зависели от конкретного класса напрямую.
+//Они знают только интерфейс:IAuthenticationResource
+//А кто именно внутри будет выполнять работу — не важно.
+
+
+//А потом, если Identity вынесешь в микросервис, можно сделать:HttpAuthenticationResource
+//И он будет не напрямую сервис вызывать, а отправлять HTTP-запросы.

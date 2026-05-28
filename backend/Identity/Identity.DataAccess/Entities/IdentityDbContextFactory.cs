@@ -19,8 +19,17 @@ public class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbCo
 
         optionsBuilder.UseNpgsql(
             "Host=localhost;Port=5432;Database=linkedin_dev;Username=postgres;Password=postgres",
-            npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "identity"));//говорим:используй PostgreSQL
+            npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "identity"));//говорим:используй PostgreSQL//таблицу истории миграций храни в схеме identity.
+        //EF хранит там список уже применённых миграций Чтобы не применять одну и ту же миграцию два раза.
 
         return new IdentityDbContext(optionsBuilder.Options);// возвращаем готовый DbContext
     }
 }
+//IdentityDbContextFactory = запасной способ создать IdentityDbContext для миграций
+
+
+//В обычной работе приложения этот класс почти не участвует.
+
+//Когда  запускаешь API через Swagger — обычно работает Program.cs.
+
+//Когда  создаёшь миграции через терминал — помогает IdentityDbContextFactory.

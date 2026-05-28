@@ -13,3 +13,12 @@ public interface IUserResource
     // Зарегистрировать пользователя
     Task<RegisterUserResult> RegisterAsync(RegisterUserParameters parameters);
 }
+
+
+//Чтобы Facade/IdentityClient не зависели от конкретного класса напрямую.
+//Они знают только интерфейс:IUserResource
+//А кто именно внутри будет выполнять работу — не важно.
+
+
+//А потом, если Identity вынесешь в микросервис, можно сделать:HttpUserResource
+//И он будет не напрямую сервис вызывать, а отправлять HTTP-запросы.

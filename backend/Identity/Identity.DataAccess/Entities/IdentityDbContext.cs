@@ -1,4 +1,5 @@
-﻿using Identity.DataAccess.Entities;
+﻿using System.Security.Principal;
+using Identity.DataAccess.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,3 +42,8 @@ public class IdentityDbContext : IdentityDbContext<ApplicationUser>//“моя �
         });
     }
 }
+
+
+//dentityDbContext нужен, чтобы EF Core понял:
+
+//“Создай мне Identity-таблицы, добавь таблицу RefreshTokens, положи всё в схему identity и настрой связь пользователь → токены.”

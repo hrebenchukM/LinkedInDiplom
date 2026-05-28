@@ -12,3 +12,7 @@ public record RegisterUserParameters
     // Пароль пользователя
     public string Password { get; init; } = default!;
 }
+
+//Он передаёт в Identity-сервис вещи
+//ExternalLoginRequest — это данные, которые пришли с фронта.
+//ExternalLoginParameters - это почти те же данные, но уже для передачи внутри backend-а между слоями

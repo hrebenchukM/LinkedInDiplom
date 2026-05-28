@@ -18,3 +18,6 @@ public class ApplicationUser : IdentityUser//“Я беру готового п�
     //у пользователя может быть МНОГО refresh токенов - навигационная связь 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }
+
+//Entity = как данные хранятся в базе
+//DTO = как данные отдаём наружу/front-end
