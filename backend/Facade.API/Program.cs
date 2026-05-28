@@ -11,7 +11,7 @@ using Microsoft.Extensions.FileProviders; // PhysicalFileProvider для uploads
 using Microsoft.IdentityModel.Tokens; // TokenValidationParameters, SymmetricSecurityKey
 using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
 using Professional.DI;
-using Facade.ProfessionalManagement.Controllers.Controllers;
+using Facade.ProfessionalManagement.Controllers.Controllers; // Professional*Controller
 using Facade.ProfessionalManagement.DI;
 using Facade.NetworkManagement.Controllers.Controllers;
 using Facade.NetworkManagement.DI;
@@ -77,14 +77,14 @@ builder.Services.AddEventsManagementFacade();
 // Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
-    .AddApplicationPart(typeof(ProfileController).Assembly)
-    .AddApplicationPart(typeof(ProfessionalController).Assembly)
-    .AddApplicationPart(typeof(NetworkController).Assembly)
-    .AddApplicationPart(typeof(ContentController).Assembly)
-    .AddApplicationPart(typeof(MessagingController).Assembly)
-    .AddApplicationPart(typeof(JobsController).Assembly)
-    .AddApplicationPart(typeof(NotificationsController).Assembly)
-    .AddApplicationPart(typeof(EventsController).Assembly);
+    .AddApplicationPart(typeof(ProfileProfilesController).Assembly)
+    .AddApplicationPart(typeof(ProfessionalExperiencesController).Assembly)
+    .AddApplicationPart(typeof(NetworkContactsController).Assembly)
+    .AddApplicationPart(typeof(ContentPostsController).Assembly)
+    .AddApplicationPart(typeof(MessagingChatsController).Assembly)
+    .AddApplicationPart(typeof(JobsVacanciesController).Assembly)
+    .AddApplicationPart(typeof(NotificationsItemsController).Assembly)
+    .AddApplicationPart(typeof(EventsEventsController).Assembly);
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");

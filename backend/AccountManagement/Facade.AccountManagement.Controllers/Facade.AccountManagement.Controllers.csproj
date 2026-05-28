@@ -10,6 +10,7 @@
 	</ItemGroup>
   <ItemGroup>
 	  <ProjectReference Include="..\Facade.AccountManagement.Contracts\Facade.AccountManagement.Contracts.csproj" />
+	  <ProjectReference Include="..\Facade.AccountManagement.DI\Facade.AccountManagement.DI.csproj" />
 	  <ProjectReference Include="..\Facade.AccountManagement.Services\Facade.AccountManagement.Services.csproj" />
   </ItemGroup>
 
