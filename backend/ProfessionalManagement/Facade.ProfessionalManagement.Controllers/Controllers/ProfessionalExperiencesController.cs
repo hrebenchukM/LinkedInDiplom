@@ -13,7 +13,6 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
     {
     }
 
-    // GET api/professional/me/experiences
     [Authorize]
     [HttpGet("me/experiences")]
     [ProducesResponseType(200)]
@@ -23,14 +22,15 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var experiences = await ProfessionalService.GetMyExperiencesAsync(userId);
+        var items = await ProfessionalService.GetMyExperiencesAsync(userId);
 
-        return Ok(experiences);
+        return Ok(items);
     }
 
-    // GET api/professional/me/experiences/{experienceId}
     [Authorize]
     [HttpGet("me/experiences/{experienceId:guid}")]
     [ProducesResponseType(200)]
@@ -41,19 +41,22 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var experience = await ProfessionalService.GetMyExperienceByIdAsync(
+        var item = await ProfessionalService.GetMyExperienceByIdAsync(
             userId,
             experienceId);
 
-        if (experience == null)
+        if (item == null)
+        {
             return NotFound();
+        }
 
-        return Ok(experience);
+        return Ok(item);
     }
 
-    // POST api/professional/me/experiences
     [Authorize]
     [HttpPost("me/experiences")]
     [ProducesResponseType(typeof(ExperienceResponse), 200)]
@@ -62,24 +65,29 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
     public async Task<IActionResult> CreateMyExperience([FromBody] CreateExperienceRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfessionalService.CreateMyExperienceAsync(
             userId,
             request);
 
         if (!response.Success)
+        {
             return MapExperienceError(response);
+        }
 
         return Ok(response);
     }
 
-    // PUT api/professional/me/experiences/{experienceId}
     [Authorize]
     [HttpPut("me/experiences/{experienceId:guid}")]
     [ProducesResponseType(typeof(ExperienceResponse), 200)]
@@ -91,12 +99,16 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         [FromBody] UpdateExperienceRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfessionalService.UpdateMyExperienceAsync(
             userId,
@@ -104,12 +116,13 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
             request);
 
         if (!response.Success)
+        {
             return MapExperienceError(response);
+        }
 
         return Ok(response);
     }
 
-    // PATCH api/professional/me/experiences/{experienceId}
     [Authorize]
     [HttpPatch("me/experiences/{experienceId:guid}")]
     [ProducesResponseType(typeof(ExperienceResponse), 200)]
@@ -123,7 +136,9 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfessionalService.PatchMyExperienceAsync(
             userId,
@@ -131,12 +146,13 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
             request);
 
         if (!response.Success)
+        {
             return MapExperienceError(response);
+        }
 
         return Ok(response);
     }
 
-    // DELETE api/professional/me/experiences/{experienceId}
     [Authorize]
     [HttpDelete("me/experiences/{experienceId:guid}")]
     [ProducesResponseType(typeof(ExperienceResponse), 200)]
@@ -147,14 +163,18 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfessionalService.DeleteMyExperienceAsync(
             userId,
             experienceId);
 
         if (!response.Success)
+        {
             return MapExperienceError(response);
+        }
 
         return Ok(response);
     }

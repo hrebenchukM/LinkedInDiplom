@@ -13,7 +13,6 @@ public class ProfileProfilesController : ProfileManagementControllerBase
     {
     }
 
-    // GET api/profile/me
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(200)]
@@ -24,17 +23,20 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var profile = await ProfileService.GetMyProfileAsync(userId);
+        var item = await ProfileService.GetMyProfileAsync(userId);
 
-        if (profile == null)
+        if (item == null)
+        {
             return NotFound();
+        }
 
-        return Ok(profile);
+        return Ok(item);
     }
 
-    // PUT api/profile/me
     [Authorize]
     [HttpPut("me")]
     [ProducesResponseType(typeof(ProfileResponse), 200)]
@@ -45,31 +47,35 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfileService.UpdateMyProfileAsync(userId, request);
 
         if (!response.Success)
+        {
             return MapProfileError(response);
+        }
 
         return Ok(response);
     }
 
-    // GET api/profile/{userId}
     [HttpGet("{userId}")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetProfileByUserId(string userId)
     {
-        var profile = await ProfileService.GetProfileByUserIdAsync(userId);
+        var item = await ProfileService.GetProfileByUserIdAsync(userId);
 
-        if (profile == null)
+        if (item == null)
+        {
             return NotFound();
+        }
 
-        return Ok(profile);
+        return Ok(item);
     }
 
-    // PATCH api/profile/me
     [Authorize]
     [HttpPatch("me")]
     [ProducesResponseType(typeof(ProfileResponse), 200)]
@@ -80,12 +86,16 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ProfileService.PatchMyProfileAsync(userId, request);
 
         if (!response.Success)
+        {
             return MapProfileError(response);
+        }
 
         return Ok(response);
     }

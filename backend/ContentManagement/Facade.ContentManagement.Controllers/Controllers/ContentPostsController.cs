@@ -23,17 +23,23 @@ public class ContentPostsController : ContentManagementControllerBase
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ContentService.CreatePostAsync(userId, request);
 
         if (!response.Success)
+        {
             return MapPostError(response);
+        }
 
         return Ok(response);
     }
@@ -48,11 +54,13 @@ public class ContentPostsController : ContentManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var posts = await ContentService.GetMyPostsAsync(userId);
+        var items = await ContentService.GetMyPostsAsync(userId);
 
-        return Ok(posts);
+        return Ok(items);
     }
 
     // GET api/content/posts/{postId}
@@ -66,14 +74,18 @@ public class ContentPostsController : ContentManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var post = await ContentService.GetPostByIdAsync(userId, postId);
+        var item = await ContentService.GetPostByIdAsync(userId, postId);
 
-        if (post == null)
+        if (item == null)
+        {
             return NotFound();
+        }
 
-        return Ok(post);
+        return Ok(item);
     }
 
     // PATCH api/content/me/posts/{postId}
@@ -88,17 +100,23 @@ public class ContentPostsController : ContentManagementControllerBase
         [FromBody] UpdatePostRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ContentService.UpdatePostAsync(userId, postId, request);
 
         if (!response.Success)
+        {
             return MapPostError(response);
+        }
 
         return Ok(response);
     }
@@ -114,12 +132,16 @@ public class ContentPostsController : ContentManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ContentService.DeletePostAsync(userId, postId);
 
         if (!response.Success)
+        {
             return MapPostError(response);
+        }
 
         return Ok(response);
     }
@@ -136,17 +158,23 @@ public class ContentPostsController : ContentManagementControllerBase
         [FromBody] AttachPostMediaRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ContentService.AttachPostMediaAsync(userId, postId, request);
 
         if (!response.Success)
+        {
             return MapPostMediaError(response);
+        }
 
         return Ok(response);
     }
@@ -161,11 +189,13 @@ public class ContentPostsController : ContentManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var media = await ContentService.GetPostMediaAsync(userId, postId);
+        var items = await ContentService.GetPostMediaAsync(userId, postId);
 
-        return Ok(media);
+        return Ok(items);
     }
 
     // DELETE api/content/me/posts/{postId}/media/{mediaId}
@@ -179,12 +209,16 @@ public class ContentPostsController : ContentManagementControllerBase
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await ContentService.DetachPostMediaAsync(userId, postId, mediaId);
 
         if (!response.Success)
+        {
             return MapPostMediaError(response);
+        }
 
         return Ok(response);
     }

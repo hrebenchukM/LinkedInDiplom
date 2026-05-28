@@ -20,10 +20,12 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var notifications = await NotificationsService.GetMyNotificationsAsync(userId, isRead, limit);
-        return Ok(notifications);
+        var items = await NotificationsService.GetMyNotificationsAsync(userId, isRead, limit);
+        return Ok(items);
     }
 
     [Authorize]
@@ -35,13 +37,17 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var notification = await NotificationsService.GetNotificationByIdAsync(userId, notificationId);
-        if (notification is null)
+        var item = await NotificationsService.GetNotificationByIdAsync(userId, notificationId);
+        if (item is null)
+        {
             return NotFound();
+        }
 
-        return Ok(notification);
+        return Ok(item);
     }
 
     [Authorize]
@@ -54,11 +60,15 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await NotificationsService.MarkNotificationReadAsync(userId, notificationId);
         if (!response.Success)
+        {
             return MapNotificationError(response);
+        }
 
         return Ok(response);
     }
@@ -72,11 +82,15 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await NotificationsService.MarkAllNotificationsReadAsync(userId);
         if (!response.Success)
+        {
             return MapNotificationError(response);
+        }
 
         return Ok(response);
     }
@@ -91,11 +105,15 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await NotificationsService.DeleteNotificationAsync(userId, notificationId);
         if (!response.Success)
+        {
             return MapNotificationError(response);
+        }
 
         return Ok(response);
     }

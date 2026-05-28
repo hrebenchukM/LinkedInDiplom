@@ -21,15 +21,21 @@ public class JobsVacanciesController : JobsManagementControllerBase
     public async Task<IActionResult> CreateVacancy([FromBody] CreateVacancyRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await JobsService.CreateVacancyAsync(userId, request);
         if (!response.Success)
+        {
             return MapVacancyError(response);
+        }
 
         return Ok(response);
     }
@@ -42,10 +48,12 @@ public class JobsVacanciesController : JobsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var vacancies = await JobsService.GetVacanciesAsync(userId, query, location, companyId);
-        return Ok(vacancies);
+        var items = await JobsService.GetVacanciesAsync(userId, query, location, companyId);
+        return Ok(items);
     }
 
     [Authorize]
@@ -57,13 +65,17 @@ public class JobsVacanciesController : JobsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var vacancy = await JobsService.GetVacancyByIdAsync(userId, vacancyId);
-        if (vacancy is null)
+        var item = await JobsService.GetVacancyByIdAsync(userId, vacancyId);
+        if (item is null)
+        {
             return NotFound();
+        }
 
-        return Ok(vacancy);
+        return Ok(item);
     }
 
     [Authorize]
@@ -75,15 +87,21 @@ public class JobsVacanciesController : JobsManagementControllerBase
     public async Task<IActionResult> UpdateVacancy(Guid vacancyId, [FromBody] UpdateVacancyRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await JobsService.UpdateVacancyAsync(userId, vacancyId, request);
         if (!response.Success)
+        {
             return MapVacancyError(response);
+        }
 
         return Ok(response);
     }
@@ -98,11 +116,15 @@ public class JobsVacanciesController : JobsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await JobsService.DeleteVacancyAsync(userId, vacancyId);
         if (!response.Success)
+        {
             return MapVacancyError(response);
+        }
 
         return Ok(response);
     }

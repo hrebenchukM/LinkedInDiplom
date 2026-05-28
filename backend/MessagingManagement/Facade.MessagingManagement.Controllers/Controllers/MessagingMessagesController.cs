@@ -22,15 +22,21 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     public async Task<IActionResult> SendMessage(Guid chatId, [FromBody] SendMessageRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await MessagingService.SendMessageAsync(userId, chatId, request);
         if (!response.Success)
+        {
             return MapMessageError(response);
+        }
 
         return Ok(response);
     }
@@ -43,10 +49,12 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var messages = await MessagingService.GetChatMessagesAsync(userId, chatId);
-        return Ok(messages);
+        var items = await MessagingService.GetChatMessagesAsync(userId, chatId);
+        return Ok(items);
     }
 
     [Authorize]
@@ -58,13 +66,17 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var message = await MessagingService.GetMessageByIdAsync(userId, messageId);
-        if (message == null)
+        var item = await MessagingService.GetMessageByIdAsync(userId, messageId);
+        if (item == null)
+        {
             return NotFound();
+        }
 
-        return Ok(message);
+        return Ok(item);
     }
 
     [Authorize]
@@ -76,15 +88,21 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     public async Task<IActionResult> EditMessage(Guid messageId, [FromBody] EditMessageRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await MessagingService.EditMessageAsync(userId, messageId, request);
         if (!response.Success)
+        {
             return MapMessageError(response);
+        }
 
         return Ok(response);
     }
@@ -99,11 +117,15 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await MessagingService.DeleteMessageAsync(userId, messageId);
         if (!response.Success)
+        {
             return MapMessageError(response);
+        }
 
         return Ok(response);
     }

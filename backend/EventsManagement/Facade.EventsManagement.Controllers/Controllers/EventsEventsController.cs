@@ -21,15 +21,21 @@ public class EventsEventsController : EventsManagementControllerBase
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await EventsService.CreateEventAsync(userId, request);
         if (!response.Success)
+        {
             return MapError(response);
+        }
 
         return Ok(response);
     }
@@ -42,10 +48,12 @@ public class EventsEventsController : EventsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var events = await EventsService.GetMyEventsAsync(userId, limit, fromStartAt, toStartAt);
-        return Ok(events);
+        var items = await EventsService.GetMyEventsAsync(userId, limit, fromStartAt, toStartAt);
+        return Ok(items);
     }
 
     [Authorize]
@@ -57,13 +65,17 @@ public class EventsEventsController : EventsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
-        var evt = await EventsService.GetEventByIdAsync(eventId);
-        if (evt is null)
+        var item = await EventsService.GetEventByIdAsync(eventId);
+        if (item is null)
+        {
             return NotFound();
+        }
 
-        return Ok(evt);
+        return Ok(item);
     }
 
     [Authorize]
@@ -75,15 +87,21 @@ public class EventsEventsController : EventsManagementControllerBase
     public async Task<IActionResult> UpdateEvent(Guid eventId, [FromBody] UpdateEventRequest request)
     {
         if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await EventsService.UpdateEventAsync(userId, eventId, request);
         if (!response.Success)
+        {
             return MapError(response);
+        }
 
         return Ok(response);
     }
@@ -98,11 +116,15 @@ public class EventsEventsController : EventsManagementControllerBase
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
+        {
             return Unauthorized();
+        }
 
         var response = await EventsService.DeleteEventAsync(userId, eventId);
         if (!response.Success)
+        {
             return MapError(response);
+        }
 
         return Ok(response);
     }
