@@ -25,5 +25,6 @@ public record UpdateExperienceRequest
 
     public DateOnly? EndDate { get; init; }
 
+    [MaxLength(4000)]
     public string? Description { get; init; }
 }

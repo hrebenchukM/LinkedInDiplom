@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 
 // Запрос на частичное обновление настроек сообщений (PATCH).
@@ -6,6 +8,7 @@ public record PatchMessageSettingsRequest
 {
     public bool? OfficeAbsenceEnabled { get; init; }
 
+    [StringLength(1000)]
     public string? OfficeAbsenceMessage { get; init; }
 
     public bool? NotificationsEnabled { get; init; }

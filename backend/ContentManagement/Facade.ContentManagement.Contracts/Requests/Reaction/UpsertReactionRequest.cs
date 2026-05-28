@@ -6,5 +6,6 @@ namespace Facade.ContentManagement.Contracts.Requests.Reaction;
 public record UpsertReactionRequest
 {
     [Required]
+    [StringLength(50, MinimumLength = 1)]
     public string ReactionType { get; init; } = default!;
 }

@@ -6,5 +6,6 @@ namespace Facade.ContentManagement.Contracts.Requests.Hashtag;
 public record CreateHashtagRequest
 {
     [Required]
+    [StringLength(100, MinimumLength = 1)]
     public string Name { get; init; } = default!;
 }

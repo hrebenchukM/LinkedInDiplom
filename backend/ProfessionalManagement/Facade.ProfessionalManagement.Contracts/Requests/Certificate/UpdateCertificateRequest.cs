@@ -23,5 +23,6 @@ public record UpdateCertificateRequest
     public string? AccreditationId { get; init; }
 
     [MaxLength(500)]
+    [Url]
     public string? OrganizationUrl { get; init; }
 }

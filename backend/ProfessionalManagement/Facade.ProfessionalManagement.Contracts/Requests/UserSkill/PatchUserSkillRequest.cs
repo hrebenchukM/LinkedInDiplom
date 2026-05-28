@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 
 // Запрос на частичное обновление навыка пользователя.
@@ -6,6 +8,7 @@ public record PatchUserSkillRequest
 {
     public Guid? SkillId { get; init; }
 
+    [MaxLength(100)]
     public string? Level { get; init; }
 
     public bool? IsMain { get; init; }

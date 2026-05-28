@@ -6,5 +6,6 @@ namespace Facade.ContentManagement.Contracts.Requests.Comment;
 public record UpdateCommentRequest
 {
     [Required]
+    [StringLength(4000, MinimumLength = 1)]
     public string Content { get; init; } = default!;
 }

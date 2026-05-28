@@ -10,8 +10,10 @@ public record CreateAcademyRequest
     public string Name { get; init; } = default!;
 
     [MaxLength(500)]
+    [Url]
     public string? LogoUrl { get; init; }
 
     [MaxLength(500)]
+    [Url]
     public string? WebsiteUrl { get; init; }
 }

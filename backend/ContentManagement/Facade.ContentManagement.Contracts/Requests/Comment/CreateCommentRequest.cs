@@ -6,6 +6,7 @@ namespace Facade.ContentManagement.Contracts.Requests.Comment;
 public record CreateCommentRequest
 {
     [Required]
+    [StringLength(4000, MinimumLength = 1)]
     public string Content { get; init; } = default!;
 
     public Guid? ParentCommentId { get; init; }
