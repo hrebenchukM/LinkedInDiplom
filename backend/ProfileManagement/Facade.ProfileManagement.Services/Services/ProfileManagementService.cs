@@ -1,4 +1,4 @@
-﻿using Facade.ProfileManagement.Contracts.DTOs;
+using Facade.ProfileManagement.Contracts.DTOs;
 using FacadeMessageSettingsDto = Facade.ProfileManagement.Contracts.DTOs.MessageSettingsDto;
 using FacadeProfileViewDto = Facade.ProfileManagement.Contracts.DTOs.ProfileViewDto;
 using Facade.ProfileManagement.Contracts.Options;
@@ -24,7 +24,7 @@ public partial class ProfileManagementService : IProfileManagementService
         _uploadsOptions = uploadsOptions.Value;
     }
 
-    private static ProfileDto MapToFacadeDto(UserProfileDto profile)
+    private static ProfileDto MapProfileToFacadeDto(UserProfileDto profile)
     {
         return new ProfileDto
         {
@@ -53,7 +53,7 @@ public partial class ProfileManagementService : IProfileManagementService
         };
     }
 
-    private static FacadeMessageSettingsDto MapToFacadeDto(
+    private static FacadeMessageSettingsDto MapMessageSettingsToFacadeDto(
         Profile.Contracts.DTOs.MessageSettingsDto settings)
     {
         return new FacadeMessageSettingsDto
@@ -68,7 +68,7 @@ public partial class ProfileManagementService : IProfileManagementService
         };
     }
 
-    private static FacadeProfileViewDto MapToFacadeDto(Profile.Contracts.DTOs.ProfileViewDto view)
+    private static FacadeProfileViewDto MapProfileViewToFacadeDto(Profile.Contracts.DTOs.ProfileViewDto view)
     {
         return new FacadeProfileViewDto
         {

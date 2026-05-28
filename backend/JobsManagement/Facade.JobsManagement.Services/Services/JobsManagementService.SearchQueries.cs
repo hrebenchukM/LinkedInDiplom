@@ -17,7 +17,7 @@ public partial class JobsManagementService
             Radius = request.Radius
         });
 
-        return Map(result);
+        return MapSearchQueryResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<JobSearchQueryDto>> GetMySearchQueriesAsync(string userId)
@@ -27,7 +27,7 @@ public partial class JobsManagementService
             UserId = userId
         });
 
-        return queries.Select(Map).ToList();
+        return queries.Select(MapSearchQueryToFacadeDto).ToList();
     }
 
     public async Task<JobSearchQueryDto?> GetSearchQueryByIdAsync(string userId, Guid searchId)
@@ -38,7 +38,7 @@ public partial class JobsManagementService
             SearchId = searchId
         });
 
-        return query is null ? null : Map(query);
+        return query is null ? null : MapSearchQueryToFacadeDto(query);
     }
 
     public async Task<JobSearchQueryResponse> DeleteSearchQueryAsync(string userId, Guid searchId)
@@ -49,6 +49,6 @@ public partial class JobsManagementService
             SearchId = searchId
         });
 
-        return Map(result);
+        return MapSearchQueryResultToFacadeResponse(result);
     }
 }

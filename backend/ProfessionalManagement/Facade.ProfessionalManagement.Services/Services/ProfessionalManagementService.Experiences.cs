@@ -17,7 +17,7 @@ public partial class ProfessionalManagementService
             });
 
         return experiences
-            .Select(MapToFacadeDto)
+            .Select(MapExperienceToFacadeDto)
             .ToList();
     }
 
@@ -31,7 +31,7 @@ public partial class ProfessionalManagementService
                 ExperienceId = experienceId
             });
 
-        return experience == null ? null : MapToFacadeDto(experience);
+        return experience == null ? null : MapExperienceToFacadeDto(experience);
     }
 
     // Создать мой опыт работы
@@ -56,7 +56,7 @@ public partial class ProfessionalManagementService
         return new ExperienceResponse
         {
             Success = result.Succeeded,
-            Experience = result.Experience == null ? null : MapToFacadeDto(result.Experience),
+            Experience = result.Experience == null ? null : MapExperienceToFacadeDto(result.Experience),
             Errors = result.Errors
         };
     }
@@ -85,7 +85,7 @@ public partial class ProfessionalManagementService
         return new ExperienceResponse
         {
             Success = result.Succeeded,
-            Experience = result.Experience == null ? null : MapToFacadeDto(result.Experience),
+            Experience = result.Experience == null ? null : MapExperienceToFacadeDto(result.Experience),
             Errors = result.Errors
         };
     }
@@ -114,7 +114,7 @@ public partial class ProfessionalManagementService
         return new ExperienceResponse
         {
             Success = result.Succeeded,
-            Experience = result.Experience == null ? null : MapToFacadeDto(result.Experience),
+            Experience = result.Experience == null ? null : MapExperienceToFacadeDto(result.Experience),
             Errors = result.Errors
         };
     }
@@ -134,12 +134,12 @@ public partial class ProfessionalManagementService
         return new ExperienceResponse
         {
             Success = result.Succeeded,
-            Experience = result.Experience == null ? null : MapToFacadeDto(result.Experience),
+            Experience = result.Experience == null ? null : MapExperienceToFacadeDto(result.Experience),
             Errors = result.Errors
         };
     }
 
-    private static ExperienceDto MapToFacadeDto(Professional.Contracts.DTOs.ExperienceDto experience)
+    private static ExperienceDto MapExperienceToFacadeDto(Professional.Contracts.DTOs.ExperienceDto experience)
     {
         return new ExperienceDto
         {

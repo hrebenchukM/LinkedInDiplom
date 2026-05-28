@@ -28,7 +28,7 @@ public partial class MessagingManagementService
             MessageId = messageId
         });
 
-        return media.Select(MapMessageMedia).ToList();
+        return media.Select(MapMessageMediaToFacadeDto).ToList();
     }
 
     public async Task<MessageMediaResponse> DeleteMessageMediaAsync(string userId, Guid messageId, Guid messageMediaId)

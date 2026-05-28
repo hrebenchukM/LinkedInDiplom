@@ -25,47 +25,47 @@ public partial class EventsManagementService : IEventsManagementService
     }
 
 
-    private static EventResponse Map(EventsCoreEventResult result) =>
+    private static EventResponse MapEventResultToFacadeResponse(EventsCoreEventResult result) =>
         new()
         {
             Success = result.Succeeded,
-            Event = result.Event is null ? null : Map(result.Event),
+            Event = result.Event is null ? null : MapEventToFacadeDto(result.Event),
             Errors = result.Errors
         };
 
-    private static EventAttendeeResponse Map(EventsCoreAttendeeResult result) =>
+    private static EventAttendeeResponse MapEventAttendeeResultToFacadeResponse(EventsCoreAttendeeResult result) =>
         new()
         {
             Success = result.Succeeded,
-            EventAttendee = result.EventAttendee is null ? null : Map(result.EventAttendee),
+            EventAttendee = result.EventAttendee is null ? null : MapEventAttendeeToFacadeDto(result.EventAttendee),
             Errors = result.Errors
         };
 
-    private static EventScheduleResponse Map(EventsCoreScheduleResult result) =>
+    private static EventScheduleResponse MapEventScheduleResultToFacadeResponse(EventsCoreScheduleResult result) =>
         new()
         {
             Success = result.Succeeded,
-            EventSchedule = result.EventSchedule is null ? null : Map(result.EventSchedule),
+            EventSchedule = result.EventSchedule is null ? null : MapEventScheduleToFacadeDto(result.EventSchedule),
             Errors = result.Errors
         };
 
-    private static EventSpeakerResponse Map(EventsCoreSpeakerResult result) =>
+    private static EventSpeakerResponse MapEventSpeakerResultToFacadeResponse(EventsCoreSpeakerResult result) =>
         new()
         {
             Success = result.Succeeded,
-            EventSpeaker = result.EventSpeaker is null ? null : Map(result.EventSpeaker),
+            EventSpeaker = result.EventSpeaker is null ? null : MapEventSpeakerToFacadeDto(result.EventSpeaker),
             Errors = result.Errors
         };
 
-    private static EventSpeakerMapResponse Map(EventsCoreSpeakerMapResult result) =>
+    private static EventSpeakerMapResponse MapEventSpeakerMapResultToFacadeResponse(EventsCoreSpeakerMapResult result) =>
         new()
         {
             Success = result.Succeeded,
-            EventSpeakerMap = result.EventSpeakerMap is null ? null : Map(result.EventSpeakerMap),
+            EventSpeakerMap = result.EventSpeakerMap is null ? null : MapEventSpeakerMapToFacadeDto(result.EventSpeakerMap),
             Errors = result.Errors
         };
 
-    private static EventDto Map(EventsCoreEventDto dto) =>
+    private static EventDto MapEventToFacadeDto(EventsCoreEventDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -86,7 +86,7 @@ public partial class EventsManagementService : IEventsManagementService
             UpdatedAt = dto.UpdatedAt
         };
 
-    private static EventAttendeeDto Map(EventsCoreAttendeeDto dto) =>
+    private static EventAttendeeDto MapEventAttendeeToFacadeDto(EventsCoreAttendeeDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -97,7 +97,7 @@ public partial class EventsManagementService : IEventsManagementService
             UpdatedAt = dto.UpdatedAt
         };
 
-    private static EventScheduleDto Map(EventsCoreScheduleDto dto) =>
+    private static EventScheduleDto MapEventScheduleToFacadeDto(EventsCoreScheduleDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -109,7 +109,7 @@ public partial class EventsManagementService : IEventsManagementService
             CreatedAt = dto.CreatedAt
         };
 
-    private static EventSpeakerDto Map(EventsCoreSpeakerDto dto) =>
+    private static EventSpeakerDto MapEventSpeakerToFacadeDto(EventsCoreSpeakerDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -119,13 +119,13 @@ public partial class EventsManagementService : IEventsManagementService
             CreatedAt = dto.CreatedAt
         };
 
-    private static EventSpeakerMapDto Map(EventsCoreSpeakerMapDto dto) =>
+    private static EventSpeakerMapDto MapEventSpeakerMapToFacadeDto(EventsCoreSpeakerMapDto dto) =>
         new()
         {
             Id = dto.Id,
             EventId = dto.EventId,
             SpeakerId = dto.SpeakerId,
             OrderIndex = dto.OrderIndex,
-            Speaker = dto.Speaker is null ? null : Map(dto.Speaker)
+            Speaker = dto.Speaker is null ? null : MapEventSpeakerToFacadeDto(dto.Speaker)
         };
 }

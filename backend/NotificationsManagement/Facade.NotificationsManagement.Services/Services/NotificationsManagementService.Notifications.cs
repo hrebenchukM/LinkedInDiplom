@@ -15,7 +15,7 @@ public partial class NotificationsManagementService
             Limit = limit
         });
 
-        return notifications.Select(Map).ToList();
+        return notifications.Select(MapNotificationToFacadeDto).ToList();
     }
 
     public async Task<NotificationDto?> GetNotificationByIdAsync(string userId, Guid notificationId)
@@ -26,7 +26,7 @@ public partial class NotificationsManagementService
             NotificationId = notificationId
         });
 
-        return notification is null ? null : Map(notification);
+        return notification is null ? null : MapNotificationToFacadeDto(notification);
     }
 
     public async Task<NotificationResponse> MarkNotificationReadAsync(string userId, Guid notificationId)
@@ -37,7 +37,7 @@ public partial class NotificationsManagementService
             NotificationId = notificationId
         });
 
-        return Map(result);
+        return MapNotificationResultToFacadeResponse(result);
     }
 
     public async Task<NotificationResponse> MarkAllNotificationsReadAsync(string userId)
@@ -47,7 +47,7 @@ public partial class NotificationsManagementService
             UserId = userId
         });
 
-        return Map(result);
+        return MapNotificationResultToFacadeResponse(result);
     }
 
     public async Task<NotificationResponse> DeleteNotificationAsync(string userId, Guid notificationId)
@@ -58,6 +58,6 @@ public partial class NotificationsManagementService
             NotificationId = notificationId
         });
 
-        return Map(result);
+        return MapNotificationResultToFacadeResponse(result);
     }
 }

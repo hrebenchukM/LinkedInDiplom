@@ -18,7 +18,7 @@ public partial class ProfessionalManagementService
                 LanguageId = languageId
             });
 
-        return language == null ? null : MapToFacadeDto(language);
+        return language == null ? null : MapLanguageToFacadeDto(language);
     }
 
     // Создать язык в справочнике
@@ -33,7 +33,7 @@ public partial class ProfessionalManagementService
         return new LanguageResponse
         {
             Success = result.Succeeded,
-            Language = result.Language == null ? null : MapToFacadeDto(result.Language),
+            Language = result.Language == null ? null : MapLanguageToFacadeDto(result.Language),
             Errors = result.Errors
         };
     }
@@ -48,7 +48,7 @@ public partial class ProfessionalManagementService
             });
 
         return userLanguages
-            .Select(MapToFacadeDto)
+            .Select(MapUserLanguageToFacadeDto)
             .ToList();
     }
 
@@ -62,7 +62,7 @@ public partial class ProfessionalManagementService
                 UserLanguageId = userLanguageId
             });
 
-        return userLanguage == null ? null : MapToFacadeDto(userLanguage);
+        return userLanguage == null ? null : MapUserLanguageToFacadeDto(userLanguage);
     }
 
     // Добавить язык текущему пользователю
@@ -81,7 +81,7 @@ public partial class ProfessionalManagementService
         return new UserLanguageResponse
         {
             Success = result.Succeeded,
-            UserLanguage = result.UserLanguage == null ? null : MapToFacadeDto(result.UserLanguage),
+            UserLanguage = result.UserLanguage == null ? null : MapUserLanguageToFacadeDto(result.UserLanguage),
             Errors = result.Errors
         };
     }
@@ -104,7 +104,7 @@ public partial class ProfessionalManagementService
         return new UserLanguageResponse
         {
             Success = result.Succeeded,
-            UserLanguage = result.UserLanguage == null ? null : MapToFacadeDto(result.UserLanguage),
+            UserLanguage = result.UserLanguage == null ? null : MapUserLanguageToFacadeDto(result.UserLanguage),
             Errors = result.Errors
         };
     }
@@ -127,7 +127,7 @@ public partial class ProfessionalManagementService
         return new UserLanguageResponse
         {
             Success = result.Succeeded,
-            UserLanguage = result.UserLanguage == null ? null : MapToFacadeDto(result.UserLanguage),
+            UserLanguage = result.UserLanguage == null ? null : MapUserLanguageToFacadeDto(result.UserLanguage),
             Errors = result.Errors
         };
     }
@@ -147,12 +147,12 @@ public partial class ProfessionalManagementService
         return new UserLanguageResponse
         {
             Success = result.Succeeded,
-            UserLanguage = result.UserLanguage == null ? null : MapToFacadeDto(result.UserLanguage),
+            UserLanguage = result.UserLanguage == null ? null : MapUserLanguageToFacadeDto(result.UserLanguage),
             Errors = result.Errors
         };
     }
 
-    private static LanguageDto MapToFacadeDto(Professional.Contracts.DTOs.LanguageDto language)
+    private static LanguageDto MapLanguageToFacadeDto(Professional.Contracts.DTOs.LanguageDto language)
     {
         return new LanguageDto
         {
@@ -162,7 +162,7 @@ public partial class ProfessionalManagementService
         };
     }
 
-    private static UserLanguageDto MapToFacadeDto(Professional.Contracts.DTOs.UserLanguageDto userLanguage)
+    private static UserLanguageDto MapUserLanguageToFacadeDto(Professional.Contracts.DTOs.UserLanguageDto userLanguage)
     {
         return new UserLanguageDto
         {

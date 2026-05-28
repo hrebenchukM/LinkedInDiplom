@@ -16,12 +16,12 @@ public partial class ProfileManagementService
         });
 
         if (profile != null)
-            return MapToFacadeDto(profile);
+            return MapProfileToFacadeDto(profile);
 
         try
         {
             var createdProfile = await _profileClient.Profiles.CreateEmptyAsync(userId);
-            return MapToFacadeDto(createdProfile);
+            return MapProfileToFacadeDto(createdProfile);
         }
         catch (InvalidOperationException)
         {
@@ -38,7 +38,7 @@ public partial class ProfileManagementService
             UserId = userId
         });
 
-        return profile == null ? null : MapToFacadeDto(profile);
+        return profile == null ? null : MapProfileToFacadeDto(profile);
     }
 
     // Обновить мой профиль.
@@ -81,7 +81,7 @@ public partial class ProfileManagementService
         return new ProfileResponse
         {
             Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
+            Profile = MapProfileToFacadeDto(updatedProfile)
         };
     }
 
@@ -123,7 +123,7 @@ public partial class ProfileManagementService
         return new ProfileResponse
         {
             Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
+            Profile = MapProfileToFacadeDto(updatedProfile)
         };
     }
 }

@@ -15,7 +15,7 @@ public partial class EventsManagementService
             Status = "joined"
         });
 
-        return Map(result);
+        return MapEventAttendeeResultToFacadeResponse(result);
     }
 
     public async Task<EventAttendeeResponse> LeaveEventAsync(string userId, Guid eventId)
@@ -26,7 +26,7 @@ public partial class EventsManagementService
             EventId = eventId
         });
 
-        return Map(result);
+        return MapEventAttendeeResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<EventAttendeeDto>> GetEventAttendeesAsync(Guid eventId, int? limit)
@@ -38,6 +38,6 @@ public partial class EventsManagementService
             Limit = limit
         });
 
-        return attendees.Select(Map).ToList();
+        return attendees.Select(MapEventAttendeeToFacadeDto).ToList();
     }
 }

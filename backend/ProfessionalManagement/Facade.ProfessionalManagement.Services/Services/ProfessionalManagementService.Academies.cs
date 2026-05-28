@@ -16,7 +16,7 @@ public partial class ProfessionalManagementService
                 AcademyId = academyId
             });
 
-        return academy == null ? null : MapToFacadeDto(academy);
+        return academy == null ? null : MapAcademyToFacadeDto(academy);
     }
 
     // Создать учебное заведение
@@ -33,12 +33,12 @@ public partial class ProfessionalManagementService
         return new AcademyResponse
         {
             Success = result.Succeeded,
-            Academy = result.Academy == null ? null : MapToFacadeDto(result.Academy),
+            Academy = result.Academy == null ? null : MapAcademyToFacadeDto(result.Academy),
             Errors = result.Errors
         };
     }
 
-    private static AcademyDto MapToFacadeDto(Professional.Contracts.DTOs.AcademyDto academy)
+    private static AcademyDto MapAcademyToFacadeDto(Professional.Contracts.DTOs.AcademyDto academy)
     {
         return new AcademyDto
         {

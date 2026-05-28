@@ -23,7 +23,7 @@ public partial class JobsManagementService
             Description = request.Description
         });
 
-        return Map(result);
+        return MapVacancyResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<VacancyDto>> GetVacanciesAsync(string userId, string? query, string? location, Guid? companyId)
@@ -36,7 +36,7 @@ public partial class JobsManagementService
             CompanyId = companyId
         });
 
-        return vacancies.Select(Map).ToList();
+        return vacancies.Select(MapVacancyToFacadeDto).ToList();
     }
 
     public async Task<VacancyDto?> GetVacancyByIdAsync(string userId, Guid vacancyId)
@@ -47,7 +47,7 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return vacancy is null ? null : Map(vacancy);
+        return vacancy is null ? null : MapVacancyToFacadeDto(vacancy);
     }
 
     public async Task<VacancyResponse> UpdateVacancyAsync(string userId, Guid vacancyId, UpdateVacancyRequest request)
@@ -67,7 +67,7 @@ public partial class JobsManagementService
             Description = request.Description
         });
 
-        return Map(result);
+        return MapVacancyResultToFacadeResponse(result);
     }
 
     public async Task<VacancyResponse> DeleteVacancyAsync(string userId, Guid vacancyId)
@@ -78,6 +78,6 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return Map(result);
+        return MapVacancyResultToFacadeResponse(result);
     }
 }

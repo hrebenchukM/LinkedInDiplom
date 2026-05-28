@@ -24,7 +24,7 @@ public partial class MessagingManagementService
             UserId = userId
         });
 
-        return chats.Select(MapChat).ToList();
+        return chats.Select(MapChatToFacadeDto).ToList();
     }
 
     public async Task<ChatDto?> GetChatByIdAsync(string userId, Guid chatId)
@@ -35,7 +35,7 @@ public partial class MessagingManagementService
             ChatId = chatId
         });
 
-        return chat == null ? null : MapChat(chat);
+        return chat == null ? null : MapChatToFacadeDto(chat);
     }
 
     public async Task<ChatResponse> DeleteChatAsync(string userId, Guid chatId)

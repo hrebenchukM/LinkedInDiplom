@@ -17,7 +17,7 @@ public partial class EventsManagementService
             OrderIndex = request.OrderIndex
         });
 
-        return Map(result);
+        return MapEventSpeakerMapResultToFacadeResponse(result);
     }
 
     public async Task<EventSpeakerMapResponse> DetachSpeakerFromEventAsync(string userId, Guid eventId, Guid speakerId)
@@ -29,7 +29,7 @@ public partial class EventsManagementService
             SpeakerId = speakerId
         });
 
-        return Map(result);
+        return MapEventSpeakerMapResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<EventSpeakerMapDto>> GetEventSpeakersAsync(Guid eventId)
@@ -40,6 +40,6 @@ public partial class EventsManagementService
             EventId = eventId
         });
 
-        return maps.Select(Map).ToList();
+        return maps.Select(MapEventSpeakerMapToFacadeDto).ToList();
     }
 }

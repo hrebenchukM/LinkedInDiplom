@@ -30,7 +30,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         return new ChatResponse
         {
             Success = result.Succeeded,
-            Chat = result.Chat == null ? null : MapChat(result.Chat),
+            Chat = result.Chat == null ? null : MapChatToFacadeDto(result.Chat),
             Errors = result.Errors
         };
     }
@@ -40,7 +40,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         return new ChatMemberResponse
         {
             Success = result.Succeeded,
-            ChatMember = result.ChatMember == null ? null : MapChatMember(result.ChatMember),
+            ChatMember = result.ChatMember == null ? null : MapChatMemberToFacadeDto(result.ChatMember),
             Errors = result.Errors
         };
     }
@@ -50,7 +50,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         return new MessageResponse
         {
             Success = result.Succeeded,
-            Message = result.Message == null ? null : MapMessage(result.Message),
+            Message = result.Message == null ? null : MapMessageToFacadeDto(result.Message),
             Errors = result.Errors
         };
     }
@@ -60,7 +60,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         return new MessageReadResponse
         {
             Success = result.Succeeded,
-            MessageRead = result.MessageRead == null ? null : MapMessageRead(result.MessageRead),
+            MessageRead = result.MessageRead == null ? null : MapMessageReadToFacadeDto(result.MessageRead),
             Errors = result.Errors
         };
     }
@@ -70,23 +70,23 @@ public partial class MessagingManagementService : IMessagingManagementService
         return new MessageMediaResponse
         {
             Success = result.Succeeded,
-            MessageMedia = result.MessageMedia == null ? null : MapMessageMedia(result.MessageMedia),
+            MessageMedia = result.MessageMedia == null ? null : MapMessageMediaToFacadeDto(result.MessageMedia),
             Errors = result.Errors
         };
     }
 
-    private static ChatDto MapChat(MessagingChatDto dto)
+    private static ChatDto MapChatToFacadeDto(MessagingChatDto dto)
     {
         return new ChatDto
         {
             Id = dto.Id,
             CreatedBy = dto.CreatedBy,
             CreatedAt = dto.CreatedAt,
-            Members = dto.Members?.Select(MapChatMember).ToList()
+            Members = dto.Members?.Select(MapChatMemberToFacadeDto).ToList()
         };
     }
 
-    private static ChatMemberDto MapChatMember(MessagingChatMemberDto dto)
+    private static ChatMemberDto MapChatMemberToFacadeDto(MessagingChatMemberDto dto)
     {
         return new ChatMemberDto
         {
@@ -99,7 +99,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         };
     }
 
-    private static MessageDto MapMessage(MessagingMessageDto dto)
+    private static MessageDto MapMessageToFacadeDto(MessagingMessageDto dto)
     {
         return new MessageDto
         {
@@ -109,11 +109,11 @@ public partial class MessagingManagementService : IMessagingManagementService
             Content = dto.Content,
             CreatedAt = dto.CreatedAt,
             EditedAt = dto.EditedAt,
-            Media = dto.Media?.Select(MapMessageMedia).ToList()
+            Media = dto.Media?.Select(MapMessageMediaToFacadeDto).ToList()
         };
     }
 
-    private static MessageReadDto MapMessageRead(MessagingMessageReadDto dto)
+    private static MessageReadDto MapMessageReadToFacadeDto(MessagingMessageReadDto dto)
     {
         return new MessageReadDto
         {
@@ -124,7 +124,7 @@ public partial class MessagingManagementService : IMessagingManagementService
         };
     }
 
-    private static MessageMediaDto MapMessageMedia(MessagingMessageMediaDto dto)
+    private static MessageMediaDto MapMessageMediaToFacadeDto(MessagingMessageMediaDto dto)
     {
         return new MessageMediaDto
         {

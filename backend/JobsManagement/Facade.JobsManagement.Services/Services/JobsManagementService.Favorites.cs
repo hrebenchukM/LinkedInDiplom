@@ -14,7 +14,7 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return Map(result);
+        return MapFavoriteResultToFacadeResponse(result);
     }
 
     public async Task<UserVacancyFavoriteResponse> RemoveFavoriteAsync(string userId, Guid vacancyId)
@@ -25,7 +25,7 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return Map(result);
+        return MapFavoriteResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<UserVacancyFavoriteDto>> GetMyFavoritesAsync(string userId)
@@ -35,6 +35,6 @@ public partial class JobsManagementService
             UserId = userId
         });
 
-        return favorites.Select(Map).ToList();
+        return favorites.Select(MapFavoriteToFacadeDto).ToList();
     }
 }

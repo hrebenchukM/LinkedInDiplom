@@ -25,7 +25,7 @@ public partial class JobsManagementService
             SearchId = searchId
         });
 
-        return results.Select(Map).ToList();
+        return results.Select(MapSearchResultToFacadeDto).ToList();
     }
 
     public async Task<JobSearchResultResponse> UpsertSearchResultsAsync(string userId, Guid searchId, UpsertJobSearchResultsRequest request)
@@ -37,6 +37,6 @@ public partial class JobsManagementService
             VacancyIds = request.VacancyIds
         });
 
-        return Map(result);
+        return MapSearchResultResultToFacadeResponse(result);
     }
 }

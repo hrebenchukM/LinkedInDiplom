@@ -17,7 +17,7 @@ public partial class EventsManagementService
             AvatarUrl = request.AvatarUrl
         });
 
-        return Map(result);
+        return MapEventSpeakerResultToFacadeResponse(result);
     }
 
     public async Task<EventSpeakerDto?> GetSpeakerByIdAsync(string userId, Guid speakerId)
@@ -28,7 +28,7 @@ public partial class EventsManagementService
             SpeakerId = speakerId
         });
 
-        return speaker is null ? null : Map(speaker);
+        return speaker is null ? null : MapEventSpeakerToFacadeDto(speaker);
     }
 
     public async Task<EventSpeakerResponse> UpdateSpeakerAsync(string userId, Guid speakerId, UpdateEventSpeakerRequest request)
@@ -42,7 +42,7 @@ public partial class EventsManagementService
             AvatarUrl = request.AvatarUrl
         });
 
-        return Map(result);
+        return MapEventSpeakerResultToFacadeResponse(result);
     }
 
     public async Task<EventSpeakerResponse> DeleteSpeakerAsync(string userId, Guid speakerId)
@@ -53,6 +53,6 @@ public partial class EventsManagementService
             SpeakerId = speakerId
         });
 
-        return Map(result);
+        return MapEventSpeakerResultToFacadeResponse(result);
     }
 }

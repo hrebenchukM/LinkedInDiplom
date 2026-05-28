@@ -15,7 +15,7 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return Map(result);
+        return MapApplicationResultToFacadeResponse(result);
     }
 
     public async Task<JobApplicationResponse> WithdrawApplicationAsync(string userId, Guid applicationId)
@@ -26,7 +26,7 @@ public partial class JobsManagementService
             ApplicationId = applicationId
         });
 
-        return Map(result);
+        return MapApplicationResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<JobApplicationDto>> GetMyApplicationsAsync(string userId)
@@ -36,7 +36,7 @@ public partial class JobsManagementService
             UserId = userId
         });
 
-        return applications.Select(Map).ToList();
+        return applications.Select(MapApplicationToFacadeDto).ToList();
     }
 
     public async Task<IReadOnlyCollection<JobApplicationDto>?> GetVacancyApplicationsAsync(string userId, Guid vacancyId)
@@ -56,6 +56,6 @@ public partial class JobsManagementService
             VacancyId = vacancyId
         });
 
-        return applications.Select(Map).ToList();
+        return applications.Select(MapApplicationToFacadeDto).ToList();
     }
 }

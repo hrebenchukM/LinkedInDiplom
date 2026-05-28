@@ -19,7 +19,7 @@ public partial class EventsManagementService
             OrderIndex = request.OrderIndex
         });
 
-        return Map(result);
+        return MapEventScheduleResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<EventScheduleDto>> GetEventScheduleAsync(Guid eventId)
@@ -30,7 +30,7 @@ public partial class EventsManagementService
             EventId = eventId
         });
 
-        return schedule.Select(Map).ToList();
+        return schedule.Select(MapEventScheduleToFacadeDto).ToList();
     }
 
     public async Task<EventScheduleResponse> UpdateScheduleItemAsync(string userId, Guid eventId, Guid scheduleId, UpdateEventScheduleRequest request)
@@ -46,7 +46,7 @@ public partial class EventsManagementService
             OrderIndex = request.OrderIndex
         });
 
-        return Map(result);
+        return MapEventScheduleResultToFacadeResponse(result);
     }
 
     public async Task<EventScheduleResponse> DeleteScheduleItemAsync(string userId, Guid eventId, Guid scheduleId)
@@ -58,6 +58,6 @@ public partial class EventsManagementService
             ScheduleId = scheduleId
         });
 
-        return Map(result);
+        return MapEventScheduleResultToFacadeResponse(result);
     }
 }

@@ -20,7 +20,7 @@ public partial class ProfessionalManagementService
             });
 
         return items
-            .Select(MapToFacadeDto)
+            .Select(MapRecommendedSkillByPositionToFacadeDto)
             .ToList();
     }
 
@@ -40,7 +40,7 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             RecommendedSkillByPosition = result.RecommendedSkillByPosition == null
                 ? null
-                : MapToFacadeDto(result.RecommendedSkillByPosition),
+                : MapRecommendedSkillByPositionToFacadeDto(result.RecommendedSkillByPosition),
             Errors = result.Errors
         };
     }
@@ -59,7 +59,7 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             RecommendedSkillByPosition = result.RecommendedSkillByPosition == null
                 ? null
-                : MapToFacadeDto(result.RecommendedSkillByPosition),
+                : MapRecommendedSkillByPositionToFacadeDto(result.RecommendedSkillByPosition),
             Errors = result.Errors
         };
     }
@@ -74,7 +74,7 @@ public partial class ProfessionalManagementService
             });
 
         return recommendations
-            .Select(MapToFacadeDto)
+            .Select(MapRecommendationToFacadeDto)
             .ToList();
     }
 
@@ -87,7 +87,7 @@ public partial class ProfessionalManagementService
                 RecommendationId = recommendationId
             });
 
-        return recommendation == null ? null : MapToFacadeDto(recommendation);
+        return recommendation == null ? null : MapRecommendationToFacadeDto(recommendation);
     }
 
     // Создать рекомендацию (authorId из JWT)
@@ -108,7 +108,7 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             Recommendation = result.Recommendation == null
                 ? null
-                : MapToFacadeDto(result.Recommendation),
+                : MapRecommendationToFacadeDto(result.Recommendation),
             Errors = result.Errors
         };
     }
@@ -132,7 +132,7 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             Recommendation = result.Recommendation == null
                 ? null
-                : MapToFacadeDto(result.Recommendation),
+                : MapRecommendationToFacadeDto(result.Recommendation),
             Errors = result.Errors
         };
     }
@@ -154,12 +154,12 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             Recommendation = result.Recommendation == null
                 ? null
-                : MapToFacadeDto(result.Recommendation),
+                : MapRecommendationToFacadeDto(result.Recommendation),
             Errors = result.Errors
         };
     }
 
-    private static RecommendedSkillByPositionDto MapToFacadeDto(
+    private static RecommendedSkillByPositionDto MapRecommendedSkillByPositionToFacadeDto(
         Professional.Contracts.DTOs.RecommendedSkillByPositionDto recommendedSkill)
     {
         return new RecommendedSkillByPositionDto
@@ -172,7 +172,7 @@ public partial class ProfessionalManagementService
         };
     }
 
-    private static RecommendationDto MapToFacadeDto(
+    private static RecommendationDto MapRecommendationToFacadeDto(
         Professional.Contracts.DTOs.RecommendationDto recommendation)
     {
         return new RecommendationDto

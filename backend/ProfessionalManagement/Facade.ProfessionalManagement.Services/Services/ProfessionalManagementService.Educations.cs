@@ -17,7 +17,7 @@ public partial class ProfessionalManagementService
             });
 
         return educations
-            .Select(MapToFacadeDto)
+            .Select(MapEducationToFacadeDto)
             .ToList();
     }
 
@@ -31,7 +31,7 @@ public partial class ProfessionalManagementService
                 EducationId = educationId
             });
 
-        return education == null ? null : MapToFacadeDto(education);
+        return education == null ? null : MapEducationToFacadeDto(education);
     }
 
     // Создать запись об образовании
@@ -55,7 +55,7 @@ public partial class ProfessionalManagementService
         return new EducationResponse
         {
             Success = result.Succeeded,
-            Education = result.Education == null ? null : MapToFacadeDto(result.Education),
+            Education = result.Education == null ? null : MapEducationToFacadeDto(result.Education),
             Errors = result.Errors
         };
     }
@@ -83,7 +83,7 @@ public partial class ProfessionalManagementService
         return new EducationResponse
         {
             Success = result.Succeeded,
-            Education = result.Education == null ? null : MapToFacadeDto(result.Education),
+            Education = result.Education == null ? null : MapEducationToFacadeDto(result.Education),
             Errors = result.Errors
         };
     }
@@ -111,7 +111,7 @@ public partial class ProfessionalManagementService
         return new EducationResponse
         {
             Success = result.Succeeded,
-            Education = result.Education == null ? null : MapToFacadeDto(result.Education),
+            Education = result.Education == null ? null : MapEducationToFacadeDto(result.Education),
             Errors = result.Errors
         };
     }
@@ -131,12 +131,12 @@ public partial class ProfessionalManagementService
         return new EducationResponse
         {
             Success = result.Succeeded,
-            Education = result.Education == null ? null : MapToFacadeDto(result.Education),
+            Education = result.Education == null ? null : MapEducationToFacadeDto(result.Education),
             Errors = result.Errors
         };
     }
 
-    private static EducationDto MapToFacadeDto(Professional.Contracts.DTOs.EducationDto education)
+    private static EducationDto MapEducationToFacadeDto(Professional.Contracts.DTOs.EducationDto education)
     {
         return new EducationDto
         {

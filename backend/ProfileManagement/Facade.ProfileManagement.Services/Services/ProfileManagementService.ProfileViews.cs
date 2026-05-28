@@ -28,7 +28,7 @@ public partial class ProfileManagementService
             Success = result.Succeeded,
             ProfileView = result.ProfileView == null
                 ? null
-                : MapToFacadeDto(result.ProfileView),
+                : MapProfileViewToFacadeDto(result.ProfileView),
             Errors = result.Errors
         };
     }
@@ -41,6 +41,6 @@ public partial class ProfileManagementService
                 ProfileOwnerId = userId
             });
 
-        return views.Select(MapToFacadeDto).ToList();
+        return views.Select(MapProfileViewToFacadeDto).ToList();
     }
 }

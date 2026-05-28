@@ -18,7 +18,7 @@ public partial class ProfessionalManagementService
                 SkillId = skillId
             });
 
-        return skill == null ? null : MapToFacadeDto(skill);
+        return skill == null ? null : MapSkillToFacadeDto(skill);
     }
 
     // Создать навык в справочнике
@@ -34,7 +34,7 @@ public partial class ProfessionalManagementService
         return new SkillResponse
         {
             Success = result.Succeeded,
-            Skill = result.Skill == null ? null : MapToFacadeDto(result.Skill),
+            Skill = result.Skill == null ? null : MapSkillToFacadeDto(result.Skill),
             Errors = result.Errors
         };
     }
@@ -49,7 +49,7 @@ public partial class ProfessionalManagementService
             });
 
         return userSkills
-            .Select(MapToFacadeDto)
+            .Select(MapUserSkillToFacadeDto)
             .ToList();
     }
 
@@ -63,7 +63,7 @@ public partial class ProfessionalManagementService
                 UserSkillId = userSkillId
             });
 
-        return userSkill == null ? null : MapToFacadeDto(userSkill);
+        return userSkill == null ? null : MapUserSkillToFacadeDto(userSkill);
     }
 
     // Добавить навык текущему пользователю
@@ -84,7 +84,7 @@ public partial class ProfessionalManagementService
         return new UserSkillResponse
         {
             Success = result.Succeeded,
-            UserSkill = result.UserSkill == null ? null : MapToFacadeDto(result.UserSkill),
+            UserSkill = result.UserSkill == null ? null : MapUserSkillToFacadeDto(result.UserSkill),
             Errors = result.Errors
         };
     }
@@ -109,7 +109,7 @@ public partial class ProfessionalManagementService
         return new UserSkillResponse
         {
             Success = result.Succeeded,
-            UserSkill = result.UserSkill == null ? null : MapToFacadeDto(result.UserSkill),
+            UserSkill = result.UserSkill == null ? null : MapUserSkillToFacadeDto(result.UserSkill),
             Errors = result.Errors
         };
     }
@@ -134,7 +134,7 @@ public partial class ProfessionalManagementService
         return new UserSkillResponse
         {
             Success = result.Succeeded,
-            UserSkill = result.UserSkill == null ? null : MapToFacadeDto(result.UserSkill),
+            UserSkill = result.UserSkill == null ? null : MapUserSkillToFacadeDto(result.UserSkill),
             Errors = result.Errors
         };
     }
@@ -154,12 +154,12 @@ public partial class ProfessionalManagementService
         return new UserSkillResponse
         {
             Success = result.Succeeded,
-            UserSkill = result.UserSkill == null ? null : MapToFacadeDto(result.UserSkill),
+            UserSkill = result.UserSkill == null ? null : MapUserSkillToFacadeDto(result.UserSkill),
             Errors = result.Errors
         };
     }
 
-    private static SkillDto MapToFacadeDto(Professional.Contracts.DTOs.SkillDto skill)
+    private static SkillDto MapSkillToFacadeDto(Professional.Contracts.DTOs.SkillDto skill)
     {
         return new SkillDto
         {
@@ -171,7 +171,7 @@ public partial class ProfessionalManagementService
         };
     }
 
-    private static UserSkillDto MapToFacadeDto(Professional.Contracts.DTOs.UserSkillDto userSkill)
+    private static UserSkillDto MapUserSkillToFacadeDto(Professional.Contracts.DTOs.UserSkillDto userSkill)
     {
         return new UserSkillDto
         {

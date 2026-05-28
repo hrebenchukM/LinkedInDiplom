@@ -17,7 +17,7 @@ public partial class ProfessionalManagementService
             });
 
         return companies
-            .Select(MapToFacadeDto)
+            .Select(MapCompanyToFacadeDto)
             .ToList();
     }
 
@@ -30,7 +30,7 @@ public partial class ProfessionalManagementService
                 CompanyId = companyId
             });
 
-        return company == null ? null : MapToFacadeDto(company);
+        return company == null ? null : MapCompanyToFacadeDto(company);
     }
 
     // Создать мою компанию
@@ -53,7 +53,7 @@ public partial class ProfessionalManagementService
         return new CompanyResponse
         {
             Success = result.Succeeded,
-            Company = result.Company == null ? null : MapToFacadeDto(result.Company),
+            Company = result.Company == null ? null : MapCompanyToFacadeDto(result.Company),
             Errors = result.Errors
         };
     }
@@ -80,7 +80,7 @@ public partial class ProfessionalManagementService
         return new CompanyResponse
         {
             Success = result.Succeeded,
-            Company = result.Company == null ? null : MapToFacadeDto(result.Company),
+            Company = result.Company == null ? null : MapCompanyToFacadeDto(result.Company),
             Errors = result.Errors
         };
     }
@@ -107,7 +107,7 @@ public partial class ProfessionalManagementService
         return new CompanyResponse
         {
             Success = result.Succeeded,
-            Company = result.Company == null ? null : MapToFacadeDto(result.Company),
+            Company = result.Company == null ? null : MapCompanyToFacadeDto(result.Company),
             Errors = result.Errors
         };
     }
@@ -127,12 +127,12 @@ public partial class ProfessionalManagementService
         return new CompanyResponse
         {
             Success = result.Succeeded,
-            Company = result.Company == null ? null : MapToFacadeDto(result.Company),
+            Company = result.Company == null ? null : MapCompanyToFacadeDto(result.Company),
             Errors = result.Errors
         };
     }
 
-    private static CompanyDto MapToFacadeDto(Professional.Contracts.DTOs.CompanyDto company)
+    private static CompanyDto MapCompanyToFacadeDto(Professional.Contracts.DTOs.CompanyDto company)
     {
         return new CompanyDto
         {

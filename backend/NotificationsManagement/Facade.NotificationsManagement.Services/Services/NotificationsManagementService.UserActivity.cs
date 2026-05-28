@@ -18,7 +18,7 @@ public partial class NotificationsManagementService
             Meta = request.Meta
         });
 
-        return Map(result);
+        return MapUserActivityResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<UserActivityDto>> GetMyActivityAsync(string userId, string? action, int? limit)
@@ -30,6 +30,6 @@ public partial class NotificationsManagementService
             Limit = limit
         });
 
-        return activity.Select(Map).ToList();
+        return activity.Select(MapUserActivityToFacadeDto).ToList();
     }
 }

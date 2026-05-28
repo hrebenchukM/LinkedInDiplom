@@ -40,7 +40,7 @@ public partial class ProfileManagementService
         return new ProfileResponse
         {
             Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
+            Profile = MapProfileToFacadeDto(updatedProfile)
         };
     }
 
@@ -78,7 +78,7 @@ public partial class ProfileManagementService
         return new ProfileResponse
         {
             Success = true,
-            Profile = MapToFacadeDto(updatedProfile)
+            Profile = MapProfileToFacadeDto(updatedProfile)
         };
     }
 

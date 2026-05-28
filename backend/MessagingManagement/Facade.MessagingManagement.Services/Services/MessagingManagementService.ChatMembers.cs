@@ -37,6 +37,6 @@ public partial class MessagingManagementService
             ChatId = chatId
         });
 
-        return members.Select(MapChatMember).ToList();
+        return members.Select(MapChatMemberToFacadeDto).ToList();
     }
 }

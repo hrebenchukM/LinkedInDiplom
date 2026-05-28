@@ -25,6 +25,6 @@ public partial class MessagingManagementService
             MessageId = messageId
         });
 
-        return reads.Select(MapMessageRead).ToList();
+        return reads.Select(MapMessageReadToFacadeDto).ToList();
     }
 }

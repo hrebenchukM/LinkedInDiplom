@@ -19,27 +19,27 @@ public partial class NotificationsManagementService : INotificationsManagementSe
     }
 
 
-    private static NotificationResponse Map(NotificationsNotificationResult result)
+    private static NotificationResponse MapNotificationResultToFacadeResponse(NotificationsNotificationResult result)
     {
         return new NotificationResponse
         {
             Success = result.Succeeded,
-            Notification = result.Notification is null ? null : Map(result.Notification),
+            Notification = result.Notification is null ? null : MapNotificationToFacadeDto(result.Notification),
             Errors = result.Errors
         };
     }
 
-    private static UserActivityResponse Map(NotificationsUserActivityResult result)
+    private static UserActivityResponse MapUserActivityResultToFacadeResponse(NotificationsUserActivityResult result)
     {
         return new UserActivityResponse
         {
             Success = result.Succeeded,
-            UserActivity = result.UserActivity is null ? null : Map(result.UserActivity),
+            UserActivity = result.UserActivity is null ? null : MapUserActivityToFacadeDto(result.UserActivity),
             Errors = result.Errors
         };
     }
 
-    private static NotificationDto Map(NotificationsNotificationDto notification)
+    private static NotificationDto MapNotificationToFacadeDto(NotificationsNotificationDto notification)
     {
         return new NotificationDto
         {
@@ -57,7 +57,7 @@ public partial class NotificationsManagementService : INotificationsManagementSe
         };
     }
 
-    private static UserActivityDto Map(NotificationsUserActivityDto activity)
+    private static UserActivityDto MapUserActivityToFacadeDto(NotificationsUserActivityDto activity)
     {
         return new UserActivityDto
         {

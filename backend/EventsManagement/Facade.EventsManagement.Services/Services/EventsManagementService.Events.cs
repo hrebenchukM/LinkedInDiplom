@@ -26,7 +26,7 @@ public partial class EventsManagementService
             EndAt = request.EndAt
         });
 
-        return Map(result);
+        return MapEventResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<EventDto>> GetMyEventsAsync(string userId, int? limit, DateTime? fromStartAt, DateTime? toStartAt)
@@ -39,7 +39,7 @@ public partial class EventsManagementService
             ToStartAt = toStartAt
         });
 
-        return events.Select(Map).ToList();
+        return events.Select(MapEventToFacadeDto).ToList();
     }
 
     public async Task<EventDto?> GetEventByIdAsync(Guid eventId)
@@ -50,7 +50,7 @@ public partial class EventsManagementService
             EventId = eventId
         });
 
-        return entity is null ? null : Map(entity);
+        return entity is null ? null : MapEventToFacadeDto(entity);
     }
 
     public async Task<EventResponse> UpdateEventAsync(string userId, Guid eventId, UpdateEventRequest request)
@@ -73,7 +73,7 @@ public partial class EventsManagementService
             EndAt = request.EndAt
         });
 
-        return Map(result);
+        return MapEventResultToFacadeResponse(result);
     }
 
     public async Task<EventResponse> DeleteEventAsync(string userId, Guid eventId)
@@ -84,6 +84,6 @@ public partial class EventsManagementService
             EventId = eventId
         });
 
-        return Map(result);
+        return MapEventResultToFacadeResponse(result);
     }
 }

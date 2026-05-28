@@ -19,7 +19,7 @@ public partial class ProfessionalManagementService
             });
 
         return certificates
-            .Select(MapToFacadeDto)
+            .Select(MapCertificateToFacadeDto)
             .ToList();
     }
 
@@ -33,7 +33,7 @@ public partial class ProfessionalManagementService
                 CertificateId = certificateId
             });
 
-        return certificate == null ? null : MapToFacadeDto(certificate);
+        return certificate == null ? null : MapCertificateToFacadeDto(certificate);
     }
 
     // Создать сертификат
@@ -57,7 +57,7 @@ public partial class ProfessionalManagementService
         return new CertificateResponse
         {
             Success = result.Succeeded,
-            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Certificate = result.Certificate == null ? null : MapCertificateToFacadeDto(result.Certificate),
             Errors = result.Errors
         };
     }
@@ -85,7 +85,7 @@ public partial class ProfessionalManagementService
         return new CertificateResponse
         {
             Success = result.Succeeded,
-            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Certificate = result.Certificate == null ? null : MapCertificateToFacadeDto(result.Certificate),
             Errors = result.Errors
         };
     }
@@ -113,7 +113,7 @@ public partial class ProfessionalManagementService
         return new CertificateResponse
         {
             Success = result.Succeeded,
-            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Certificate = result.Certificate == null ? null : MapCertificateToFacadeDto(result.Certificate),
             Errors = result.Errors
         };
     }
@@ -133,7 +133,7 @@ public partial class ProfessionalManagementService
         return new CertificateResponse
         {
             Success = result.Succeeded,
-            Certificate = result.Certificate == null ? null : MapToFacadeDto(result.Certificate),
+            Certificate = result.Certificate == null ? null : MapCertificateToFacadeDto(result.Certificate),
             Errors = result.Errors
         };
     }
@@ -156,7 +156,7 @@ public partial class ProfessionalManagementService
             });
 
         return certificateSkills
-            .Select(MapToFacadeDto)
+            .Select(MapCertificateSkillToFacadeDto)
             .ToList();
     }
 
@@ -179,7 +179,7 @@ public partial class ProfessionalManagementService
                 CertificateSkillId = certificateSkillId
             });
 
-        return certificateSkill == null ? null : MapToFacadeDto(certificateSkill);
+        return certificateSkill == null ? null : MapCertificateSkillToFacadeDto(certificateSkill);
     }
 
     // Добавить навык к сертификату
@@ -201,7 +201,7 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             CertificateSkill = result.CertificateSkill == null
                 ? null
-                : MapToFacadeDto(result.CertificateSkill),
+                : MapCertificateSkillToFacadeDto(result.CertificateSkill),
             Errors = result.Errors
         };
     }
@@ -225,12 +225,12 @@ public partial class ProfessionalManagementService
             Success = result.Succeeded,
             CertificateSkill = result.CertificateSkill == null
                 ? null
-                : MapToFacadeDto(result.CertificateSkill),
+                : MapCertificateSkillToFacadeDto(result.CertificateSkill),
             Errors = result.Errors
         };
     }
 
-    private static CertificateDto MapToFacadeDto(Professional.Contracts.DTOs.CertificateDto certificate)
+    private static CertificateDto MapCertificateToFacadeDto(Professional.Contracts.DTOs.CertificateDto certificate)
     {
         return new CertificateDto
         {
@@ -248,7 +248,7 @@ public partial class ProfessionalManagementService
         };
     }
 
-    private static CertificateSkillDto MapToFacadeDto(
+    private static CertificateSkillDto MapCertificateSkillToFacadeDto(
         Professional.Contracts.DTOs.CertificateSkillDto certificateSkill)
     {
         return new CertificateSkillDto

@@ -15,7 +15,7 @@ public partial class JobsManagementService
             Query = request.Query
         });
 
-        return Map(result);
+        return MapRecommendedQueryResultToFacadeResponse(result);
     }
 
     public async Task<IReadOnlyCollection<RecommendedJobQueryDto>> GetRecommendedQueriesAsync(string userId)
@@ -25,7 +25,7 @@ public partial class JobsManagementService
             UserId = userId
         });
 
-        return queries.Select(Map).ToList();
+        return queries.Select(MapRecommendedQueryToFacadeDto).ToList();
     }
 
     public async Task<RecommendedJobQueryResponse> DeleteRecommendedQueryAsync(string userId, Guid recommendedQueryId)
@@ -36,6 +36,6 @@ public partial class JobsManagementService
             RecommendedQueryId = recommendedQueryId
         });
 
-        return Map(result);
+        return MapRecommendedQueryResultToFacadeResponse(result);
     }
 }

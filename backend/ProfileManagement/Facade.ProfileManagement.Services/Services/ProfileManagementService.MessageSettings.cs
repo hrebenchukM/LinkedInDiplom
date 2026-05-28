@@ -15,7 +15,7 @@ public partial class ProfileManagementService
                 UserId = userId
             });
 
-        return MapToFacadeDto(settings);
+        return MapMessageSettingsToFacadeDto(settings);
     }
 
     public async Task<MessageSettingsResponse> UpdateMyMessageSettingsAsync(
@@ -36,7 +36,7 @@ public partial class ProfileManagementService
             Success = result.Succeeded,
             MessageSettings = result.MessageSettings == null
                 ? null
-                : MapToFacadeDto(result.MessageSettings),
+                : MapMessageSettingsToFacadeDto(result.MessageSettings),
             Errors = result.Errors
         };
     }
@@ -59,7 +59,7 @@ public partial class ProfileManagementService
             Success = result.Succeeded,
             MessageSettings = result.MessageSettings == null
                 ? null
-                : MapToFacadeDto(result.MessageSettings),
+                : MapMessageSettingsToFacadeDto(result.MessageSettings),
             Errors = result.Errors
         };
     }

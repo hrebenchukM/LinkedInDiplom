@@ -36,55 +36,55 @@ public partial class JobsManagementService : IJobsManagementService
         _jobsClient = jobsClient;
     }
 
-    private static VacancyResponse Map(JobsVacancyResult result) =>
+    private static VacancyResponse MapVacancyResultToFacadeResponse(JobsVacancyResult result) =>
         new()
         {
             Success = result.Succeeded,
-            Vacancy = result.Vacancy is null ? null : Map(result.Vacancy),
+            Vacancy = result.Vacancy is null ? null : MapVacancyToFacadeDto(result.Vacancy),
             Errors = result.Errors
         };
 
-    private static UserVacancyFavoriteResponse Map(JobsFavoriteResult result) =>
+    private static UserVacancyFavoriteResponse MapFavoriteResultToFacadeResponse(JobsFavoriteResult result) =>
         new()
         {
             Success = result.Succeeded,
-            Favorite = result.UserVacancyFavorite is null ? null : Map(result.UserVacancyFavorite),
+            Favorite = result.UserVacancyFavorite is null ? null : MapFavoriteToFacadeDto(result.UserVacancyFavorite),
             Errors = result.Errors
         };
 
-    private static JobApplicationResponse Map(JobsApplicationResult result) =>
+    private static JobApplicationResponse MapApplicationResultToFacadeResponse(JobsApplicationResult result) =>
         new()
         {
             Success = result.Succeeded,
-            Application = result.JobApplication is null ? null : Map(result.JobApplication),
+            Application = result.JobApplication is null ? null : MapApplicationToFacadeDto(result.JobApplication),
             Errors = result.Errors
         };
 
-    private static JobSearchQueryResponse Map(JobsSearchQueryResult result) =>
+    private static JobSearchQueryResponse MapSearchQueryResultToFacadeResponse(JobsSearchQueryResult result) =>
         new()
         {
             Success = result.Succeeded,
-            SearchQuery = result.JobSearchQuery is null ? null : Map(result.JobSearchQuery),
+            SearchQuery = result.JobSearchQuery is null ? null : MapSearchQueryToFacadeDto(result.JobSearchQuery),
             Errors = result.Errors
         };
 
-    private static JobSearchResultResponse Map(JobsSearchResultResult result) =>
+    private static JobSearchResultResponse MapSearchResultResultToFacadeResponse(JobsSearchResultResult result) =>
         new()
         {
             Success = result.Succeeded,
-            SearchResult = result.JobSearchResult is null ? null : Map(result.JobSearchResult),
+            SearchResult = result.JobSearchResult is null ? null : MapSearchResultToFacadeDto(result.JobSearchResult),
             Errors = result.Errors
         };
 
-    private static RecommendedJobQueryResponse Map(JobsRecommendedResult result) =>
+    private static RecommendedJobQueryResponse MapRecommendedQueryResultToFacadeResponse(JobsRecommendedResult result) =>
         new()
         {
             Success = result.Succeeded,
-            RecommendedQuery = result.RecommendedJobQuery is null ? null : Map(result.RecommendedJobQuery),
+            RecommendedQuery = result.RecommendedJobQuery is null ? null : MapRecommendedQueryToFacadeDto(result.RecommendedJobQuery),
             Errors = result.Errors
         };
 
-    private static VacancyDto Map(JobsVacancyDto dto) =>
+    private static VacancyDto MapVacancyToFacadeDto(JobsVacancyDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -102,17 +102,17 @@ public partial class JobsManagementService : IJobsManagementService
             UpdatedAt = dto.UpdatedAt
         };
 
-    private static UserVacancyFavoriteDto Map(JobsFavoriteDto dto) =>
+    private static UserVacancyFavoriteDto MapFavoriteToFacadeDto(JobsFavoriteDto dto) =>
         new()
         {
             Id = dto.Id,
             UserId = dto.UserId,
             VacancyId = dto.VacancyId,
             CreatedAt = dto.CreatedAt,
-            Vacancy = dto.Vacancy is null ? null : Map(dto.Vacancy)
+            Vacancy = dto.Vacancy is null ? null : MapVacancyToFacadeDto(dto.Vacancy)
         };
 
-    private static JobApplicationDto Map(JobsApplicationDto dto) =>
+    private static JobApplicationDto MapApplicationToFacadeDto(JobsApplicationDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -122,10 +122,10 @@ public partial class JobsManagementService : IJobsManagementService
             AppliedAt = dto.AppliedAt,
             StatusChangedAt = dto.StatusChangedAt,
             WithdrawnAt = dto.WithdrawnAt,
-            Vacancy = dto.Vacancy is null ? null : Map(dto.Vacancy)
+            Vacancy = dto.Vacancy is null ? null : MapVacancyToFacadeDto(dto.Vacancy)
         };
 
-    private static JobSearchQueryDto Map(JobsSearchQueryDto dto) =>
+    private static JobSearchQueryDto MapSearchQueryToFacadeDto(JobsSearchQueryDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -137,7 +137,7 @@ public partial class JobsManagementService : IJobsManagementService
             UpdatedAt = dto.UpdatedAt
         };
 
-    private static JobSearchResultDto Map(JobsSearchResultDto dto) =>
+    private static JobSearchResultDto MapSearchResultToFacadeDto(JobsSearchResultDto dto) =>
         new()
         {
             Id = dto.Id,
@@ -145,10 +145,10 @@ public partial class JobsManagementService : IJobsManagementService
             VacancyId = dto.VacancyId,
             OrderIndex = dto.OrderIndex,
             CreatedAt = dto.CreatedAt,
-            Vacancy = dto.Vacancy is null ? null : Map(dto.Vacancy)
+            Vacancy = dto.Vacancy is null ? null : MapVacancyToFacadeDto(dto.Vacancy)
         };
 
-    private static RecommendedJobQueryDto Map(JobsRecommendedDto dto) =>
+    private static RecommendedJobQueryDto MapRecommendedQueryToFacadeDto(JobsRecommendedDto dto) =>
         new()
         {
             Id = dto.Id,
