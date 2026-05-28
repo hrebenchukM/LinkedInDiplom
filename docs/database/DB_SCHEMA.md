@@ -1,3 +1,28 @@
+# Схема базы данных LinkedInDiplom
+
+> **Назначение документа:** логическое описание таблиц по доменам (для диплома и проектирования).  
+> **Фактическая БД:** одна PostgreSQL `linkedin_dev`, физические таблицы в **отдельных схемах** на модуль (`identity`, `profile`, …), создаются **EF Core migrations**, а не этим файлом напрямую.
+
+## Соответствие модулей и схем PostgreSQL
+
+| Core-модуль | Schema PostgreSQL | DbContext |
+|-------------|-------------------|-----------|
+| Identity | `identity` | `IdentityDbContext` |
+| Profile | `profile` | `ProfileDbContext` |
+| Professional | `professional` | `ProfessionalDbContext` |
+| Network | `network` | `NetworkDbContext` |
+| Content | `content` | `ContentDbContext` |
+| Messaging | `messaging` | `MessagingDbContext` |
+| Jobs | `jobs` | `JobsDbContext` |
+| Notifications | `notifications` | `NotificationsDbContext` |
+| Events | `events` | `EventsDbContext` |
+
+`init-db.sql` при первом запуске Docker создаёт только схему **`identity`**; остальные схемы создаёт EF при `MigrateAsync()`.
+
+Подробнее: [docs/BACKEND.md](../BACKEND.md).
+
+---
+
 // 🟢 1. Identity Core + Profile Module
 
 // Identity Core — авторизация, логин, роли, токены
