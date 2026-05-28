@@ -28,11 +28,13 @@ public static class EventsModuleServiceCollectionExtensions
         services.AddScoped<IEventScheduleService, EventScheduleService>();
         services.AddScoped<IEventSpeakerService, EventSpeakerService>();
         services.AddScoped<IEventSpeakerMapService, EventSpeakerMapService>();
+
         services.AddScoped<IEventResource, EventResource>();
         services.AddScoped<IEventAttendeeResource, EventAttendeeResource>();
         services.AddScoped<IEventScheduleResource, EventScheduleResource>();
         services.AddScoped<IEventSpeakerResource, EventSpeakerResource>();
         services.AddScoped<IEventSpeakerMapResource, EventSpeakerMapResource>();
+
         services.AddScoped<IEventsClient, EventsClient>();
 
         return services;

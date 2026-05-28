@@ -1,10 +1,10 @@
-using Jobs.Contracts.Services;
-using Jobs.DataAccess;
-using Jobs.Services.Services;
 using Jobs.Client;
 using Jobs.Client.Contracts;
 using Jobs.Client.Contracts.Resources;
 using Jobs.Client.Resources;
+using Jobs.Contracts.Services;
+using Jobs.DataAccess;
+using Jobs.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

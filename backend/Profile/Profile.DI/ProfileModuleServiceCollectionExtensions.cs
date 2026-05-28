@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Identity.Events.Contracts.Abstractions;
+using Identity.Events.Contracts.Events;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Profile.Client;
@@ -7,50 +9,36 @@ using Profile.Client.Contracts.Resources;
 using Profile.Client.Resources;
 using Profile.Contracts.Services;
 using Profile.DataAccess;
-using Profile.Services.Services;
-using Identity.Events.Contracts.Abstractions;
-using Identity.Events.Contracts.Events;
 using Profile.Services.EventHandlers;
+using Profile.Services.Services;
 
 namespace Profile.DI;
 
-// Класс для подключения всего Profile-модуля одной строкой в Program.cs
 public static class ProfileModuleServiceCollectionExtensions
 {
-    // Метод расширения для DI-контейнера
     public static IServiceCollection AddProfileModule(
         this IServiceCollection services,
         IConfiguration configuration,
         string connectionString)
     {
-        // Регистрируем DbContext и подключение к PostgreSQL
         services.AddDbContext<ProfileDbContext>(options =>
             options.UseNpgsql(
                 connectionString,
                 npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "profile")));
 
-        // Регистрируем сервис профиля.
-        // Это бизнес-логика Profile-модуля.
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMessageSettingsService, MessageSettingsService>();
         services.AddScoped<IProfileViewService, ProfileViewService>();
 
-        // Регистрируем обработчик события UserRegisteredEvent.
-        // Когда Identity создаёт пользователя, Profile создаёт пустой профиль.
+        // Profile creates an empty profile when Identity publishes UserRegisteredEvent.
         services.AddScoped<
             IDomainEventHandler<UserRegisteredEvent>,
             CreateEmptyProfileWhenUserRegisteredHandler>();
 
-
-        // Регистрируем Resource-слой Profile-модуля.
-        // Это внутренняя точка доступа к ProfileService.
         services.AddScoped<IProfileResource, ProfileResource>();
         services.AddScoped<IMessageSettingsResource, MessageSettingsResource>();
         services.AddScoped<IProfileViewResource, ProfileViewResource>();
 
-        // Регистрируем Client-слой Profile-модуля.
-        // Facade-модули будут обращаться к Profile через IProfileClient,
-        // как AccountManagement обращается к Identity через IIdentityClient.
         services.AddScoped<IProfileClient, ProfileClient>();
 
         return services;

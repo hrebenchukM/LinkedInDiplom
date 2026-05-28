@@ -25,8 +25,10 @@ public static class NotificationsModuleServiceCollectionExtensions
 
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IUserActivityService, UserActivityService>();
+
         services.AddScoped<INotificationResource, NotificationResource>();
         services.AddScoped<IUserActivityResource, UserActivityResource>();
+
         services.AddScoped<INotificationsClient, NotificationsClient>();
 
         return services;

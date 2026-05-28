@@ -9,6 +9,7 @@ public static class JobsManagementServiceCollectionExtensions
     public static IServiceCollection AddJobsManagementFacade(this IServiceCollection services)
     {
         services.AddScoped<IJobsManagementService, JobsManagementService>();
+
         return services;
     }
 }

@@ -9,6 +9,7 @@ public static class NotificationsManagementServiceCollectionExtensions
     public static IServiceCollection AddNotificationsManagementFacade(this IServiceCollection services)
     {
         services.AddScoped<INotificationsManagementService, NotificationsManagementService>();
+
         return services;
     }
 }

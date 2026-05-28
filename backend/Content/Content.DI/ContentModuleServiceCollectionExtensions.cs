@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Content.DI;
 
-// Подключение Content-модуля одной строкой в Program.cs
 public static class ContentModuleServiceCollectionExtensions
 {
     public static IServiceCollection AddContentModule(

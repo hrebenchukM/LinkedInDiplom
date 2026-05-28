@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Facade.ContentManagement.DI;
 
-// DI-класс для подключения ContentManagement фасада одной строкой
 public static class ContentManagementServiceCollectionExtensions
 {
     public static IServiceCollection AddContentManagementFacade(this IServiceCollection services)

@@ -11,7 +11,6 @@ using Professional.Services.Services;
 
 namespace Professional.DI;
 
-// Класс для подключения всего Professional-модуля одной строкой в Program.cs
 public static class ProfessionalModuleServiceCollectionExtensions
 {
     public static IServiceCollection AddProfessionalModule(
@@ -19,13 +18,11 @@ public static class ProfessionalModuleServiceCollectionExtensions
         IConfiguration configuration,
         string connectionString)
     {
-        // Регистрируем DbContext Professional-модуля
         services.AddDbContext<ProfessionalDbContext>(options =>
             options.UseNpgsql(
                 connectionString,
                 npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "professional")));
 
-        // Регистрируем сервис опыта работы
         services.AddScoped<IExperienceService, ExperienceService>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IAcademyService, AcademyService>();
@@ -39,7 +36,6 @@ public static class ProfessionalModuleServiceCollectionExtensions
         services.AddScoped<IRecommendedSkillByPositionService, RecommendedSkillByPositionService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
 
-        // Регистрируем Resource-слой Professional-модуля
         services.AddScoped<IExperienceResource, ExperienceResource>();
         services.AddScoped<ICompanyResource, CompanyResource>();
         services.AddScoped<IAcademyResource, AcademyResource>();
@@ -53,7 +49,6 @@ public static class ProfessionalModuleServiceCollectionExtensions
         services.AddScoped<IRecommendedSkillByPositionResource, RecommendedSkillByPositionResource>();
         services.AddScoped<IRecommendationResource, RecommendationResource>();
 
-        // Регистрируем Client-слой Professional-модуля
         services.AddScoped<IProfessionalClient, ProfessionalClient>();
 
         return services;

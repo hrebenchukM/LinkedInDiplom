@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Facade.ProfileManagement.DI;
 
-// DI-класс для подключения ProfileManagement фасада одной строкой
 public static class ProfileManagementFacadeServiceCollectionExtensions
 {
     public static IServiceCollection AddProfileManagementFacade(this IServiceCollection services)

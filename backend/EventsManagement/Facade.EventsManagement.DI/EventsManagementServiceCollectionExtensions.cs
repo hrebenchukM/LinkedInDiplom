@@ -9,6 +9,7 @@ public static class EventsManagementServiceCollectionExtensions
     public static IServiceCollection AddEventsManagementFacade(this IServiceCollection services)
     {
         services.AddScoped<IEventsManagementService, EventsManagementService>();
+
         return services;
     }
 }

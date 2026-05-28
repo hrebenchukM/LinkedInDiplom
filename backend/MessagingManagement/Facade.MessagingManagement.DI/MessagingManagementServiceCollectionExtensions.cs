@@ -9,6 +9,7 @@ public static class MessagingManagementServiceCollectionExtensions
     public static IServiceCollection AddMessagingManagementFacade(this IServiceCollection services)
     {
         services.AddScoped<IMessagingManagementService, MessagingManagementService>();
+
         return services;
     }
 }

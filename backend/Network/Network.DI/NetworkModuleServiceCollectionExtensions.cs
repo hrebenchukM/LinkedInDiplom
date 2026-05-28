@@ -11,7 +11,6 @@ using Network.Services.Services;
 
 namespace Network.DI;
 
-// Подключение Network-модуля одной строкой в Program.cs
 public static class NetworkModuleServiceCollectionExtensions
 {
     public static IServiceCollection AddNetworkModule(
