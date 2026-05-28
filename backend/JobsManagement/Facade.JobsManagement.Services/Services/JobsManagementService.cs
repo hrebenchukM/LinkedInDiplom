@@ -27,6 +27,10 @@ using JobsVacancyDto = Jobs.Contracts.DTOs.VacancyDto;
 
 namespace Facade.JobsManagement.Services.Services;
 
+/// <summary>
+/// Facade service для Jobs.
+/// Переводит запросы frontend в параметры core JobsClient и обратно в facade responses.
+/// </summary>
 public partial class JobsManagementService : IJobsManagementService
 {
     private readonly IJobsClient _jobsClient;

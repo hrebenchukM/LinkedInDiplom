@@ -7,6 +7,10 @@ namespace Facade.MessagingManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/messaging")]
+/// <summary>
+/// Базовый controller facade-слоя Messaging.
+/// Нужен для единообразной HTTP-обработки ошибок и получения пользователя из JWT claims.
+/// </summary>
 public abstract class MessagingManagementControllerBase : ControllerBase
 {
     protected const string ChatNotFoundError = "Chat not found.";

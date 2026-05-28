@@ -7,8 +7,10 @@ using Professional.Contracts.Services;
 
 namespace Professional.Client.Resources;
 
-// Реализация Resource для компаний.
-// В модульном монолите она обращается напрямую к ICompanyService.
+/// <summary>
+/// Resource-адаптер для компаний в ProfessionalClient.
+/// Нужен как стабильная граница между facade-слоем и core-реализацией.
+/// </summary>
 public class CompanyResource : ICompanyResource
 {
     private readonly ICompanyService _companyService;

@@ -4,6 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Facade.ContentManagement.DI;
 
+/// <summary>
+/// Регистрирует facade-слой ContentManagement.
+/// Нужен для BFF orchestration над ContentClient.
+/// </summary>
 public static class ContentManagementServiceCollectionExtensions
 {
     public static IServiceCollection AddContentManagementFacade(this IServiceCollection services)

@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Messaging.Services.Services;
 
+/// <summary>
+/// Core service модуля Messaging для чатов.
+/// Отвечает за создание чата, membership и soft delete чата/участников.
+/// </summary>
 public class ChatService : IChatService
 {
     private readonly MessagingDbContext _dbContext;

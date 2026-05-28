@@ -7,6 +7,10 @@ namespace Facade.ContentManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/content")]
+/// <summary>
+/// Базовый controller facade-слоя Content.
+/// Хранит общий route, чтение current user из JWT и единый map ошибок в HTTP-коды.
+/// </summary>
 public abstract class ContentManagementControllerBase : ControllerBase
 {
     protected const string PostNotFoundError = "Post not found.";
@@ -135,6 +139,7 @@ public abstract class ContentManagementControllerBase : ControllerBase
         MapErrors(response, response.Errors, MentionNotFoundErrors);
 
     protected string? GetCurrentUserId() =>
+        // Поддерживаем оба варианта claim: NameIdentifier и sub.
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 
@@ -143,6 +148,8 @@ public abstract class ContentManagementControllerBase : ControllerBase
         IEnumerable<string> errors,
         IReadOnlySet<string> notFoundErrors)
     {
+        // Если ошибка соответствует not found — возвращаем 404, иначе 400.
+        // Это даёт единообразный error handling во всех feature-контроллерах модуля.
         if (errors.Any(notFoundErrors.Contains))
             return new NotFoundObjectResult(response);
 

@@ -7,7 +7,10 @@ using Profile.DataAccess.Entities;
 
 namespace Profile.Services.Services;
 
-// Сервис для работы с профилями пользователей
+/// <summary>
+/// Core service модуля Profile.
+/// Содержит правила создания/обновления профиля и работу с ProfileDbContext.
+/// </summary>
 public class ProfileService : IProfileService
 {
     // DbContext — доступ к таблицам Profile-модуля

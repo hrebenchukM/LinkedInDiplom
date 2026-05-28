@@ -8,6 +8,10 @@ using NotificationEntity = Notifications.DataAccess.Entities.Notification;
 
 namespace Notifications.Services.Services;
 
+/// <summary>
+/// Core service модуля Notifications.
+/// Управляет жизненным циклом уведомлений: create/read/read-all/delete.
+/// </summary>
 public class NotificationService(NotificationsDbContext dbContext) : INotificationService
 {
     public async Task<NotificationResult> CreateAsync(CreateNotificationParameters parameters)

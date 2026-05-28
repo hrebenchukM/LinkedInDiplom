@@ -7,6 +7,10 @@ namespace Facade.ProfileManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/profile")]
+/// <summary>
+/// Базовый controller facade-слоя Profile.
+/// Держит общий route и helper-методы, чтобы feature-контроллеры не дублировали одинаковую логику.
+/// </summary>
 public abstract class ProfileManagementControllerBase : ControllerBase
 {
     protected const string ProfileNotFoundError = "Profile not found.";
@@ -40,6 +44,7 @@ public abstract class ProfileManagementControllerBase : ControllerBase
         MapErrors(response, response.Errors, ProfileViewNotFoundErrors);
 
     protected string? GetCurrentUserId() =>
+        // JWT claim, который используется как идентификатор текущего пользователя.
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 

@@ -6,8 +6,10 @@ using Network.Contracts.Services;
 
 namespace Network.Client.Resources;
 
-// Реализация Resource для контактов.
-// Делегирует вызовы в IContactService.
+/// <summary>
+/// Resource-адаптер для контактов NetworkClient.
+/// Делегирует вызов в core service и оставляет фасаду зависимость только от client contracts.
+/// </summary>
 public class ContactResource : IContactResource
 {
     private readonly IContactService _contactService;

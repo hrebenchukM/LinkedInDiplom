@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Facade.ContentManagement.Controllers.Controllers;
 
+/// <summary>
+/// Facade-контроллер для работы с постами и media-связями поста.
+/// Бизнес-правила не хранятся здесь: контроллер только валидирует вход и вызывает facade service.
+/// </summary>
 public class ContentPostsController : ContentManagementControllerBase
 {
     public ContentPostsController(IContentManagementService contentManagementService)
@@ -22,11 +26,13 @@ public class ContentPostsController : ContentManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
     {
+        // Простая input validation по DataAnnotations.
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // userId берём только из JWT, чтобы нельзя было подменить владельца в body.
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -34,6 +40,7 @@ public class ContentPostsController : ContentManagementControllerBase
             return Unauthorized();
         }
 
+        // Facade service делает orchestration между facade request и core client.
         var response = await ContentService.CreatePostAsync(userId, request);
 
         if (!response.Success)

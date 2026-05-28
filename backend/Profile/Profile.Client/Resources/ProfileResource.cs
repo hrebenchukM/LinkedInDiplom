@@ -5,8 +5,10 @@ using Profile.Contracts.Services;
 
 namespace Profile.Client.Resources;
 
-// Реализация Resource для Profile.
-// В модульном монолите она обращается напрямую к IProfileService.
+/// <summary>
+/// Resource-адаптер для ProfileClient.
+/// Сейчас вызывает core service напрямую, но контракт уже отделён от реализации.
+/// </summary>
 public class ProfileResource : IProfileResource
 {
     private readonly IProfileService _profileService;

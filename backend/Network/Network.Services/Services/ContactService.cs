@@ -8,7 +8,10 @@ using Network.DataAccess.Entities;
 
 namespace Network.Services.Services;
 
-// Сервис контактов между пользователями
+/// <summary>
+/// Core service модуля Network для контактов.
+/// Здесь правила статусов контакта (pending/accepted/rejected/cancelled) и проверки блокировок.
+/// </summary>
 public class ContactService : IContactService
 {
     private const string StatusPending = "pending";

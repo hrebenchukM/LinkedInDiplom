@@ -33,6 +33,8 @@ using Messaging.DI;
 using Network.DI;
 using Notifications.DI;
 
+// Facade.API — единственный host приложения.
+// Здесь нет бизнес-логики: только сборка модулей, middleware и инфраструктурных настроек.
 var builder = WebApplication.CreateBuilder(args);
 
 // Получаем конфигурацию из appsettings.json
@@ -74,7 +76,8 @@ builder.Services.AddMessagingManagementFacade();
 builder.Services.AddJobsManagementFacade();
 builder.Services.AddNotificationsManagementFacade();
 builder.Services.AddEventsManagementFacade();
-// Подключаем контроллеры из facade-модулей
+// Подключаем контроллеры из всех facade-модулей через ApplicationPart.
+// Так host знает только сборки фасадов и не тащит код feature-контроллеров внутрь себя.
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileProfilesController).Assembly)
@@ -96,7 +99,8 @@ var secretKey = jwtSettings["SecretKey"]
 // Превращаем secret key в массив байтов
 var key = Encoding.UTF8.GetBytes(secretKey);
 
-// Настраиваем JWT-аутентификацию
+// Настраиваем JWT-аутентификацию на уровне host.
+// Контроллеры потом читают userId из claims, а не из query/body.
 builder.Services.AddAuthentication(options =>
 {
     // По умолчанию проверяем JWT Bearer token
@@ -206,7 +210,8 @@ builder.Services.AddCors(options =>
 // Собираем приложение
 var app = builder.Build();
 
-// Автоматически применяем миграции при запуске
+// Host применяет миграции всех модулей при старте,
+// чтобы локально и в Docker схема БД была в актуальном состоянии.
 await app.ApplyMigrationsAsync();
 
 if (app.Environment.IsDevelopment())
@@ -246,7 +251,7 @@ app.UseAuthentication();
 // Потом авторизация: что ему разрешено?
 app.UseAuthorization();
 
-// Подключаем маршруты контроллеров
+// Маршрутизацию полностью обрабатывают facade-контроллеры.
 app.MapControllers();
 
 // Запускаем API

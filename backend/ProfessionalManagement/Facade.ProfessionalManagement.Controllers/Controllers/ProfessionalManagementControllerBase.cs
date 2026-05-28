@@ -7,6 +7,10 @@ namespace Facade.ProfessionalManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/professional")]
+/// <summary>
+/// Базовый controller facade-слоя Professional.
+/// Централизует common-логику: получение current user и перевод domain-ошибок в HTTP-коды.
+/// </summary>
 public abstract class ProfessionalManagementControllerBase : ControllerBase
 {
     protected const string ExperienceNotFoundError = "Experience not found.";

@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Jobs.Services.Services;
 
+/// <summary>
+/// Core service модуля Jobs для вакансий.
+/// Содержит правила валидации, ownership и soft delete вакансий.
+/// </summary>
 public class VacancyService(JobsDbContext dbContext) : IVacancyService
 {
     public async Task<VacancyResult> CreateAsync(CreateVacancyParameters parameters)

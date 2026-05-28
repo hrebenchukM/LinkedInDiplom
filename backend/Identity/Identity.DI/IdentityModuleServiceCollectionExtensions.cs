@@ -16,6 +16,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Identity.DI;
 
+/// <summary>
+/// Регистрирует все зависимости Identity-модуля одной точкой входа.
+/// Порядок важен: DbContext -> core services -> resources -> client.
+/// </summary>
 public static class IdentityModuleServiceCollectionExtensions
 {
     public static IServiceCollection AddIdentityModule(

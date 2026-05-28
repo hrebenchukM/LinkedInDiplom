@@ -9,6 +9,10 @@ using NotificationsUserActivityResult = Notifications.Contracts.Results.UserActi
 
 namespace Facade.NotificationsManagement.Services.Services;
 
+/// <summary>
+/// Facade service для Notifications.
+/// Нужен, чтобы frontend не зависел напрямую от внутренних core-контрактов Notifications.
+/// </summary>
 public partial class NotificationsManagementService : INotificationsManagementService
 {
     private readonly INotificationsClient _notificationsClient;

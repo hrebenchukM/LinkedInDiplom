@@ -10,10 +10,16 @@ using Profile.DataAccess;
 using Professional.DataAccess;
 namespace Facade.API.Extensions;
 
-// Расширение для автоматического применения миграций при запуске API
+/// <summary>
+/// Инфраструктурное расширение host-слоя.
+/// Применяет EF Core миграции модулей в фиксированном порядке при запуске Facade.API.
+/// </summary>
 public static class DatabaseExtensions
 {
-    // Метод будет вызываться в Program.cs: await app.ApplyMigrationsAsync();
+    /// <summary>
+    /// Применяет миграции всех модулей modular monolith.
+    /// Порядок важен: сначала Identity, затем остальные модули.
+    /// </summary>
     public static async Task ApplyMigrationsAsync(this WebApplication app)
     {
         // Создаём scope, чтобы получить сервисы из DI

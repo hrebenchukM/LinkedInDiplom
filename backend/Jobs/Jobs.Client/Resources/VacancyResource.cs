@@ -6,6 +6,10 @@ using Jobs.Contracts.Services;
 
 namespace Jobs.Client.Resources;
 
+/// <summary>
+/// Resource-адаптер для вакансий JobsClient.
+/// Оставляет фасад слепым к DataAccess и деталям core-реализации.
+/// </summary>
 public class VacancyResource : IVacancyResource
 {
     private readonly IVacancyService _vacancyService;

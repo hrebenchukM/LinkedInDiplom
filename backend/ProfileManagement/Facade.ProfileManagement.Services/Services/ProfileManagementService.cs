@@ -10,9 +10,10 @@ using Profile.Contracts.DTOs;
 
 namespace Facade.ProfileManagement.Services.Services;
 
-// Фасадный сервис для работы с профилем.
-// Он обращается к Profile-модулю через внутренний Profile.Client,
-// по аналогии с Identity.Client.
+/// <summary>
+/// Facade service для Profile.
+/// Работает как BFF-оркестратор: вызывает ProfileClient и возвращает модели, удобные для frontend.
+/// </summary>
 public partial class ProfileManagementService : IProfileManagementService
 {
     private readonly IProfileClient _profileClient;

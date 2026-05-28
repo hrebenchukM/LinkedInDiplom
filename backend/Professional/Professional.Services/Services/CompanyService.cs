@@ -9,7 +9,10 @@ using Professional.DataAccess.Entities;
 
 namespace Professional.Services.Services;
 
-// Сервис для работы с компаниями
+/// <summary>
+/// Core service модуля Professional для компаний.
+/// Здесь бизнес-правила владения company, валидация и soft delete.
+/// </summary>
 public class CompanyService : ICompanyService
 {
     private readonly ProfessionalDbContext _dbContext;

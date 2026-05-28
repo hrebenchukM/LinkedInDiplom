@@ -7,6 +7,10 @@ namespace Facade.EventsManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/events")]
+/// <summary>
+/// Базовый controller facade-слоя Events.
+/// Нужен для общего маршрута модуля и консистентного преобразования ошибок в 400/404.
+/// </summary>
 public abstract class EventsManagementControllerBase : ControllerBase
 {
     private static readonly HashSet<string> NotFoundErrors = new(StringComparer.Ordinal)

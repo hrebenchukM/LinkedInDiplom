@@ -6,6 +6,10 @@ using Messaging.Contracts.Services;
 
 namespace Messaging.Client.Resources;
 
+/// <summary>
+/// Resource-адаптер для чатов MessagingClient.
+/// Отделяет клиентский контракт модуля от конкретной реализации core-сервиса.
+/// </summary>
 public class ChatResource : IChatResource
 {
     private readonly IChatService _chatService;

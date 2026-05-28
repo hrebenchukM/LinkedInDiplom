@@ -7,11 +7,10 @@ using Identity.Contracts.Parameters;
 
 namespace Facade.AccountManagement.Services.Services;
 
-// Сервис фасада AccountManagement.
-// Он принимает клиентские Request-модели,
-// вызывает IdentityClient,
-// а пустой профиль после регистрации создаётся через UserRegisteredEvent в Profile-модуле,
-// а потом возвращает клиентские Response-модели.
+/// <summary>
+/// Facade service для Account/Auth.
+/// Здесь request/response BFF-слоя переводятся в параметры Identity core-клиента и обратно.
+/// </summary>
 public class AccountManagementService : IAccountManagementService
 {
     // Клиент Identity-модуля.

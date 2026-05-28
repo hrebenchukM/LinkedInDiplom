@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LinkedIn.Tests;
 
+/// <summary>
+/// Тесты core-сервиса хэштегов.
+/// Проверяют нормализацию имени, уникальность и поиск.
+/// </summary>
 public class HashtagServiceTests : IDisposable
 {
     private readonly ContentDbContext _dbContext;

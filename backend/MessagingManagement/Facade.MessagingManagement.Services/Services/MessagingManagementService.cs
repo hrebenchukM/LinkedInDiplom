@@ -15,6 +15,10 @@ using MessagingMessageMediaResult = Messaging.Contracts.Results.MessageMediaResu
 
 namespace Facade.MessagingManagement.Services.Services;
 
+/// <summary>
+/// Facade service для Messaging.
+/// Изолирует frontend от внутренних core-типов и централизует mapping ответов.
+/// </summary>
 public partial class MessagingManagementService : IMessagingManagementService
 {
     private readonly IMessagingClient _messagingClient;

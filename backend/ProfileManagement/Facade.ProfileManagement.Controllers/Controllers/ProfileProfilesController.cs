@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Facade.ProfileManagement.Controllers.Controllers;
 
+/// <summary>
+/// Facade-контроллер для чтения и обновления профиля пользователя.
+/// Здесь только HTTP-слой и orchestration-вызов ProfileManagementService.
+/// </summary>
 public class ProfileProfilesController : ProfileManagementControllerBase
 {
     public ProfileProfilesController(IProfileManagementService profileManagementService)
@@ -20,6 +24,7 @@ public class ProfileProfilesController : ProfileManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetMyProfile()
     {
+        // В защищённых endpoint-ах пользователь определяется из JWT.
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -27,6 +32,7 @@ public class ProfileProfilesController : ProfileManagementControllerBase
             return Unauthorized();
         }
 
+        // Если профиль не найден, API возвращает 404 вместо пустого объекта.
         var item = await ProfileService.GetMyProfileAsync(userId);
 
         if (item == null)

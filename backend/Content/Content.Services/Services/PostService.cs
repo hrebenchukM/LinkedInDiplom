@@ -8,7 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Content.Services.Services;
 
-// Сервис постов
+/// <summary>
+/// Core service модуля Content для постов.
+/// Хранит бизнес-логику постов: visibility, ownership, media attach и soft delete.
+/// </summary>
 public class PostService : IPostService
 {
     private const string VisibilityPublic = "public";

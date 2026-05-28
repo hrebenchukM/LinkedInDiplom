@@ -9,6 +9,10 @@ namespace Facade.AccountManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+/// <summary>
+/// Facade-контроллер для аутентификации и управления сессией.
+/// Это API-слой: принимает HTTP-запросы и делегирует работу в AccountManagementService.
+/// </summary>
 public class AccountController : ControllerBase
 {
     private readonly IAccountManagementService _accountManagementService;
@@ -23,11 +27,13 @@ public class AccountController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        // Проверяем базовую валидацию DataAnnotations до вызова facade service.
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
+        // Facade service оркестрирует вызовы identity-core и формирует ответ для frontend.
         var response = await _accountManagementService.RegisterAsync(request);
 
         if (!response.Success)
@@ -49,6 +55,7 @@ public class AccountController : ControllerBase
             return BadRequest(ModelState);
         }
 
+        // Login может вернуть Unauthorized при неверных credentials или revoked refresh token.
         var response = await _accountManagementService.LoginAsync(request);
 
         if (!response.Success)
@@ -152,6 +159,7 @@ public class AccountController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Me()
     {
+        // Берём userId из JWT claim, чтобы не доверять данным из клиента.
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -159,6 +167,7 @@ public class AccountController : ControllerBase
             return Unauthorized();
         }
 
+        // Контроллер не ходит в DataAccess напрямую — только через facade service.
         var item = await _accountManagementService.GetCurrentAccountAsync(userId);
 
         if (item == null)

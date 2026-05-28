@@ -7,6 +7,10 @@ namespace Facade.JobsManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/jobs")]
+/// <summary>
+/// Базовый controller facade-слоя Jobs.
+/// Хранит общую инфраструктурную логику API, а не бизнес-правила вакансий.
+/// </summary>
 public abstract class JobsManagementControllerBase : ControllerBase
 {
     protected const string VacancyNotFoundError = "Vacancy not found.";

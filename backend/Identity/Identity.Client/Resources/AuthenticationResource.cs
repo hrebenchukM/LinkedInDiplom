@@ -5,7 +5,10 @@ using Identity.Contracts.Services;
 
 namespace Identity.Client.Resources;
 
-// Обёртка над IAuthenticationService
+/// <summary>
+/// Resource-адаптер между Identity.Client и core-сервисом аутентификации.
+/// Это seam для будущей замены in-process вызова на HTTP при выносе в микросервис.
+/// </summary>
 public class AuthenticationResource : IAuthenticationResource
 {
     // Настоящая бизнес-логика авторизации

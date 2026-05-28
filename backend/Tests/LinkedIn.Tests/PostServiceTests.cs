@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LinkedIn.Tests;
 
+/// <summary>
+/// Тесты core-сервиса постов.
+/// Проверяют базовые бизнес-правила: валидацию, приватность, ownership и soft delete.
+/// </summary>
 public class PostServiceTests : IDisposable
 {
     private readonly ContentDbContext _dbContext;

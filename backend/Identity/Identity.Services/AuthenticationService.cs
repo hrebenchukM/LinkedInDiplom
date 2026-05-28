@@ -13,7 +13,10 @@ using Microsoft.Extensions.Options;
 
 namespace Identity.Services;
 
-// Сервис авторизации: логин, refresh token, logout
+/// <summary>
+/// Core service модуля Identity для auth-сценариев.
+/// Здесь находится бизнес-логика login/refresh/logout и жизненный цикл refresh-токенов.
+/// </summary>
 public class AuthenticationService : IAuthenticationService
 {
     // Готовый сервис Identity для поиска пользователя и проверки пароля

@@ -15,6 +15,10 @@ using Facade.EventsManagement.Contracts.Services;
 
 namespace Facade.EventsManagement.Services.Services;
 
+/// <summary>
+/// Facade service для Events.
+/// Оркестрирует сценарии events/schedule/speakers через IEventsClient и мапит результат для API.
+/// </summary>
 public partial class EventsManagementService : IEventsManagementService
 {
     private readonly IEventsClient _eventsClient;

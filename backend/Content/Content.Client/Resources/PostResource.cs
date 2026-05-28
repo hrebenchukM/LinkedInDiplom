@@ -6,8 +6,10 @@ using Content.Contracts.Services;
 
 namespace Content.Client.Resources;
 
-// Реализация Resource для постов.
-// Делегирует вызовы в IPostService.
+/// <summary>
+/// Resource-адаптер для постов ContentClient.
+/// Выступает промежуточным слоем между facade orchestration и core business-логикой.
+/// </summary>
 public class PostResource : IPostResource
 {
     private readonly IPostService _postService;

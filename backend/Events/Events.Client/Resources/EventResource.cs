@@ -6,6 +6,10 @@ using Events.Contracts.Services;
 
 namespace Events.Client.Resources;
 
+/// <summary>
+/// Resource-адаптер для событий EventsClient.
+/// Сейчас это in-process вызов, но контур уже готов к вынесению в отдельный сервис.
+/// </summary>
 public class EventResource(IEventService eventService) : IEventResource
 {
     public Task<EventResult> CreateAsync(CreateEventParameters parameters)

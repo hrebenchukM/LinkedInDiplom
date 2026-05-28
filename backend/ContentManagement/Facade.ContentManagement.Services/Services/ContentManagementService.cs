@@ -18,8 +18,10 @@ using ContentUserHashtagFollowDto = Content.Contracts.DTOs.UserHashtagFollowDto;
 
 namespace Facade.ContentManagement.Services.Services;
 
-// Фасадный сервис для Content-модуля.
-// Обращается к Content через IContentClient.
+/// <summary>
+/// Facade service для Content-модуля.
+/// Принимает запросы frontend, вызывает core через IContentClient и мапит core DTO в facade DTO.
+/// </summary>
 public partial class ContentManagementService : IContentManagementService
 {
     private readonly IContentClient _contentClient;
@@ -29,6 +31,8 @@ public partial class ContentManagementService : IContentManagementService
         _contentClient = contentClient;
     }
 
+    // Маппинг из core-результата в facade-response держим в одном месте,
+    // чтобы контроллеры оставались тонкими и не знали детали core слоя.
     private static PostResponse MapPostResult(PostResult result)
     {
         return new PostResponse

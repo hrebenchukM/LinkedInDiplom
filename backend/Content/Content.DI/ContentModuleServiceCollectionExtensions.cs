@@ -11,6 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Content.DI;
 
+/// <summary>
+/// Подключает Content-модуль в DI-контейнер host.
+/// Facade.API вызывает этот extension, чтобы подключить модуль одной строкой.
+/// </summary>
 public static class ContentModuleServiceCollectionExtensions
 {
     public static IServiceCollection AddContentModule(

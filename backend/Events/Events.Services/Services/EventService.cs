@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Events.Services.Services;
 
+/// <summary>
+/// Core service модуля Events.
+/// Отвечает за CRUD событий и проверки владельца-организатора.
+/// </summary>
 public class EventService(EventsDbContext dbContext) : IEventService
 {
     public async Task<EventResult> CreateAsync(CreateEventParameters parameters)

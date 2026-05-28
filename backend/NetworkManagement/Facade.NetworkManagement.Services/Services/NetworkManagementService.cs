@@ -32,8 +32,10 @@ using NetworkGroupPostDto = Network.Contracts.DTOs.GroupPostDto;
 
 namespace Facade.NetworkManagement.Services.Services;
 
-// Фасадный сервис для Network-модуля.
-// Обращается к Network через INetworkClient.
+/// <summary>
+/// Facade service для Network.
+/// Выполняет orchestration между frontend моделями и core-клиентами Network/Content.
+/// </summary>
 public partial class NetworkManagementService : INetworkManagementService
 {
     private const string StatusPending = "pending";

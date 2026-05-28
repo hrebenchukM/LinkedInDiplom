@@ -4,6 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Facade.AccountManagement.DI;
 
+/// <summary>
+/// Регистрирует facade-слой AccountManagement (BFF).
+/// Здесь подключается orchestration service без доступа к DataAccess.
+/// </summary>
 public static class AccountManagementFacadeServiceCollectionExtensions
 {
     public static IServiceCollection AddAccountManagementFacade(this IServiceCollection services)

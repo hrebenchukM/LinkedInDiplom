@@ -7,6 +7,10 @@ namespace Facade.NetworkManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/network")]
+/// <summary>
+/// Базовый controller facade-слоя Network.
+/// Убирает дублирование: общий route, current user из JWT и единый error mapping.
+/// </summary>
 public abstract class NetworkManagementControllerBase : ControllerBase
 {
     protected const string ContactNotFoundError = "Contact not found.";

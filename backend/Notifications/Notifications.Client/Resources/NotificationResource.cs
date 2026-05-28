@@ -6,6 +6,10 @@ using Notifications.Contracts.Services;
 
 namespace Notifications.Client.Resources;
 
+/// <summary>
+/// Resource-адаптер для уведомлений NotificationsClient.
+/// Поддерживает модульную границу: фасад общается с client layer, а не с DbContext.
+/// </summary>
 public class NotificationResource : INotificationResource
 {
     private readonly INotificationService _notificationService;

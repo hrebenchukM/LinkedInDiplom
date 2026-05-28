@@ -6,6 +6,10 @@ using Profile.Services.Services;
 
 namespace LinkedIn.Tests;
 
+/// <summary>
+/// Тесты core-сервиса профиля.
+/// Покрывают создание пустого профиля, обновление и поведение при soft delete.
+/// </summary>
 public class ProfileServiceTests : IDisposable
 {
     private readonly ProfileDbContext _dbContext;

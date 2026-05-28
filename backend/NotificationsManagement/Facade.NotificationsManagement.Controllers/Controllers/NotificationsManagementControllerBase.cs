@@ -7,6 +7,10 @@ namespace Facade.NotificationsManagement.Controllers.Controllers;
 
 [ApiController]
 [Route("api/notifications")]
+/// <summary>
+/// Базовый controller facade-слоя Notifications.
+/// Держит общий подход к обработке ошибок и идентификации текущего пользователя.
+/// </summary>
 public abstract class NotificationsManagementControllerBase : ControllerBase
 {
     protected const string NotificationNotFoundError = "Notification not found.";
