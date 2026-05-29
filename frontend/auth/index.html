@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="page.title.register">Регистрация — LinkedIn-аналог</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/styles/theme.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="../shared/scripts/i18n.js?v=20260529-5"></script>
+  <script src="../shared/scripts/theme.js"></script>
+  <script>
+    (function () {
+      if (window.React && window.ReactDOM && window.Babel) {
+        var script = document.createElement("script");
+        script.type = "text/babel";
+        script.src = "./app.jsx?v=20260529-8";
+        document.body.appendChild(script);
+        return;
+      }
+      var root = document.getElementById("root");
+      if (!root) return;
+      root.innerHTML =
+        '<main class="empty-state"><h1>Offline mode</h1><p>Не удалось загрузить React CDN. Проверьте интернет или откройте страницу позже.</p></main>';
+    })();
+  </script>
+</body>
+</html>
