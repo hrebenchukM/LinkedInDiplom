@@ -23,6 +23,8 @@
 		  Удаление любой из сторон без дополнительного рефакторинга Program.cs ломает сборку.
 		-->
 		<ProjectReference Include="..\Identity\Identity.DI\Identity.DI.csproj" />
+		<ProjectReference Include="..\AdminManagement\Facade.AdminManagement.DI\Facade.AdminManagement.DI.csproj" />
+		<ProjectReference Include="..\AdminManagement\Facade.AdminManagement.Controllers\Facade.AdminManagement.Controllers.csproj" />
 		<ProjectReference Include="..\AccountManagement\Facade.AccountManagement.DI\Facade.AccountManagement.DI.csproj" />
 		<ProjectReference Include="..\AccountManagement\Facade.AccountManagement.Controllers\Facade.AccountManagement.Controllers.csproj" />
 		<ProjectReference Include="..\Identity\Identity.DataAccess\Identity.DataAccess.csproj" />

@@ -1,4 +1,6 @@
 ﻿using System.Text; // Для Encoding.UTF8.GetBytes
+using Facade.AdminManagement.Controllers;
+using Facade.AdminManagement.DI;
 using Facade.AccountManagement.Controllers.Controllers; // AccountController из фасада
 using Facade.AccountManagement.DI; // AddAccountManagementFacade()
 using Facade.API.Extensions; // ApplyMigrationsAsync()
@@ -65,6 +67,7 @@ builder.Services.AddNotificationsModule(configuration, connectionString);
 builder.Services.AddEventsModule(configuration, connectionString);
 
 // Подключаем AccountManagement facade
+builder.Services.AddAdminManagementFacade();
 builder.Services.AddAccountManagementFacade();
 
 // Подключаем ProfileManagement facade
@@ -79,6 +82,7 @@ builder.Services.AddEventsManagementFacade();
 // Подключаем контроллеры из всех facade-модулей через ApplicationPart.
 // Так host знает только сборки фасадов и не тащит код feature-контроллеров внутрь себя.
 builder.Services.AddControllers()
+    .AddApplicationPart(typeof(AdminManagementControllersAssemblyMarker).Assembly)
     .AddApplicationPart(typeof(AccountController).Assembly)
     .AddApplicationPart(typeof(ProfileProfilesController).Assembly)
     .AddApplicationPart(typeof(ProfessionalExperiencesController).Assembly)

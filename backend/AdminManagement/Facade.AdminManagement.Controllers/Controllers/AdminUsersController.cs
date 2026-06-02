@@ -1,0 +1,158 @@
+using Facade.AdminManagement.Contracts.Requests;
+using Facade.AdminManagement.Contracts.Services;
+using Identity.Contracts.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Facade.AdminManagement.Controllers.Controllers;
+
+[ApiController]
+[Route("api/admin/users")]
+[Authorize(Roles = IdentityRoleNames.Admin)]
+public class AdminUsersController : ControllerBase
+{
+    private readonly IAdminManagementService _adminManagementService;
+
+    public AdminUsersController(IAdminManagementService adminManagementService)
+    {
+        _adminManagementService = adminManagementService;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(200)]
+    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
+    {
+        var users = await _adminManagementService.GetUsersAsync(cancellationToken);
+        return Ok(users);
+    }
+
+    [HttpGet("{userId}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetUserById(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await _adminManagementService.GetUserByIdAsync(userId, cancellationToken);
+            return Ok(user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("{userId}/roles")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetUserRoles(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var roles = await _adminManagementService.GetUserRolesAsync(userId, cancellationToken);
+            return Ok(roles);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("{userId}/roles")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> AddUserToRole(
+        string userId,
+        [FromBody] AssignUserRoleRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.RoleName))
+        {
+            return BadRequest(new { error = "RoleName is required." });
+        }
+
+        try
+        {
+            await _adminManagementService.AddUserToRoleAsync(
+                userId,
+                request.RoleName,
+                cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{userId}/roles/{roleName}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> RemoveUserFromRole(
+        string userId,
+        string roleName,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _adminManagementService.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{userId}/lock")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> LockUser(
+        string userId,
+        [FromBody] LockUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _adminManagementService.LockUserAsync(userId, request?.LockoutEnd, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{userId}/unlock")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> UnlockUser(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _adminManagementService.UnlockUserAsync(userId, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{userId}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> SoftDeleteUser(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // TODO: prevent admin from locking/deleting own account.
+            await _adminManagementService.SoftDeleteUserAsync(userId, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+}
