@@ -1,4 +1,5 @@
 ﻿using Identity.Contracts.DTOs;
+using Identity.Contracts.Constants;
 using Identity.Contracts.Parameters;
 using Identity.Contracts.Results;
 using Identity.Contracts.Services;
@@ -16,6 +17,7 @@ public class UserService : IUserService
 {
     // UserManager — готовый сервис ASP.NET Identity для создания пользователей и проверки паролей
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
     // DbContext — доступ к таблицам базы данных
     private readonly IdentityDbContext _dbContext;
@@ -25,10 +27,12 @@ public class UserService : IUserService
     // Через конструктор получаем нужные зависимости из DI
     public UserService(
         UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager,
         IdentityDbContext dbContext,
         IDomainEventPublisher eventPublisher)
     {
         _userManager = userManager;
+        _roleManager = roleManager;
         _dbContext = dbContext;
         _eventPublisher = eventPublisher;
     }
@@ -52,6 +56,12 @@ public class UserService : IUserService
     // Зарегистрировать нового пользователя
     public async Task<RegisterUserResult> RegisterAsync(RegisterUserParameters parameters)
     {
+        var roleExists = await _roleManager.RoleExistsAsync(IdentityRoleNames.User);
+        if (!roleExists)
+        {
+            throw new InvalidOperationException("Default role 'User' does not exist. Run IdentityDataSeeder first.");
+        }
+
         // Создаём объект пользователя для базы
         var user = new ApplicationUser
         {
@@ -73,6 +83,26 @@ public class UserService : IUserService
                 Errors = result.Errors.Select(e => e.Description)
             };
         }
+
+        var addToRoleResult = await _userManager.AddToRoleAsync(user, IdentityRoleNames.User);
+        if (!addToRoleResult.Succeeded)
+        {
+            // Откатываем создание пользователя, чтобы не оставлять учётку без базовой роли.
+            var deleteResult = await _userManager.DeleteAsync(user);
+            var errors = addToRoleResult.Errors.Select(e => e.Description).ToList();
+
+            if (!deleteResult.Succeeded)
+            {
+                errors.AddRange(deleteResult.Errors.Select(e => $"Rollback failed: {e.Description}"));
+            }
+
+            return new RegisterUserResult
+            {
+                Succeeded = false,
+                Errors = errors
+            };
+        }
+
         // Публикуем событие: пользователь зарегистрировался.
         // Profile-модуль потом создаст пустой профиль.
         await _eventPublisher.PublishAsync(new UserRegisteredEvent

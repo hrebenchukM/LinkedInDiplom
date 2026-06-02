@@ -1,5 +1,6 @@
 ﻿using Content.DataAccess;
 using Events.DataAccess;
+using Identity.Contracts.Services;
 using Identity.DataAccess;
 using Jobs.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,9 @@ public static class DatabaseExtensions
 
             // Применяем миграции Identity-модуля
             await identityContext.Database.MigrateAsync();
+
+            var identityDataSeeder = services.GetRequiredService<IIdentityDataSeeder>();
+            await identityDataSeeder.SeedAsync();
 
             // Получаем ProfileDbContext из DI
             var profileContext = services.GetRequiredService<ProfileDbContext>();

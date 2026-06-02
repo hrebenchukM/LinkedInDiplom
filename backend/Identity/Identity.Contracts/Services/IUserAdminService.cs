@@ -1,0 +1,26 @@
+using Identity.Contracts.DTOs;
+
+namespace Identity.Contracts.Services;
+
+public interface IUserAdminService
+{
+    Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<AdminUserDto> GetUserByIdAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task LockUserAsync(
+        string userId,
+        DateTimeOffset? lockoutEnd = null,
+        CancellationToken cancellationToken = default);
+
+    Task UnlockUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task SoftDeleteUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+}

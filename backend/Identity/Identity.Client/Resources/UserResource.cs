@@ -11,11 +11,18 @@ public class UserResource : IUserResource
 {
     // Настоящая бизнес-логика пользователей
     private readonly IUserService _userService;
+    private readonly IUserAdminService _userAdminService;
+    private readonly IRoleService _roleService;
 
     // Получаем IUserService через DI
-    public UserResource(IUserService userService)
+    public UserResource(
+        IUserService userService,
+        IUserAdminService userAdminService,
+        IRoleService roleService)
     {
         _userService = userService;
+        _userAdminService = userAdminService;
+        _roleService = roleService;
     }
 
     // Просто передаём вызов в сервис
@@ -26,4 +33,50 @@ public class UserResource : IUserResource
     // Просто передаём регистрацию в сервис
     public Task<RegisterUserResult> RegisterAsync(RegisterUserParameters parameters)
         => _userService.RegisterAsync(parameters);
+
+    public Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+        CancellationToken cancellationToken = default)
+        => _userAdminService.GetUsersAsync(cancellationToken);
+
+    public Task<AdminUserDto> GetUserByIdAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _userAdminService.GetUserByIdAsync(userId, cancellationToken);
+
+    public Task LockUserAsync(
+        string userId,
+        DateTimeOffset? lockoutEnd = null,
+        CancellationToken cancellationToken = default)
+        => _userAdminService.LockUserAsync(userId, lockoutEnd, cancellationToken);
+
+    public Task UnlockUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _userAdminService.UnlockUserAsync(userId, cancellationToken);
+
+    public Task SoftDeleteUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _userAdminService.SoftDeleteUserAsync(userId, cancellationToken);
+
+    public Task<IReadOnlyCollection<RoleDto>> GetRolesAsync(
+        CancellationToken cancellationToken = default)
+        => _roleService.GetRolesAsync(cancellationToken);
+
+    public Task<IReadOnlyCollection<string>> GetUserRolesAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _roleService.GetUserRolesAsync(userId, cancellationToken);
+
+    public Task AddUserToRoleAsync(
+        string userId,
+        string roleName,
+        CancellationToken cancellationToken = default)
+        => _roleService.AddUserToRoleAsync(userId, roleName, cancellationToken);
+
+    public Task RemoveUserFromRoleAsync(
+        string userId,
+        string roleName,
+        CancellationToken cancellationToken = default)
+        => _roleService.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
 }

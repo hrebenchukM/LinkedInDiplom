@@ -3,12 +3,15 @@ using Identity.Client.Contracts;
 using Identity.Client.Contracts.Resources;
 using Identity.Client.Resources;
 using Identity.Contracts.Configuration;
+using Identity.Contracts.Options;
 using Identity.Contracts.Services;
 using Identity.DataAccess;
 using Identity.DataAccess.Entities;
 using Identity.Events;
 using Identity.Events.Contracts.Abstractions;
 using Identity.Services;
+using Identity.Services.Seeding;
+using Identity.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +36,8 @@ public static class IdentityModuleServiceCollectionExtensions
         {
             configuration.GetSection("JwtSettings").Bind(options);
         });
+
+        services.Configure<AdminSeedOptions>(configuration.GetSection("AdminSeed"));
 
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(
@@ -61,7 +66,10 @@ public static class IdentityModuleServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IExternalAuthService, ExternalAuthService>();
-       
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
+
         //Нужно, чтобы backend мог делать HTTP - запросы.
         //Например, для Google login backend может проверить токен у Google.
         services.AddHttpClient();
