@@ -1,4 +1,7 @@
+using Facade.AdminManagement.Contracts.DTOs;
+using Facade.AdminManagement.Contracts.Requests;
 using Identity.Contracts.DTOs;
+using Jobs.Contracts.DTOs;
 
 namespace Facade.AdminManagement.Contracts.Services;
 
@@ -39,5 +42,35 @@ public interface IAdminManagementService
     Task RemoveUserFromRoleAsync(
         string userId,
         string roleName,
+        CancellationToken cancellationToken = default);
+
+    Task AdminSoftDeletePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestorePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminSoftDeleteVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestoreVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<RecommendedJobQueryDto>> GetRecommendedJobQueriesAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<RecommendedJobQueryDto> CreateRecommendedJobQueryAsync(
+        CreateRecommendedJobQueryRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteRecommendedJobQueryAsync(
+        Guid recommendedJobQueryId,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminStatsOverviewDto> GetStatsOverviewAsync(
         CancellationToken cancellationToken = default);
 }

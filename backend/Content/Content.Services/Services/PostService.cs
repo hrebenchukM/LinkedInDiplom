@@ -177,6 +177,66 @@ public class PostService : IPostService
         return Success(post, media);
     }
 
+    public async Task AdminSoftDeletePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+    {
+        var post = await _dbContext.Posts
+            .FirstOrDefaultAsync(p => p.Id == postId, cancellationToken);
+
+        if (post == null)
+        {
+            throw new InvalidOperationException($"Post with id '{postId}' was not found.");
+        }
+
+        if (post.DeletedAt != null)
+        {
+            return;
+        }
+
+        post.DeletedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AdminRestorePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+    {
+        var post = await _dbContext.Posts
+            .FirstOrDefaultAsync(p => p.Id == postId, cancellationToken);
+
+        if (post == null)
+        {
+            throw new InvalidOperationException($"Post with id '{postId}' was not found.");
+        }
+
+        if (post.DeletedAt == null)
+        {
+            return;
+        }
+
+        post.DeletedAt = null;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<ContentStatsDto> GetContentStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var totalPosts = await _dbContext.Posts.CountAsync(cancellationToken);
+        var deletedPosts = await _dbContext.Posts.CountAsync(
+            p => p.DeletedAt != null,
+            cancellationToken);
+
+        return new ContentStatsDto
+        {
+            TotalPosts = totalPosts,
+            DeletedPosts = deletedPosts,
+            ActivePosts = totalPosts - deletedPosts
+        };
+    }
+
     private async Task<IReadOnlyCollection<MediaDto>> GetMediaForPostAsync(Guid postId)
     {
         var media = await (

@@ -23,4 +23,7 @@ public interface IUserAdminService
     Task SoftDeleteUserAsync(
         string userId,
         CancellationToken cancellationToken = default);
+
+    Task<IdentityStatsDto> GetIdentityStatsAsync(
+        CancellationToken cancellationToken = default);
 }

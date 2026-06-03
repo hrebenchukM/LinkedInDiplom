@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
 using Identity.Contracts.Constants;
@@ -93,6 +94,13 @@ public class AdminUsersController : ControllerBase
         string roleName,
         CancellationToken cancellationToken)
     {
+        var currentUserId = GetCurrentUserId();
+        if (string.Equals(currentUserId, userId, StringComparison.Ordinal)
+            && string.Equals(roleName, IdentityRoleNames.Admin, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { error = "Admin cannot remove own Admin role." });
+        }
+
         try
         {
             await _adminManagementService.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
@@ -112,6 +120,12 @@ public class AdminUsersController : ControllerBase
         [FromBody] LockUserRequest request,
         CancellationToken cancellationToken)
     {
+        var currentUserId = GetCurrentUserId();
+        if (string.Equals(currentUserId, userId, StringComparison.Ordinal))
+        {
+            return BadRequest(new { error = "Admin cannot lock own account." });
+        }
+
         try
         {
             await _adminManagementService.LockUserAsync(userId, request?.LockoutEnd, cancellationToken);
@@ -144,9 +158,14 @@ public class AdminUsersController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> SoftDeleteUser(string userId, CancellationToken cancellationToken)
     {
+        var currentUserId = GetCurrentUserId();
+        if (string.Equals(currentUserId, userId, StringComparison.Ordinal))
+        {
+            return BadRequest(new { error = "Admin cannot delete own account." });
+        }
+
         try
         {
-            // TODO: prevent admin from locking/deleting own account.
             await _adminManagementService.SoftDeleteUserAsync(userId, cancellationToken);
             return NoContent();
         }
@@ -155,4 +174,8 @@ public class AdminUsersController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    private string? GetCurrentUserId() =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue("sub");
 }

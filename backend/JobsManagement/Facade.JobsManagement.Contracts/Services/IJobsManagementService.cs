@@ -1,5 +1,4 @@
 using Facade.JobsManagement.Contracts.DTOs;
-using Facade.JobsManagement.Contracts.Requests.RecommendedQuery;
 using Facade.JobsManagement.Contracts.Requests.SearchQuery;
 using Facade.JobsManagement.Contracts.Requests.SearchResult;
 using Facade.JobsManagement.Contracts.Requests.Vacancy;
@@ -31,7 +30,5 @@ public interface IJobsManagementService
     Task<IReadOnlyCollection<JobSearchResultDto>?> GetSearchResultsAsync(string userId, Guid searchId);
     Task<JobSearchResultResponse> UpsertSearchResultsAsync(string userId, Guid searchId, UpsertJobSearchResultsRequest request);
 
-    Task<RecommendedJobQueryResponse> CreateRecommendedQueryAsync(string userId, CreateRecommendedJobQueryRequest request);
     Task<IReadOnlyCollection<RecommendedJobQueryDto>> GetRecommendedQueriesAsync(string userId);
-    Task<RecommendedJobQueryResponse> DeleteRecommendedQueryAsync(string userId, Guid recommendedQueryId);
 }

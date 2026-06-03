@@ -157,6 +157,22 @@ public class UserAdminService : IUserAdminService
         };
     }
 
+    public async Task<IdentityStatsDto> GetIdentityStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var totalUsers = await _dbContext.Users.CountAsync(cancellationToken);
+        var deletedUsers = await _dbContext.Users.CountAsync(
+            u => u.DeletedAt != null,
+            cancellationToken);
+
+        return new IdentityStatsDto
+        {
+            TotalUsers = totalUsers,
+            DeletedUsers = deletedUsers,
+            ActiveUsers = totalUsers - deletedUsers
+        };
+    }
+
     private static void EnsureSucceeded(IdentityResult result, string message)
     {
         if (result.Succeeded)

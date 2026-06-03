@@ -1,3 +1,4 @@
+using Identity.Contracts.Constants;
 using Identity.Contracts.DTOs;
 using Identity.Contracts.Services;
 using Identity.DataAccess.Entities;
@@ -100,6 +101,15 @@ public class RoleService : IRoleService
         if (!await _userManager.IsInRoleAsync(user, roleName))
         {
             return;
+        }
+
+        if (string.Equals(roleName, IdentityRoleNames.Admin, StringComparison.OrdinalIgnoreCase))
+        {
+            var admins = await _userManager.GetUsersInRoleAsync(IdentityRoleNames.Admin);
+            if (admins.Count <= 1 && admins.Any(a => a.Id == userId))
+            {
+                throw new InvalidOperationException("Cannot remove Admin role from the last admin user.");
+            }
         }
 
         var result = await _userManager.RemoveFromRoleAsync(user, roleName);

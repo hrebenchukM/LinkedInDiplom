@@ -79,4 +79,8 @@ public class UserResource : IUserResource
         string roleName,
         CancellationToken cancellationToken = default)
         => _roleService.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
+
+    public Task<IdentityStatsDto> GetIdentityStatsAsync(
+        CancellationToken cancellationToken = default)
+        => _userAdminService.GetIdentityStatsAsync(cancellationToken);
 }

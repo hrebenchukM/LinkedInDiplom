@@ -23,7 +23,8 @@
 7. Jobs
 8. Notifications
 9. Events
-10. Auth: `logout`
+10. **Admin** (отдельный admin token — см. ниже)
+11. Auth: `logout`
 
 ## Таблицы endpoint-ов по модулям
 
@@ -130,7 +131,7 @@
 | POST/DELETE/GET | `/api/jobs/me/favorites/{vacancyId}` + `/me/favorites` | Yes | route | - | Избранные вакансии | - |
 | POST/DELETE/GET/GET | `/api/jobs/me/vacancies/{vacancyId}/apply` + `/me/applications...` | Yes | route | `applicationId`* | Отклики | - |
 | POST/GET/GET/DELETE/GET | `/api/jobs/me/search-queries...` | Yes | body/route | `searchQueryId`* | Поисковые запросы | - |
-| POST/GET/DELETE | `/api/jobs/recommended-queries...` | Yes | body/route | `recommendedQueryId`* | Рекомендуемые запросы | - |
+| GET | `/api/jobs/recommended-queries` | Yes | - | - | Рекомендуемые запросы (read) | User **не** может POST/DELETE (404) |
 
 ### 08 Notifications
 
@@ -153,11 +154,56 @@
 | POST/GET/PATCH/DELETE | `/api/events/me/speakers...` | Yes | body/route | `speakerId`* | Спикеры | - |
 | POST/DELETE/GET | `/api/events/me/{eventId}/speakers...` + `/api/events/{eventId}/speakers` | Yes | body/route | - | Спикеры события | - |
 
+### 10 Admin / Platform
+
+> Используйте `{{adminToken}}` после `POST /api/auth/login` с `admin@local.dev` / `Admin123!` (Development seed).  
+> Для проверки 403 сохраните обычный `{{accessToken}}` как `normalUserToken` и вызывайте admin routes с ним.
+
+| Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
+|---|---|---|---|---|---|---|
+| POST | `/api/auth/login` | No | admin credentials | `adminToken`, `adminUserId` | Login admin | тот же endpoint, что у user |
+| GET | `/api/admin/roles` | Admin | - | - | Роли платформы | |
+| GET | `/api/admin/users` | Admin | - | - | Все пользователи | incl. deleted |
+| GET | `/api/admin/users/{userId}` | Admin | route | - | User by id | |
+| GET | `/api/admin/users/{userId}/roles` | Admin | route | - | Роли user | |
+| POST | `/api/admin/users/{userId}/roles` | Admin | `{ "roleName": "Admin" }` | - | Назначить роль | 204 |
+| DELETE | `/api/admin/users/{userId}/roles/{roleName}` | Admin | route | - | Снять роль | self Admin → 400 |
+| PATCH | `/api/admin/users/{userId}/lock` | Admin | optional body | - | Lock user | self → 400 |
+| PATCH | `/api/admin/users/{userId}/unlock` | Admin | route | - | Unlock | |
+| DELETE | `/api/admin/users/{userId}` | Admin | route | - | Soft delete user | self → 400 |
+| DELETE | `/api/admin/content/posts/{postId}` | Admin | route `postId` | - | Soft delete post | 204 |
+| PATCH | `/api/admin/content/posts/{postId}/restore` | Admin | route | - | Restore post | 204 |
+| DELETE | `/api/admin/jobs/vacancies/{vacancyId}` | Admin | route | - | Soft delete vacancy | 204 |
+| PATCH | `/api/admin/jobs/vacancies/{vacancyId}/restore` | Admin | route | - | Restore vacancy | 204 |
+| GET | `/api/admin/jobs/recommended-queries` | Admin | - | - | List recommended | |
+| POST | `/api/admin/jobs/recommended-queries` | Admin | `{ "query": "..." }` | `recommendedJobQueryId`* | Create recommended | 200 |
+| DELETE | `/api/admin/jobs/recommended-queries/{id}` | Admin | route | - | Delete recommended | 204 |
+| GET | `/api/admin/stats/overview` | Admin | - | - | Stats overview | |
+| GET | `/api/admin/stats/overview` | User token | - | - | Negative: 403 | обычный user |
+
+#### Сценарии безопасности (smoke)
+
+1. **Self lock**: `PATCH .../users/{{adminUserId}}/lock` → **400** `Admin cannot lock own account.`
+2. **Self delete**: `DELETE .../users/{{adminUserId}}` → **400** `Admin cannot delete own account.`
+3. **Self remove Admin**: `DELETE .../users/{{adminUserId}}/roles/Admin` → **400** `Admin cannot remove own Admin role.`
+4. **Lock other user**: `PATCH .../users/{{otherUserId}}/lock` → **204** (если user существует).
+5. **User on admin route**: `GET /api/admin/stats/overview` с `{{accessToken}}` (User) → **403**.
+
+#### Recommended queries (user vs admin)
+
+| Caller | GET `/api/jobs/recommended-queries` | POST/DELETE user routes |
+|---|---|---|
+| User JWT | **200** | **404** (endpoints removed) |
+| Admin JWT | N/A (use admin routes) | `POST/DELETE` under `/api/admin/jobs/recommended-queries` |
+
 ## Какие переменные должны быть подготовлены заранее
 
 - `otherUserId` — для контактов, подписок, упоминаний, чатов.
 - `companyId` — для некоторых профессиональных и job-сценариев.
 - `postId` — для content/network/jobs/notifications cross-flow.
+- `adminToken`, `adminUserId` — для `/api/admin/*` (после login admin).
+- `normalUserToken`, `normalUserId` — для negative tests (403 на admin routes).
+- `recommendedJobQueryId` — для admin DELETE recommended query.
 - `eventId`, `speakerId`, `scheduleItemId` — для module Events.
 
 ## Когда save-script может потребовать ручной донастройки

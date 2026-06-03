@@ -17,7 +17,6 @@ public abstract class JobsManagementControllerBase : ControllerBase
     protected const string FavoriteNotFoundError = "Favorite not found.";
     protected const string ApplicationNotFoundError = "Application not found.";
     protected const string SearchQueryNotFoundError = "Search query not found.";
-    protected const string RecommendedQueryNotFoundError = "Recommended query not found.";
 
     protected IJobsManagementService JobsService { get; }
 
@@ -48,11 +47,6 @@ public abstract class JobsManagementControllerBase : ControllerBase
         SearchQueryNotFoundError
     };
 
-    private static readonly HashSet<string> RecommendedQueryNotFoundErrors = new(StringComparer.Ordinal)
-    {
-        RecommendedQueryNotFoundError
-    };
-
     protected IActionResult MapVacancyError(VacancyResponse response) =>
         MapErrors(response, response.Errors, VacancyNotFoundErrors);
 
@@ -64,9 +58,6 @@ public abstract class JobsManagementControllerBase : ControllerBase
 
     protected IActionResult MapSearchQueryError(JobSearchQueryResponse response) =>
         MapErrors(response, response.Errors, SearchQueryNotFoundErrors);
-
-    protected IActionResult MapRecommendedQueryError(RecommendedJobQueryResponse response) =>
-        MapErrors(response, response.Errors, RecommendedQueryNotFoundErrors);
 
     protected string? GetCurrentUserId() =>
         User.FindFirstValue(ClaimTypes.NameIdentifier)

@@ -17,4 +17,15 @@ public interface IPostResource
     Task<PostResult> UpdateAsync(UpdatePostParameters parameters);
 
     Task<PostResult> DeleteAsync(DeletePostParameters parameters);
+
+    Task AdminSoftDeletePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestorePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default);
+
+    Task<ContentStatsDto> GetContentStatsAsync(
+        CancellationToken cancellationToken = default);
 }

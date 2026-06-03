@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Facade.JobsManagement.Contracts.Requests.RecommendedQuery;
+namespace Facade.AdminManagement.Contracts.Requests;
 
 public record CreateRecommendedJobQueryRequest
 {

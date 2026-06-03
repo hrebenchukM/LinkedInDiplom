@@ -159,6 +159,71 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
         };
     }
 
+    public async Task AdminSoftDeleteVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+    {
+        var vacancy = await dbContext.Vacancies
+            .FirstOrDefaultAsync(v => v.Id == vacancyId, cancellationToken);
+
+        if (vacancy is null)
+        {
+            throw new InvalidOperationException($"Vacancy with id '{vacancyId}' was not found.");
+        }
+
+        if (vacancy.DeletedAt != null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        vacancy.DeletedAt = now;
+        vacancy.UpdatedAt = now;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AdminRestoreVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+    {
+        var vacancy = await dbContext.Vacancies
+            .FirstOrDefaultAsync(v => v.Id == vacancyId, cancellationToken);
+
+        if (vacancy is null)
+        {
+            throw new InvalidOperationException($"Vacancy with id '{vacancyId}' was not found.");
+        }
+
+        if (vacancy.DeletedAt == null)
+        {
+            return;
+        }
+
+        vacancy.DeletedAt = null;
+        vacancy.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<JobsStatsDto> GetJobsStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var totalVacancies = await dbContext.Vacancies.CountAsync(cancellationToken);
+        var deletedVacancies = await dbContext.Vacancies.CountAsync(
+            v => v.DeletedAt != null,
+            cancellationToken);
+        var totalRecommendedJobQueries = await dbContext.RecommendedJobQueries.CountAsync(cancellationToken);
+
+        return new JobsStatsDto
+        {
+            TotalVacancies = totalVacancies,
+            DeletedVacancies = deletedVacancies,
+            ActiveVacancies = totalVacancies - deletedVacancies,
+            TotalRecommendedJobQueries = totalRecommendedJobQueries
+        };
+    }
+
     private static VacancyDto Map(Vacancy vacancy) =>
         new()
         {

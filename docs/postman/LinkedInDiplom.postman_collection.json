@@ -446,9 +446,7 @@
         { "name": "Get Search Query By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
         { "name": "Delete Search Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
         { "name": "Get Search Results", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results" } },
-        { "name": "Create Recommended Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/recommended-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"dotnet\"\n}" } } },
-        { "name": "Get Recommended Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/recommended-queries" } },
-        { "name": "Delete Recommended Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/recommended-queries/{{recommendedQueryId}}" } }
+        { "name": "Get Recommended Queries (user read-only)", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/recommended-queries" } }
       ]
     },
     {
@@ -487,6 +485,59 @@
         { "name": "Attach Speaker To Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers", "body": { "mode": "raw", "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}" } } },
         { "name": "Detach Speaker From Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}" } },
         { "name": "Get Event Speakers", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/speakers" } }
+      ]
+    },
+    {
+      "name": "10 Admin",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@local.dev\",\n  \"password\": \"Admin123!\"\n}" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const j = pm.response.json();",
+                "const access = j?.token?.accessToken || j?.accessToken;",
+                "const uid = j?.account?.id || j?.userId || j?.id;",
+                "if (access) pm.environment.set('adminToken', access);",
+                "if (uid) pm.environment.set('adminUserId', uid);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Admin API",
+          "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+          "item": [
+            { "name": "Get Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/roles" } },
+            { "name": "Get Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users" } },
+            { "name": "Get User By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}" } },
+            { "name": "Get User Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles" } },
+            { "name": "Add User Role", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles", "body": { "mode": "raw", "raw": "{\n  \"roleName\": \"Admin\"\n}" } } },
+            { "name": "Remove User Role", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles/User" } },
+            { "name": "Self Remove Admin Role (expect 400)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles/Admin" } },
+            { "name": "Lock User", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/lock", "body": { "mode": "raw", "raw": "{}" } } },
+            { "name": "Self Lock (expect 400)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/lock", "body": { "mode": "raw", "raw": "{}" } } },
+            { "name": "Unlock User", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/unlock" } },
+            { "name": "Soft Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}" } },
+            { "name": "Admin Delete Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}" } },
+            { "name": "Admin Restore Post", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}/restore" } },
+            { "name": "Admin Delete Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}" } },
+            { "name": "Admin Restore Vacancy", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}/restore" } },
+            { "name": "Get Recommended Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/jobs/recommended-queries" } },
+            { "name": "Create Recommended Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/jobs/recommended-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"dotnet developer\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "if(j.id) pm.environment.set('recommendedJobQueryId', j.id);"] } }] },
+            { "name": "Delete Recommended Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedJobQueryId}}" } },
+            { "name": "Stats Overview", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/stats/overview" } },
+            { "name": "Stats Overview As User (expect 403)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/admin/stats/overview" } }
+          ]
+        }
       ]
     }
   ],

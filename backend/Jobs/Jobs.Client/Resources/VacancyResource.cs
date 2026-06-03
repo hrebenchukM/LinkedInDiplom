@@ -43,4 +43,18 @@ public class VacancyResource : IVacancyResource
     {
         return _vacancyService.DeleteAsync(parameters);
     }
+
+    public Task AdminSoftDeleteVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+        => _vacancyService.AdminSoftDeleteVacancyAsync(vacancyId, cancellationToken);
+
+    public Task AdminRestoreVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+        => _vacancyService.AdminRestoreVacancyAsync(vacancyId, cancellationToken);
+
+    public Task<JobsStatsDto> GetJobsStatsAsync(
+        CancellationToken cancellationToken = default)
+        => _vacancyService.GetJobsStatsAsync(cancellationToken);
 }

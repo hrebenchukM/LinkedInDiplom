@@ -43,4 +43,18 @@ public class PostResource : IPostResource
     {
         return _postService.DeleteAsync(parameters);
     }
+
+    public Task AdminSoftDeletePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+        => _postService.AdminSoftDeletePostAsync(postId, cancellationToken);
+
+    public Task AdminRestorePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+        => _postService.AdminRestorePostAsync(postId, cancellationToken);
+
+    public Task<ContentStatsDto> GetContentStatsAsync(
+        CancellationToken cancellationToken = default)
+        => _postService.GetContentStatsAsync(cancellationToken);
 }

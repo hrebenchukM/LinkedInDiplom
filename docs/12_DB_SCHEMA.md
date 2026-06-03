@@ -16,13 +16,19 @@
 
 ## Основные группы таблиц
 
-- Identity: `AspNetUsers`, `AspNetRoles`, `RefreshTokens`
+- Identity: `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, `RefreshTokens`
+  - **platform admin** — это пользователь с ролью `Admin` в `AspNetUserRoles`; отдельной таблицы `admins` **нет**
+  - `ApplicationUser.DeletedAt` — soft delete пользователя (не hard delete)
 - Profile: `user_profiles`, `message_settings`, `profile_views`
 - Professional: companies/experiences/educations/certificates/skills/languages/recommendations
 - Network: contacts/follows/blocked/groups/pages и связи
+  - `page_admins` — админы **страниц** (Network), **не** platform admin (`/api/admin/*`)
 - Content: posts/media/comments/reactions/hashtags/saved/reposts/views/mentions
+  - `posts.DeletedAt` — soft delete постов
 - Messaging: chats/messages/reads/media
 - Jobs: vacancies/favorites/applications/search/recommended queries
+  - `vacancies.DeletedAt` — soft delete вакансий
+  - `recommended_job_queries` — глобальный справочник (без per-user ownership)
 - Notifications: notifications/user_activity
 - Events: events/attendees/schedule/speakers/map
 

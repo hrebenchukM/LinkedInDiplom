@@ -49,6 +49,17 @@ dotnet run
 - `refreshToken`
 - `userId` (если найден в ответе)
 
+### Admin token (platform admin)
+
+1. Убедитесь, что API запущен с `appsettings.Development.json` и выполнен seed (`AdminSeed`).
+2. В папке `10 Admin` выполните **Admin Login** (`admin@local.dev` / `Admin123!`)  
+   или вручную `POST /api/auth/login` с admin credentials.
+3. Сохраните в environment:
+   - `adminToken` — access token admin
+   - `adminUserId` — id admin (из login или `GET /api/admin/users`)
+
+Для negative tests сохраните обычный user token в `normalUserToken` после `01 Auth -> Login`.
+
 ## 5) Protected endpoints
 
 Большинство endpoint-ов в коллекции используют Bearer token:
@@ -74,7 +85,8 @@ dotnet run
 7. `07 Jobs`
 8. `08 Notifications`
 9. `09 Events`
-10. `01 Auth / Account -> Logout`
+10. `10 Admin` (после `adminToken`; нужны `postId`, `vacancyId` из user flows)
+11. `01 Auth / Account -> Logout`
 
 Почему так:
 
@@ -85,7 +97,9 @@ dotnet run
 Collection использует переменные:
 
 - `baseUrl`, `accessToken`, `refreshToken`, `userId`
-- и набор id-переменных (`postId`, `chatId`, `vacancyId`, `eventId`, и т.д.)
+- **Admin:** `adminToken`, `adminUserId`
+- **Negative / second user:** `normalUserToken`, `normalUserId`, `otherUserId`
+- и набор id-переменных (`postId`, `chatId`, `vacancyId`, `recommendedJobQueryId`, `eventId`, и т.д.)
 
 Если какой-то id пустой:
 

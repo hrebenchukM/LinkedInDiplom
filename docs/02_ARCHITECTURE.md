@@ -17,9 +17,29 @@ PostgreSQL schema
 Facade.API регистрирует:
 
 - 9 core модулей: `AddIdentityModule ... AddEventsModule`
-- 9 facade модулей: `AddAccountManagementFacade ... AddEventsManagementFacade`
-- controllers через `AddApplicationPart(...)`
+- 10 facade модулей: `AddAccountManagementFacade ... AddEventsManagementFacade` + `AddAdminManagementFacade`
+- controllers через `AddApplicationPart(...)` (включая `AdminManagementControllersAssemblyMarker`)
 - JWT, CORS, Swagger (dev), static files `/uploads`
+
+## Platform Admin (Facade.AdminManagement)
+
+`Facade.AdminManagement` — facade для **platform admin** (администратор платформы), а не отдельный core-модуль.
+
+- **Нет своего** `*DbContext` и schema: admin facade не владеет данными.
+- **Не путать** с `network.page_admins` — это админы **страниц** (Network), другая сущность и другие endpoints (`/api/network/.../pages/.../admins`).
+
+### Request flow (admin)
+
+```
+HTTP /api/admin/*
+  → Facade.AdminManagement.Controllers (Admin*Controller)
+  → IAdminManagementService (Facade.AdminManagement.Services)
+  → Identity / Content / Jobs Client Resources (IUserResource, IPostResource, IVacancyResource, IRecommendedJobQueryResource)
+  → Core Services (UserAdminService, RoleService, PostService, VacancyService, RecommendedJobQueryService, …)
+  → свой DbContext модуля (IdentityDbContext, ContentDbContext, JobsDbContext)
+```
+
+Правило сохранено: `Facade.AdminManagement` **не ссылается** на чужой `*DataAccess` напрямую.
 
 ## Порядок migrations
 

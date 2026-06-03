@@ -49,6 +49,9 @@ public interface IUserResource
         string userId,
         string roleName,
         CancellationToken cancellationToken = default);
+
+    Task<IdentityStatsDto> GetIdentityStatsAsync(
+        CancellationToken cancellationToken = default);
 }
 
 

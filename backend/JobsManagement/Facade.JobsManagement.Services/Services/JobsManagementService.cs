@@ -1,5 +1,4 @@
 using Facade.JobsManagement.Contracts.DTOs;
-using Facade.JobsManagement.Contracts.Requests.RecommendedQuery;
 using Facade.JobsManagement.Contracts.Requests.SearchQuery;
 using Facade.JobsManagement.Contracts.Requests.SearchResult;
 using Facade.JobsManagement.Contracts.Requests.Vacancy;
@@ -14,7 +13,6 @@ using Jobs.Contracts.Parameters.UserVacancyFavorite;
 using Jobs.Contracts.Parameters.Vacancy;
 using JobsApplicationResult = Jobs.Contracts.Results.JobApplicationResult;
 using JobsFavoriteResult = Jobs.Contracts.Results.UserVacancyFavoriteResult;
-using JobsRecommendedResult = Jobs.Contracts.Results.RecommendedJobQueryResult;
 using JobsSearchQueryResult = Jobs.Contracts.Results.JobSearchQueryResult;
 using JobsSearchResultResult = Jobs.Contracts.Results.JobSearchResultResult;
 using JobsVacancyResult = Jobs.Contracts.Results.VacancyResult;
@@ -77,14 +75,6 @@ public partial class JobsManagementService : IJobsManagementService
         {
             Success = result.Succeeded,
             SearchResult = result.JobSearchResult is null ? null : MapSearchResultToFacadeDto(result.JobSearchResult),
-            Errors = result.Errors
-        };
-
-    private static RecommendedJobQueryResponse MapRecommendedQueryResultToFacadeResponse(JobsRecommendedResult result) =>
-        new()
-        {
-            Success = result.Succeeded,
-            RecommendedQuery = result.RecommendedJobQuery is null ? null : MapRecommendedQueryToFacadeDto(result.RecommendedJobQuery),
             Errors = result.Errors
         };
 

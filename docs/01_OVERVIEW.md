@@ -6,7 +6,7 @@ LinkedInDiplom backend — **microservice-ready modular monolith + BFF** на `.
 
 - один host: `backend/Facade.API`
 - 9 core-модулей: Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications, Events
-- 9 facade-модулей: AccountManagement, ProfileManagement, ProfessionalManagement, NetworkManagement, ContentManagement, MessagingManagement, JobsManagement, NotificationsManagement, EventsManagement
+- 10 facade-модулей: AccountManagement, ProfileManagement, ProfessionalManagement, NetworkManagement, ContentManagement, MessagingManagement, JobsManagement, NotificationsManagement, EventsManagement, **AdminManagement**
 
 ## Техстек
 
@@ -53,6 +53,7 @@ Identity дополнительно:
 - `/api/jobs`
 - `/api/notifications`
 - `/api/events`
+- `/api/admin` (platform admin; роль JWT `Admin`)
 
 ## Устаревшие вещи
 

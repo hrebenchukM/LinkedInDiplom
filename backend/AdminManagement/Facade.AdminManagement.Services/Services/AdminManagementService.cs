@@ -1,16 +1,28 @@
+using Content.Client.Contracts.Resources;
 using Identity.Client.Contracts.Resources;
+using Jobs.Client.Contracts.Resources;
 using Identity.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.Services;
 
 namespace Facade.AdminManagement.Services.Services;
 
-public class AdminManagementService : IAdminManagementService
+public partial class AdminManagementService : IAdminManagementService
 {
     private readonly IUserResource _userResource;
+    private readonly IPostResource _postResource;
+    private readonly IVacancyResource _vacancyResource;
+    private readonly IRecommendedJobQueryResource _recommendedJobQueryResource;
 
-    public AdminManagementService(IUserResource userResource)
+    public AdminManagementService(
+        IUserResource userResource,
+        IPostResource postResource,
+        IVacancyResource vacancyResource,
+        IRecommendedJobQueryResource recommendedJobQueryResource)
     {
         _userResource = userResource;
+        _postResource = postResource;
+        _vacancyResource = vacancyResource;
+        _recommendedJobQueryResource = recommendedJobQueryResource;
     }
 
     public Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
@@ -58,4 +70,24 @@ public class AdminManagementService : IAdminManagementService
         string roleName,
         CancellationToken cancellationToken = default)
         => _userResource.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
+
+    public Task AdminSoftDeletePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+        => _postResource.AdminSoftDeletePostAsync(postId, cancellationToken);
+
+    public Task AdminRestorePostAsync(
+        Guid postId,
+        CancellationToken cancellationToken = default)
+        => _postResource.AdminRestorePostAsync(postId, cancellationToken);
+
+    public Task AdminSoftDeleteVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+        => _vacancyResource.AdminSoftDeleteVacancyAsync(vacancyId, cancellationToken);
+
+    public Task AdminRestoreVacancyAsync(
+        Guid vacancyId,
+        CancellationToken cancellationToken = default)
+        => _vacancyResource.AdminRestoreVacancyAsync(vacancyId, cancellationToken);
 }

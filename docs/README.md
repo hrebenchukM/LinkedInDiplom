@@ -8,8 +8,8 @@
 2. `01_OVERVIEW.md` — что за проект, структура, модули
 3. `02_ARCHITECTURE.md` — слои, правила, паттерны, request flow
 4. `03_CORE_MODULES.md` — 9 core-модулей подробно
-5. `04_FACADE_MODULES.md` — 9 facade-модулей и endpoint-группы
-6. `05_API_AUTH_JWT.md` — auth/JWT/refresh/logout/current user
+5. `04_FACADE_MODULES.md` — facade-модули (включая **AdminManagement** `/api/admin`) и endpoint-группы
+6. `05_API_AUTH_JWT.md` — auth/JWT/roles/AdminSeed/refresh/logout/current user
 7. `06_API_VALIDATION_ERRORS_SWAGGER.md` — validation, error handling, Swagger
 8. `07_INFRA_DOCKER.md` — Dockerfile, compose, init-db, порты, volume
 9. `08_INFRA_DB_MIGRATIONS.md` — PostgreSQL schemas, migration order, EF
