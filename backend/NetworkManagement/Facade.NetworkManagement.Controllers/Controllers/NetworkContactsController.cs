@@ -21,9 +21,6 @@ public class NetworkContactsController : NetworkManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> SendContactRequest([FromBody] SendContactRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -70,7 +67,7 @@ public class NetworkContactsController : NetworkManagementControllerBase
         var contact = await NetworkService.GetMyContactByIdAsync(userId, contactId);
 
         if (contact == null)
-            return NotFound();
+            return NotFoundError(ContactNotFoundError);
 
         return Ok(contact);
     }

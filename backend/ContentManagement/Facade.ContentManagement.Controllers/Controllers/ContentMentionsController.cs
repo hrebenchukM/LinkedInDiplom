@@ -22,9 +22,6 @@ public class ContentMentionsController : ContentManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> AddMention(Guid postId, [FromBody] AddMentionRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

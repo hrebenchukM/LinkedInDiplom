@@ -10,7 +10,7 @@ namespace Facade.AdminManagement.Controllers.Controllers;
 [ApiController]
 [Route("api/admin/users")]
 [Authorize(Roles = IdentityRoleNames.Admin)]
-public class AdminUsersController : ControllerBase
+public class AdminUsersController : AdminControllerBase
 {
     private readonly IAdminManagementService _adminManagementService;
 
@@ -29,6 +29,7 @@ public class AdminUsersController : ControllerBase
 
     [HttpGet("{userId}")]
     [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> GetUserById(string userId, CancellationToken cancellationToken)
     {
@@ -39,12 +40,13 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpGet("{userId}/roles")]
     [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> GetUserRoles(string userId, CancellationToken cancellationToken)
     {
@@ -55,12 +57,13 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpPost("{userId}/roles")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> AddUserToRole(
         string userId,
@@ -69,7 +72,7 @@ public class AdminUsersController : ControllerBase
     {
         if (request == null || string.IsNullOrWhiteSpace(request.RoleName))
         {
-            return BadRequest(new { error = "RoleName is required." });
+            return BadRequestError("RoleName is required.");
         }
 
         try
@@ -82,12 +85,13 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpDelete("{userId}/roles/{roleName}")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> RemoveUserFromRole(
         string userId,
@@ -98,7 +102,7 @@ public class AdminUsersController : ControllerBase
         if (string.Equals(currentUserId, userId, StringComparison.Ordinal)
             && string.Equals(roleName, IdentityRoleNames.Admin, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { error = "Admin cannot remove own Admin role." });
+            return BadRequestError("Admin cannot remove own Admin role.");
         }
 
         try
@@ -108,12 +112,13 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpPatch("{userId}/lock")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> LockUser(
         string userId,
@@ -123,7 +128,7 @@ public class AdminUsersController : ControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.Equals(currentUserId, userId, StringComparison.Ordinal))
         {
-            return BadRequest(new { error = "Admin cannot lock own account." });
+            return BadRequestError("Admin cannot lock own account.");
         }
 
         try
@@ -133,12 +138,13 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpPatch("{userId}/unlock")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> UnlockUser(string userId, CancellationToken cancellationToken)
     {
@@ -149,19 +155,20 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpDelete("{userId}")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> SoftDeleteUser(string userId, CancellationToken cancellationToken)
     {
         var currentUserId = GetCurrentUserId();
         if (string.Equals(currentUserId, userId, StringComparison.Ordinal))
         {
-            return BadRequest(new { error = "Admin cannot delete own account." });
+            return BadRequestError("Admin cannot delete own account.");
         }
 
         try
@@ -171,7 +178,7 @@ public class AdminUsersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 

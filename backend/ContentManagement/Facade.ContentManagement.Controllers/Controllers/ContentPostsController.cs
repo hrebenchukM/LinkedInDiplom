@@ -26,12 +26,6 @@ public class ContentPostsController : ContentManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
     {
-        // Простая input validation по DataAnnotations.
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         // userId берём только из JWT, чтобы нельзя было подменить владельца в body.
         var userId = GetCurrentUserId();
 
@@ -89,7 +83,7 @@ public class ContentPostsController : ContentManagementControllerBase
 
         if (item == null)
         {
-            return NotFound();
+            return NotFoundError(PostNotFoundError);
         }
 
         return Ok(item);
@@ -106,11 +100,6 @@ public class ContentPostsController : ContentManagementControllerBase
         Guid postId,
         [FromBody] UpdatePostRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -164,11 +153,6 @@ public class ContentPostsController : ContentManagementControllerBase
         Guid postId,
         [FromBody] AttachPostMediaRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

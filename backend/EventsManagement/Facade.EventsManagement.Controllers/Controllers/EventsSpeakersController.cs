@@ -20,9 +20,6 @@ public class EventsSpeakersController : EventsManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateSpeaker([FromBody] CreateEventSpeakerRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
@@ -47,7 +44,7 @@ public class EventsSpeakersController : EventsManagementControllerBase
 
         var speaker = await EventsService.GetSpeakerByIdAsync(userId, speakerId);
         if (speaker is null)
-            return NotFound();
+            return NotFoundError(SpeakerNotFoundError);
 
         return Ok(speaker);
     }
@@ -60,9 +57,6 @@ public class EventsSpeakersController : EventsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateSpeaker(Guid speakerId, [FromBody] UpdateEventSpeakerRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();

@@ -22,9 +22,6 @@ public class ContentReactionsController : ContentManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpsertReaction(Guid postId, [FromBody] UpsertReactionRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

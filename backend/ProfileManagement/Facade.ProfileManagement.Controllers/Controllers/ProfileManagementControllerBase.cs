@@ -14,6 +14,7 @@ namespace Facade.ProfileManagement.Controllers.Controllers;
 public abstract class ProfileManagementControllerBase : ControllerBase
 {
     protected const string ProfileNotFoundError = "Profile not found.";
+    protected const string MessageSettingsNotFoundError = "Message settings not found.";
 
     protected IProfileManagementService ProfileService { get; }
 
@@ -27,7 +28,10 @@ public abstract class ProfileManagementControllerBase : ControllerBase
         ProfileNotFoundError
     };
 
-    private static readonly HashSet<string> MessageSettingsNotFoundErrors = new(StringComparer.Ordinal);
+    private static readonly HashSet<string> MessageSettingsNotFoundErrors = new(StringComparer.Ordinal)
+    {
+        MessageSettingsNotFoundError
+    };
 
     private static readonly HashSet<string> ProfileViewNotFoundErrors = new(StringComparer.Ordinal)
     {

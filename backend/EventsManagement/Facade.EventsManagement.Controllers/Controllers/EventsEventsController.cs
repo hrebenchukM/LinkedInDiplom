@@ -20,11 +20,6 @@ public class EventsEventsController : EventsManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -72,7 +67,7 @@ public class EventsEventsController : EventsManagementControllerBase
         var item = await EventsService.GetEventByIdAsync(eventId);
         if (item is null)
         {
-            return NotFound();
+            return NotFoundError(EventNotFoundError);
         }
 
         return Ok(item);
@@ -86,11 +81,6 @@ public class EventsEventsController : EventsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateEvent(Guid eventId, [FromBody] UpdateEventRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {

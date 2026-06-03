@@ -39,7 +39,7 @@ public class ProfessionalCompaniesController : ProfessionalManagementControllerB
         var company = await ProfessionalService.GetCompanyByIdAsync(companyId);
 
         if (company == null)
-            return NotFound();
+            return NotFoundError(CompanyNotFoundError);
 
         return Ok(company);
     }
@@ -52,9 +52,6 @@ public class ProfessionalCompaniesController : ProfessionalManagementControllerB
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyCompany([FromBody] CreateCompanyRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -81,9 +78,6 @@ public class ProfessionalCompaniesController : ProfessionalManagementControllerB
         Guid companyId,
         [FromBody] UpdateCompanyRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

@@ -21,9 +21,6 @@ public class NetworkGroupsController : NetworkManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateUserGroup([FromBody] CreateUserGroupRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -70,7 +67,7 @@ public class NetworkGroupsController : NetworkManagementControllerBase
         var group = await NetworkService.GetMyUserGroupByIdAsync(userId, groupId);
 
         if (group == null)
-            return NotFound();
+            return NotFoundError(GroupNotFoundError);
 
         return Ok(group);
     }
@@ -86,9 +83,6 @@ public class NetworkGroupsController : NetworkManagementControllerBase
         Guid groupId,
         [FromBody] UpdateUserGroupRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

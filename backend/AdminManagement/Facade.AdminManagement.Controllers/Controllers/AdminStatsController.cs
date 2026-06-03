@@ -9,7 +9,7 @@ namespace Facade.AdminManagement.Controllers.Controllers;
 [ApiController]
 [Route("api/admin/stats")]
 [Authorize(Roles = IdentityRoleNames.Admin)]
-public class AdminStatsController : ControllerBase
+public class AdminStatsController : AdminControllerBase
 {
     private readonly IAdminManagementService _adminManagementService;
 

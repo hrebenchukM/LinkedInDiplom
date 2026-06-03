@@ -49,7 +49,7 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
             certificateId);
 
         if (certificate == null)
-            return NotFound();
+            return NotFoundError(CertificateNotFoundError);
 
         return Ok(certificate);
     }
@@ -62,9 +62,6 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyCertificate([FromBody] CreateCertificateRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -91,9 +88,6 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
         Guid certificateId,
         [FromBody] UpdateCertificateRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -178,7 +172,7 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
             certificateId);
 
         if (certificateSkills == null)
-            return NotFound();
+            return NotFoundError(CertificateNotFoundError);
 
         return Ok(certificateSkills);
     }
@@ -204,7 +198,7 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
             certificateSkillId);
 
         if (certificateSkill == null)
-            return NotFound();
+            return NotFoundError(CertificateSkillNotFoundError);
 
         return Ok(certificateSkill);
     }
@@ -220,9 +214,6 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
         Guid certificateId,
         [FromBody] CreateCertificateSkillRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

@@ -34,6 +34,8 @@ using Jobs.DI;
 using Messaging.DI;
 using Network.DI;
 using Notifications.DI;
+using Facade.API;
+using Microsoft.AspNetCore.Mvc;
 
 // Facade.API — единственный host приложения.
 // Здесь нет бизнес-логики: только сборка модулей, middleware и инфраструктурных настроек.
@@ -91,7 +93,15 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(MessagingChatsController).Assembly)
     .AddApplicationPart(typeof(JobsVacanciesController).Assembly)
     .AddApplicationPart(typeof(NotificationsItemsController).Assembly)
-    .AddApplicationPart(typeof(EventsEventsController).Assembly);
+    .AddApplicationPart(typeof(EventsEventsController).Assembly)
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var body = ValidationErrorResponse.FromModelState(context.ModelState);
+            return new BadRequestObjectResult(body);
+        };
+    });
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");

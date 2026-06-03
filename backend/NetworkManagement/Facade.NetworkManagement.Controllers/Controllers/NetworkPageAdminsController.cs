@@ -24,9 +24,6 @@ public class NetworkPageAdminsController : NetworkManagementControllerBase
         Guid pageId,
         [FromBody] AddPageAdminRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

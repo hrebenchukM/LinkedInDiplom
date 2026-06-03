@@ -20,11 +20,6 @@ public class NetworkPagesController : NetworkManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreatePage([FromBody] CreatePageRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -96,7 +91,7 @@ public class NetworkPagesController : NetworkManagementControllerBase
 
         if (item == null)
         {
-            return NotFound();
+            return NotFoundError(PageNotFoundError);
         }
 
         return Ok(item);
@@ -112,11 +107,6 @@ public class NetworkPagesController : NetworkManagementControllerBase
         Guid pageId,
         [FromBody] UpdatePageRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

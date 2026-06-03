@@ -20,16 +20,19 @@ public class NotificationsUserActivityController : NotificationsManagementContro
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateUserActivity([FromBody] CreateUserActivityRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
         var response = await NotificationsService.CreateUserActivityAsync(userId, request);
         if (!response.Success)
-            return BadRequest(response);
+        {
+            return BadRequest(new
+            {
+                success = false,
+                errors = response.Errors ?? Array.Empty<string>()
+            });
+        }
 
         return Ok(response);
     }

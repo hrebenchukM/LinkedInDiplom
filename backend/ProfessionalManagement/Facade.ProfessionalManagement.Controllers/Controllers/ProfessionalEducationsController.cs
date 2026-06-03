@@ -48,7 +48,7 @@ public class ProfessionalEducationsController : ProfessionalManagementController
             educationId);
 
         if (education == null)
-            return NotFound();
+            return NotFoundError(EducationNotFoundError);
 
         return Ok(education);
     }
@@ -61,9 +61,6 @@ public class ProfessionalEducationsController : ProfessionalManagementController
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyEducation([FromBody] CreateEducationRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -90,9 +87,6 @@ public class ProfessionalEducationsController : ProfessionalManagementController
         Guid educationId,
         [FromBody] UpdateEducationRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

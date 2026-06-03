@@ -8,7 +8,7 @@ namespace Facade.AdminManagement.Controllers.Controllers;
 [ApiController]
 [Route("api/admin/roles")]
 [Authorize(Roles = IdentityRoleNames.Admin)]
-public class AdminRolesController : ControllerBase
+public class AdminRolesController : AdminControllerBase
 {
     private readonly IAdminManagementService _adminManagementService;
 

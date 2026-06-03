@@ -23,7 +23,7 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
         var language = await ProfessionalService.GetLanguageByIdAsync(languageId);
 
         if (language == null)
-            return NotFound();
+            return NotFoundError(LanguageNotFoundError);
 
         return Ok(language);
     }
@@ -36,9 +36,6 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateLanguage([FromBody] CreateLanguageRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -87,7 +84,7 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
             userLanguageId);
 
         if (userLanguage == null)
-            return NotFound();
+            return NotFoundError(UserLanguageNotFoundError);
 
         return Ok(userLanguage);
     }
@@ -100,9 +97,6 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyUserLanguage([FromBody] CreateUserLanguageRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -129,9 +123,6 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
         Guid userLanguageId,
         [FromBody] UpdateUserLanguageRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

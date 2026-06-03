@@ -102,7 +102,10 @@ public abstract class ContentManagementControllerBase : ControllerBase
         MentionNotFoundError
     };
 
-    private static readonly HashSet<string> NoNotFoundErrors = new(StringComparer.Ordinal);//А если ошибка другая — вернёт:400 Bad Request
+    private static readonly HashSet<string> HashtagNotFoundErrors = new(StringComparer.Ordinal)
+    {
+        HashtagNotFoundError
+    };
 
     //Это готовый метод для ошибок поста.Он говорит:
     //Проверь ошибки в PostResponse.Если там ошибка “post not found” или “media not found” — верни 404. Иначе 400.
@@ -123,7 +126,7 @@ public abstract class ContentManagementControllerBase : ControllerBase
         MapErrors(response, response.Errors, ReactionNotFoundErrors);
 
     protected IActionResult MapHashtagError(HashtagResponse response) =>
-        MapErrors(response, response.Errors, NoNotFoundErrors);
+        MapErrors(response, response.Errors, HashtagNotFoundErrors);
 
     protected IActionResult MapPostHashtagError(PostHashtagResponse response) =>
         MapErrors(response, response.Errors, PostHashtagNotFoundErrors);
@@ -153,6 +156,8 @@ public abstract class ContentManagementControllerBase : ControllerBase
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 
+    protected IActionResult NotFoundError(string message) =>
+        NotFound(new { success = false, errors = new[] { message } });
 
     //Если среди ошибок есть ошибка “не найдено” — верни 404.
     //Если ошибка другая — верни 400.

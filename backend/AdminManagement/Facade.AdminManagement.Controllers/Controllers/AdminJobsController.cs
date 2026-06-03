@@ -10,7 +10,7 @@ namespace Facade.AdminManagement.Controllers.Controllers;
 [ApiController]
 [Route("api/admin/jobs")]
 [Authorize(Roles = IdentityRoleNames.Admin)]
-public class AdminJobsController : ControllerBase
+public class AdminJobsController : AdminControllerBase
 {
     private readonly IAdminManagementService _adminManagementService;
 
@@ -21,6 +21,7 @@ public class AdminJobsController : ControllerBase
 
     [HttpDelete("vacancies/{vacancyId:guid}")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> AdminSoftDeleteVacancy(Guid vacancyId, CancellationToken cancellationToken)
     {
@@ -31,12 +32,13 @@ public class AdminJobsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpPatch("vacancies/{vacancyId:guid}/restore")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> AdminRestoreVacancy(Guid vacancyId, CancellationToken cancellationToken)
     {
@@ -47,7 +49,7 @@ public class AdminJobsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
@@ -66,9 +68,6 @@ public class AdminJobsController : ControllerBase
         [FromBody] CreateRecommendedJobQueryRequest request,
         CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         try
         {
             var query = await _adminManagementService.CreateRecommendedJobQueryAsync(request, cancellationToken);
@@ -76,12 +75,13 @@ public class AdminJobsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpDelete("recommended-queries/{recommendedJobQueryId:guid}")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> DeleteRecommendedJobQuery(
         Guid recommendedJobQueryId,
@@ -94,7 +94,7 @@ public class AdminJobsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 }

@@ -77,7 +77,7 @@ public class JobsApplicationsController : JobsManagementControllerBase
 
         var applications = await JobsService.GetVacancyApplicationsAsync(userId, vacancyId);
         if (applications is null)
-            return NotFound();
+            return NotFoundError(ApplicationNotFoundError);
 
         return Ok(applications);
     }

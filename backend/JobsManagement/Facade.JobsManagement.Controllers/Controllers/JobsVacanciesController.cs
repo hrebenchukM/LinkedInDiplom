@@ -20,11 +20,6 @@ public class JobsVacanciesController : JobsManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateVacancy([FromBody] CreateVacancyRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -72,7 +67,7 @@ public class JobsVacanciesController : JobsManagementControllerBase
         var item = await JobsService.GetVacancyByIdAsync(userId, vacancyId);
         if (item is null)
         {
-            return NotFound();
+            return NotFoundError(VacancyNotFoundError);
         }
 
         return Ok(item);
@@ -86,11 +81,6 @@ public class JobsVacanciesController : JobsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateVacancy(Guid vacancyId, [FromBody] UpdateVacancyRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {

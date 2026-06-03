@@ -36,9 +36,7 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         var item = await ProfileService.GetMyProfileAsync(userId);
 
         if (item == null)
-        {
-            return NotFound();
-        }
+            return ProfileNotFound();
 
         return Ok(item);
     }
@@ -75,9 +73,7 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         var item = await ProfileService.GetProfileByUserIdAsync(userId);
 
         if (item == null)
-        {
-            return NotFound();
-        }
+            return ProfileNotFound();
 
         return Ok(item);
     }
@@ -105,4 +101,11 @@ public class ProfileProfilesController : ProfileManagementControllerBase
 
         return Ok(response);
     }
+
+    private IActionResult ProfileNotFound() =>
+        NotFound(new
+        {
+            success = false,
+            errors = new[] { ProfileNotFoundError }
+        });
 }

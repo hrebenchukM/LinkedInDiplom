@@ -58,7 +58,7 @@ public class JobsSearchQueriesController : JobsManagementControllerBase
 
         var query = await JobsService.GetSearchQueryByIdAsync(userId, searchId);
         if (query is null)
-            return NotFound();
+            return NotFoundError(SearchQueryNotFoundError);
 
         return Ok(query);
     }
@@ -95,7 +95,7 @@ public class JobsSearchQueriesController : JobsManagementControllerBase
 
         var results = await JobsService.GetSearchResultsAsync(userId, searchId);
         if (results is null)
-            return NotFound();
+            return NotFoundError(SearchQueryNotFoundError);
 
         return Ok(results);
     }

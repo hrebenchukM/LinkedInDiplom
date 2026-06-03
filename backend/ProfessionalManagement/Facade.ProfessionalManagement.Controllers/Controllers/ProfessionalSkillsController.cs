@@ -24,7 +24,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
         var skill = await ProfessionalService.GetSkillByIdAsync(skillId);
 
         if (skill == null)
-            return NotFound();
+            return NotFoundError(SkillNotFoundError);
 
         return Ok(skill);
     }
@@ -37,9 +37,6 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateSkill([FromBody] CreateSkillRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -88,7 +85,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
             userSkillId);
 
         if (userSkill == null)
-            return NotFound();
+            return NotFoundError(UserSkillNotFoundError);
 
         return Ok(userSkill);
     }
@@ -101,9 +98,6 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyUserSkill([FromBody] CreateUserSkillRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -130,9 +124,6 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
         Guid userSkillId,
         [FromBody] UpdateUserSkillRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -206,7 +197,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     public async Task<IActionResult> GetRecommendedSkillsByPosition([FromQuery] string? position)
     {
         if (string.IsNullOrWhiteSpace(position))
-            return BadRequest(new { errors = new[] { "Position is required." } });
+            return BadRequest(new { success = false, errors = new[] { "Position is required." } });
 
         var recommendedSkills = await ProfessionalService.GetRecommendedSkillsByPositionAsync(
             position);
@@ -223,9 +214,6 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     public async Task<IActionResult> CreateRecommendedSkillByPosition(
         [FromBody] CreateRecommendedSkillByPositionRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

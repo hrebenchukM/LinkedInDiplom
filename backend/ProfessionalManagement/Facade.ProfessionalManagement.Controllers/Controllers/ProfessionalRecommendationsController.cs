@@ -32,7 +32,7 @@ public class ProfessionalRecommendationsController : ProfessionalManagementContr
         var recommendation = await ProfessionalService.GetRecommendationByIdAsync(recommendationId);
 
         if (recommendation == null)
-            return NotFound();
+            return NotFoundError(RecommendationNotFoundError);
 
         return Ok(recommendation);
     }
@@ -46,9 +46,6 @@ public class ProfessionalRecommendationsController : ProfessionalManagementContr
     public async Task<IActionResult> CreateRecommendation(
         [FromBody] CreateRecommendationRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var authorId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(authorId))
@@ -75,9 +72,6 @@ public class ProfessionalRecommendationsController : ProfessionalManagementContr
         Guid recommendationId,
         [FromBody] PatchRecommendationRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var authorId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(authorId))

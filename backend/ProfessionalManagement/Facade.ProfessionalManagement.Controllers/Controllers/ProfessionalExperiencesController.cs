@@ -51,7 +51,7 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
 
         if (item == null)
         {
-            return NotFound();
+            return NotFoundError(ExperienceNotFoundError);
         }
 
         return Ok(item);
@@ -64,11 +64,6 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMyExperience([FromBody] CreateExperienceRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -98,11 +93,6 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
         Guid experienceId,
         [FromBody] UpdateExperienceRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

@@ -21,11 +21,6 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> SendMessage(Guid chatId, [FromBody] SendMessageRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -73,7 +68,7 @@ public class MessagingMessagesController : MessagingManagementControllerBase
         var item = await MessagingService.GetMessageByIdAsync(userId, messageId);
         if (item == null)
         {
-            return NotFound();
+            return NotFoundError(MessageNotFoundError);
         }
 
         return Ok(item);
@@ -87,11 +82,6 @@ public class MessagingMessagesController : MessagingManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> EditMessage(Guid messageId, [FromBody] EditMessageRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {

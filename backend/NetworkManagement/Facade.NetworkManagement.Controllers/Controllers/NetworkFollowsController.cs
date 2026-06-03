@@ -21,9 +21,6 @@ public class NetworkFollowsController : NetworkManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> FollowUser([FromBody] FollowUserRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

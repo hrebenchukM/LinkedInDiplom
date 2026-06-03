@@ -21,9 +21,6 @@ public class MessagingMessageMediaController : MessagingManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> AttachMessageMedia(Guid messageId, [FromBody] AttachMessageMediaRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();

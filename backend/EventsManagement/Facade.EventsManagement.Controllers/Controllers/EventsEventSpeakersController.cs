@@ -21,9 +21,6 @@ public class EventsEventSpeakersController : EventsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> AttachSpeakerToEvent(Guid eventId, [FromBody] AttachSpeakerToEventRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();

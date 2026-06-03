@@ -34,6 +34,9 @@ public abstract class NotificationsManagementControllerBase : ControllerBase
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
 
+    protected IActionResult NotFoundError(string message) =>
+        NotFound(new { success = false, errors = new[] { message } });
+
     protected IActionResult MapErrors<TResponse>(
         TResponse response,
         IEnumerable<string> errors,

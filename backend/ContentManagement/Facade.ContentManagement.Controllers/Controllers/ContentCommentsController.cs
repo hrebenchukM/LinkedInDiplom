@@ -22,9 +22,6 @@ public class ContentCommentsController : ContentManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> CreateComment(Guid postId, [FromBody] CreateCommentRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -64,9 +61,6 @@ public class ContentCommentsController : ContentManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateComment(Guid commentId, [FromBody] UpdateCommentRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

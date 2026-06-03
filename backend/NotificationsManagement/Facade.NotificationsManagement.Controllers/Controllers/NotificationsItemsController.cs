@@ -44,7 +44,7 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
         var item = await NotificationsService.GetNotificationByIdAsync(userId, notificationId);
         if (item is null)
         {
-            return NotFound();
+            return NotFoundError(NotificationNotFoundError);
         }
 
         return Ok(item);

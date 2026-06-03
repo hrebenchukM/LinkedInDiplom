@@ -72,7 +72,7 @@ public class NetworkGroupPostsController : NetworkManagementControllerBase
         var groupPosts = await NetworkService.GetGroupPostsAsync(userId, groupId);
 
         if (groupPosts == null)
-            return NotFound();
+            return NotFoundError(GroupPostNotFoundError);
 
         return Ok(groupPosts);
     }

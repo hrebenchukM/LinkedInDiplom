@@ -39,9 +39,6 @@ public class ProfileMessageSettingsController : ProfileManagementControllerBase
     public async Task<IActionResult> UpdateMyMessageSettings(
         [FromBody] UpdateMessageSettingsRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -64,9 +61,6 @@ public class ProfileMessageSettingsController : ProfileManagementControllerBase
     public async Task<IActionResult> PatchMyMessageSettings(
         [FromBody] PatchMessageSettingsRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

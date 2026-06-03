@@ -27,12 +27,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        // Проверяем базовую валидацию DataAnnotations до вызова facade service.
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         // Facade service оркестрирует вызовы identity-core и формирует ответ для frontend.
         var response = await _accountManagementService.RegisterAsync(request);
 
@@ -50,11 +44,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         // Login может вернуть Unauthorized при неверных credentials или revoked refresh token.
         var response = await _accountManagementService.LoginAsync(request);
 
@@ -72,11 +61,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         request.Provider = "Google";
         var response = await _accountManagementService.ExternalLoginAsync(request);
 
@@ -94,11 +78,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> FacebookLogin([FromBody] ExternalLoginRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         request.Provider = "Facebook";
         var response = await _accountManagementService.ExternalLoginAsync(request);
 
@@ -116,11 +95,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var response = await _accountManagementService.RefreshTokenAsync(request);
 
         if (!response.Success)
@@ -137,11 +111,6 @@ public class AccountController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         var response = await _accountManagementService.LogoutAsync(request.RefreshToken);
 
         if (!response.Success)
@@ -172,7 +141,11 @@ public class AccountController : ControllerBase
 
         if (item == null)
         {
-            return NotFound();
+            return NotFound(new
+            {
+                success = false,
+                errors = new[] { "Current user was not found." }
+            });
         }
 
         return Ok(item);

@@ -13,6 +13,9 @@ namespace Facade.EventsManagement.Controllers.Controllers;
 /// </summary>
 public abstract class EventsManagementControllerBase : ControllerBase
 {
+    protected const string EventNotFoundError = "Event not found.";
+    protected const string SpeakerNotFoundError = "Speaker not found.";
+
     private static readonly HashSet<string> NotFoundErrors = new(StringComparer.Ordinal)
     {
         "Event not found.",
@@ -47,6 +50,9 @@ public abstract class EventsManagementControllerBase : ControllerBase
     protected string? GetCurrentUserId() =>
         User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? User.FindFirstValue("sub");
+
+    protected IActionResult NotFoundError(string message) =>
+        NotFound(new { success = false, errors = new[] { message } });
 
     protected IActionResult MapErrors<TResponse>(
         TResponse response,

@@ -21,9 +21,6 @@ public class ContentMediaController : ContentManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateMedia([FromBody] CreateMediaRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -53,7 +50,7 @@ public class ContentMediaController : ContentManagementControllerBase
         var media = await ContentService.GetMediaByIdAsync(mediaId);
 
         if (media == null)
-            return NotFound();
+            return NotFoundError(MediaNotFoundError);
 
         return Ok(media);
     }

@@ -21,9 +21,6 @@ public class EventsScheduleController : EventsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> CreateScheduleItem(Guid eventId, [FromBody] CreateEventScheduleRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
@@ -57,9 +54,6 @@ public class EventsScheduleController : EventsManagementControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateScheduleItem(Guid eventId, Guid scheduleId, [FromBody] UpdateEventScheduleRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();

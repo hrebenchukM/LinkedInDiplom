@@ -22,7 +22,7 @@ public class ProfessionalAcademiesController : ProfessionalManagementControllerB
         var academy = await ProfessionalService.GetAcademyByIdAsync(academyId);
 
         if (academy == null)
-            return NotFound();
+            return NotFoundError(AcademyNotFoundError);
 
         return Ok(academy);
     }
@@ -35,9 +35,6 @@ public class ProfessionalAcademiesController : ProfessionalManagementControllerB
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateAcademy([FromBody] CreateAcademyRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

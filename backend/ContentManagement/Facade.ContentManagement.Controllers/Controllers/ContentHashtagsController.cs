@@ -22,9 +22,6 @@ public class ContentHashtagsController : ContentManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateHashtag([FromBody] CreateHashtagRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
@@ -54,7 +51,7 @@ public class ContentHashtagsController : ContentManagementControllerBase
         var hashtag = await ContentService.GetHashtagByIdAsync(hashtagId);
 
         if (hashtag == null)
-            return NotFound();
+            return NotFoundError(HashtagNotFoundError);
 
         return Ok(hashtag);
     }
@@ -70,9 +67,6 @@ public class ContentHashtagsController : ContentManagementControllerBase
         Guid postId,
         [FromBody] AttachPostHashtagRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))

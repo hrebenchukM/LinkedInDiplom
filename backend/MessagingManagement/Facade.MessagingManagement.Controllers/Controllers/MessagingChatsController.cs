@@ -58,7 +58,7 @@ public class MessagingChatsController : MessagingManagementControllerBase
 
         var chat = await MessagingService.GetChatByIdAsync(userId, chatId);
         if (chat == null)
-            return NotFound();
+            return NotFoundError(ChatNotFoundError);
 
         return Ok(chat);
     }

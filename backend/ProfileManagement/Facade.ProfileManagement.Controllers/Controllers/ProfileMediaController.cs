@@ -27,9 +27,9 @@ public class ProfileMediaController : ProfileManagementControllerBase
             return Unauthorized();
 
         if (file == null || file.Length == 0)
-            return BadRequest("File is empty.");
+            return MediaBadRequest("File is empty.");
         if (file.Length > 5 * 1024 * 1024)
-            return BadRequest("File is too large. Maximum size is 5 MB.");
+            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
 
         try
         {
@@ -48,7 +48,7 @@ public class ProfileMediaController : ProfileManagementControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return MediaBadRequest(ex.Message);
         }
     }
 
@@ -66,9 +66,9 @@ public class ProfileMediaController : ProfileManagementControllerBase
             return Unauthorized();
 
         if (file == null || file.Length == 0)
-            return BadRequest("File is empty.");
+            return MediaBadRequest("File is empty.");
         if (file.Length > 5 * 1024 * 1024)
-            return BadRequest("File is too large. Maximum size is 5 MB.");
+            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
 
         try
         {
@@ -87,7 +87,10 @@ public class ProfileMediaController : ProfileManagementControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return MediaBadRequest(ex.Message);
         }
     }
+
+    private static IActionResult MediaBadRequest(string message) =>
+        new BadRequestObjectResult(new { success = false, errors = new[] { message } });
 }

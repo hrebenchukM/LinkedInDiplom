@@ -8,7 +8,7 @@ namespace Facade.AdminManagement.Controllers.Controllers;
 [ApiController]
 [Route("api/admin/content")]
 [Authorize(Roles = IdentityRoleNames.Admin)]
-public class AdminContentController : ControllerBase
+public class AdminContentController : AdminControllerBase
 {
     private readonly IAdminManagementService _adminManagementService;
 
@@ -19,6 +19,7 @@ public class AdminContentController : ControllerBase
 
     [HttpDelete("posts/{postId:guid}")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> AdminSoftDeletePost(Guid postId, CancellationToken cancellationToken)
     {
@@ -29,12 +30,13 @@ public class AdminContentController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 
     [HttpPatch("posts/{postId:guid}/restore")]
     [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> AdminRestorePost(Guid postId, CancellationToken cancellationToken)
     {
@@ -45,7 +47,7 @@ public class AdminContentController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return MapInvalidOperationException(ex);
         }
     }
 }

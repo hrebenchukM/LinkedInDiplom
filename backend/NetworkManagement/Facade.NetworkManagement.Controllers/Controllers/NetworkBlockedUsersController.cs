@@ -21,9 +21,6 @@ public class NetworkBlockedUsersController : NetworkManagementControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> BlockUser([FromBody] BlockUserRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
