@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Facade.MessagingManagement.Contracts\Facade.MessagingManagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Messaging\Messaging.Client.Contracts\Messaging.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Messaging\Messaging.Contracts\Messaging.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

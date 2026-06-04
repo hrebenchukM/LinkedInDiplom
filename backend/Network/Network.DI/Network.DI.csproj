@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Network.Contracts\Network.Contracts.csproj" />
+    <ProjectReference Include="..\Network.Services\Network.Services.csproj" />
+    <ProjectReference Include="..\Network.DataAccess\Network.DataAccess.csproj" />
+    <ProjectReference Include="..\Network.Client\Network.Client.csproj" />
+    <ProjectReference Include="..\Network.Client.Contracts\Network.Client.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

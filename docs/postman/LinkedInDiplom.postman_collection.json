@@ -1,0 +1,514 @@
+{
+  "info": {
+    "name": "LinkedInDiplom API",
+    "_postman_id": "7b2ed47c-3496-4a77-a2ad-33ca8129d731",
+    "description": "Full API collection for LinkedInDiplom backend (modular monolith + BFF).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Auth / Account",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400', function(){ pm.expect([200,400]).to.include(pm.response.code); });",
+                  "let j={}; try{ j=pm.response.json(); }catch(e){}",
+                  "if(j.account && j.account.id){ pm.environment.set('userId', j.account.id); }",
+                  "if(j.id){ pm.environment.set('userId', j.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status success', function(){ pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "const j = pm.response.json();",
+                  "const access = j?.token?.accessToken || j?.accessToken;",
+                  "const refresh = j?.token?.refreshToken || j?.refreshToken;",
+                  "const uid = j?.account?.id || j?.userId || j?.id;",
+                  "if(access) pm.environment.set('accessToken', access);",
+                  "if(refresh) pm.environment.set('refreshToken', refresh);",
+                  "if(uid) pm.environment.set('userId', uid);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Google Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/google",
+            "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"replace_me\"\n}" }
+          }
+        },
+        {
+          "name": "Facebook Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/facebook",
+            "body": { "mode": "raw", "raw": "{\n  \"accessToken\": \"replace_me\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200/401', ()=>pm.expect([200,401]).to.include(pm.response.code));",
+                  "if(pm.response.code===200){",
+                  "  const j = pm.response.json();",
+                  "  const access = j?.token?.accessToken || j?.accessToken;",
+                  "  const refresh = j?.token?.refreshToken || j?.refreshToken;",
+                  "  if(access) pm.environment.set('accessToken', access);",
+                  "  if(refresh) pm.environment.set('refreshToken', refresh);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Profile",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Get My Profile", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me" } },
+        {
+          "name": "Update My Profile (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/profile/me",
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"headline\": \".NET Developer\",\n  \"location\": \"Chisinau\"\n}" }
+          }
+        },
+        {
+          "name": "Patch My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/profile/me",
+            "body": { "mode": "raw", "raw": "{\n  \"headline\": \"Senior .NET Developer\"\n}" }
+          }
+        },
+        { "name": "Get Profile By UserId", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/{{userId}}" } },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/profile/me/avatar",
+            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] }
+          }
+        },
+        {
+          "name": "Upload Header",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/profile/me/header",
+            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] }
+          }
+        },
+        { "name": "Get My Message Settings", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me/message-settings" } },
+        {
+          "name": "Put My Message Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/profile/me/message-settings",
+            "body": { "mode": "raw", "raw": "{\n  \"officeAbsenceEnabled\": true,\n  \"officeAbsenceMessage\": \"Out of office\",\n  \"notificationsEnabled\": true\n}" }
+          }
+        },
+        {
+          "name": "Patch My Message Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/profile/me/message-settings",
+            "body": { "mode": "raw", "raw": "{\n  \"notificationsEnabled\": false\n}" }
+          }
+        },
+        {
+          "name": "Create Profile View (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/profile/{{userId}}/views?source=profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "profile", "{{userId}}", "views"],
+              "query": [{ "key": "source", "value": "profile" }]
+            }
+          }
+        },
+        { "name": "Get My Profile Views", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me/profile-views" } }
+      ]
+    },
+    {
+      "name": "03 Professional",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Get My Experiences", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/experiences" } },
+        {
+          "name": "Create Experience",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/professional/me/experiences",
+            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"companyId\": \"{{companyId}}\",\n  \"startDate\": \"2026-01-01\"\n}" }
+          }
+        },
+        { "name": "Get Experience By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}" } },
+        {
+          "name": "Put Experience",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Senior Backend Developer\"\n}" }
+          }
+        },
+        {
+          "name": "Patch Experience",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Lead Backend Developer\"\n}" }
+          }
+        },
+        { "name": "Delete Experience", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}" } },
+
+        { "name": "Get My Companies", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/companies" } },
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/professional/me/companies",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Company\",\n  \"websiteUrl\": \"https://example.com\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.item?.id||j?.company?.id||j?.id;", "if(id) pm.environment.set('companyId', id);"] } }]
+        },
+        { "name": "Get Company By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/companies/{{companyId}}" } },
+        { "name": "Put Company", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Company Updated\"\n}" } } },
+        { "name": "Patch Company", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated description\"\n}" } } },
+        { "name": "Delete Company", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}" } },
+
+        { "name": "Get Academy By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/academies/{{academyId}}" } },
+        { "name": "Create Academy", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/academies", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Academy\"\n}" } } },
+
+        { "name": "Get My Educations", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations" } },
+        { "name": "Get Education By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}" } },
+        { "name": "Create Education", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations", "body": { "mode": "raw", "raw": "{\n  \"academyId\": \"{{academyId}}\",\n  \"degree\": \"Bachelor\"\n}" } } },
+        { "name": "Put Education", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}", "body": { "mode": "raw", "raw": "{\n  \"degree\": \"Master\"\n}" } } },
+        { "name": "Patch Education", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}", "body": { "mode": "raw", "raw": "{\n  \"fieldOfStudy\": \"Computer Science\"\n}" } } },
+        { "name": "Delete Education", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}" } },
+
+        { "name": "Get My Certificates", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates" } },
+        { "name": "Get Certificate By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}" } },
+        { "name": "Create Certificate", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates", "body": { "mode": "raw", "raw": "{\n  \"name\": \"AWS Certificate\",\n  \"academyId\": \"{{academyId}}\"\n}" } } },
+        { "name": "Put Certificate", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}", "body": { "mode": "raw", "raw": "{\n  \"name\": \"AWS Certificate Updated\"\n}" } } },
+        { "name": "Patch Certificate", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}", "body": { "mode": "raw", "raw": "{\n  \"organizationUrl\": \"https://example.com/cert\"\n}" } } },
+        { "name": "Delete Certificate", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}" } },
+        { "name": "Get Certificate Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills" } },
+        { "name": "Get Certificate Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}" } },
+        { "name": "Create Certificate Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills", "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\"\n}" } } },
+        { "name": "Delete Certificate Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}" } },
+
+        { "name": "Get Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/skills/{{skillId}}" } },
+        { "name": "Create Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/skills", "body": { "mode": "raw", "raw": "{\n  \"name\": \"C#\"\n}" } } },
+        { "name": "Get My Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills" } },
+        { "name": "Get My Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
+        { "name": "Create My Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills", "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\",\n  \"level\": \"advanced\"\n}" } } },
+        { "name": "Put My Skill", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"expert\"\n}" } } },
+        { "name": "Patch My Skill", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}", "body": { "mode": "raw", "raw": "{\n  \"isMain\": true\n}" } } },
+        { "name": "Delete My Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
+        { "name": "Get Recommended Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/recommended-skills" } },
+        { "name": "Create Recommended Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommended-skills", "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"skillId\": \"{{skillId}}\"\n}" } } },
+        { "name": "Delete Recommended Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommended-skills/{{recommendedQueryId}}" } },
+
+        { "name": "Get Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/languages/{{languageId}}" } },
+        { "name": "Create Language", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/languages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"English\"\n}" } } },
+        { "name": "Get My Languages", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages" } },
+        { "name": "Get My Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}" } },
+        { "name": "Create My Language", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages", "body": { "mode": "raw", "raw": "{\n  \"languageId\": \"{{languageId}}\",\n  \"level\": \"B2\"\n}" } } },
+        { "name": "Put My Language", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"C1\"\n}" } } },
+        { "name": "Patch My Language", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"C2\"\n}" } } },
+        { "name": "Delete My Language", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}" } },
+
+        { "name": "Get Recommendations By User", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/professional/users/{{userId}}/recommendations" } },
+        { "name": "Get Recommendation By Id", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}" } },
+        { "name": "Create Recommendation", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommendations", "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{otherUserId}}\",\n  \"text\": \"Great teammate\"\n}" } } },
+        { "name": "Patch Recommendation", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}", "body": { "mode": "raw", "raw": "{\n  \"text\": \"Excellent engineer\"\n}" } } },
+        { "name": "Delete Recommendation", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}" } }
+      ]
+    },
+    {
+      "name": "04 Network",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Create Contact", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/contacts", "body": { "mode": "raw", "raw": "{\n  \"receiverId\": \"{{otherUserId}}\"\n}" } } },
+        { "name": "Get My Contacts", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/contacts" } },
+        { "name": "Get Contact By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}" } },
+        { "name": "Accept Contact", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/accept" } },
+        { "name": "Reject Contact", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/reject" } },
+        { "name": "Delete Contact", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}" } },
+
+        { "name": "Follow User", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/following", "body": { "mode": "raw", "raw": "{\n  \"followingId\": \"{{followedUserId}}\"\n}" } } },
+        { "name": "Unfollow User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/following/{{followedUserId}}" } },
+        { "name": "Get Following", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/following" } },
+        { "name": "Get Followers", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/followers" } },
+
+        { "name": "Block User", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/blocked-users", "body": { "mode": "raw", "raw": "{\n  \"blockedUserId\": \"{{blockedUserId}}\"\n}" } } },
+        { "name": "Unblock User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/blocked-users/{{blockedUserId}}" } },
+        { "name": "Get Blocked Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/blocked-users" } },
+
+        { "name": "Create Group", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/groups", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Backend Group\",\n  \"description\": \"Test group\"\n}" } } },
+        { "name": "Get My Groups", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups" } },
+        { "name": "Get Group By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}" } },
+        { "name": "Patch Group", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated\"\n}" } } },
+        { "name": "Delete Group", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}" } },
+        { "name": "Join Group", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/join" } },
+        { "name": "Leave Group", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/membership" } },
+        { "name": "Get Group Members", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/members" } },
+        { "name": "Attach Group Post", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}" } },
+        { "name": "Detach Group Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}" } },
+        { "name": "Get Group Posts", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts" } },
+
+        { "name": "Create Page", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Page\",\n  \"description\": \"Company page\"\n}" } } },
+        { "name": "Get My Pages", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages" } },
+        { "name": "Get My Following Pages", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/following" } },
+        { "name": "Get Page By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}" } },
+        { "name": "Patch Page", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated page\"\n}" } } },
+        { "name": "Delete Page", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}" } },
+        { "name": "Add Page Admin", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins", "body": { "mode": "raw", "raw": "{\n  \"adminUserId\": \"{{otherUserId}}\"\n}" } } },
+        { "name": "Remove Page Admin", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins/{{otherUserId}}" } },
+        { "name": "Get Page Admins", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins" } },
+        { "name": "Follow Page", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow" } },
+        { "name": "Unfollow Page", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow" } },
+        { "name": "Get Page Followers", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/followers" } }
+      ]
+    },
+    {
+      "name": "05 Content",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Create Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"visibility\": \"public\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.post?.id||j?.item?.id||j?.id;", "if(id) pm.environment.set('postId', id);"] } }] },
+        { "name": "Get My Posts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts" } },
+        { "name": "Get Post By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}" } },
+        { "name": "Patch Post", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Updated content\"\n}" } } },
+        { "name": "Delete Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}" } },
+        { "name": "Attach Media To Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media", "body": { "mode": "raw", "raw": "{\n  \"mediaId\": \"{{mediaId}}\"\n}" } } },
+        { "name": "Get Post Media", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media" } },
+        { "name": "Detach Media From Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}" } },
+
+        { "name": "Upload Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/media", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
+        { "name": "Get Media By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/media/{{mediaId}}" } },
+
+        { "name": "Create Comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Nice post!\"\n}" } } },
+        { "name": "Get Comments By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments" } },
+        { "name": "Patch Comment", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Edited comment\"\n}" } } },
+        { "name": "Delete Comment", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}" } },
+
+        { "name": "Put Reaction", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions", "body": { "mode": "raw", "raw": "{\n  \"reactionType\": \"like\"\n}" } } },
+        { "name": "Delete Reaction", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions" } },
+        { "name": "Get My Reaction", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me" } },
+        { "name": "Get Post Reactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions" } },
+
+        { "name": "Create Hashtag", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/hashtags", "body": { "mode": "raw", "raw": "{\n  \"name\": \"dotnet\"\n}" } } },
+        { "name": "Get Hashtag By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}" } },
+        { "name": "Attach Hashtag To Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags", "body": { "mode": "raw", "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}" } } },
+        { "name": "Get Post Hashtags", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags" } },
+        { "name": "Detach Hashtag From Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags/{{hashtagId}}" } },
+        { "name": "Follow Hashtag", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow" } },
+        { "name": "Unfollow Hashtag", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow" } },
+        { "name": "Get My Hashtag Follows", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/hashtags/following" } },
+
+        { "name": "Save Post", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save" } },
+        { "name": "Unsave Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save" } },
+        { "name": "Get My Saved Posts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/saved-posts" } },
+
+        { "name": "Repost", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost" } },
+        { "name": "Delete Repost", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost" } },
+        { "name": "Get My Reposts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/reposts" } },
+        { "name": "Get Post Reposts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reposts" } },
+
+        { "name": "Create Post View", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/posts/{{postId}}/views?source=feed" } },
+        { "name": "Get My Post Views", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/views" } },
+
+        { "name": "Create Mention", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions", "body": { "mode": "raw", "raw": "{\n  \"mentionedUserId\": \"{{otherUserId}}\"\n}" } } },
+        { "name": "Delete Mention", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions/{{otherUserId}}" } },
+        { "name": "Get Mentions By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/mentions" } }
+      ]
+    },
+    {
+      "name": "06 Messaging",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Create Chat", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/chats", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test chat\"\n}" } } },
+        { "name": "Get My Chats", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats" } },
+        { "name": "Get Chat By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
+        { "name": "Delete Chat", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
+        { "name": "Join Chat", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join" } },
+        { "name": "Leave Chat", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/membership" } },
+        { "name": "Get Chat Members", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/members" } },
+        { "name": "Send Message", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Hello\"\n}" } } },
+        { "name": "Get Chat Messages", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages" } },
+        { "name": "Get Message By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}" } },
+        { "name": "Patch Message", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Edited\"\n}" } } },
+        { "name": "Delete Message", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}" } },
+        { "name": "Mark Message Read", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/read" } },
+        { "name": "Get Message Reads", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/reads" } },
+        { "name": "Attach Message Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
+        { "name": "Get Message Media", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media" } },
+        { "name": "Delete Message Media", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/{{messageMediaId}}" } }
+      ]
+    },
+    {
+      "name": "07 Jobs",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Create Vacancy", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/vacancies", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Backend Developer\",\n  \"description\": \"Test vacancy\",\n  \"companyId\": \"{{companyId}}\"\n}" } } },
+        { "name": "Get Vacancies", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/vacancies" } },
+        { "name": "Get Vacancy By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/vacancies/{{vacancyId}}" } },
+        { "name": "Patch Vacancy", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Senior Backend Developer\"\n}" } } },
+        { "name": "Delete Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}" } },
+        { "name": "Favorite Vacancy", "request": { "method": "POST", "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}" } },
+        { "name": "Unfavorite Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}" } },
+        { "name": "Get My Favorites", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/favorites" } },
+        { "name": "Apply To Vacancy", "request": { "method": "POST", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/apply" } },
+        { "name": "Delete Application", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/applications/{{applicationId}}" } },
+        { "name": "Get My Applications", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/applications" } },
+        { "name": "Get Vacancy Applications", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/applications" } },
+        { "name": "Create Search Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/search-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"backend\",\n  \"location\": \"Chisinau\"\n}" } } },
+        { "name": "Get My Search Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries" } },
+        { "name": "Get Search Query By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
+        { "name": "Delete Search Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
+        { "name": "Get Search Results", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results" } },
+        { "name": "Create Recommended Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/recommended-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"dotnet\"\n}" } } },
+        { "name": "Get Recommended Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/recommended-queries" } },
+        { "name": "Delete Recommended Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/recommended-queries/{{recommendedQueryId}}" } }
+      ]
+    },
+    {
+      "name": "08 Notifications",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Get My Notifications", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me" } },
+        { "name": "Get Notification By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}" } },
+        { "name": "Mark Notification Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}/read" } },
+        { "name": "Mark All Notifications Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/notifications/me/read-all" } },
+        { "name": "Delete Notification", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}" } },
+        { "name": "Create User Activity", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/notifications/me/activity", "body": { "mode": "raw", "raw": "{\n  \"action\": \"manual-test\",\n  \"entityType\": \"post\",\n  \"entityId\": \"{{postId}}\"\n}" } } },
+        { "name": "Get User Activity", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me/activity" } }
+      ]
+    },
+    {
+      "name": "09 Events",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Create Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test Event\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-05-28T10:00:00Z\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.item?.id||j?.event?.id||j?.id; if(id) pm.environment.set('eventId', id);"] } }] },
+        { "name": "Get My Events", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/me" } },
+        { "name": "Get Event By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}" } },
+        { "name": "Patch Event", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Event\"\n}" } } },
+        { "name": "Delete Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}" } },
+        { "name": "Join Event", "request": { "method": "POST", "url": "{{baseUrl}}/api/events/me/{{eventId}}/join" } },
+        { "name": "Leave Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/attendance" } },
+        { "name": "Get Event Attendees", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/attendees" } },
+        { "name": "Create Event Schedule Item", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Opening\",\n  \"orderIndex\": 1\n}" } } },
+        { "name": "Get Event Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/schedule" } },
+        { "name": "Patch Event Schedule Item", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Opening Updated\"\n}" } } },
+        { "name": "Delete Event Schedule Item", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}" } },
+        { "name": "Create Speaker", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers", "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}" } } },
+        { "name": "Get Speaker By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
+        { "name": "Patch Speaker", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Principal Engineer\"\n}" } } },
+        { "name": "Delete Speaker", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
+        { "name": "Attach Speaker To Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers", "body": { "mode": "raw", "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}" } } },
+        { "name": "Detach Speaker From Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}" } },
+        { "name": "Get Event Speakers", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/speakers" } }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global lightweight success assertion for non-error smoke runs",
+          "if ([200,201,204].includes(pm.response.code)) {",
+          "  pm.test('Status code is success', function(){ pm.expect([200,201,204]).to.include(pm.response.code); });",
+          "}"
+        ]
+      }
+    }
+  ]
+}

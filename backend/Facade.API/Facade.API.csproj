@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.26" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.26">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<!--
+		  Для facade-модулей здесь оставлены обе ссылки (DI + Controllers):
+		  - DI нужны для extension-методов Add*Facade() в Program.cs
+		  - Controllers нужны для AddApplicationPart(typeof(...).Assembly)
+		  Удаление любой из сторон без дополнительного рефакторинга Program.cs ломает сборку.
+		-->
+		<ProjectReference Include="..\Identity\Identity.DI\Identity.DI.csproj" />
+		<ProjectReference Include="..\AdminManagement\Facade.AdminManagement.DI\Facade.AdminManagement.DI.csproj" />
+		<ProjectReference Include="..\AdminManagement\Facade.AdminManagement.Controllers\Facade.AdminManagement.Controllers.csproj" />
+		<ProjectReference Include="..\AccountManagement\Facade.AccountManagement.DI\Facade.AccountManagement.DI.csproj" />
+		<ProjectReference Include="..\AccountManagement\Facade.AccountManagement.Controllers\Facade.AccountManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Identity\Identity.DataAccess\Identity.DataAccess.csproj" />
+		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.DI\Facade.ProfileManagement.DI.csproj" />
+		<ProjectReference Include="..\ProfileManagement\Facade.ProfileManagement.Controllers\Facade.ProfileManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Profile\Profile.DI\Profile.DI.csproj" />
+		<ProjectReference Include="..\Professional\Professional.DI\Professional.DI.csproj" />
+		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.DI\Facade.ProfessionalManagement.DI.csproj" />
+		<ProjectReference Include="..\ProfessionalManagement\Facade.ProfessionalManagement.Controllers\Facade.ProfessionalManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Network\Network.DI\Network.DI.csproj" />
+		<ProjectReference Include="..\NetworkManagement\Facade.NetworkManagement.DI\Facade.NetworkManagement.DI.csproj" />
+		<ProjectReference Include="..\NetworkManagement\Facade.NetworkManagement.Controllers\Facade.NetworkManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Content\Content.DI\Content.DI.csproj" />
+		<ProjectReference Include="..\ContentManagement\Facade.ContentManagement.DI\Facade.ContentManagement.DI.csproj" />
+		<ProjectReference Include="..\ContentManagement\Facade.ContentManagement.Controllers\Facade.ContentManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Messaging\Messaging.DI\Messaging.DI.csproj" />
+		<ProjectReference Include="..\MessagingManagement\Facade.MessagingManagement.DI\Facade.MessagingManagement.DI.csproj" />
+		<ProjectReference Include="..\MessagingManagement\Facade.MessagingManagement.Controllers\Facade.MessagingManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Jobs\Jobs.DI\Jobs.DI.csproj" />
+		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.DI\Facade.JobsManagement.DI.csproj" />
+		<ProjectReference Include="..\JobsManagement\Facade.JobsManagement.Controllers\Facade.JobsManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Notifications\Notifications.DI\Notifications.DI.csproj" />
+		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.DI\Facade.NotificationsManagement.DI.csproj" />
+		<ProjectReference Include="..\NotificationsManagement\Facade.NotificationsManagement.Controllers\Facade.NotificationsManagement.Controllers.csproj" />
+		<ProjectReference Include="..\Events\Events.DI\Events.DI.csproj" />
+		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.DI\Facade.EventsManagement.DI.csproj" />
+		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.Controllers\Facade.EventsManagement.Controllers.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Messaging.Contracts\Messaging.Contracts.csproj" />
+    <ProjectReference Include="..\Messaging.Services\Messaging.Services.csproj" />
+    <ProjectReference Include="..\Messaging.DataAccess\Messaging.DataAccess.csproj" />
+    <ProjectReference Include="..\Messaging.Client\Messaging.Client.csproj" />
+    <ProjectReference Include="..\Messaging.Client.Contracts\Messaging.Client.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
