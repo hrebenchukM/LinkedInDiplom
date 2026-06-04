@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import * as contentApi from "../../features/content/contentApi";
 import { loadFeedPostsFromApi } from "../../features/content/loadFeedPosts";
-import { isBackendApiEnabled } from "../../shared/lib/backendApi";
+import { mapMockTemplateToFeedPost, mapPostDtoToFeedPost } from "../../features/content/mapContent";
+import { buildDisplayFeed } from "./buildDisplayFeed";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { useChatStore } from "../../features/chat/ChatStore";
 import { useUiSettings } from "../../app/providers/AppProviders";
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
@@ -16,7 +18,6 @@ import "./home-legacy.css";
 const USER_POSTS_KEY = "homeUserPosts";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
-const FEED_VISIBLE_MOCKS = 6;
 const FEED_ROTATE_MS = 60000;
 const FEED_EMOJIS = ["😀", "😂", "😍", "🥳", "👍", "👏", "🔥", "💜", "🎉", "😎", "🤔", "💡", "🚀", "✨"];
 
@@ -29,6 +30,8 @@ const FEED_MOCK_TEMPLATE = [
   { id: "m6", author: "Duncan Callahan", seed: "DuncanCallahan", role: "UX Researcher", text: "Single search field in header feels much cleaner.", likes: 16, image: "https://picsum.photos/seed/linkup-m6/960/520" },
   { id: "m7", author: "Nina Petrova", seed: "NinaPetrova", role: "Product Manager", text: "Please keep interactions smooth on mobile too.", likes: 14, image: "https://picsum.photos/seed/linkup-m7/960/520" },
   { id: "m8", author: "Abram Lee", seed: "AbramLee", role: "Backend Engineer", text: "Unified API client will simplify integration.", likes: 29, image: "https://picsum.photos/seed/linkup-m8/960/520" },
+  { id: "m9", author: "Olivia Grant", seed: "OliviaGrant", role: "Data Analyst", text: "Dashboard metrics finally match the API contract.", likes: 19, image: "https://picsum.photos/seed/linkup-m9/960/520" },
+  { id: "m10", author: "Kenji Sato", seed: "KenjiSato", role: "Mobile Developer", text: "Shared feed components cut duplicate UI work in half.", likes: 22, image: "https://picsum.photos/seed/linkup-m10/960/520" },
 ];
 
 export const INBOX_TEMPLATE = [
@@ -141,23 +144,6 @@ import {
   markInboxPeerRead,
 } from "../../shared/lib/messageRead";
 
-function pickRandomFeedMockIds(template, count) {
-  return shuffleList(template)
-    .slice(0, Math.min(count, template.length))
-    .map((post) => post.id);
-}
-
-function pickFreshFeedMocks(pool, excludeIds, batch, count) {
-  const excluded = new Set(excludeIds);
-  const available = pool.filter((post) => !excluded.has(post.id));
-  if (available.length === 0) return [];
-  const take = Math.min(count, available.length);
-  const offset = (batch * take) % available.length;
-  const out = [];
-  for (let i = 0; i < take; i += 1) out.push(available[(offset + i) % available.length]);
-  return out;
-}
-
 function loadUserPosts() {
   try {
     const raw = localStorage.getItem(USER_POSTS_KEY);
@@ -246,6 +232,34 @@ function resolvePostImage(post) {
   if (typeof post.image === "string" && post.image.trim()) return post.image;
   if (!post.isOwn) return `https://picsum.photos/seed/linkup-fallback-${encodeURIComponent(String(post.id || "post"))}/960/520`;
   return "";
+}
+
+function PostActionIcon({ variant }) {
+  if (variant === "like") {
+    return (
+      <span className="post-action__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </span>
+    );
+  }
+  if (variant === "comment") {
+    return (
+      <span className="post-action__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h3v3.5c0 .8.9 1.3 1.6.8L14 18h6c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H13.2l-4.2 3v-3H4V4h16v12z" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span className="post-action__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 11.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-5.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 5.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+      </svg>
+    </span>
+  );
 }
 
 function buildShareContacts() {
@@ -378,11 +392,11 @@ function PostEngagement({ post, onHint, t, shareContacts, onSharePost, useApi, c
               setLikeCount((v) => Math.max(0, v + (liked ? -1 : 1)));
             }}
           >
-            <span className="post-action__icon">♥</span>
+            <PostActionIcon variant="like" />
             <span className="post-action__label">{liked ? t("home.post.liked", "Liked") : t("home.post.like", "Like")}</span>
           </button>
           <button type="button" className={`post-action post-action--comment${commentsOpen ? " post-action--active" : ""}`} onClick={() => setCommentsOpen((v) => !v)}>
-            <span className="post-action__icon">💬</span>
+            <PostActionIcon variant="comment" />
             <span className="post-action__label">{t("home.post.comment", "Comment")}</span>
           </button>
           <div className="post-action-wrap--share" ref={shareWrapRef}>
@@ -394,7 +408,7 @@ function PostEngagement({ post, onHint, t, shareContacts, onSharePost, useApi, c
                 setShareMenuOpen((open) => !open);
               }}
             >
-              <span className="post-action__icon">↗</span>
+              <PostActionIcon variant="share" />
               <span className="post-action__label">{t("home.post.share", "Share")}</span>
             </button>
             {shareMenuOpen ? (
@@ -504,10 +518,10 @@ function PostEngagement({ post, onHint, t, shareContacts, onSharePost, useApi, c
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, isReady } = useAuth();
   const { t } = useUiSettings();
   const { chats, setActiveChat, markChatAsReadByPeer, sharePostToContact } = useChatStore();
-  const useApi = isBackendApiEnabled(session);
+  const useApi = useBackendApi();
 
   const [userPosts, setUserPosts] = useState(() => (useApi ? [] : loadUserPosts()));
   const [postsLoading, setPostsLoading] = useState(false);
@@ -517,9 +531,9 @@ export function HomePage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
   const [actionHint, setActionHint] = useState("");
-  const [feedMockIds, setFeedMockIds] = useState(() => pickRandomFeedMockIds(FEED_MOCK_TEMPLATE, FEED_VISIBLE_MOCKS));
-  const [feedRefreshBatch, setFeedRefreshBatch] = useState(0);
   const [feedUpdating, setFeedUpdating] = useState(false);
+  const [feedRevision, setFeedRevision] = useState(0);
+  const [feedPosts, setFeedPosts] = useState(() => buildDisplayFeed([], 0, FEED_MOCK_TEMPLATE));
   const [messageOrder] = useState(() => shuffleList(INBOX_TEMPLATE));
   const [messagesRefreshTick, forceMessagesRerender] = useState(0);
   const photoInputRef = useRef(null);
@@ -537,32 +551,19 @@ export function HomePage() {
     return avatarUrl(displayName);
   }, [displayName, session.user?.avatarDataUrl]);
 
-  const mockPosts = useMemo(() => {
-    if (useApi) return [];
-    const byId = new Map(FEED_MOCK_TEMPLATE.map((post) => [post.id, post]));
-    const base = feedMockIds.map((id) => byId.get(id)).filter(Boolean);
-    const safeBase =
-      base.length > 0
-        ? base
-        : FEED_MOCK_TEMPLATE.slice(0, Math.min(FEED_VISIBLE_MOCKS, FEED_MOCK_TEMPLATE.length));
-    if (feedRefreshBatch === 0) return safeBase;
-    const fresh = pickFreshFeedMocks(
-      FEED_MOCK_TEMPLATE,
-      safeBase.map((post) => post.id),
-      feedRefreshBatch,
-      2,
-    ).map((post) => ({ ...post, isFresh: true }));
-    return [...fresh, ...safeBase];
-  }, [feedMockIds, feedRefreshBatch, useApi]);
+  const syncFeedPosts = useCallback(
+    (apiPosts, revision) => {
+      setFeedPosts(buildDisplayFeed(apiPosts, revision, FEED_MOCK_TEMPLATE));
+    },
+    [],
+  );
 
-  const posts = useMemo(() => {
-    const normalizedUserPosts = userPosts.filter((post) => post && typeof post === "object");
-    if (useApi) return normalizedUserPosts;
-    const normalizedMockPosts = mockPosts.filter((post) => post && typeof post === "object");
-    const merged = [...normalizedUserPosts, ...normalizedMockPosts];
-    if (merged.length > 0) return merged;
-    return FEED_MOCK_TEMPLATE.slice(0, 3);
-  }, [userPosts, mockPosts, useApi]);
+  useEffect(() => {
+    if (!isReady) return;
+    syncFeedPosts(userPosts, feedRevision);
+  }, [isReady, userPosts, feedRevision, syncFeedPosts]);
+
+  const posts = feedPosts;
 
   const inboxMessages = useMemo(() => {
     const query = messageSearch.trim().toLowerCase();
@@ -661,18 +662,25 @@ export function HomePage() {
     window.setTimeout(() => setActionHint(""), 2200);
   };
 
-  const reloadPostsFromApi = useCallback(async () => {
-    if (!useApi || !session.user?.id) return;
-    setPostsLoading(true);
-    try {
-      const loaded = await loadFeedPostsFromApi(session.user.id, displayName, userAvatar);
-      setUserPosts(loaded);
-    } catch {
-      showHint(t("home.hint.loadFailed", "Could not load posts."));
-    } finally {
-      setPostsLoading(false);
-    }
-  }, [useApi, session.user?.id, displayName, userAvatar, t]);
+  const reloadPostsFromApi = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!useApi || !session.isAuthenticated || session.user?.isGuest) return true;
+      if (!silent) setPostsLoading(true);
+      try {
+        const loaded = await loadFeedPostsFromApi(session.user.id, displayName, userAvatar);
+        setUserPosts(loaded);
+        return true;
+      } catch {
+        if (!silent) {
+          showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."));
+        }
+        return false;
+      } finally {
+        if (!silent) setPostsLoading(false);
+      }
+    },
+    [useApi, session.isAuthenticated, session.user?.isGuest, session.user?.id, displayName, userAvatar, t],
+  );
 
   const handleSharePost = (post, contact) => {
     sharePostToContact({
@@ -726,27 +734,8 @@ export function HomePage() {
     if (useApi) {
       if (!text) return showHint(t("home.hint.apiTextOnly", "API posts support text only for now."));
       try {
-        const dto = await contentApi.createPost({ content: text, visibility: "Public" });
-        if (dto) {
-          const newPost = {
-            id: String(dto.id),
-            isOwn: true,
-            author: displayName,
-            seed: displayName,
-            avatar: userAvatar,
-            role: t("home.you", "You"),
-            text: dto.content || text,
-            image: "",
-            video: "",
-            likes: Number(dto.reactionCount) || 0,
-            comments: [],
-            createdAt: dto.createdAt ? new Date(dto.createdAt).getTime() : Date.now(),
-            _api: true,
-          };
-          setUserPosts((prev) => [newPost, ...prev]);
-        } else {
-          await reloadPostsFromApi();
-        }
+        await contentApi.createPost({ content: text, visibility: "public" });
+        await reloadPostsFromApi();
         setPostText("");
         setPostImage("");
         setPostVideo("");
@@ -805,32 +794,54 @@ export function HomePage() {
     showHint(t("home.hint.postDeleted", "Post deleted"));
   };
 
-  const refreshFeed = () => {
+  const rotateFeedVisuals = useCallback(() => {
+    setFeedRevision((value) => value + 1);
+  }, []);
+
+  const refreshFeed = useCallback(async () => {
     if (feedUpdating) return;
     setFeedUpdating(true);
-    if (useApi) {
-      reloadPostsFromApi().finally(() => {
+    rotateFeedVisuals();
+    try {
+      let apiOk = true;
+      if (useApi && session.isAuthenticated && !session.user?.isGuest) {
+        apiOk = await reloadPostsFromApi({ silent: false });
+      }
+      if (apiOk !== false) {
         showHint(t("home.hint.feedUpdated", "Feed updated"));
-        window.setTimeout(() => setFeedUpdating(false), 650);
-      });
-      return;
+      }
+    } catch {
+      showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."));
+    } finally {
+      window.setTimeout(() => setFeedUpdating(false), 650);
     }
-    setFeedMockIds(pickRandomFeedMockIds(FEED_MOCK_TEMPLATE, FEED_VISIBLE_MOCKS));
-    setFeedRefreshBatch((batch) => batch + 1);
-    showHint(t("home.hint.feedUpdated", "Feed updated"));
-    window.setTimeout(() => setFeedUpdating(false), 650);
-  };
+  }, [
+    feedUpdating,
+    rotateFeedVisuals,
+    useApi,
+    session.isAuthenticated,
+    session.user?.isGuest,
+    reloadPostsFromApi,
+    t,
+  ]);
 
   useEffect(() => {
+    if (!isReady) return undefined;
+
     if (useApi) {
-      reloadPostsFromApi();
-      return undefined;
+      rotateFeedVisuals();
+      reloadPostsFromApi({ silent: true });
+      const timerId = window.setInterval(() => {
+        rotateFeedVisuals();
+        reloadPostsFromApi({ silent: true });
+      }, FEED_ROTATE_MS);
+      return () => window.clearInterval(timerId);
     }
-    const timerId = window.setInterval(() => {
-      setFeedMockIds(pickRandomFeedMockIds(FEED_MOCK_TEMPLATE, FEED_VISIBLE_MOCKS));
-    }, FEED_ROTATE_MS);
+
+    rotateFeedVisuals();
+    const timerId = window.setInterval(rotateFeedVisuals, FEED_ROTATE_MS);
     return () => window.clearInterval(timerId);
-  }, [useApi, reloadPostsFromApi]);
+  }, [isReady, useApi, reloadPostsFromApi, rotateFeedVisuals]);
 
   useEffect(() => {
     const onDocClick = (event) => {
@@ -959,13 +970,18 @@ export function HomePage() {
           </div>
 
           {hasPosts ? (
-            posts.map((post, index) => (
-              <article key={post.id} className={`post-card${post.isOwn ? "" : " post-card--enter"}${post.isFresh ? " post-card--fresh" : ""}`} style={post.isOwn ? undefined : { animationDelay: `${Math.min(index, 5) * 0.07}s` }}>
+            <div className="feed-posts feed-posts--refresh" key={`feed-${feedRevision}`}>
+            {posts.map((post, index) => (
+              <article
+                key={`${post.id}-${feedRevision}-${index}`}
+                className={`post-card${post.isOwn ? "" : " post-card--enter"}${post.isFresh ? " post-card--fresh" : ""}`}
+                style={post.isOwn ? undefined : { animationDelay: `${Math.min(index, 5) * 0.07}s` }}
+              >
                 <div className="post-head">
                   <img className="avatar avatar-img small" src={resolvePostAvatar(post, userAvatar)} alt="" />
                   <div className="post-head__meta">
                     <strong>{post.author}</strong>
-                    <p>{post.role}</p>
+                    {post.role ? <p className="post-head__role">{post.role}</p> : null}
                   </div>
                   {post.isOwn ? (
                     <button type="button" className="post-delete" onClick={() => deletePost(post.id)} aria-label={t("home.deletePost", "Delete post")} title={t("home.delete", "Delete")}>
@@ -973,11 +989,13 @@ export function HomePage() {
                     </button>
                   ) : null}
                 </div>
-                {post.text ? <p className="post-text post-text--multiline">{post.text}</p> : null}
-                {post.video ? <video className="post-media post-media--video" src={post.video} controls playsInline /> : null}
-                {!post.video && resolvePostImage(post) ? (
-                  <img className="post-media post-media--photo" src={resolvePostImage(post)} alt={t("home.postMedia", "Post media")} loading="lazy" />
-                ) : null}
+                <div className="post-body">
+                  {post.text ? <p className="post-text post-text--multiline">{post.text}</p> : null}
+                  {post.video ? <video className="post-media post-media--video" src={post.video} controls playsInline /> : null}
+                  {!post.video && resolvePostImage(post) ? (
+                    <img className="post-media post-media--photo" src={resolvePostImage(post)} alt={t("home.postMedia", "Post media")} loading="lazy" />
+                  ) : null}
+                </div>
                 <PostEngagement
                   post={post}
                   onHint={showHint}
@@ -988,13 +1006,16 @@ export function HomePage() {
                   currentUserId={session.user?.id}
                 />
               </article>
-            ))
+            ))}
+            </div>
           ) : (
             <article className="post-card">
               <p className="muted">
-                {useApi
-                  ? t("home.emptyApiFeed", "No posts yet. Create your first post above — it will be saved to the database.")
-                  : t("home.postsUnavailable", "Posts are temporarily unavailable.")}
+                {postsLoading
+                  ? t("common.loading", "Loading…")
+                  : useApi
+                    ? t("home.emptyApiFeed", "No posts yet. Create your first post above — it will be saved to the database.")
+                    : t("home.postsUnavailable", "Posts are temporarily unavailable.")}
               </p>
               {useApi ? null : (
                 <button type="button" className="ghost-main" onClick={refreshFeed}>

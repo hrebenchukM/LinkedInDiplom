@@ -1,14 +1,15 @@
 import * as contentApi from "./contentApi";
-import { mapPostDtoToFeedPost } from "./mapContent";
+import { mapPostDtoToFeedPost, normalizePostDto } from "./mapContent";
 import { fetchProfilesByUserIds } from "../profile/profileApi";
 import { resolveMediaUrl } from "../profile/mapProfile";
 
 export async function loadFeedPostsFromApi(currentUserId, displayName, userAvatar) {
-  const dtos = await contentApi.fetchMyPosts();
+  const dtos = await contentApi.fetchFeedPosts({ limit: 50, cacheBust: true });
   const userIds = [...new Set(dtos.map((dto) => dto.userId).filter(Boolean))];
   const profiles = await fetchProfilesByUserIds(userIds);
 
-  return dtos.map((dto) => {
+  return dtos.map((raw) => {
+    const dto = normalizePostDto(raw) || raw;
     const profile = profiles[dto.userId];
     const authorName =
       profile?.fullName?.trim() ||

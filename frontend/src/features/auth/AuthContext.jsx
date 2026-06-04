@@ -8,7 +8,7 @@ import {
   persistRegisteredProfile,
 } from "../../shared/lib/authSession";
 import { readJson, writeJson } from "../../shared/lib/storage";
-import { getAccessToken, getRefreshToken } from "../../shared/api/tokens";
+import { clearAuthTokens, getAccessToken, getRefreshToken, isLegacyMockTokenPair } from "../../shared/api/tokens";
 import * as authApi from "./authApi";
 import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/registeredAccount";
 import { mapAccountToUser, readProfileFallback } from "./mapAccount";
@@ -65,12 +65,20 @@ export function AuthProvider({ children }) {
 
   const completeLogin = useCallback(
     async (loginResponse, profileFallback = {}, options = {}) => {
-      if (!loginResponse?.ok || !loginResponse?.data?.token?.accessToken) {
+      if (!loginResponse?.ok || loginResponse?.data?.success === false) {
         return { ok: false, error: readApiError(loginResponse?.data, "Login failed.") };
+      }
+      if (!loginResponse?.data?.token?.accessToken) {
+        return { ok: false, error: readApiError(loginResponse?.data, "Login failed — no token received.") };
       }
 
       applyLoginResponse(loginResponse.data, profileFallback);
-      const user = await buildUserWithProfile(loginResponse.data.account, profileFallback, options);
+      let user;
+      try {
+        user = await buildUserWithProfile(loginResponse.data.account, profileFallback, options);
+      } catch {
+        user = mapAccountToUser(loginResponse.data.account, profileFallback);
+      }
       commitSession(user);
       return { ok: true, user };
     },
@@ -79,11 +87,13 @@ export function AuthProvider({ children }) {
 
   const registerAndLogin = useCallback(
     async ({ email, password, profileFallback = {} }) => {
+      clearAuthTokens();
+
       const registerPayload = USE_MOCK_AUTH
         ? { email, password, ...profileFallback }
         : { email, password };
       const registerResponse = await authApi.registerAccount(registerPayload);
-      if (!registerResponse.ok) {
+      if (!registerResponse.ok || registerResponse?.data?.success === false) {
         return { ok: false, error: readApiError(registerResponse.data, "Registration failed.") };
       }
 
@@ -147,11 +157,28 @@ export function AuthProvider({ children }) {
   }, [clearSession]);
 
   useEffect(() => {
+    function onAuthExpired() {
+      clearSession();
+      if (window.location.pathname !== "/auth") {
+        window.location.replace("/auth");
+      }
+    }
+    window.addEventListener("auth:expired", onAuthExpired);
+    return () => window.removeEventListener("auth:expired", onAuthExpired);
+  }, [clearSession]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
       const token = getAccessToken();
       const saved = readJson(AUTH_SESSION_KEY, emptySession());
+
+      if (!USE_MOCK_AUTH && isLegacyMockTokenPair()) {
+        clearSession();
+        if (!cancelled) setIsReady(true);
+        return;
+      }
 
       if (!token) {
         if (saved.isAuthenticated) {
@@ -176,7 +203,12 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        const user = await buildUserWithProfile(meResponse.data, readProfileFallback());
+        let user;
+        try {
+          user = await buildUserWithProfile(meResponse.data, readProfileFallback());
+        } catch {
+          user = mapAccountToUser(meResponse.data, readProfileFallback());
+        }
         commitSession(user);
       } catch {
         if (!cancelled) clearSession();

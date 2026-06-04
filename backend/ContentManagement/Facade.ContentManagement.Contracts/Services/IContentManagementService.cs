@@ -22,6 +22,8 @@ public interface IContentManagementService
 
     Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(string userId);
 
+    Task<IReadOnlyCollection<PostDto>> GetFeedAsync(string userId, int limit = 50);
+
     Task<PostDto?> GetPostByIdAsync(string userId, Guid postId);
 
     Task<PostResponse> UpdatePostAsync(string userId, Guid postId, UpdatePostRequest request);

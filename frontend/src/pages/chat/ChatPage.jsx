@@ -37,6 +37,8 @@ export function ChatPage() {
   const [callOverlay, setCallOverlay] = useState(null);
   const moreMenuRef = useRef(null);
   const profileRef = useRef(null);
+  const threadScrollRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const filteredChats = chats.filter((chat) => {
     const isArchived = Boolean(chat.archived);
@@ -136,6 +138,27 @@ export function ChatPage() {
   );
 
   const threadQuery = threadSearch.trim().toLowerCase();
+
+  const threadScrollKey = useMemo(() => {
+    const msgs = activeChat?.messages || [];
+    const last = msgs[msgs.length - 1];
+    return `${activeChat?.id ?? ""}:${msgs.length}:${last?.id ?? ""}`;
+  }, [activeChat?.id, activeChat?.messages]);
+
+  const scrollThreadToBottom = useCallback((smooth = true) => {
+    const run = () => {
+      const end = messagesEndRef.current;
+      if (end) {
+        end.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+        return;
+      }
+      const el = threadScrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    run();
+    window.requestAnimationFrame(run);
+  }, []);
+
   const visibleMessages = (activeChat?.messages || []).filter((message) => {
     if (!threadQuery) return true;
     const haystack = isCallMessage(message)
@@ -271,6 +294,22 @@ export function ChatPage() {
     setMoreMenuOpen(false);
     setCallOverlay(null);
   }, [activeChat?.id]);
+
+  useEffect(() => {
+    if (threadQuery) return;
+    scrollThreadToBottom(false);
+  }, [activeChat?.id, threadQuery, scrollThreadToBottom]);
+
+  useEffect(() => {
+    if (threadQuery) return;
+    scrollThreadToBottom(true);
+    const afterPaint = window.setTimeout(() => scrollThreadToBottom(false), 80);
+    const afterAiReply = window.setTimeout(() => scrollThreadToBottom(false), 750);
+    return () => {
+      window.clearTimeout(afterPaint);
+      window.clearTimeout(afterAiReply);
+    };
+  }, [threadScrollKey, threadQuery, scrollThreadToBottom]);
 
   useEffect(() => {
     if (!callOverlay || callOverlay.exiting) return undefined;
@@ -521,7 +560,7 @@ export function ChatPage() {
             </div>
           ) : null}
 
-          <div className="chat-thread__scroll">
+          <div className="chat-thread__scroll" ref={threadScrollRef}>
             {visibleMessages.length === 0 ? (
               <p className="chat-list__empty">
                 {threadQuery
@@ -614,6 +653,7 @@ export function ChatPage() {
                 ),
               )
             )}
+            <div ref={messagesEndRef} className="chat-thread__scroll-anchor" aria-hidden="true" />
           </div>
 
           {activeIsAiAssistant ? (

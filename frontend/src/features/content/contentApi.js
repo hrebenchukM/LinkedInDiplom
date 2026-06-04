@@ -1,20 +1,35 @@
 import { apiClient } from "../../shared/api/client";
 import { CONTENT } from "../../shared/api/paths";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { normalizePostDto } from "./mapContent";
 
 function unwrapPost(data) {
-  if (data?.post) return data.post;
-  if (data?.id) return data;
-  return null;
+  if (data?.post) return normalizePostDto(data.post);
+  if (data?.Post) return normalizePostDto(data.Post);
+  return normalizePostDto(data);
+}
+
+function unwrapPostList(data) {
+  const list = Array.isArray(data) ? data : data?.items || data?.posts || data?.Posts || [];
+  return Array.isArray(list) ? list.map(normalizePostDto).filter(Boolean) : [];
 }
 
 export async function fetchMyPosts() {
   if (USE_MOCK_AUTH) return [];
   const data = await apiClient.get(CONTENT.myPosts);
-  return Array.isArray(data) ? data : [];
+  return unwrapPostList(data);
 }
 
-export async function createPost({ content, visibility = "Public" }) {
+/** Public feed from database (all users' public posts). */
+export async function fetchFeedPosts({ limit = 50, cacheBust = false } = {}) {
+  if (USE_MOCK_AUTH) return [];
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cacheBust) query.set("_", String(Date.now()));
+  const data = await apiClient.get(`${CONTENT.feed}?${query.toString()}`);
+  return unwrapPostList(data);
+}
+
+export async function createPost({ content, visibility = "public" }) {
   if (USE_MOCK_AUTH) return null;
   const data = await apiClient.post(CONTENT.myPosts, { content, visibility });
   return unwrapPost(data);

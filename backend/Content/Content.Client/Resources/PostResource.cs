@@ -29,6 +29,11 @@ public class PostResource : IPostResource
         return _postService.GetMyPostsAsync(parameters);
     }
 
+    public Task<IReadOnlyCollection<PostDto>> GetFeedAsync(GetFeedParameters parameters)
+    {
+        return _postService.GetFeedAsync(parameters);
+    }
+
     public Task<PostDto?> GetByIdAsync(GetPostByIdParameters parameters)
     {
         return _postService.GetByIdAsync(parameters);

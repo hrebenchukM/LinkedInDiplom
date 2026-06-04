@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { initialNetworkPeople } from "../../shared/constants/mockData";
-import { isBackendApiEnabled } from "../../shared/lib/backendApi";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import { fetchProfilesByUserIds } from "../profile/profileApi";
+import { buildDisplayContacts } from "./buildDisplayContacts";
 import { mapContactDtoToPerson } from "./mapNetwork";
 import * as networkApi from "./networkApi";
 
@@ -12,7 +13,7 @@ const NetworkContext = createContext(null);
 
 export function NetworkProvider({ children }) {
   const { session } = useAuth();
-  const useApi = isBackendApiEnabled(session);
+  const useApi = useBackendApi();
   const [people, setPeople] = useState(() => readJson(NETWORK_KEY, initialNetworkPeople));
   const [pendingContacts, setPendingContacts] = useState([]);
   const [following, setFollowing] = useState([]);
@@ -45,12 +46,17 @@ export function NetworkProvider({ children }) {
         }
       });
 
-      setPeople(accepted);
+      const displayPeople = buildDisplayContacts(accepted);
+      setPeople(displayPeople);
       setPendingContacts(pending);
       setFollowing(followingList);
-      writeJson(NETWORK_KEY, accepted);
+      if (displayPeople.length > 0) {
+        writeJson(NETWORK_KEY, displayPeople);
+      }
     } catch (error) {
       setLoadError(error?.message || "Failed to load contacts.");
+      const cached = readJson(NETWORK_KEY, initialNetworkPeople);
+      setPeople(cached.length > 0 ? cached : buildDisplayContacts([]));
     } finally {
       setIsLoading(false);
     }

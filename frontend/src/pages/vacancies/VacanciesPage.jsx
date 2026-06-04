@@ -5,8 +5,37 @@ import { useChatStore } from "../../features/chat/ChatStore";
 import * as jobsApi from "../../features/jobs/jobsApi";
 import { mapVacancyDtoToJob } from "../../features/jobs/mapJobs";
 import { fetchCompaniesByIds } from "../../features/professional/professionalApi";
-import { isBackendApiEnabled } from "../../shared/lib/backendApi";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/registeredAccount";
+
+const VAC_JOBS_NAV = [
+  { id: "browse", labelKey: "vac.nav.parameters", fallback: "Parameters", icon: "parameters" },
+  { id: "mine", labelKey: "vac.nav.myJobs", fallback: "My jobs", icon: "mine" },
+  { id: "saved", labelKey: "vac.nav.savedJobs", fallback: "Saved vacancies", icon: "saved" },
+];
+
+function VacJobsNavIcon({ type }) {
+  const common = { viewBox: "0 0 24 24", fill: "currentColor", focusable: "false" };
+  if (type === "parameters") {
+    return (
+      <svg {...common}>
+        <path d="M3 17h6v-2H3v2zm0-5h10v-2H3v2zm0-7v2h14V5H3zm8 12h4v-2h-4v2zm0-5h6v-2h-6v2zm0-5h8V7h-8v2z" />
+      </svg>
+    );
+  }
+  if (type === "mine") {
+    return (
+      <svg {...common}>
+        <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15-5-2.18-5 2.18V5h10v13z" />
+    </svg>
+  );
+}
 
 function t(key, fallback) {
   return typeof window.uiT === "function" ? window.uiT(key, fallback) : fallback || key;
@@ -704,7 +733,7 @@ export function VacanciesPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { chats } = useChatStore();
-  const useApi = isBackendApiEnabled(session);
+  const useApi = useBackendApi();
   const [mode, setMode] = useState("browse");
   const [activityTab, setActivityTab] = useState("applied");
   const [query, setQuery] = useState("");
@@ -1151,30 +1180,38 @@ export function VacanciesPage() {
     <section className="page vacancies-page-legacy">
       <div className="home-shell home-shell--vacancies home-shell--jobs">
         <aside className="home-col-left home-card vac-jobs-sidebar">
-          <nav className="vac-jobs-nav">
-            <button
-              type="button"
-              className={mode === "browse" ? "vac-jobs-nav__link vac-jobs-nav__link--active" : "vac-jobs-nav__link"}
-              onClick={() => setMode("browse")}
-            >
-              <span>{t("vac.nav.parameters", "Parameters")}</span>
-            </button>
-            <button
-              type="button"
-              className={mode === "mine" ? "vac-jobs-nav__link vac-jobs-nav__link--active" : "vac-jobs-nav__link"}
-              onClick={() => setMode("mine")}
-            >
-              <span>{t("vac.nav.myJobs", "My jobs")}</span>
-            </button>
-            <button
-              type="button"
-              className={mode === "saved" ? "vac-jobs-nav__link vac-jobs-nav__link--active" : "vac-jobs-nav__link"}
-              onClick={openSavedVacancies}
-            >
-              <span>{t("vac.nav.savedJobs", "Saved vacancies")}</span>
-            </button>
+          <nav className="vac-jobs-nav" aria-label={t("vac.nav.aria", "Job sections")}>
+            {VAC_JOBS_NAV.map((item) => {
+              const isActive = mode === item.id;
+              const onSelect =
+                item.id === "saved"
+                  ? openSavedVacancies
+                  : () => setMode(item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={
+                    isActive
+                      ? `vac-jobs-nav__link vac-jobs-nav__link--active vac-jobs-nav__link--${item.icon}`
+                      : `vac-jobs-nav__link vac-jobs-nav__link--${item.icon}`
+                  }
+                  onClick={onSelect}
+                >
+                  <span className={`vac-jobs-nav__icon vac-jobs-nav__icon--${item.icon}`} aria-hidden="true">
+                    <VacJobsNavIcon type={item.icon} />
+                  </span>
+                  <span className="vac-jobs-nav__label">{t(item.labelKey, item.fallback)}</span>
+                </button>
+              );
+            })}
           </nav>
           <button type="button" className="vac-jobs-post" onClick={() => setPostModalOpen(true)}>
+            <span className="vac-jobs-post__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              </svg>
+            </span>
             <span>{t("vac.postJob", "Post a job")}</span>
           </button>
         </aside>

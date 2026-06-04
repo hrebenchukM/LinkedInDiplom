@@ -47,3 +47,16 @@ export function applyTokenDto(tokenDto) {
   if (!tokenDto) return;
   setAuthTokens(tokenDto.accessToken || null, tokenDto.refreshToken || null);
 }
+
+/** Demo/mock tokens stored while VITE_USE_MOCK_AUTH was true — invalid for Facade.API. */
+export function isLegacyMockTokenPair() {
+  const access = getAccessToken();
+  const refresh = getRefreshToken();
+  const looksMock = (value) =>
+    typeof value === "string" &&
+    (value.startsWith("mock-access-") ||
+      value.startsWith("mock-refresh-") ||
+      value === "mock" ||
+      /^mock-/i.test(value));
+  return looksMock(access) || looksMock(refresh);
+}

@@ -1,12 +1,8 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "./layout/AppLayout";
 import { AuthPage } from "../pages/auth/AuthPage";
-import { HomePage } from "../pages/home/HomePage";
-import { NetworkPage } from "../pages/network/NetworkPage";
-import { VacanciesPage } from "../pages/vacancies/VacanciesPage";
-import { ChatPage } from "../pages/chat/ChatPage";
-import { ProfilePage } from "../pages/profile/ProfilePage";
 import { useAuth } from "../features/auth/AuthContext";
+import { layoutChildRoutes } from "./layout/layoutRoutes";
 
 function AuthBootstrapGate({ children }) {
   const { isReady } = useAuth();
@@ -51,13 +47,7 @@ export const router = createBrowserRouter([
         <WithLayout />
       </AuthBootstrapGate>
     ),
-    children: [
-      { path: "/home", element: <HomePage /> },
-      { path: "/network", element: <NetworkPage /> },
-      { path: "/vacancies", element: <VacanciesPage /> },
-      { path: "/chat", element: <ChatPage /> },
-      { path: "/profile", element: <ProfilePage /> },
-    ],
+    children: layoutChildRoutes,
   },
   { path: "*", element: <Navigate to="/home" replace /> },
 ]);

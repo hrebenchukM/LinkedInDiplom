@@ -17,6 +17,7 @@ export const PROFILE = {
 };
 
 export const CONTENT = {
+  feed: "/api/content/feed",
   myPosts: "/api/content/me/posts",
   post: (postId) => `/api/content/posts/${postId}`,
   myPost: (postId) => `/api/content/me/posts/${postId}`,

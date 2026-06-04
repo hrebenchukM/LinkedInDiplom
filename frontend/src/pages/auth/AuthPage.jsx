@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useUiSettings } from "../../app/providers/AppProviders";
 import { ENABLE_GUEST, USE_MOCK_AUTH } from "../../shared/config/features";
+import { apiDemoSocialLogin, getSocialProfileTemplate, usesMockSocialFlow } from "../../features/auth/socialAuth";
 import { markPendingAiWelcome } from "../../shared/lib/aiWelcomeNotification";
 import "./auth-legacy.css";
 
 const SOCIAL_AUTH_KEY = "socialAuthAccounts";
-const TIMUR_FACEBOOK_AVATAR = "/auth/assets/timur-yamchuk-avatar.png";
-const ANDRII_GOOGLE_AVATAR = "/auth/assets/andrii-rotar-avatar.png";
 
 function isEmail(value) {
   return /^\S+@\S+\.\S+$/.test(String(value || "").trim());
@@ -33,25 +32,6 @@ function writeSocialAccounts(rows) {
 
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function getSocialProfileTemplate(provider) {
-  if (provider === "google") {
-    return {
-      email: "andrii.rotar@gmail.com",
-      userName: "andrii.rotar",
-      firstName: "Andrii",
-      lastName: "Rotar",
-      avatarDataUrl: ANDRII_GOOGLE_AVATAR,
-    };
-  }
-  return {
-    email: "timur.yamchuk@facebook.com",
-    userName: "timur.yamchuk",
-    firstName: "Timur",
-    lastName: "Yamchuk",
-    avatarDataUrl: TIMUR_FACEBOOK_AVATAR,
-  };
 }
 
 function GoogleIcon() {
@@ -201,31 +181,43 @@ export function AuthPage() {
   async function onSocialAuth(provider) {
     setBanner({ type: "", text: "" });
     setLoading(true);
+    const template = getSocialProfileTemplate(provider);
     setSocialOverlay({ provider, phase: "connecting", account: null, exiting: false });
     try {
       await wait(850);
       setSocialOverlay((prev) => (prev ? { ...prev, phase: "securing" } : prev));
       await wait(700);
-      const template = getSocialProfileTemplate(provider);
-      const rows = readSocialAccounts();
-      let account = rows.find((row) => row.provider === provider);
-      if (!account) {
-        account = { id: Date.now(), provider, ...template };
-        rows.push(account);
+
+      if (usesMockSocialFlow()) {
+        const rows = readSocialAccounts();
+        let account = rows.find((row) => row.provider === provider);
+        if (!account) {
+          account = { id: Date.now(), provider, ...template };
+          rows.push(account);
+        } else {
+          account = { ...account, ...template, provider };
+          const index = rows.findIndex((row) => row.provider === provider);
+          if (index >= 0) rows[index] = account;
+        }
+        writeSocialAccounts(rows);
+        login({
+          ...account,
+          authProvider: provider,
+          accessToken: `mock-access-${account.id}`,
+          refreshToken: `mock-refresh-${account.id}`,
+        });
       } else {
-        account = { ...account, ...template, provider };
-        const index = rows.findIndex((row) => row.provider === provider);
-        if (index >= 0) rows[index] = account;
+        const result = await apiDemoSocialLogin(provider, { loginWithPassword, registerAndLogin });
+        if (!result.ok) {
+          setLoading(false);
+          setSocialOverlay(null);
+          setBanner({ type: "error", text: result.error || t("auth.error.social", "Social sign-in failed.") });
+          return;
+        }
       }
-      writeSocialAccounts(rows);
-      login({
-        ...account,
-        authProvider: provider,
-        accessToken: `mock-access-${account.id}`,
-        refreshToken: `mock-refresh-${account.id}`,
-      });
+
       markPendingAiWelcome();
-      setSocialOverlay({ provider, phase: "success", account, exiting: false });
+      setSocialOverlay({ provider, phase: "success", account: template, exiting: false });
       await wait(1100);
       setSocialOverlay((prev) => (prev ? { ...prev, exiting: true } : prev));
       setPendingRedirect("/home");
@@ -279,7 +271,7 @@ export function AuthPage() {
       }
 
       markPendingAiWelcome();
-      navigate(USE_MOCK_AUTH ? "/home" : "/profile");
+      navigate("/home");
     } catch {
       setBanner({ type: "error", text: t("auth.error.server", "Server error.") });
     } finally {
@@ -478,9 +470,6 @@ export function AuthPage() {
             <div className="social-auth__divider">
               <span>{t("auth.or", "or")}</span>
             </div>
-            {USE_MOCK_AUTH ? (
-              <p className="auth-demo-note">{t("auth.demo.only", "Demo only (mock auth, no backend)")}</p>
-            ) : null}
             <div className="social-auth__buttons">
               <button type="button" className="social-btn social-btn--google" disabled={loading} onClick={() => onSocialAuth("google")}>
                 <GoogleIcon />

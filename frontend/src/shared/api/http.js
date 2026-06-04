@@ -2,6 +2,19 @@ import { getApiBaseUrl } from "./config.js";
 import { AUTH } from "./paths.js";
 import { applyTokenDto, getAccessToken, getRefreshToken, clearAuthTokens } from "./tokens";
 
+const PUBLIC_AUTH_PATHS = new Set([
+  AUTH.register,
+  AUTH.login,
+  AUTH.refresh,
+  AUTH.google,
+  AUTH.facebook,
+]);
+
+function isPublicAuthPath(path) {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return PUBLIC_AUTH_PATHS.has(normalized);
+}
+
 export function buildApiUrl(path) {
   const base = getApiBaseUrl();
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -26,6 +39,14 @@ export async function parseJsonSafe(response) {
 
 let refreshInFlight = null;
 
+function notifyAuthExpired() {
+  try {
+    window.dispatchEvent(new CustomEvent("auth:expired"));
+  } catch {
+    // ignore
+  }
+}
+
 async function tryRefreshAccessToken() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
@@ -43,6 +64,7 @@ async function tryRefreshAccessToken() {
         return true;
       }
       clearAuthTokens();
+      notifyAuthExpired();
       return false;
     })().finally(() => {
       refreshInFlight = null;
@@ -57,14 +79,18 @@ async function tryRefreshAccessToken() {
  * Retries once after refresh on 401.
  */
 export async function apiFetch(method, path, body, options = {}) {
+  const skipAuth = options.skipAuth || isPublicAuthPath(path);
   const init = {
     method,
-    headers: withAuthHeaders({
-      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {}),
-    }),
+    headers: (skipAuth
+      ? { ...(body !== undefined ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) }
+      : withAuthHeaders({
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(options.headers || {}),
+        })),
     ...options,
   };
+  delete init.skipAuth;
 
   if (body !== undefined) {
     init.body = JSON.stringify(body);
@@ -73,10 +99,15 @@ export async function apiFetch(method, path, body, options = {}) {
   let response = await fetch(buildApiUrl(path), init);
   let data = await parseJsonSafe(response);
 
-  if (response.status === 401 && !options._authRetried && getRefreshToken()) {
-    const refreshed = await tryRefreshAccessToken();
-    if (refreshed) {
-      return apiFetch(method, path, body, { ...options, _authRetried: true });
+  if (response.status === 401 && !options._authRetried) {
+    if (getRefreshToken()) {
+      const refreshed = await tryRefreshAccessToken();
+      if (refreshed) {
+        return apiFetch(method, path, body, { ...options, _authRetried: true });
+      }
+    } else if (getAccessToken()) {
+      clearAuthTokens();
+      notifyAuthExpired();
     }
   }
 
@@ -96,10 +127,15 @@ export async function apiUpload(method, path, file, fieldName = "file", options 
   });
   let data = await parseJsonSafe(response);
 
-  if (response.status === 401 && !options._authRetried && getRefreshToken()) {
-    const refreshed = await tryRefreshAccessToken();
-    if (refreshed) {
-      return apiUpload(method, path, file, fieldName, { ...options, _authRetried: true });
+  if (response.status === 401 && !options._authRetried) {
+    if (getRefreshToken()) {
+      const refreshed = await tryRefreshAccessToken();
+      if (refreshed) {
+        return apiUpload(method, path, file, fieldName, { ...options, _authRetried: true });
+      }
+    } else if (getAccessToken()) {
+      clearAuthTokens();
+      notifyAuthExpired();
     }
   }
 

@@ -38,7 +38,7 @@ function buildFormFromSources(sessionUser, registered, cachedProfile) {
 }
 
 export function ProfileProvider({ children }) {
-  const { session } = useAuth();
+  const { session, isReady } = useAuth();
   const [profile, setProfile] = useState(() => readJson(PROFILE_KEY, { name: "Student User", headline: "", city: "", about: "" }));
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -57,7 +57,7 @@ export function ProfileProvider({ children }) {
   );
 
   const reloadFromApi = useCallback(async () => {
-    if (!session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) {
+    if (!isReady || !session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) {
       return null;
     }
     setIsLoading(true);
@@ -72,12 +72,12 @@ export function ProfileProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session.isAuthenticated, session.user?.isGuest, applyProfileDto]);
+  }, [isReady, session.isAuthenticated, session.user?.isGuest, applyProfileDto]);
 
   useEffect(() => {
-    if (!session.isAuthenticated || session.user?.isGuest) return;
+    if (!isReady || !session.isAuthenticated || session.user?.isGuest) return;
     reloadFromApi();
-  }, [session.isAuthenticated, session.user?.id, session.user?.isGuest, reloadFromApi]);
+  }, [isReady, session.isAuthenticated, session.user?.id, session.user?.isGuest, reloadFromApi]);
 
   const value = useMemo(
     () => ({

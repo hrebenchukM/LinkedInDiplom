@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { initialChats } from "../../shared/constants/mockData";
-import { isBackendApiEnabled } from "../../shared/lib/backendApi";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { loadChatsFromApi } from "../messaging/loadChats";
 import * as messagingApi from "../messaging/messagingApi";
 import { mapMessageDtoToUi } from "../messaging/mapMessaging";
@@ -99,7 +99,7 @@ function mergeApiAndLocalChats(apiChats, localChats) {
 
 export function ChatProvider({ children }) {
   const { session } = useAuth();
-  const useApi = isBackendApiEnabled(session);
+  const useApi = useBackendApi();
   const [chats, setChats] = useState(() => readJson(CHATS_KEY, initialChats));
   const [activeChatId, setActiveChatId] = useState(() =>
     readJson(ACTIVE_CHAT_KEY, initialChats[0]?.id || null),

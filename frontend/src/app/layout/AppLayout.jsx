@@ -1,10 +1,11 @@
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { PageTransitionOutlet } from "./PageTransitionOutlet";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useChatStore } from "../../features/chat/ChatStore";
 import * as notificationsApi from "../../features/notifications/notificationsApi";
 import { mapNotificationDtoToUi } from "../../features/notifications/mapNotifications";
-import { isBackendApiEnabled } from "../../shared/lib/backendApi";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { useUiSettings } from "../providers/AppProviders";
 import { GlobalSearch } from "../../shared/ui/GlobalSearch";
 import { AiWelcomeToast } from "../../shared/ui/AiWelcomeToast";
@@ -126,7 +127,7 @@ function BellMonoIcon() {
 export function AppLayout() {
   const { session, logout } = useAuth();
   const { chats, markChatAsReadByPeer, openAiAssistantChat, ensureAiAssistantWelcomeChat, totalUnreadCount } = useChatStore();
-  const useApi = isBackendApiEnabled(session);
+  const useApi = useBackendApi();
   const { theme, lang, setLang, supportedLangs, t, toggleTheme } = useUiSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -322,23 +323,17 @@ export function AppLayout() {
     });
   }, [location.pathname]);
 
-  useEffect(() => {
-    document.documentElement.classList.add("page-enter-soft");
+  const handleTransitionStart = useCallback(() => {
     setTransitionActive(true);
     setHeaderHidden(false);
     lastScrollY.current = window.scrollY;
+    document.documentElement.classList.add("page-header-enter");
+  }, []);
 
-    const overlayTimer = window.setTimeout(() => setTransitionActive(false), 320);
-    const classTimer = window.setTimeout(() => {
-      document.documentElement.classList.remove("page-enter-soft");
-    }, 700);
-
-    return () => {
-      window.clearTimeout(overlayTimer);
-      window.clearTimeout(classTimer);
-      document.documentElement.classList.remove("page-enter-soft");
-    };
-  }, [location.pathname]);
+  const handleTransitionEnd = useCallback(() => {
+    setTransitionActive(false);
+    document.documentElement.classList.remove("page-header-enter");
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -522,7 +517,10 @@ export function AppLayout() {
       </header>
 
       <main className="app-main">
-        <Outlet />
+        <PageTransitionOutlet
+          onTransitionStart={handleTransitionStart}
+          onTransitionEnd={handleTransitionEnd}
+        />
       </main>
       <footer className="home-footer">
         <div className="home-footer__inner">
