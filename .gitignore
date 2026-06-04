@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # User-uploaded files (avatars, headers, etc.)
 backend/Facade.API/uploads/
+
+# Frontend (Vite / React)
+frontend/dist/
+frontend/.env.local
+.env.local
