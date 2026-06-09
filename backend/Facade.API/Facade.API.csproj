@@ -32,6 +32,8 @@
 		<ProjectReference Include="..\Content\Content.DI\Content.DI.csproj" />
 		<ProjectReference Include="..\ContentManagement\Facade.ContentManagement.DI\Facade.ContentManagement.DI.csproj" />
 		<ProjectReference Include="..\ContentManagement\Facade.ContentManagement.Controllers\Facade.ContentManagement.Controllers.csproj" />
+		<ProjectReference Include="..\AIManagement\Facade.AI.DI\Facade.AI.DI.csproj" />
+		<ProjectReference Include="..\AIManagement\Facade.AI.Controllers\Facade.AI.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>
