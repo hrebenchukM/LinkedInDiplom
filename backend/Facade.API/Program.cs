@@ -49,7 +49,7 @@ builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddAccountManagementFacade();
 
 // Подключаем ProfileManagement facade
-builder.Services.AddProfileManagementFacade();
+builder.Services.AddProfileManagementFacade(configuration);
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
