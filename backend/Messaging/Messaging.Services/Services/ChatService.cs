@@ -55,22 +55,32 @@ public class ChatService : IChatService
         };
     }
 
-    public async Task<IReadOnlyCollection<ChatDto>> GetMyChatsAsync(GetMyChatsParameters parameters)
+    public async Task<UserChatsResult> GetMyChatsAsync(GetMyChatsParameters parameters)
     {
-        var chats = await _dbContext.Chats
+        var query = _dbContext.Chats
             .AsNoTracking()
             .Where(c =>
                 c.DeletedAt == null &&
                 _dbContext.ChatMembers.Any(cm =>
                     cm.ChatId == c.Id &&
                     cm.UserId == parameters.UserId &&
-                    cm.LeftAt == null))
+                    cm.LeftAt == null));
+
+        var totalCount = await query.CountAsync();
+
+        var chats = await query
             .OrderByDescending(c => c.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync();
 
         if (chats.Count == 0)
         {
-            return Array.Empty<ChatDto>();
+            return new UserChatsResult
+            {
+                Items = Array.Empty<ChatDto>(),
+                TotalCount = totalCount
+            };
         }
 
         var chatIds = chats.Select(c => c.Id).ToList();
@@ -85,13 +95,19 @@ public class ChatService : IChatService
             .GroupBy(cm => cm.ChatId)
             .ToDictionary(g => g.Key, g => (IReadOnlyCollection<ChatMemberDto>)g.Select(MapChatMember).ToList());
 
-        return chats
+        var items = chats
             .Select(c =>
             {
                 membersByChat.TryGetValue(c.Id, out var members);
                 return MapChat(c, members);
             })
             .ToList();
+
+        return new UserChatsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<ChatDto?> GetByIdAsync(GetChatByIdParameters parameters)

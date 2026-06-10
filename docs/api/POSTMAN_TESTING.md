@@ -137,7 +137,8 @@
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET/GET/DELETE | `/api/messaging/me/chats...` | Yes | body/route | `chatId`* | Чаты | - |
+| POST/GET/GET/DELETE | `/api/messaging/me/chats...` | Yes | body/route, `page`, `pageSize` (GET list) | `chatId`* | Чаты | GET list: `PagedResponse<ChatDto>`; default `page=1`, `pageSize=20` |
+| GET | `/api/messaging/me/chats?page=1&pageSize=20` | Yes | query | - | Smoke: paged my chats | `items`, `totalCount`, `hasNextPage` |
 | POST/DELETE/GET | `/api/messaging/me/chats/{chatId}/join|membership|members` | Yes | route | - | Участники чата | Часто нужен второй пользователь |
 | POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route, `page`, `pageSize` (GET) | `messageId`* | Сообщения | GET: `PagedResponse<MessageDto>`; POST: REST response без изменений; при успехе + `JoinChat` — SignalR `MessageCreated` |
 | GET | `/api/messaging/me/chats/{chatId}/messages?page=1&pageSize=20` | Yes | query | - | Smoke: paged chat messages | `items`, `totalCount`, `hasNextPage` |

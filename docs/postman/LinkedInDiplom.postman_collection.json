@@ -409,7 +409,7 @@
       "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
       "item": [
         { "name": "Create Chat", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/chats", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test chat\"\n}" } } },
-        { "name": "Get My Chats", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats" } },
+        { "name": "Get My Chats", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats?page=1&pageSize=20" } },
         { "name": "Get Chat By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
         { "name": "Delete Chat", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
         { "name": "Join Chat", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join" } },

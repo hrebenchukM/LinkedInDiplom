@@ -24,7 +24,7 @@ public class ChatResource : IChatResource
         return _chatService.CreateAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<ChatDto>> GetMyChatsAsync(GetMyChatsParameters parameters)
+    public Task<UserChatsResult> GetMyChatsAsync(GetMyChatsParameters parameters)
     {
         return _chatService.GetMyChatsAsync(parameters);
     }

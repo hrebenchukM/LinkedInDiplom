@@ -1,6 +1,8 @@
+using Facade.MessagingManagement.Contracts.DTOs;
 using Facade.MessagingManagement.Contracts.Requests.Chat;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.MessagingManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,15 +35,18 @@ public class MessagingChatsController : MessagingManagementControllerBase
 
     [Authorize]
     [HttpGet("me/chats")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<ChatDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetMyChats()
+    public async Task<IActionResult> GetMyChats(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        var chats = await MessagingService.GetMyChatsAsync(userId);
+        var chats = await MessagingService.GetMyChatsAsync(userId, request, cancellationToken);
         return Ok(chats);
     }
 

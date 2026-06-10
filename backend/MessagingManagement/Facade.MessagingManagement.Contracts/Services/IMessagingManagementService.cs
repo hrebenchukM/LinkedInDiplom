@@ -10,7 +10,10 @@ namespace Facade.MessagingManagement.Contracts.Services;
 public interface IMessagingManagementService
 {
     Task<ChatResponse> CreateChatAsync(string userId, CreateChatRequest? request);
-    Task<IReadOnlyCollection<ChatDto>> GetMyChatsAsync(string userId);
+    Task<PagedResponse<ChatDto>> GetMyChatsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
     Task<ChatDto?> GetChatByIdAsync(string userId, Guid chatId);
     Task<ChatResponse> DeleteChatAsync(string userId, Guid chatId);
 
