@@ -10,7 +10,7 @@ public interface ICommentResource
 {
     Task<CommentResult> CreateAsync(CreateCommentParameters parameters);
 
-    Task<IReadOnlyCollection<CommentDto>> GetByPostIdAsync(GetCommentsByPostParameters parameters);
+    Task<PostCommentsResult> GetByPostIdAsync(GetCommentsByPostParameters parameters);
 
     Task<CommentResult> UpdateAsync(UpdateCommentParameters parameters);
 

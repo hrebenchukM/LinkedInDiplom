@@ -122,7 +122,8 @@
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/media...` | Yes | body/route | - | Медиа поста | Нужен `mediaId` |
 | POST | `/api/content/me/media/upload` | Yes | form-data `file` | `mediaId`* | Upload медиа-файла | multipart; см. smoke checklist ниже |
 | POST/GET | `/api/content/me/media` / `/api/content/media/{mediaId}` | Yes | JSON body / route | `mediaId`* | Медиа по URL / read | `POST me/media` — JSON URL, не файл |
-| POST/GET/PATCH/DELETE | `/api/content/posts/{postId}/comments` + `/api/content/me/comments/{commentId}` | Yes | body/route | `commentId`* | Комментарии | - |
+| POST/GET/PATCH/DELETE | `/api/content/posts/{postId}/comments` + `/api/content/me/comments/{commentId}` | Yes | body/route, `page`, `pageSize` (GET list) | `commentId`* | Комментарии | GET list: `PagedResponse<CommentDto>`; default `page=1`, `pageSize=20` |
+| GET | `/api/content/posts/{postId}/comments?page=1&pageSize=20` | Yes | query | - | Smoke: paged post comments | `items`, `totalCount`, `hasNextPage` |
 | PUT/DELETE/GET/GET | `/api/content/posts/{postId}/reactions...` | Yes | body/route | - | Реакции | - |
 | POST | `/api/content/hashtags` | **Admin** | body | `hashtagId`* | Создать hashtag | User → **403** |
 | GET | `/api/content/hashtags/{hashtagId}` | Yes | route | - | Hashtag по id | User JWT |

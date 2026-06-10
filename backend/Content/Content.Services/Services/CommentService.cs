@@ -81,7 +81,7 @@ public class CommentService : ICommentService
         return Success(comment);
     }
 
-    public async Task<IReadOnlyCollection<CommentDto>> GetByPostIdAsync(GetCommentsByPostParameters parameters)
+    public async Task<PostCommentsResult> GetByPostIdAsync(GetCommentsByPostParameters parameters)
     {
         var post = await _dbContext.Posts
             .AsNoTracking()
@@ -90,20 +90,34 @@ public class CommentService : ICommentService
                 p.DeletedAt == null);
 
         if (post == null)
-            return Array.Empty<CommentDto>();
+        {
+            return new PostCommentsResult();
+        }
 
         if (post.Visibility == VisibilityPrivate && post.UserId != parameters.ViewerUserId)
-            return Array.Empty<CommentDto>();
+        {
+            return new PostCommentsResult();
+        }
 
-        var comments = await _dbContext.Comments
+        var query = _dbContext.Comments
             .AsNoTracking()
             .Where(c =>
                 c.PostId == parameters.PostId &&
-                c.DeletedAt == null)
+                c.DeletedAt == null);
+
+        var totalCount = await query.CountAsync();
+
+        var comments = await query
             .OrderBy(c => c.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync();
 
-        return comments.Select(MapToDto).ToList();
+        return new PostCommentsResult
+        {
+            Items = comments.Select(MapToDto).ToList(),
+            TotalCount = totalCount
+        };
     }
 
     public async Task<CommentResult> UpdateAsync(UpdateCommentParameters parameters)

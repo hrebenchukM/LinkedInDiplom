@@ -56,7 +56,11 @@ public interface IContentManagementService
 
     Task<CommentResponse> CreateCommentAsync(string userId, Guid postId, CreateCommentRequest request);
 
-    Task<IReadOnlyCollection<CommentDto>> GetCommentsByPostIdAsync(string userId, Guid postId);
+    Task<PagedResponse<CommentDto>> GetCommentsByPostIdAsync(
+        string userId,
+        Guid postId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<CommentResponse> UpdateCommentAsync(string userId, Guid commentId, UpdateCommentRequest request);
 

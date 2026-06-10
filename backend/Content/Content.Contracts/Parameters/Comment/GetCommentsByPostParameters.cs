@@ -6,4 +6,8 @@ public record GetCommentsByPostParameters
     public string ViewerUserId { get; init; } = default!;
 
     public Guid PostId { get; init; }
+
+    public int Skip { get; init; }
+
+    public int Take { get; init; }
 }

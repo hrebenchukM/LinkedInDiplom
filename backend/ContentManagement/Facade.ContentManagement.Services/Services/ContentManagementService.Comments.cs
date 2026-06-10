@@ -2,6 +2,7 @@ using Content.Contracts.Parameters.Comment;
 using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -20,15 +21,24 @@ public partial class ContentManagementService
         return MapCommentResult(result);
     }
 
-    public async Task<IReadOnlyCollection<CommentDto>> GetCommentsByPostIdAsync(string userId, Guid postId)
+    public async Task<PagedResponse<CommentDto>> GetCommentsByPostIdAsync(
+        string userId,
+        Guid postId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var comments = await _contentClient.Comments.GetByPostIdAsync(new GetCommentsByPostParameters
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _contentClient.Comments.GetByPostIdAsync(new GetCommentsByPostParameters
         {
             ViewerUserId = userId,
-            PostId = postId
+            PostId = postId,
+            Skip = skip,
+            Take = pageSize
         });
 
-        return comments.Select(MapCommentToFacadeDto).ToList();
+        var items = result.Items.Select(MapCommentToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<CommentResponse> UpdateCommentAsync(string userId, Guid commentId, UpdateCommentRequest request)

@@ -1,6 +1,8 @@
+using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,16 +40,20 @@ public class ContentCommentsController : ContentManagementControllerBase
     // GET api/content/posts/{postId}/comments
     [Authorize]
     [HttpGet("posts/{postId:guid}/comments")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<CommentDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetCommentsByPostId(Guid postId)
+    public async Task<IActionResult> GetCommentsByPostId(
+        Guid postId,
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        var comments = await ContentService.GetCommentsByPostIdAsync(userId, postId);
+        var comments = await ContentService.GetCommentsByPostIdAsync(userId, postId, request, cancellationToken);
 
         return Ok(comments);
     }

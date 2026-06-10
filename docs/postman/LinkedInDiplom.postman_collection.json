@@ -369,7 +369,7 @@
         { "name": "Get Media By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/media/{{mediaId}}" } },
 
         { "name": "Create Comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Nice post!\"\n}" } } },
-        { "name": "Get Comments By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments" } },
+        { "name": "Get Comments By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments?page=1&pageSize=20" } },
         { "name": "Patch Comment", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Edited comment\"\n}" } } },
         { "name": "Delete Comment", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}" } },
 

@@ -22,7 +22,7 @@ public class CommentResource : ICommentResource
         return _commentService.CreateAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<CommentDto>> GetByPostIdAsync(GetCommentsByPostParameters parameters)
+    public Task<PostCommentsResult> GetByPostIdAsync(GetCommentsByPostParameters parameters)
     {
         return _commentService.GetByPostIdAsync(parameters);
     }
