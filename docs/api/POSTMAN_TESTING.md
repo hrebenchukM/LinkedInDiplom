@@ -92,7 +92,7 @@
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET | `/api/network/me/contacts` | Yes | body/list | `contactId`* | Контакты | Для запроса контакта нужен `otherUserId` |
+| POST/GET | `/api/network/me/contacts` | Yes | body/list | `contactId`* | Контакты | После send request — см. manual check в Notifications |
 | GET/PATCH/PATCH/DELETE | `/api/network/me/contacts/{contactId}` + `/accept` `/reject` | Yes | route | - | Подтверждение/отклонение | - |
 | POST/DELETE/GET | `/api/network/me/following`... + `/me/followers` | Yes | body/route | - | Подписки | Нужен `followedUserId` |
 | POST/DELETE/GET | `/api/network/me/blocked-users...` | Yes | body/route | - | Блокировки | Нужен `blockedUserId` |
@@ -124,7 +124,7 @@
 | POST/GET | `/api/content/me/media` / `/api/content/media/{mediaId}` | Yes | JSON body / route | `mediaId`* | Медиа по URL / read | `POST me/media` — JSON URL, не файл |
 | POST/GET/PATCH/DELETE | `/api/content/posts/{postId}/comments` + `/api/content/me/comments/{commentId}` | Yes | body/route, `page`, `pageSize` (GET list) | `commentId`* | Комментарии | GET list: `PagedResponse<CommentDto>`; default `page=1`, `pageSize=20` |
 | GET | `/api/content/posts/{postId}/comments?page=1&pageSize=20` | Yes | query | - | Smoke: paged post comments | `items`, `totalCount`, `hasNextPage` |
-| PUT/DELETE/GET/GET | `/api/content/posts/{postId}/reactions...` | Yes | body/route | - | Реакции | - |
+| PUT/DELETE/GET/GET | `/api/content/posts/{postId}/reactions...` | Yes | body/route | - | Реакции | После первой reaction — см. manual check в Notifications |
 | POST | `/api/content/hashtags` | **Admin** | body | `hashtagId`* | Создать hashtag | User → **403** |
 | GET | `/api/content/hashtags/{hashtagId}` | Yes | route | - | Hashtag по id | User JWT |
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/hashtags...` | Yes | body/route | - | Хэштеги поста | - |
@@ -266,12 +266,48 @@ Body: `{ "content": "Hello from REST" }`
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| GET | `/api/notifications/me` | Yes | - | - | Мои уведомления | - |
+| GET | `/api/notifications/me` | Yes | - | - | Мои уведомления | После comment на post — см. manual check ниже |
 | GET | `/api/notifications/me/{notificationId}` | Yes | route | - | Уведомление по id | - |
 | PATCH | `/api/notifications/me/{notificationId}/read` | Yes | route | - | Прочитать 1 уведомление | - |
 | PATCH | `/api/notifications/me/read-all` | Yes | - | - | Прочитать всё | - |
 | DELETE | `/api/notifications/me/{notificationId}` | Yes | route | - | Удалить уведомление | - |
 | POST/GET | `/api/notifications/me/activity` | Yes | body/- | - | Активность пользователя | - |
+
+#### Notifications manual check (CommentCreatedEvent)
+
+1. Login **user A** → `POST /api/auth/login` → сохранить `accessToken`.
+2. **User A** создаёт post → `POST /api/content/me/posts`.
+3. Login **user B** → новый token.
+4. **User B** комментирует post user A → `POST /api/content/posts/{postId}/comments` `{ "content": "..." }`.
+5. Login **user A** снова.
+6. `GET /api/notifications/me` → ожидается notification с `type: "post_comment"`, `entityType: "post"`, `entityId` = postId.
+7. **Self-comment:** user A комментирует свой post → notification **не** создаётся.
+
+#### Notifications manual check (ContactRequestSentEvent)
+
+1. Login **user A** → `POST /api/auth/login`.
+2. Login **user B** → сохранить `otherUserId` user B.
+3. **User A** отправляет contact request → `POST /api/network/me/contacts` `{ "otherUserId": "<user B id>" }`.
+4. Login **user B**.
+5. `GET /api/notifications/me` → ожидается notification с `type: "contact_request"`, `entityType: "contact_request"`, `entityId` = contactRequestId.
+6. **Self-request:** user A отправляет request самому себе → API error, notification **не** создаётся.
+
+#### Notifications manual check (ContactRequestAcceptedEvent)
+
+1. Login **user A** → отправить contact request user B → `POST /api/network/me/contacts`.
+2. Login **user B** → принять request → `PATCH /api/network/me/contacts/{contactId}/accept`.
+3. Login **user A**.
+4. `GET /api/notifications/me` → ожидается notification с `type: "contact_request_accepted"`, `entityType: "contact_request"`, `entityId` = contactRequestId.
+
+#### Notifications manual check (ReactionUpsertedEvent)
+
+1. Login **user A** → создать post → `POST /api/content/me/posts`.
+2. Login **user B**.
+3. **User B** ставит реакцию → `PUT /api/content/posts/{postId}/reactions` `{ "reactionType": "like" }`.
+4. Login **user A**.
+5. `GET /api/notifications/me` → ожидается notification с `type: "post_reaction"`, `entityType: "post"`, `entityId` = postId.
+6. **Update reaction:** user B меняет тип → `PUT .../reactions` `{ "reactionType": "love" }` → duplicate notification **не** создаётся.
+7. **Self-reaction:** user A реагирует на свой post → notification **не** создаётся.
 
 ### 09 Events
 

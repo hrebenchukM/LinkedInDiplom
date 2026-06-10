@@ -3,7 +3,7 @@
 ## Ограничения v1 (факт)
 
 - realtime уведомлений нет; **SignalR Hub для Messaging** (`/hubs/messaging`): `JoinChat` / `LeaveChat`; backend realtime events — `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` (group `chat:{chatId}`) после успешных HTTP операций; **manual testing docs** — `docs/api/POSTMAN_TESTING.md` (раздел «Messaging SignalR manual testing»); **dev CORS** для SignalR: explicit localhost origins (`5173`, `3000`) + `AllowCredentials` в `DevelopmentCors`; **frontend SignalR integration still pending**; production CORS origins для deployed frontend **pending**; scale-out (Redis backplane / Azure SignalR Service) **pending**; HTTP send остаётся primary flow
-- domain events в Identity — in-memory (без outbox/broker)
+- domain events в Identity — in-memory (без outbox/broker); **`CommentCreatedEvent`** (Content) → notification для автора поста; **`ReactionUpsertedEvent`** (Content) → notification для автора поста **только при первой реакции** (update reaction type не создаёт новое notification); **`ContactRequestSentEvent`** (Network) → notification получателю contact request; **`ContactRequestAcceptedEvent`** (Network) → notification отправителю request; другие events pending: `MentionAddedEvent`, `VacancyApplicationSubmittedEvent`
 - Jobs: `CompanyId` не валидируется через Professional module
 - Network: ограниченная кросс-проверка существования target user
 - Events: `EventSpeaker` — глобальный справочник **без `OwnerId`**; write endpoints (create/patch/delete/avatar) **Admin-only**; обычный user может **читать** speaker (`GET me/speakers/{id}`), но не менять каталог

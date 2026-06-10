@@ -1,3 +1,4 @@
+using Identity.Events.Contracts.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Network.Contracts.DTOs;
 using Network.Contracts.Parameters.Contact;
@@ -5,6 +6,7 @@ using Network.Contracts.Results;
 using Network.Contracts.Services;
 using Network.DataAccess;
 using Network.DataAccess.Entities;
+using Network.Events.Contracts.Events;
 
 namespace Network.Services.Services;
 
@@ -20,10 +22,14 @@ public class ContactService : IContactService
     private const string StatusCancelled = "cancelled";
 
     private readonly NetworkDbContext _dbContext;
+    private readonly IDomainEventPublisher _domainEventPublisher;
 
-    public ContactService(NetworkDbContext dbContext)
+    public ContactService(
+        NetworkDbContext dbContext,
+        IDomainEventPublisher domainEventPublisher)
     {
         _dbContext = dbContext;
+        _domainEventPublisher = domainEventPublisher;
     }
 
     public async Task<ContactResult> SendRequestAsync(SendContactRequestParameters parameters)
@@ -69,6 +75,8 @@ public class ContactService : IContactService
 
             await _dbContext.SaveChangesAsync();
 
+            await PublishContactRequestSentAsync(existing);
+
             return Success(existing);
         }
 
@@ -85,6 +93,8 @@ public class ContactService : IContactService
 
         _dbContext.Contacts.Add(contact);
         await _dbContext.SaveChangesAsync();
+
+        await PublishContactRequestSentAsync(contact);
 
         return Success(contact);
     }
@@ -140,6 +150,8 @@ public class ContactService : IContactService
         contact.StatusChangedAt = now;
 
         await _dbContext.SaveChangesAsync();
+
+        await PublishContactRequestAcceptedAsync(contact, now);
 
         return Success(contact);
     }
@@ -214,6 +226,28 @@ public class ContactService : IContactService
             .FirstOrDefaultAsync(c =>
                 c.Id == contactId &&
                 (c.RequesterId == userId || c.ReceiverId == userId));
+    }
+
+    private Task PublishContactRequestSentAsync(Contact contact)
+    {
+        return _domainEventPublisher.PublishAsync(new ContactRequestSentEvent
+        {
+            ContactRequestId = contact.Id,
+            SenderUserId = contact.RequesterId,
+            ReceiverUserId = contact.ReceiverId,
+            CreatedAt = contact.RequestedAt
+        });
+    }
+
+    private Task PublishContactRequestAcceptedAsync(Contact contact, DateTime acceptedAt)
+    {
+        return _domainEventPublisher.PublishAsync(new ContactRequestAcceptedEvent
+        {
+            ContactRequestId = contact.Id,
+            RequesterUserId = contact.RequesterId,
+            AccepterUserId = contact.ReceiverId,
+            AcceptedAt = acceptedAt
+        });
     }
 
     private async Task<bool> IsBlockedEitherDirectionAsync(string userA, string userB)

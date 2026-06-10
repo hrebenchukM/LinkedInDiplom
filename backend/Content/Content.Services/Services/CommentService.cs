@@ -4,6 +4,8 @@ using Content.Contracts.Results;
 using Content.Contracts.Services;
 using Content.DataAccess;
 using Content.DataAccess.Entities;
+using Content.Events.Contracts.Events;
+using Identity.Events.Contracts.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Content.Services.Services;
@@ -14,10 +16,14 @@ public class CommentService : ICommentService
     private const string VisibilityPrivate = "private";
 
     private readonly ContentDbContext _dbContext;
+    private readonly IDomainEventPublisher _domainEventPublisher;
 
-    public CommentService(ContentDbContext dbContext)
+    public CommentService(
+        ContentDbContext dbContext,
+        IDomainEventPublisher domainEventPublisher)
     {
         _dbContext = dbContext;
+        _domainEventPublisher = domainEventPublisher;
     }
 
     public async Task<CommentResult> CreateAsync(CreateCommentParameters parameters)
@@ -77,6 +83,15 @@ public class CommentService : ICommentService
         post.CommentCount += 1;
 
         await _dbContext.SaveChangesAsync();
+
+        await _domainEventPublisher.PublishAsync(new CommentCreatedEvent
+        {
+            CommentId = comment.Id,
+            PostId = post.Id,
+            PostAuthorUserId = post.UserId,
+            CommentAuthorUserId = parameters.AuthorId,
+            CreatedAt = comment.CreatedAt
+        });
 
         return Success(comment);
     }

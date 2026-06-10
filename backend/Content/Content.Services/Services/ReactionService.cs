@@ -4,6 +4,8 @@ using Content.Contracts.Results;
 using Content.Contracts.Services;
 using Content.DataAccess;
 using Content.DataAccess.Entities;
+using Content.Events.Contracts.Events;
+using Identity.Events.Contracts.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Content.Services.Services;
@@ -24,10 +26,14 @@ public class ReactionService : IReactionService
     };
 
     private readonly ContentDbContext _dbContext;
+    private readonly IDomainEventPublisher _domainEventPublisher;
 
-    public ReactionService(ContentDbContext dbContext)
+    public ReactionService(
+        ContentDbContext dbContext,
+        IDomainEventPublisher domainEventPublisher)
     {
         _dbContext = dbContext;
+        _domainEventPublisher = domainEventPublisher;
     }
 
     public async Task<ReactionResult> UpsertAsync(UpsertReactionParameters parameters)
@@ -79,6 +85,17 @@ public class ReactionService : IReactionService
             post.ReactionCount += 1;
 
             await _dbContext.SaveChangesAsync();
+
+            await _domainEventPublisher.PublishAsync(new ReactionUpsertedEvent
+            {
+                ReactionId = reaction.Id,
+                PostId = post.Id,
+                PostAuthorUserId = post.UserId,
+                ActorUserId = parameters.UserId,
+                ReactionType = reactionType,
+                IsNewReaction = true,
+                CreatedAt = reaction.CreatedAt
+            });
 
             return Success(reaction);
         }

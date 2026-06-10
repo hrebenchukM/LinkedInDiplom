@@ -3,6 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Notifications.Contracts\Notifications.Contracts.csproj" />
     <ProjectReference Include="..\Notifications.DataAccess\Notifications.DataAccess.csproj" />
+    <ProjectReference Include="..\..\Content\Content.Events.Contracts\Content.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Identity.Events.Contracts\Identity.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Network\Network.Events.Contracts\Network.Events.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

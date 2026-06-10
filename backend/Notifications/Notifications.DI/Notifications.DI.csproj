@@ -6,6 +6,9 @@
     <ProjectReference Include="..\Notifications.DataAccess\Notifications.DataAccess.csproj" />
     <ProjectReference Include="..\Notifications.Client\Notifications.Client.csproj" />
     <ProjectReference Include="..\Notifications.Client.Contracts\Notifications.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Content\Content.Events.Contracts\Content.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Identity.Events.Contracts\Identity.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Network\Network.Events.Contracts\Network.Events.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

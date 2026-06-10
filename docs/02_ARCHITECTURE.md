@@ -69,6 +69,24 @@ HTTP /api/admin/*
 
 Правило сохранено: `Facade.AdminManagement` **не ссылается** на чужой `*DataAccess` напрямую.
 
+## Domain events (loose coupling)
+
+Модули обмениваются side-effects через **domain events** без прямых ссылок между feature modules:
+
+- **Publisher:** core service после успешного `SaveChangesAsync` вызывает `IDomainEventPublisher.PublishAsync(...)`.
+- **Consumer:** модуль-подписчик регистрирует `IDomainEventHandler<TEvent>` в своём DI.
+- **Contracts:** payload events живут в отдельных `*.Events.Contracts` проектах (без DbContext, DTO facade, SignalR).
+
+**Пример (реализовано):** Content `CommentService` публикует `CommentCreatedEvent` → Notifications `CreateNotificationOnCommentCreatedHandler` создаёт notification для автора поста (кроме self-comment). Content **не зависит** от Notifications.
+
+**Пример (реализовано):** Content `ReactionService` публикует `ReactionUpsertedEvent` только при **первой** реакции пользователя на пост → Notifications `CreateNotificationOnReactionUpsertedHandler` создаёт notification для автора поста (кроме self-reaction; update типа реакции event не публикует). Content **не зависит** от Notifications.
+
+**Пример (реализовано):** Network `ContactService` публикует `ContactRequestSentEvent` → Notifications `CreateNotificationOnContactRequestSentHandler` создаёт notification для получателя request (кроме self-request). Network **не зависит** от Notifications.
+
+**Пример (реализовано):** Network `ContactService` публикует `ContactRequestAcceptedEvent` → Notifications `CreateNotificationOnContactRequestAcceptedHandler` создаёт notification для отправителя request (requester). Network **не зависит** от Notifications.
+
+**Текущий transport:** in-memory (`InMemoryDomainEventPublisher` в Identity.DI). При выделении microservices — заменить publisher на broker/outbox; handlers и event contracts остаются на границе модулей.
+
 ## Порядок migrations
 
 `ApplyMigrationsAsync`:
