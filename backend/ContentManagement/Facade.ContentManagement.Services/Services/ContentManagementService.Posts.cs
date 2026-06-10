@@ -1,7 +1,9 @@
 using Content.Contracts.Parameters.Post;
 using Facade.ContentManagement.Contracts.DTOs;
+using Facade.ContentManagement.Contracts.Requests.Feed;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -20,24 +22,39 @@ public partial class ContentManagementService
         return MapPostResult(result);
     }
 
-    public async Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(string userId)
+    public async Task<PagedResponse<PostDto>> GetMyPostsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var posts = await _contentClient.Posts.GetMyPostsAsync(new GetMyPostsParameters
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _contentClient.Posts.GetMyPostsAsync(new GetMyPostsParameters
         {
-            AuthorId = userId
+            AuthorId = userId,
+            Skip = skip,
+            Take = pageSize
         });
 
-        return posts.Select(MapPostToFacadeDto).ToList();
+        var items = result.Items.Select(MapPostToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
-    public async Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(string userId, int limit)
+    public async Task<PagedResponse<PostDto>> GetFeedPostsAsync(
+        string userId,
+        FeedPagedRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var posts = await _contentClient.Posts.GetFeedPostsAsync(new GetFeedPostsParameters
+        var (page, pageSize, skip) = request.ResolvePaging();
+
+        var result = await _contentClient.Posts.GetFeedPostsAsync(new GetFeedPostsParameters
         {
-            Limit = limit
+            Skip = skip,
+            Take = pageSize
         });
 
-        return posts.Select(MapPostToFacadeDto).ToList();
+        var items = result.Items.Select(MapPostToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<PostDto?> GetPostByIdAsync(string userId, Guid postId)

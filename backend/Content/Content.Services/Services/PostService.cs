@@ -86,37 +86,58 @@ public class PostService : IPostService
         return Success(post, media);
     }
 
-    public async Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(GetMyPostsParameters parameters)
+    public async Task<MyPostsResult> GetMyPostsAsync(GetMyPostsParameters parameters)
     {
-        var posts = await _dbContext.Posts
+        var query = _dbContext.Posts
             .AsNoTracking()
-            .Where(p => p.UserId == parameters.AuthorId && p.DeletedAt == null)
+            .Where(p => p.UserId == parameters.AuthorId && p.DeletedAt == null);
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
             .OrderByDescending(p => p.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync();
 
         var mediaByPostId = await GetMediaByPostIdsAsync(posts.Select(p => p.Id));
 
-        return posts
+        var items = posts
             .Select(p => MapToDto(p, mediaByPostId.GetValueOrDefault(p.Id)))
             .ToList();
+
+        return new MyPostsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
-    public async Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(GetFeedPostsParameters parameters)
+    public async Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters)
     {
-        var limit = parameters.Limit <= 0 ? 50 : Math.Min(parameters.Limit, 100);
-
-        var posts = await _dbContext.Posts
+        var query = _dbContext.Posts
             .AsNoTracking()
-            .Where(p => p.DeletedAt == null && p.Visibility == VisibilityPublic)
+            .Where(p => p.DeletedAt == null && p.Visibility == VisibilityPublic);
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
             .OrderByDescending(p => p.CreatedAt)
-            .Take(limit)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync();
 
         var mediaByPostId = await GetMediaByPostIdsAsync(posts.Select(p => p.Id));
 
-        return posts
+        var items = posts
             .Select(p => MapToDto(p, mediaByPostId.GetValueOrDefault(p.Id)))
             .ToList();
+
+        return new FeedPostsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<PostDto?> GetByIdAsync(GetPostByIdParameters parameters)

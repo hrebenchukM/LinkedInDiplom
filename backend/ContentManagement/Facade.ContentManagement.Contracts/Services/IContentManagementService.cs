@@ -1,4 +1,5 @@
 using Facade.ContentManagement.Contracts.DTOs;
+using Facade.ContentManagement.Contracts.Requests.Feed;
 using Facade.ContentManagement.Contracts.Requests.Comment;
 using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.Media;
@@ -8,6 +9,7 @@ using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Requests.Mention;
 using Facade.ContentManagement.Contracts.Requests.Reaction;
 using Facade.ContentManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ContentManagement.Contracts.Services;
 
@@ -27,9 +29,15 @@ public interface IContentManagementService
 
     Task<PostResponse> CreatePostAsync(string userId, CreatePostRequest request);
 
-    Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(string userId);
+    Task<PagedResponse<PostDto>> GetMyPostsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(string userId, int limit);
+    Task<PagedResponse<PostDto>> GetFeedPostsAsync(
+        string userId,
+        FeedPagedRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<PostDto?> GetPostByIdAsync(string userId, Guid postId);
 

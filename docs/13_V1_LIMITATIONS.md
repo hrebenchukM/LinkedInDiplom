@@ -20,7 +20,10 @@
 
 ### Pagination (v1)
 
-- **Pagination common contract** (`Facade.Shared.Contracts`: `PagedRequest`, `PagedResponse<T>`, `Pagination` helper) добавлен; **`GET /api/admin/users`** уже возвращает `PagedResponse<AdminUserDto>`; остальные list endpoints пока ещё возвращают старые массивы — подключение будет выполняться по модулям.
+- **Pagination common contract** (`Facade.Shared.Contracts`: `PagedRequest`, `PagedResponse<T>`, `Pagination` helper) добавлен; **`GET /api/admin/users`**, **`GET /api/content/feed`**, **`GET /api/content/me/posts`** и **`GET /api/messaging/me/chats/{chatId}/messages`** уже возвращают `PagedResponse`; остальные Content list endpoints (comments, media, reactions и т.д.) и остальные Messaging list endpoints (chats, members, reads, media) пока ещё возвращают старые массивы — подключение будет выполняться по модулям.
+- **`GET /api/content/feed`**: response shape изменён с массива на `PagedResponse<PostDto>`; query `limit` поддерживается как backward-compatible alias для `pageSize` на `page=1`; frontend должен читать `response.items`.
+- **`GET /api/content/me/posts`**: response shape изменён с массива на `PagedResponse<PostDto>`; query `page`/`pageSize`; frontend должен читать `response.items`.
+- **`GET /api/messaging/me/chats/{chatId}/messages`**: response shape изменён с массива на `PagedResponse<MessageDto>`; query `page`/`pageSize` (default `page=1`, `pageSize=20`, max `pageSize=100`); frontend должен читать `response.items`.
 
 ### Platform Admin (v1)
 - `GET /api/admin/stats/overview` — только агрегаты, **без фильтров по датам** и без графиков

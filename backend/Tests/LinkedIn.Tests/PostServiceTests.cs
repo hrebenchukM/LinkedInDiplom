@@ -98,13 +98,15 @@ public class PostServiceTests : IDisposable
             AuthorId = otherUserId, Content = "Other post", Visibility = "public"
         });
 
-        var posts = await _postService.GetMyPostsAsync(new GetMyPostsParameters
+        var result = await _postService.GetMyPostsAsync(new GetMyPostsParameters
         {
-            AuthorId = _userId
+            AuthorId = _userId,
+            Take = 100
         });
 
-        Assert.Single(posts);
-        Assert.Equal("My post", posts.First().Content);
+        Assert.Single(result.Items);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal("My post", result.Items.First().Content);
     }
 
     [Fact]
@@ -120,12 +122,14 @@ public class PostServiceTests : IDisposable
             PostId = createResult.Post!.Id, AuthorId = _userId
         });
 
-        var posts = await _postService.GetMyPostsAsync(new GetMyPostsParameters
+        var result = await _postService.GetMyPostsAsync(new GetMyPostsParameters
         {
-            AuthorId = _userId
+            AuthorId = _userId,
+            Take = 100
         });
 
-        Assert.Empty(posts);
+        Assert.Empty(result.Items);
+        Assert.Equal(0, result.TotalCount);
     }
 
     [Fact]

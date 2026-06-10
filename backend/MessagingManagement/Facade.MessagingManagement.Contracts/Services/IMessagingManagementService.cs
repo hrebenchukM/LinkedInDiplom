@@ -3,6 +3,7 @@ using Facade.MessagingManagement.Contracts.Requests.Chat;
 using Facade.MessagingManagement.Contracts.Requests.Message;
 using Facade.MessagingManagement.Contracts.Requests.MessageMedia;
 using Facade.MessagingManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.MessagingManagement.Contracts.Services;
 
@@ -18,7 +19,11 @@ public interface IMessagingManagementService
     Task<IReadOnlyCollection<ChatMemberDto>> GetChatMembersAsync(string userId, Guid chatId);
 
     Task<MessageResponse> SendMessageAsync(string userId, Guid chatId, SendMessageRequest request);
-    Task<IReadOnlyCollection<MessageDto>> GetChatMessagesAsync(string userId, Guid chatId);
+    Task<PagedResponse<MessageDto>> GetChatMessagesAsync(
+        string userId,
+        Guid chatId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
     Task<MessageDto?> GetMessageByIdAsync(string userId, Guid messageId);
     Task<MessageResponse> EditMessageAsync(string userId, Guid messageId, EditMessageRequest request);
     Task<MessageResponse> DeleteMessageAsync(string userId, Guid messageId);

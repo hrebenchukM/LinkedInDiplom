@@ -51,22 +51,32 @@ public class MessageService : IMessageService
         };
     }
 
-    public async Task<IReadOnlyCollection<MessageDto>> GetChatMessagesAsync(GetChatMessagesParameters parameters)
+    public async Task<ChatMessagesResult> GetChatMessagesAsync(GetChatMessagesParameters parameters)
     {
         if (!await HasActiveChatAccess(parameters.ChatId, parameters.UserId))
         {
-            return Array.Empty<MessageDto>();
+            return new ChatMessagesResult();
         }
 
-        var messages = await _dbContext.Messages
+        var query = _dbContext.Messages
             .AsNoTracking()
-            .Where(m => m.ChatId == parameters.ChatId && m.DeletedAt == null)
+            .Where(m => m.ChatId == parameters.ChatId && m.DeletedAt == null);
+
+        var totalCount = await query.CountAsync();
+
+        var messages = await query
             .OrderBy(m => m.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync();
 
         if (messages.Count == 0)
         {
-            return Array.Empty<MessageDto>();
+            return new ChatMessagesResult
+            {
+                Items = Array.Empty<MessageDto>(),
+                TotalCount = totalCount
+            };
         }
 
         var messageIds = messages.Select(m => m.Id).ToList();
@@ -80,13 +90,19 @@ public class MessageService : IMessageService
             .GroupBy(mm => mm.MessageId)
             .ToDictionary(g => g.Key, g => (IReadOnlyCollection<MessageMediaDto>)g.Select(MapMedia).ToList());
 
-        return messages
+        var items = messages
             .Select(m =>
             {
                 mediaByMessage.TryGetValue(m.Id, out var media);
                 return Map(m, media);
             })
             .ToList();
+
+        return new ChatMessagesResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<MessageDto?> GetByIdAsync(GetMessageByIdParameters parameters)

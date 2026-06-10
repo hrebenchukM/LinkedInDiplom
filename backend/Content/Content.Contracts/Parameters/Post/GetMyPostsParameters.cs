@@ -4,4 +4,8 @@ namespace Content.Contracts.Parameters.Post;
 public record GetMyPostsParameters
 {
     public string AuthorId { get; init; } = default!;
+
+    public int Skip { get; init; }
+
+    public int Take { get; init; }
 }

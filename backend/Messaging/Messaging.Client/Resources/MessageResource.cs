@@ -20,7 +20,7 @@ public class MessageResource : IMessageResource
         return _messageService.SendAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<MessageDto>> GetChatMessagesAsync(GetChatMessagesParameters parameters)
+    public Task<ChatMessagesResult> GetChatMessagesAsync(GetChatMessagesParameters parameters)
     {
         return _messageService.GetChatMessagesAsync(parameters);
     }

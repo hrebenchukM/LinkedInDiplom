@@ -1,7 +1,10 @@
+using Facade.ContentManagement.Contracts.DTOs;
+using Facade.ContentManagement.Contracts.Requests.Feed;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,9 +51,12 @@ public class ContentPostsController : ContentManagementControllerBase
     // GET api/content/me/posts
     [Authorize]
     [HttpGet("me/posts")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<PostDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetMyPosts()
+    public async Task<IActionResult> GetMyPosts(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
 
@@ -59,17 +65,20 @@ public class ContentPostsController : ContentManagementControllerBase
             return Unauthorized();
         }
 
-        var items = await ContentService.GetMyPostsAsync(userId);
+        var posts = await ContentService.GetMyPostsAsync(userId, request, cancellationToken);
 
-        return Ok(items);
+        return Ok(posts);
     }
 
     // GET api/content/feed
     [Authorize]
     [HttpGet("feed")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<PostDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetFeed([FromQuery] int limit = 50)
+    public async Task<IActionResult> GetFeed(
+        [FromQuery] FeedPagedRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
 
@@ -78,9 +87,9 @@ public class ContentPostsController : ContentManagementControllerBase
             return Unauthorized();
         }
 
-        var items = await ContentService.GetFeedPostsAsync(userId, limit);
+        var feed = await ContentService.GetFeedPostsAsync(userId, request, cancellationToken);
 
-        return Ok(items);
+        return Ok(feed);
     }
 
     // GET api/content/posts/{postId}

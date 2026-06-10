@@ -79,7 +79,7 @@ dotnet run
 1. `01 Auth / Account`
 2. `02 Profile`
 3. `03 Professional`
-4. `05 Content`
+4. `05 Content` (в т.ч. `GET /api/content/feed` и `GET /api/content/me/posts` с `page`/`pageSize` → `PagedResponse`, читать `items`)
 5. `04 Network`
 6. `06 Messaging`
 7. `07 Jobs`

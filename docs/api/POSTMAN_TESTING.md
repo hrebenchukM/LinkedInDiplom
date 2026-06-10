@@ -109,7 +109,16 @@
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET/GET/PATCH/DELETE | `/api/content/me/posts...` + `/api/content/posts/{postId}` | Yes | body/route | `postId` | Посты | Базовый модуль для зависимостей |
+| GET | `/api/content/feed` | Yes | `page`, `pageSize`, `limit` | - | Paged public feed | `PagedResponse<PostDto>`; default `page=1`, `pageSize=20`; `limit` = alias `pageSize` on page 1 |
+| GET | `/api/content/feed?page=1&pageSize=20` | Yes | query | - | Smoke: paged feed | `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/content/feed?limit=50` | Yes | query | - | Backward-compat limit | `page=1`, `pageSize=50` |
+| GET | `/api/content/feed?page=0` | Yes | query | - | Negative: invalid page | **400** unified validation |
+| GET | `/api/content/feed?pageSize=101` | Yes | query | - | Negative: pageSize too large | **400** unified validation |
+| GET | `/api/content/me/posts` | Yes | `page`, `pageSize` | - | Paged my posts | `PagedResponse<PostDto>`; default `page=1`, `pageSize=20` |
+| GET | `/api/content/me/posts?page=1&pageSize=20` | Yes | query | - | Smoke: paged my posts | `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/content/me/posts?page=0` | Yes | query | - | Negative: invalid page | **400** unified validation |
+| GET | `/api/content/me/posts?pageSize=101` | Yes | query | - | Negative: pageSize too large | **400** unified validation |
+| POST/GET/PATCH/DELETE | `/api/content/me/posts...` + `/api/content/posts/{postId}` | Yes | body/route | `postId` | Посты (кроме list GET) | Базовый модуль для зависимостей |
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/media...` | Yes | body/route | - | Медиа поста | Нужен `mediaId` |
 | POST | `/api/content/me/media/upload` | Yes | form-data `file` | `mediaId`* | Upload медиа-файла | multipart; см. smoke checklist ниже |
 | POST/GET | `/api/content/me/media` / `/api/content/media/{mediaId}` | Yes | JSON body / route | `mediaId`* | Медиа по URL / read | `POST me/media` — JSON URL, не файл |
@@ -130,7 +139,8 @@
 |---|---|---|---|---|---|---|
 | POST/GET/GET/DELETE | `/api/messaging/me/chats...` | Yes | body/route | `chatId`* | Чаты | - |
 | POST/DELETE/GET | `/api/messaging/me/chats/{chatId}/join|membership|members` | Yes | route | - | Участники чата | Часто нужен второй пользователь |
-| POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route | `messageId`* | Сообщения | - |
+| POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route, `page`, `pageSize` (GET) | `messageId`* | Сообщения | GET: `PagedResponse<MessageDto>`; default `page=1`, `pageSize=20` |
+| GET | `/api/messaging/me/chats/{chatId}/messages?page=1&pageSize=20` | Yes | query | - | Smoke: paged chat messages | `items`, `totalCount`, `hasNextPage` |
 | GET/PATCH/DELETE | `/api/messaging/me/messages/{messageId}` | Yes | body/route | - | Сообщение по id | - |
 | POST/GET | `/api/messaging/me/messages/{messageId}/read|reads` | Yes | route | - | Прочтение | - |
 | POST | `/api/messaging/me/messages/{messageId}/media/upload` | Yes | form-data `file` | `messageMediaId`* | Upload медиа сообщения | multipart |

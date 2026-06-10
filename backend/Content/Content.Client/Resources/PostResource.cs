@@ -24,12 +24,12 @@ public class PostResource : IPostResource
         return _postService.CreateAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(GetMyPostsParameters parameters)
+    public Task<MyPostsResult> GetMyPostsAsync(GetMyPostsParameters parameters)
     {
         return _postService.GetMyPostsAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(GetFeedPostsParameters parameters)
+    public Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters)
     {
         return _postService.GetFeedPostsAsync(parameters);
     }

@@ -1,6 +1,7 @@
 using Facade.MessagingManagement.Contracts.DTOs;
 using Facade.MessagingManagement.Contracts.Requests.Message;
 using Facade.MessagingManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Messaging.Contracts.Parameters.Message;
 
 namespace Facade.MessagingManagement.Services.Services;
@@ -19,15 +20,24 @@ public partial class MessagingManagementService
         return MapMessageResult(result);
     }
 
-    public async Task<IReadOnlyCollection<MessageDto>> GetChatMessagesAsync(string userId, Guid chatId)
+    public async Task<PagedResponse<MessageDto>> GetChatMessagesAsync(
+        string userId,
+        Guid chatId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var messages = await _messagingClient.Messages.GetChatMessagesAsync(new GetChatMessagesParameters
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _messagingClient.Messages.GetChatMessagesAsync(new GetChatMessagesParameters
         {
             UserId = userId,
-            ChatId = chatId
+            ChatId = chatId,
+            Skip = skip,
+            Take = pageSize
         });
 
-        return messages.Select(MapMessageToFacadeDto).ToList();
+        var items = result.Items.Select(MapMessageToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<MessageDto?> GetMessageByIdAsync(string userId, Guid messageId)

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Facade\Facade.Shared.Contracts\Facade.Shared.Contracts.csproj" />
     <ProjectReference Include="..\Facade.MessagingManagement.Contracts\Facade.MessagingManagement.Contracts.csproj" />
     <ProjectReference Include="..\..\Messaging\Messaging.Client.Contracts\Messaging.Client.Contracts.csproj" />
     <ProjectReference Include="..\..\Messaging\Messaging.Contracts\Messaging.Contracts.csproj" />

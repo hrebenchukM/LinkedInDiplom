@@ -9,9 +9,9 @@ public interface IPostService
 {
     Task<PostResult> CreateAsync(CreatePostParameters parameters);
 
-    Task<IReadOnlyCollection<PostDto>> GetMyPostsAsync(GetMyPostsParameters parameters);
+    Task<MyPostsResult> GetMyPostsAsync(GetMyPostsParameters parameters);
 
-    Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(GetFeedPostsParameters parameters);
+    Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters);
 
     Task<PostDto?> GetByIdAsync(GetPostByIdParameters parameters);
 
