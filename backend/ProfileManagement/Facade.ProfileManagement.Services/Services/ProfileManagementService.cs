@@ -1,12 +1,9 @@
-using Amazon.S3;
-using Amazon.S3.Model;
+using Facade.FileStorage.Contracts.Services;
 using Facade.ProfileManagement.Contracts.DTOs;
 using FacadeMessageSettingsDto = Facade.ProfileManagement.Contracts.DTOs.MessageSettingsDto;
 using FacadeProfileViewDto = Facade.ProfileManagement.Contracts.DTOs.ProfileViewDto;
-using Facade.ProfileManagement.Contracts.Options;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
-using Microsoft.Extensions.Options;
 using Profile.Client.Contracts;
 using Profile.Contracts.DTOs;
 
@@ -19,20 +16,14 @@ namespace Facade.ProfileManagement.Services.Services;
 public partial class ProfileManagementService : IProfileManagementService
 {
     private readonly IProfileClient _profileClient;
-    private readonly UploadsOptions _uploadsOptions;
-    private readonly AwsS3Settings _s3Settings;
-    private readonly IAmazonS3? _s3Client;
+    private readonly IFileStorageService _fileStorageService;
 
-        public ProfileManagementService(
+    public ProfileManagementService(
         IProfileClient profileClient,
-        IOptions<UploadsOptions> uploadsOptions,
-        IOptions<AwsS3Settings> s3Settings,
-        IAmazonS3? s3Client = null)
+        IFileStorageService fileStorageService)
     {
         _profileClient = profileClient;
-        _uploadsOptions = uploadsOptions.Value;
-        _s3Settings = s3Settings.Value;
-        _s3Client = s3Client;
+        _fileStorageService = fileStorageService;
     }
 
     private static ProfileDto MapProfileToFacadeDto(UserProfileDto profile)

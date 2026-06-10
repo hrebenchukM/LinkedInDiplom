@@ -27,7 +27,7 @@ using Facade.JobsManagement.Controllers.Controllers;
 using Facade.JobsManagement.DI;
 using Facade.EventsManagement.Controllers.Controllers;
 using Facade.EventsManagement.DI;
-using Facade.ProfileManagement.Contracts.Options;
+using Facade.FileStorage.DI;
 using Content.DI;
 using Events.DI;
 using Jobs.DI;
@@ -54,7 +54,8 @@ var connectionString = configuration.GetConnectionString("DefaultConnection")
 
 // Один абсолютный путь для сохранения и раздачи uploads (пустой конфиг = ContentRootPath/uploads)
 var uploadsPath = ResolveUploadsPath(configuration, builder.Environment.ContentRootPath);
-builder.Services.Configure<UploadsOptions>(options => options.RootPath = uploadsPath);
+
+builder.Services.AddFileStorage(configuration);
 
 // Подключаем Identity core module
 builder.Services.AddIdentityModule(configuration, connectionString);
