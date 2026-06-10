@@ -101,6 +101,24 @@ public class PostService : IPostService
             .ToList();
     }
 
+    public async Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(GetFeedPostsParameters parameters)
+    {
+        var limit = parameters.Limit <= 0 ? 50 : Math.Min(parameters.Limit, 100);
+
+        var posts = await _dbContext.Posts
+            .AsNoTracking()
+            .Where(p => p.DeletedAt == null && p.Visibility == VisibilityPublic)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        var mediaByPostId = await GetMediaByPostIdsAsync(posts.Select(p => p.Id));
+
+        return posts
+            .Select(p => MapToDto(p, mediaByPostId.GetValueOrDefault(p.Id)))
+            .ToList();
+    }
+
     public async Task<PostDto?> GetByIdAsync(GetPostByIdParameters parameters)
     {
         var post = await _dbContext.Posts

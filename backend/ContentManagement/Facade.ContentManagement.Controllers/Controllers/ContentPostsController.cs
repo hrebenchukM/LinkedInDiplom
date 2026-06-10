@@ -64,6 +64,25 @@ public class ContentPostsController : ContentManagementControllerBase
         return Ok(items);
     }
 
+    // GET api/content/feed
+    [Authorize]
+    [HttpGet("feed")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetFeed([FromQuery] int limit = 50)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var items = await ContentService.GetFeedPostsAsync(userId, limit);
+
+        return Ok(items);
+    }
+
     // GET api/content/posts/{postId}
     [Authorize]
     [HttpGet("posts/{postId:guid}")]

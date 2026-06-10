@@ -239,6 +239,12 @@ public class AIService : IAIService
 
     private async Task<(string? Text, string? Error)> SendToGeminiAsync(string prompt)
     {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+        {
+            _logger.LogWarning("[AI] Gemini API key is not configured. Skipping API call.");
+            return (null, "Gemini API key is not configured.");
+        }
+
         var client = _httpClientFactory.CreateClient();
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_settings.Model}:generateContent?key={_settings.ApiKey}";
 

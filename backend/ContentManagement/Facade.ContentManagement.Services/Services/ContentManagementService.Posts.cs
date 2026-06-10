@@ -30,6 +30,16 @@ public partial class ContentManagementService
         return posts.Select(MapPostToFacadeDto).ToList();
     }
 
+    public async Task<IReadOnlyCollection<PostDto>> GetFeedPostsAsync(string userId, int limit)
+    {
+        var posts = await _contentClient.Posts.GetFeedPostsAsync(new GetFeedPostsParameters
+        {
+            Limit = limit
+        });
+
+        return posts.Select(MapPostToFacadeDto).ToList();
+    }
+
     public async Task<PostDto?> GetPostByIdAsync(string userId, Guid postId)
     {
         var post = await _contentClient.Posts.GetByIdAsync(new GetPostByIdParameters
