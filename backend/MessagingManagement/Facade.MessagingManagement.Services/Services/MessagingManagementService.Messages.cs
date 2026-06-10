@@ -17,7 +17,14 @@ public partial class MessagingManagementService
             Content = request.Content
         });
 
-        return MapMessageResult(result);
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageCreatedAsync(chatId, response.Message);
+        }
+
+        return response;
     }
 
     public async Task<PagedResponse<MessageDto>> GetChatMessagesAsync(
@@ -60,7 +67,14 @@ public partial class MessagingManagementService
             Content = request.Content
         });
 
-        return MapMessageResult(result);
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageUpdatedAsync(response.Message.ChatId, response.Message);
+        }
+
+        return response;
     }
 
     public async Task<MessageResponse> DeleteMessageAsync(string userId, Guid messageId)
@@ -71,6 +85,13 @@ public partial class MessagingManagementService
             MessageId = messageId
         });
 
-        return MapMessageResult(result);
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageDeletedAsync(response.Message.ChatId, response.Message.Id);
+        }
+
+        return response;
     }
 }

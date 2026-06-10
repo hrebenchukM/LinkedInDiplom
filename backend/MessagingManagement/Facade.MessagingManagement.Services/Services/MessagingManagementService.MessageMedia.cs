@@ -75,7 +75,18 @@ public partial class MessagingManagementService
             MediaType = request.MediaType
         });
 
-        return MapMessageMediaResult(result);
+        var response = MapMessageMediaResult(result);
+
+        if (response.Success && response.MessageMedia is not null)
+        {
+            var message = await GetMessageByIdAsync(userId, messageId);
+            if (message is not null)
+            {
+                await _realtimeNotifier.NotifyMessageMediaAttachedAsync(message.ChatId, response.MessageMedia);
+            }
+        }
+
+        return response;
     }
 
     public async Task<IReadOnlyCollection<MessageMediaDto>> GetMessageMediaAsync(string userId, Guid messageId)

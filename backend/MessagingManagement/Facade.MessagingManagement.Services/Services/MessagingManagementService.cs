@@ -1,4 +1,5 @@
 using Facade.MessagingManagement.Contracts.DTOs;
+using Facade.MessagingManagement.Contracts.Realtime;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.MessagingManagement.Contracts.Services;
 using Facade.FileStorage.Contracts.Services;
@@ -24,13 +25,16 @@ public partial class MessagingManagementService : IMessagingManagementService
 {
     private readonly IMessagingClient _messagingClient;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IMessagingRealtimeNotifier _realtimeNotifier;
 
     public MessagingManagementService(
         IMessagingClient messagingClient,
-        IFileStorageService fileStorageService)
+        IFileStorageService fileStorageService,
+        IMessagingRealtimeNotifier realtimeNotifier)
     {
         _messagingClient = messagingClient;
         _fileStorageService = fileStorageService;
+        _realtimeNotifier = realtimeNotifier;
     }
 
 

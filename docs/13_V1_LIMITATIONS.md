@@ -2,7 +2,7 @@
 
 ## Ограничения v1 (факт)
 
-- нет SignalR / realtime чата и realtime уведомлений
+- realtime уведомлений нет; **SignalR Hub для Messaging** (`/hubs/messaging`): `JoinChat` / `LeaveChat`; backend realtime events — `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` (group `chat:{chatId}`) после успешных HTTP операций; **manual testing docs** — `docs/api/POSTMAN_TESTING.md` (раздел «Messaging SignalR manual testing»); **dev CORS** для SignalR: explicit localhost origins (`5173`, `3000`) + `AllowCredentials` в `DevelopmentCors`; **frontend SignalR integration still pending**; production CORS origins для deployed frontend **pending**; scale-out (Redis backplane / Azure SignalR Service) **pending**; HTTP send остаётся primary flow
 - domain events в Identity — in-memory (без outbox/broker)
 - Jobs: `CompanyId` не валидируется через Professional module
 - Network: ограниченная кросс-проверка существования target user

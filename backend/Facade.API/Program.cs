@@ -20,6 +20,9 @@ using Facade.NetworkManagement.DI;
 using Facade.ContentManagement.Controllers.Controllers;
 using Facade.ContentManagement.DI;
 using Facade.MessagingManagement.Controllers.Controllers;
+using Facade.MessagingManagement.Controllers.Hubs;
+using Facade.MessagingManagement.Controllers.Realtime;
+using Facade.MessagingManagement.Contracts.Realtime;
 using Facade.MessagingManagement.DI;
 using Facade.NotificationsManagement.Controllers.Controllers;
 using Facade.NotificationsManagement.DI;
@@ -157,10 +160,31 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+
+    // SignalR WebSocket negotiate не передаёт Authorization header — token из query string.
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs/messaging"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Подключаем авторизацию
 builder.Services.AddAuthorization();
+
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IMessagingRealtimeNotifier, MessagingRealtimeNotifier>();
 
 // Swagger/OpenAPI только для локальной разработки
 if (isDevelopment)
@@ -197,16 +221,21 @@ if (isDevelopment)
     });
 }
 
-// CORS: Development — любой origin; Production — только из Cors:AllowedOrigins
+// CORS: Development — explicit localhost origins + credentials (SignalR); Production — Cors:AllowedOrigins
 builder.Services.AddCors(options =>
 {
     if (isDevelopment)
     {
         options.AddPolicy("DevelopmentCors", policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins(
+                    "http://localhost:5173",
+                    "https://localhost:5173",
+                    "http://localhost:3000",
+                    "https://localhost:3000")
                   .AllowAnyMethod()
-                  .AllowAnyHeader();
+                  .AllowAnyHeader()
+                  .AllowCredentials();
         });
     }
     else
@@ -278,6 +307,7 @@ app.UseAuthorization();
 
 // Маршрутизацию полностью обрабатывают facade-контроллеры.
 app.MapControllers();
+app.MapHub<MessagingHub>("/hubs/messaging");
 
 // Запускаем API
 app.Run();

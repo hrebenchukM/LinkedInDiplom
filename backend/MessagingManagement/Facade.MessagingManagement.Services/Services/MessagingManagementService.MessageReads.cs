@@ -14,7 +14,18 @@ public partial class MessagingManagementService
             MessageId = messageId
         });
 
-        return MapMessageReadResult(result);
+        var response = MapMessageReadResult(result);
+
+        if (response.Success && response.MessageRead is not null)
+        {
+            var message = await GetMessageByIdAsync(userId, messageId);
+            if (message is not null)
+            {
+                await _realtimeNotifier.NotifyMessageReadAsync(message.ChatId, response.MessageRead);
+            }
+        }
+
+        return response;
     }
 
     public async Task<IReadOnlyCollection<MessageReadDto>> GetMessageReadsAsync(string userId, Guid messageId)

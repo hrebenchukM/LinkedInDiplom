@@ -139,12 +139,116 @@
 |---|---|---|---|---|---|---|
 | POST/GET/GET/DELETE | `/api/messaging/me/chats...` | Yes | body/route | `chatId`* | Чаты | - |
 | POST/DELETE/GET | `/api/messaging/me/chats/{chatId}/join|membership|members` | Yes | route | - | Участники чата | Часто нужен второй пользователь |
-| POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route, `page`, `pageSize` (GET) | `messageId`* | Сообщения | GET: `PagedResponse<MessageDto>`; default `page=1`, `pageSize=20` |
+| POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route, `page`, `pageSize` (GET) | `messageId`* | Сообщения | GET: `PagedResponse<MessageDto>`; POST: REST response без изменений; при успехе + `JoinChat` — SignalR `MessageCreated` |
 | GET | `/api/messaging/me/chats/{chatId}/messages?page=1&pageSize=20` | Yes | query | - | Smoke: paged chat messages | `items`, `totalCount`, `hasNextPage` |
-| GET/PATCH/DELETE | `/api/messaging/me/messages/{messageId}` | Yes | body/route | - | Сообщение по id | - |
-| POST/GET | `/api/messaging/me/messages/{messageId}/read|reads` | Yes | route | - | Прочтение | - |
-| POST | `/api/messaging/me/messages/{messageId}/media/upload` | Yes | form-data `file` | `messageMediaId`* | Upload медиа сообщения | multipart |
-| POST/GET/DELETE | `/api/messaging/me/messages/{messageId}/media...` | Yes | JSON/route | `messageMediaId`* | Attach/read/delete media | JSON attach по URL |
+| GET/PATCH/DELETE | `/api/messaging/me/messages/{messageId}` | Yes | body/route | - | Сообщение по id | REST response без изменений; PATCH/DELETE + `JoinChat` — `MessageUpdated` / `MessageDeleted` |
+| POST/GET | `/api/messaging/me/messages/{messageId}/read|reads` | Yes | route | - | Прочтение | REST response без изменений; POST read + `JoinChat` — `MessageRead` |
+| POST | `/api/messaging/me/messages/{messageId}/media/upload` | Yes | form-data `file` | `messageMediaId`* | Upload медиа сообщения | multipart; REST response без изменений; при успехе + `JoinChat` — `MessageMediaAttached` |
+| POST/GET/DELETE | `/api/messaging/me/messages/{messageId}/media...` | Yes | JSON/route | `messageMediaId`* | Attach/read/delete media | JSON attach; attach success + `JoinChat` — `MessageMediaAttached` |
+
+#### Messaging SignalR manual testing
+
+Postman REST collection **не проверяет** полноценный SignalR flow как обычный REST endpoint. Realtime events (`MessageCreated`, `MessageUpdated`, …) приходят только клиентам с активным WebSocket-подключением к Hub и успешным `JoinChat(chatId)`.
+
+**Primary flow остаётся HTTP:** сообщение создаётся через `POST /api/messaging/me/chats/{chatId}/messages`; backend после успешной операции пушит event в SignalR group `chat:{chatId}`.
+
+**Hub:** `/hubs/messaging`  
+**Auth:** JWT через `accessTokenFactory` (SignalR добавляет `?access_token=...` при negotiate/WebSocket).  
+**Base URL:** адаптируйте под локальный backend — см. `launchSettings.json` или Postman `baseUrl` (`http://localhost:5000`, `http://localhost:5282`, `https://localhost:7011`).
+
+##### Manual flow
+
+**Step 1 — Login (REST)**  
+`POST /api/auth/login` → скопировать `accessToken` из ответа (Postman: `01 Auth -> Login`, или Swagger).
+
+**Step 2 — Получить chatId**  
+`GET /api/messaging/me/chats` → выбрать `id` чата, где текущий user — **active member**.  
+Если список пуст — сначала `POST /api/messaging/me/chats`.
+
+**Step 3 — SignalR client**  
+Откройте временную HTML-страницу или browser DevTools console на origin, с которого браузер может достучаться до API (см. ограничение CORS ниже). Вставьте snippet, подставьте `token` и `chatId`.
+
+**Step 4 — Send message (REST)**  
+В другой вкладке / Postman / Swagger:  
+`POST /api/messaging/me/chats/{chatId}/messages`  
+Body: `{ "content": "Hello from REST" }`
+
+**Step 5 — Проверить console**  
+Ожидается log `MessageCreated` с payload `MessageDto`.
+
+**Step 6 — Остальные events (REST → console)**
+
+| REST action | Expected SignalR event | Payload |
+|---|---|---|
+| `PATCH /api/messaging/me/messages/{messageId}` | `MessageUpdated` | `MessageDto` |
+| `DELETE /api/messaging/me/messages/{messageId}` | `MessageDeleted` | `{ chatId, messageId }` |
+| `POST /api/messaging/me/messages/{messageId}/read` | `MessageRead` | `{ chatId, id, messageId, userId, readAt }` |
+| `POST .../media` или `POST .../media/upload` | `MessageMediaAttached` | `{ chatId, messageId, media }` |
+
+Перед каждым тестом убедитесь, что Hub подключён и выполнен `JoinChat(chatId)`.
+
+**JoinChat access:** если user не active member чата → `HubException: Chat not found.`
+
+**CORS (Development):** `DevelopmentCors` разрешает localhost frontend origins с `AllowCredentials` (нужно для SignalR из браузера). Разрешены: `http://localhost:5173`, `https://localhost:5173`, `http://localhost:3000`, `https://localhost:3000` (Vite по умолчанию — `5173`). **Нельзя** использовать `AllowAnyOrigin()` вместе с `AllowCredentials()`. Frontend integration в React-проект **ещё pending**; для manual test откройте snippet с одного из allowed origins или временную HTML на `http://localhost:5173`.
+
+##### JS snippet (browser console / temporary HTML)
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+<script>
+  const token = "PASTE_JWT_HERE";
+  const chatId = "PASTE_CHAT_ID_HERE"; // GUID строкой
+
+  // Адаптируйте host/port под ваш backend (без /api prefix):
+  const hubUrl = "https://localhost:7011/hubs/messaging";
+
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl(hubUrl, {
+      accessTokenFactory: () => token
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on("MessageCreated", message => {
+    console.log("MessageCreated", message);
+  });
+
+  connection.on("MessageUpdated", message => {
+    console.log("MessageUpdated", message);
+  });
+
+  connection.on("MessageDeleted", payload => {
+    console.log("MessageDeleted", payload);
+  });
+
+  connection.on("MessageRead", payload => {
+    console.log("MessageRead", payload);
+  });
+
+  connection.on("MessageMediaAttached", payload => {
+    console.log("MessageMediaAttached", payload);
+  });
+
+  async function start() {
+    await connection.start();
+    console.log("Connected:", connection.connectionId);
+
+    await connection.invoke("JoinChat", chatId);
+    console.log("Joined chat:", chatId);
+  }
+
+  start().catch(console.error);
+
+  // Опционально при закрытии страницы:
+  // await connection.invoke("LeaveChat", chatId);
+  // await connection.stop();
+</script>
+```
+
+**Notes:**
+- `chatId` в `JoinChat` передаётся как GUID (строка `"xxxxxxxx-xxxx-..."` в JS).
+- REST endpoints и их response shape **не меняются** — SignalR только дополнительный push.
+- Frontend проект **не** содержит этой интеграции; snippet только для manual QA.
 
 ### 07 Jobs
 
