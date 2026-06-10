@@ -52,6 +52,8 @@
 		<ProjectReference Include="..\Events\Events.DI\Events.DI.csproj" />
 		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.DI\Facade.EventsManagement.DI.csproj" />
 		<ProjectReference Include="..\EventsManagement\Facade.EventsManagement.Controllers\Facade.EventsManagement.Controllers.csproj" />
+		<ProjectReference Include="..\AIManagement\Facade.AI.DI\Facade.AI.DI.csproj" />
+		<ProjectReference Include="..\AIManagement\Facade.AI.Controllers\Facade.AI.Controllers.csproj" />
 	</ItemGroup>
 
 </Project>

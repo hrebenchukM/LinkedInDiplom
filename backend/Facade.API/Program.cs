@@ -33,9 +33,12 @@ using Events.DI;
 using Jobs.DI;
 using Messaging.DI;
 using Network.DI;
+
 using Notifications.DI;
 using Facade.API;
 using Microsoft.AspNetCore.Mvc;
+using Facade.AI.DI;
+using Facade.AI.Controllers.Controllers;
 
 // Facade.API — единственный host приложения.
 // Здесь нет бизнес-логики: только сборка модулей, middleware и инфраструктурных настроек.
@@ -77,12 +80,16 @@ builder.Services.AddProfileManagementFacade(configuration);
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
+
 builder.Services.AddMessagingManagementFacade();
 builder.Services.AddJobsManagementFacade();
 builder.Services.AddNotificationsManagementFacade();
 builder.Services.AddEventsManagementFacade();
 // Подключаем контроллеры из всех facade-модулей через ApplicationPart.
 // Так host знает только сборки фасадов и не тащит код feature-контроллеров внутрь себя.
+builder.Services.AddAIManagementFacade(configuration);
+
+// Подключаем контроллеры из facade-модулей
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(AdminManagementControllersAssemblyMarker).Assembly)
     .AddApplicationPart(typeof(AccountController).Assembly)
@@ -94,6 +101,7 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(JobsVacanciesController).Assembly)
     .AddApplicationPart(typeof(NotificationsItemsController).Assembly)
     .AddApplicationPart(typeof(EventsEventsController).Assembly)
+    .AddApplicationPart(typeof(AIController).Assembly)
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -102,6 +110,8 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(body);
         };
     });
+
+
 
 // Читаем JWT-настройки
 var jwtSettings = configuration.GetSection("JwtSettings");
