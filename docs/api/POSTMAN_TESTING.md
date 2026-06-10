@@ -238,7 +238,10 @@ Postman: Body → **form-data** → key **`file`**, type **File**.
 |---|---|---|---|---|---|---|
 | POST | `/api/auth/login` | No | admin credentials | `adminToken`, `adminUserId` | Login admin | тот же endpoint, что у user |
 | GET | `/api/admin/roles` | Admin | - | - | Роли платформы | |
-| GET | `/api/admin/users` | Admin | - | - | Все пользователи | incl. deleted |
+| GET | `/api/admin/users` | Admin | `page`, `pageSize` | - | Paged users | `PagedResponse<AdminUserDto>`; default `page=1`, `pageSize=20`; max `pageSize=100`; incl. deleted |
+| GET | `/api/admin/users?page=1&pageSize=20` | Admin | query | - | Smoke: paged users | response: `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/admin/users?page=0` | Admin | query | - | Negative: invalid page | **400** unified validation |
+| GET | `/api/admin/users?pageSize=101` | Admin | query | - | Negative: pageSize too large | **400** unified validation |
 | GET | `/api/admin/users/{userId}` | Admin | route | - | User by id | |
 | GET | `/api/admin/users/{userId}/roles` | Admin | route | - | Роли user | |
 | POST | `/api/admin/users/{userId}/roles` | Admin | `{ "roleName": "Admin" }` | - | Назначить роль | 204 |

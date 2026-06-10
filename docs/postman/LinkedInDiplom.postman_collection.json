@@ -518,7 +518,7 @@
           "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
           "item": [
             { "name": "Get Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/roles" } },
-            { "name": "Get Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users" } },
+            { "name": "Get Users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
             { "name": "Get User By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}" } },
             { "name": "Get User Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles" } },
             { "name": "Add User Role", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles", "body": { "mode": "raw", "raw": "{\n  \"roleName\": \"Admin\"\n}" } } },

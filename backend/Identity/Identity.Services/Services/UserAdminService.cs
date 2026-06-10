@@ -1,4 +1,6 @@
 using Identity.Contracts.DTOs;
+using Identity.Contracts.Parameters;
+using Identity.Contracts.Results;
 using Identity.Contracts.Services;
 using Identity.DataAccess;
 using Identity.DataAccess.Entities;
@@ -23,13 +25,18 @@ public class UserAdminService : IUserAdminService
         _authenticationService = authenticationService;
     }
 
-    public async Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    public async Task<AdminUserListResult> GetUsersAsync(
+        GetUsersParameters parameters,
         CancellationToken cancellationToken = default)
     {
-        // TODO: add pagination for large user tables.
-        var users = await _dbContext.Users
-            .AsNoTracking()
+        var query = _dbContext.Users.AsNoTracking();
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var users = await query
             .OrderByDescending(u => u.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
             .ToListAsync(cancellationToken);
 
         var result = new List<AdminUserDto>(users.Count);
@@ -39,7 +46,11 @@ public class UserAdminService : IUserAdminService
             result.Add(MapToAdminUserDto(user, roles));
         }
 
-        return result;
+        return new AdminUserListResult
+        {
+            Items = result,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<AdminUserDto> GetUserByIdAsync(

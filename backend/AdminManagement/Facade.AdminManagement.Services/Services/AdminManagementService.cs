@@ -1,8 +1,10 @@
 using Content.Client.Contracts.Resources;
-using Identity.Client.Contracts.Resources;
-using Jobs.Client.Contracts.Resources;
-using Identity.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
+using Identity.Client.Contracts.Resources;
+using Identity.Contracts.DTOs;
+using Identity.Contracts.Parameters;
+using Jobs.Client.Contracts.Resources;
 
 namespace Facade.AdminManagement.Services.Services;
 
@@ -25,9 +27,22 @@ public partial class AdminManagementService : IAdminManagementService
         _recommendedJobQueryResource = recommendedJobQueryResource;
     }
 
-    public Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    public async Task<PagedResponse<AdminUserDto>> GetUsersAsync(
+        PagedRequest request,
         CancellationToken cancellationToken = default)
-        => _userResource.GetUsersAsync(cancellationToken);
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _userResource.GetUsersAsync(
+            new GetUsersParameters
+            {
+                Skip = skip,
+                Take = pageSize
+            },
+            cancellationToken);
+
+        return Pagination.Create(result.Items.ToList(), page, pageSize, result.TotalCount);
+    }
 
     public Task<AdminUserDto> GetUserByIdAsync(
         string userId,

@@ -34,9 +34,10 @@ public class UserResource : IUserResource
     public Task<RegisterUserResult> RegisterAsync(RegisterUserParameters parameters)
         => _userService.RegisterAsync(parameters);
 
-    public Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    public Task<AdminUserListResult> GetUsersAsync(
+        GetUsersParameters parameters,
         CancellationToken cancellationToken = default)
-        => _userAdminService.GetUsersAsync(cancellationToken);
+        => _userAdminService.GetUsersAsync(parameters, cancellationToken);
 
     public Task<AdminUserDto> GetUserByIdAsync(
         string userId,

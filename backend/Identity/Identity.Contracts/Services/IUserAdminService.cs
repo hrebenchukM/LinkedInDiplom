@@ -1,10 +1,13 @@
 using Identity.Contracts.DTOs;
+using Identity.Contracts.Parameters;
+using Identity.Contracts.Results;
 
 namespace Identity.Contracts.Services;
 
 public interface IUserAdminService
 {
-    Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    Task<AdminUserListResult> GetUsersAsync(
+        GetUsersParameters parameters,
         CancellationToken cancellationToken = default);
 
     Task<AdminUserDto> GetUserByIdAsync(

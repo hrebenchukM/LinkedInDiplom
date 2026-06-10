@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Facade\Facade.Shared.Contracts\Facade.Shared.Contracts.csproj" />
     <ProjectReference Include="..\Facade.AdminManagement.Contracts\Facade.AdminManagement.Contracts.csproj" />
     <ProjectReference Include="..\Facade.AdminManagement.Services\Facade.AdminManagement.Services.csproj" />
     <ProjectReference Include="..\..\Identity\Identity.Contracts\Identity.Contracts.csproj" />

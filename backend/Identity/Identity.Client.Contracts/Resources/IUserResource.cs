@@ -13,7 +13,8 @@ public interface IUserResource
     // Зарегистрировать пользователя
     Task<RegisterUserResult> RegisterAsync(RegisterUserParameters parameters);
 
-    Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    Task<AdminUserListResult> GetUsersAsync(
+        GetUsersParameters parameters,
         CancellationToken cancellationToken = default);
 
     Task<AdminUserDto> GetUserByIdAsync(

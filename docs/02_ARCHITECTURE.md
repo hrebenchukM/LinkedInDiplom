@@ -39,6 +39,16 @@ Upload Controller (IFormFile)
 - `FileStorageService` не зависит от Profile/Content/Professional/Network/Events/Messaging.
 - Подробности: `09_CONFIG_UPLOADS.md`.
 
+## Facade.Shared.Contracts (shared facade contracts)
+
+`backend/Facade/Facade.Shared.Contracts` — **не** бизнес-модуль и не bounded context.
+
+- Хранит только **технические** общие facade/API contracts, переиспользуемые несколькими `Facade.*Management` модулями.
+- Сейчас: **pagination** (`PagedRequest`, `PagedResponse<T>`, `Pagination` helper).
+- Feature modules **не** должны складывать туда свои бизнес DTO, Request/Response bounded context или entities.
+- При подключении пагинации к list endpoints модули добавляют `ProjectReference` только когда реально используют contract.
+- При будущем переходе к микросервисам такие contracts могут быть вынесены в отдельный shared NuGet/package без переноса бизнес-логики.
+
 ## Platform Admin (Facade.AdminManagement)
 
 `Facade.AdminManagement` — facade для **platform admin** (администратор платформы), а не отдельный core-модуль.

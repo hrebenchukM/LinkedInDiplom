@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
+using Identity.Contracts.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,10 +22,13 @@ public class AdminUsersController : AdminControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(200)]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResponse<AdminUserDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
     {
-        var users = await _adminManagementService.GetUsersAsync(cancellationToken);
+        var users = await _adminManagementService.GetUsersAsync(request, cancellationToken);
         return Ok(users);
     }
 

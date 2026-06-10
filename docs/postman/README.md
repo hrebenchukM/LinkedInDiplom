@@ -56,7 +56,7 @@ dotnet run
    или вручную `POST /api/auth/login` с admin credentials.
 3. Сохраните в environment:
    - `adminToken` — access token admin
-   - `adminUserId` — id admin (из login или `GET /api/admin/users`)
+   - `adminUserId` — id admin (из login или `GET /api/admin/users?page=1&pageSize=20` → `items[0].id`)
 
 Для negative tests сохраните обычный user token в `normalUserToken` после `01 Auth -> Login`.
 

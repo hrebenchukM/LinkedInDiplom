@@ -1,5 +1,6 @@
 using Facade.AdminManagement.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.Requests;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.DTOs;
 using Jobs.Contracts.DTOs;
 
@@ -7,7 +8,8 @@ namespace Facade.AdminManagement.Contracts.Services;
 
 public interface IAdminManagementService
 {
-    Task<IReadOnlyCollection<AdminUserDto>> GetUsersAsync(
+    Task<PagedResponse<AdminUserDto>> GetUsersAsync(
+        PagedRequest request,
         CancellationToken cancellationToken = default);
 
     Task<AdminUserDto> GetUserByIdAsync(

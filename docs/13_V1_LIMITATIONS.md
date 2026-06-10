@@ -18,9 +18,11 @@
 - **Secrets in git**: production AWS/RDS/JWT/Gemini keys не должны быть в `appsettings` в репозитории; при утечке — ротация в AWS/RDS.
 - Profile avatar/header и content media не требуют entity ownership check на facade-уровне (только JWT user).
 
-### Platform Admin (v1)
+### Pagination (v1)
 
-- `GET /api/admin/users` — **без pagination** (TODO в `UserAdminService`)
+- **Pagination common contract** (`Facade.Shared.Contracts`: `PagedRequest`, `PagedResponse<T>`, `Pagination` helper) добавлен; **`GET /api/admin/users`** уже возвращает `PagedResponse<AdminUserDto>`; остальные list endpoints пока ещё возвращают старые массивы — подключение будет выполняться по модулям.
+
+### Platform Admin (v1)
 - `GET /api/admin/stats/overview` — только агрегаты, **без фильтров по датам** и без графиков
 - нет moderation компаний (Professional companies)
 - нет очереди жалоб / reports / complaints
