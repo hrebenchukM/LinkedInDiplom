@@ -22,6 +22,13 @@ public class LanguageResource : ILanguageResource
         return _languageService.GetByIdAsync(parameters);
     }
 
+    public Task<LanguagesResult> GetLanguagesAsync(
+        GetLanguagesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _languageService.GetLanguagesAsync(parameters, cancellationToken);
+    }
+
     public Task<LanguageResult> CreateAsync(CreateLanguageParameters parameters)
     {
         return _languageService.CreateAsync(parameters);

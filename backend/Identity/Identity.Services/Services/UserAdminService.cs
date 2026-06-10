@@ -31,10 +31,66 @@ public class UserAdminService : IUserAdminService
     {
         var query = _dbContext.Users.AsNoTracking();
 
+        if (!string.IsNullOrWhiteSpace(parameters.Email))
+        {
+            var emailPattern = $"%{parameters.Email.Trim()}%";
+            query = query.Where(u =>
+                u.Email != null && EF.Functions.ILike(u.Email, emailPattern));
+        }
+
+        if (parameters.IsDeleted == true)
+        {
+            query = query.Where(u => u.DeletedAt != null);
+        }
+        else if (parameters.IsDeleted == false)
+        {
+            query = query.Where(u => u.DeletedAt == null);
+        }
+
+        var utcNow = DateTimeOffset.UtcNow;
+        if (parameters.IsLocked == true)
+        {
+            query = query.Where(u => u.LockoutEnd != null && u.LockoutEnd > utcNow);
+        }
+        else if (parameters.IsLocked == false)
+        {
+            query = query.Where(u => u.LockoutEnd == null || u.LockoutEnd <= utcNow);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Role))
+        {
+            var normalizedRoleName = parameters.Role.Trim().ToUpperInvariant();
+            var roleExists = await _dbContext.Roles
+                .AsNoTracking()
+                .AnyAsync(r => r.NormalizedName == normalizedRoleName, cancellationToken);
+
+            if (!roleExists)
+            {
+                return new AdminUserListResult
+                {
+                    Items = Array.Empty<AdminUserDto>(),
+                    TotalCount = 0
+                };
+            }
+
+            query = query.Where(u =>
+                _dbContext.UserRoles.Any(ur =>
+                    ur.UserId == u.Id &&
+                    _dbContext.Roles.Any(r =>
+                        r.Id == ur.RoleId &&
+                        r.NormalizedName == normalizedRoleName)));
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplySorting(query, sortBy, descending);
+
         var users = await query
-            .OrderByDescending(u => u.CreatedAt)
             .Skip(parameters.Skip)
             .Take(parameters.Take)
             .ToListAsync(cancellationToken);
@@ -50,6 +106,26 @@ public class UserAdminService : IUserAdminService
         {
             Items = result,
             TotalCount = totalCount
+        };
+    }
+
+    private static IQueryable<ApplicationUser> ApplySorting(
+        IQueryable<ApplicationUser> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "email" when descending => query.OrderByDescending(u => u.Email),
+            "email" => query.OrderBy(u => u.Email),
+            "username" when descending => query.OrderByDescending(u => u.UserName),
+            "username" => query.OrderBy(u => u.UserName),
+            "updatedat" when descending => query.OrderByDescending(u => u.UpdatedAt),
+            "updatedat" => query.OrderBy(u => u.UpdatedAt),
+            "createdat" when descending => query.OrderByDescending(u => u.CreatedAt),
+            "createdat" => query.OrderBy(u => u.CreatedAt),
+            _ when descending => query.OrderByDescending(u => u.CreatedAt),
+            _ => query.OrderBy(u => u.CreatedAt)
         };
     }
 
@@ -146,6 +222,34 @@ public class UserAdminService : IUserAdminService
         EnsureSucceeded(updateResult, $"Failed to soft delete user '{userId}'");
 
         await _authenticationService.RevokeAllUserTokensAsync(userId);
+    }
+
+    public async Task RestoreUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with id '{userId}' was not found.");
+        }
+
+        if (user.DeletedAt == null)
+        {
+            return;
+        }
+
+        user.DeletedAt = null;
+
+        var unlockResult = await _userManager.SetLockoutEndDateAsync(user, null);
+        EnsureSucceeded(unlockResult, $"Failed to unlock user '{userId}' during restore");
+
+        var resetFailsResult = await _userManager.ResetAccessFailedCountAsync(user);
+        EnsureSucceeded(resetFailsResult, $"Failed to reset access failed count for user '{userId}' during restore");
+
+        user.UpdatedAt = DateTime.UtcNow;
+        var updateResult = await _userManager.UpdateAsync(user);
+        EnsureSucceeded(updateResult, $"Failed to restore user '{userId}'");
     }
 
     private static AdminUserDto MapToAdminUserDto(

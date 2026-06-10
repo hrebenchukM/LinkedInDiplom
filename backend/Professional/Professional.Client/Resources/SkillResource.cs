@@ -22,6 +22,13 @@ public class SkillResource : ISkillResource
         return _skillService.GetByIdAsync(parameters);
     }
 
+    public Task<SkillsResult> GetSkillsAsync(
+        GetSkillsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _skillService.GetSkillsAsync(parameters, cancellationToken);
+    }
+
     public Task<SkillResult> CreateAsync(CreateSkillParameters parameters)
     {
         return _skillService.CreateAsync(parameters);

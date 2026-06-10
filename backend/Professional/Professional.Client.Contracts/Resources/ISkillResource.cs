@@ -11,6 +11,10 @@ public interface ISkillResource
     Task<SkillDto?> GetByIdAsync(
         GetSkillByIdParameters parameters);
 
+    Task<SkillsResult> GetSkillsAsync(
+        GetSkillsParameters parameters,
+        CancellationToken cancellationToken = default);
+
     Task<SkillResult> CreateAsync(
         CreateSkillParameters parameters);
 }

@@ -1,5 +1,6 @@
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Jobs.Contracts.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +18,24 @@ public class AdminJobsController : AdminControllerBase
     public AdminJobsController(IAdminManagementService adminManagementService)
     {
         _adminManagementService = adminManagementService;
+    }
+
+    [HttpGet("vacancies")]
+    [ProducesResponseType(typeof(PagedResponse<AdminVacancyDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetAdminVacancies(
+        [FromQuery] AdminVacanciesQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var vacancies = await _adminManagementService.GetAdminVacanciesAsync(request, cancellationToken);
+            return Ok(vacancies);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return MapInvalidOperationException(ex);
+        }
     }
 
     [HttpDelete("vacancies/{vacancyId:guid}")]

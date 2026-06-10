@@ -2,6 +2,7 @@ using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Professional.Contracts.Parameters.Skill;
 using Professional.Contracts.Parameters.UserSkill;
 
@@ -19,6 +20,31 @@ public partial class ProfessionalManagementService
             });
 
         return skill == null ? null : MapSkillToFacadeDto(skill);
+    }
+
+    // Получить список навыков в справочнике
+    public async Task<PagedResponse<SkillDto>> GetSkillsAsync(
+        GetSkillsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _professionalClient.Skills.GetSkillsAsync(
+            new GetSkillsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapSkillToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     // Создать навык в справочнике

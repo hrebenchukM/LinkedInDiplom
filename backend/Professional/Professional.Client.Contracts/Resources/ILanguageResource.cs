@@ -11,6 +11,10 @@ public interface ILanguageResource
     Task<LanguageDto?> GetByIdAsync(
         GetLanguageByIdParameters parameters);
 
+    Task<LanguagesResult> GetLanguagesAsync(
+        GetLanguagesParameters parameters,
+        CancellationToken cancellationToken = default);
+
     Task<LanguageResult> CreateAsync(
         CreateLanguageParameters parameters);
 }

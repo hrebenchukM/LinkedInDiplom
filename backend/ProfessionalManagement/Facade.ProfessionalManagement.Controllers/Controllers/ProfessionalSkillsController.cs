@@ -1,8 +1,10 @@
+using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.RecommendedSkillByPosition;
 using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +16,18 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     public ProfessionalSkillsController(IProfessionalManagementService professionalManagementService)
         : base(professionalManagementService)
     {
+    }
+
+    // GET api/professional/skills
+    [HttpGet("skills")]
+    [ProducesResponseType(typeof(PagedResponse<SkillDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetSkills(
+        [FromQuery] GetSkillsQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var skills = await ProfessionalService.GetSkillsAsync(request, cancellationToken);
+        return Ok(skills);
     }
 
     // GET api/professional/skills/{skillId}

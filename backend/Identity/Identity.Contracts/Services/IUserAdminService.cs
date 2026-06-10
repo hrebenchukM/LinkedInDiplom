@@ -27,6 +27,10 @@ public interface IUserAdminService
         string userId,
         CancellationToken cancellationToken = default);
 
+    Task RestoreUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
     Task<IdentityStatsDto> GetIdentityStatsAsync(
         CancellationToken cancellationToken = default);
 }

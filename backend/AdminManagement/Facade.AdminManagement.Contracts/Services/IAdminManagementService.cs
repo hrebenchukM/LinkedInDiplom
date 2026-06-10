@@ -1,3 +1,4 @@
+using Content.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.Shared.Contracts.Pagination;
@@ -9,7 +10,7 @@ namespace Facade.AdminManagement.Contracts.Services;
 public interface IAdminManagementService
 {
     Task<PagedResponse<AdminUserDto>> GetUsersAsync(
-        PagedRequest request,
+        AdminUsersQueryRequest request,
         CancellationToken cancellationToken = default);
 
     Task<AdminUserDto> GetUserByIdAsync(
@@ -26,6 +27,10 @@ public interface IAdminManagementService
         CancellationToken cancellationToken = default);
 
     Task SoftDeleteUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task RestoreUserAsync(
         string userId,
         CancellationToken cancellationToken = default);
 
@@ -46,12 +51,20 @@ public interface IAdminManagementService
         string roleName,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResponse<AdminPostDto>> GetAdminPostsAsync(
+        AdminPostsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
     Task AdminSoftDeletePostAsync(
         Guid postId,
         CancellationToken cancellationToken = default);
 
     Task AdminRestorePostAsync(
         Guid postId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResponse<AdminVacancyDto>> GetAdminVacanciesAsync(
+        AdminVacanciesQueryRequest request,
         CancellationToken cancellationToken = default);
 
     Task AdminSoftDeleteVacancyAsync(

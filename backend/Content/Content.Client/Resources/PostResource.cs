@@ -59,6 +59,11 @@ public class PostResource : IPostResource
         CancellationToken cancellationToken = default)
         => _postService.AdminRestorePostAsync(postId, cancellationToken);
 
+    public Task<AdminPostsResult> GetAdminPostsAsync(
+        GetAdminPostsParameters parameters,
+        CancellationToken cancellationToken = default)
+        => _postService.GetAdminPostsAsync(parameters, cancellationToken);
+
     public Task<ContentStatsDto> GetContentStatsAsync(
         CancellationToken cancellationToken = default)
         => _postService.GetContentStatsAsync(cancellationToken);

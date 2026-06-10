@@ -12,6 +12,20 @@
    - `docs/postman/LinkedInDiplom.local.postman_environment.json`
 4. Выбрать environment `LinkedInDiplom Local`.
 
+### Backend HTTPS testing
+
+Для backend HTTPS (profile `https`, `dotnet run --launch-profile https`):
+
+| Что | URL |
+|-----|-----|
+| Postman `baseUrl` | `https://localhost:7011` |
+| Swagger | `https://localhost:7011/swagger` |
+| SignalR Hub | `https://localhost:7011/hubs/messaging` |
+
+Self-signed dev certificate: Postman может потребовать **Settings → SSL certificate verification → OFF** для localhost, или доверить cert через `dotnet dev-certs https --trust`.
+
+Подробнее: `docs/10_DEVELOPMENT.md` → «Backend HTTPS local run».
+
 ## Рекомендуемый порядок тестирования
 
 1. Auth: `register -> login -> me -> refresh`
@@ -66,6 +80,7 @@
 | GET | `/api/professional/me/experiences/{experienceId}` | Yes | route | - | Опыт по id | - |
 | POST | `/api/professional/me/experiences` | Yes | create body | `experienceId`* | Создать опыт | Сохранение id может потребовать ручной настройки |
 | PUT/PATCH/DELETE | `/api/professional/me/experiences/{experienceId}` | Yes | body/route | - | Управление опытом | - |
+| GET | `/api/professional/academies` | No | query | - | Список academies (paged) | `page`, `pageSize`, `search`, `sortBy`, `sortDirection`; публичный read |
 | GET | `/api/professional/academies/{academyId}` | No | route | - | Академия по id | публичный read |
 | POST | `/api/professional/academies` | **Admin** | body | `academyId`* | Создать академию | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/educations...` | Yes | body/route | `educationId`* | Образование | - |
@@ -75,12 +90,14 @@
 | POST | `/api/professional/me/certificates/{certificateId}/file` | Yes | form-data `file` | - | Файл сертификата | 10 MB |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/certificates...` | Yes | body/route | `certificateId`* | Сертификаты | - |
 | GET/POST/DELETE | `/api/professional/me/certificates/{certificateId}/skills...` | Yes | body/route | `certificateSkillId`* | Связь сертификат-скилл | - |
+| GET | `/api/professional/skills` | No | query | - | Список skills (paged) | `page`, `pageSize`, `search`, `sortBy`, `sortDirection`; публичный read |
 | GET | `/api/professional/skills/{skillId}` | No | route | - | Skill по id | публичный read |
 | POST | `/api/professional/skills` | **Admin** | body | `skillId`* | Создать skill | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/skills...` | Yes | body/route | `userSkillId`* | Навыки пользователя | - |
 | GET | `/api/professional/recommended-skills?position=...` | No | query | - | Рекомендуемые навыки | публичный read |
 | POST | `/api/professional/recommended-skills` | **Admin** | body | - | Создать mapping | User → **403** |
 | DELETE | `/api/professional/recommended-skills/{rspId}` | **Admin** | route | - | Удалить mapping | User → **403** |
+| GET | `/api/professional/languages` | No | query | - | Список languages (paged) | `page`, `pageSize`, `search`, `sortBy`, `sortDirection`; публичный read |
 | GET | `/api/professional/languages/{languageId}` | No | route | - | Language по id | публичный read |
 | POST | `/api/professional/languages` | **Admin** | body | `languageId`* | Создать language | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/languages...` | Yes | body/route | `userLanguageId`* | Языки пользователя | - |
@@ -126,6 +143,7 @@
 | GET | `/api/content/posts/{postId}/comments?page=1&pageSize=20` | Yes | query | - | Smoke: paged post comments | `items`, `totalCount`, `hasNextPage` |
 | PUT/DELETE/GET/GET | `/api/content/posts/{postId}/reactions...` | Yes | body/route | - | Реакции | После первой reaction — см. manual check в Notifications |
 | POST | `/api/content/hashtags` | **Admin** | body | `hashtagId`* | Создать hashtag | User → **403** |
+| GET | `/api/content/hashtags` | Yes | query | - | Список hashtags (paged) | `page`, `pageSize`, `search`, `sortBy`, `sortDirection`; User JWT |
 | GET | `/api/content/hashtags/{hashtagId}` | Yes | route | - | Hashtag по id | User JWT |
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/hashtags...` | Yes | body/route | - | Хэштеги поста | - |
 | POST/DELETE/GET | `/api/content/me/hashtags/{hashtagId}/follow` + `/following` | Yes | route | - | Подписки на хэштеги | - |
@@ -377,7 +395,43 @@ Postman: Body → **form-data** → key **`file`**, type **File**.
 2. **403** — `{{accessToken}}` (User) на любой catalog write из таблицы выше.
 3. **200** — `{{adminToken}}` на тот же write с валидным body/file.
 4. **200** (не 403) — User на `POST /api/professional/me/skills`, `POST .../hashtags/{id}/follow`, attach hashtag к post.
-5. **200** — публичный `GET /api/professional/skills/{id}` или `GET recommended-skills?position=...` без Admin.
+5. **200** — публичный `GET /api/professional/skills`, `GET /api/professional/skills/{id}`, `GET /api/professional/languages`, `GET /api/professional/languages/{id}`, `GET /api/professional/academies`, `GET /api/professional/academies/{id}` или `GET recommended-skills?position=...` без Admin.
+
+#### Skills list examples
+
+```
+GET /api/professional/skills?page=1&pageSize=20
+GET /api/professional/skills?search=sql
+GET /api/professional/skills?sortBy=name&sortDirection=asc
+GET /api/professional/skills?sortBy=bad   → 400
+```
+
+#### Languages list examples
+
+```
+GET /api/professional/languages?page=1&pageSize=20
+GET /api/professional/languages?search=eng
+GET /api/professional/languages?sortBy=name&sortDirection=asc
+GET /api/professional/languages?sortBy=bad   → 400
+```
+
+#### Academies list examples
+
+```
+GET /api/professional/academies?page=1&pageSize=20
+GET /api/professional/academies?search=university
+GET /api/professional/academies?sortBy=name&sortDirection=asc
+GET /api/professional/academies?sortBy=bad   → 400
+```
+
+#### Hashtags list examples
+
+```
+GET /api/content/hashtags?page=1&pageSize=20
+GET /api/content/hashtags?search=dotnet
+GET /api/content/hashtags?sortBy=name&sortDirection=asc
+GET /api/content/hashtags?sortBy=bad   → 400
+```
 
 В Postman для catalog writes используйте **`{{adminToken}}`** (папка `10 Admin` → Admin Login). Для negative test **403** — тот же request с `{{accessToken}}`.
 
@@ -390,8 +444,15 @@ Postman: Body → **form-data** → key **`file`**, type **File**.
 |---|---|---|---|---|---|---|
 | POST | `/api/auth/login` | No | admin credentials | `adminToken`, `adminUserId` | Login admin | тот же endpoint, что у user |
 | GET | `/api/admin/roles` | Admin | - | - | Роли платформы | |
-| GET | `/api/admin/users` | Admin | `page`, `pageSize` | - | Paged users | `PagedResponse<AdminUserDto>`; default `page=1`, `pageSize=20`; max `pageSize=100`; incl. deleted |
+| GET | `/api/admin/users` | Admin | `page`, `pageSize`, `email`, `role`, `isDeleted`, `isLocked`, `sortBy`, `sortDirection` | - | Paged users | `PagedResponse<AdminUserDto>`; default `page=1`, `pageSize=20`; max `pageSize=100`; incl. deleted when filter absent |
 | GET | `/api/admin/users?page=1&pageSize=20` | Admin | query | - | Smoke: paged users | response: `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/admin/users?email=admin` | Admin | query | - | Filter by email (contains, case-insensitive) | |
+| GET | `/api/admin/users?isDeleted=true` | Admin | query | - | Only soft-deleted users | |
+| GET | `/api/admin/users?isDeleted=false` | Admin | query | - | Only active (non-deleted) users | |
+| GET | `/api/admin/users?isLocked=true` | Admin | query | - | Only locked users | |
+| GET | `/api/admin/users?role=Admin` | Admin | query | - | Filter by role | unknown role → empty list |
+| GET | `/api/admin/users?sortBy=email&sortDirection=asc` | Admin | query | - | Sort users | allowed `sortBy`: `createdAt`, `email`, `userName`, `updatedAt`; `sortDirection`: `asc`, `desc` |
+| GET | `/api/admin/users?sortBy=badField` | Admin | query | - | Negative: invalid sortBy | **400** unified validation |
 | GET | `/api/admin/users?page=0` | Admin | query | - | Negative: invalid page | **400** unified validation |
 | GET | `/api/admin/users?pageSize=101` | Admin | query | - | Negative: pageSize too large | **400** unified validation |
 | GET | `/api/admin/users/{userId}` | Admin | route | - | User by id | |
@@ -401,8 +462,25 @@ Postman: Body → **form-data** → key **`file`**, type **File**.
 | PATCH | `/api/admin/users/{userId}/lock` | Admin | optional body | - | Lock user | self → 400 |
 | PATCH | `/api/admin/users/{userId}/unlock` | Admin | route | - | Unlock | |
 | DELETE | `/api/admin/users/{userId}` | Admin | route | - | Soft delete user | self → 400 |
+| PATCH | `/api/admin/users/{userId}/restore` | Admin | route | - | Restore soft-deleted user | 204; idempotent if not deleted |
+| GET | `/api/admin/content/posts` | Admin | `page`, `pageSize`, `authorId`, `isDeleted`, `includeDeleted`, `search`, `createdFrom`, `createdTo`, `sortBy`, `sortDirection` | - | Paged admin posts | `PagedResponse<AdminPostDto>`; incl. deleted when filters absent |
+| GET | `/api/admin/content/posts?page=1&pageSize=20` | Admin | query | - | Smoke: all posts | `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/admin/content/posts?isDeleted=false` | Admin | query | - | Active posts only | |
+| GET | `/api/admin/content/posts?isDeleted=true` | Admin | query | - | Deleted posts only | |
+| GET | `/api/admin/content/posts?authorId={{userId}}` | Admin | query | - | Posts by author | |
+| GET | `/api/admin/content/posts?search=test` | Admin | query | - | Search in content | case-insensitive contains |
+| GET | `/api/admin/content/posts?sortBy=createdAt&sortDirection=desc` | Admin | query | - | Sort posts | allowed `sortBy`: `createdAt`, `updatedAt`, `authorId`, `deletedAt` |
+| GET | `/api/admin/content/posts?sortBy=badField` | Admin | query | - | Negative: invalid sortBy | **400** unified validation |
 | DELETE | `/api/admin/content/posts/{postId}` | Admin | route `postId` | - | Soft delete post | 204 |
 | PATCH | `/api/admin/content/posts/{postId}/restore` | Admin | route | - | Restore post | 204 |
+| GET | `/api/admin/jobs/vacancies` | Admin | `page`, `pageSize`, `companyId`, `postedByUserId`, `isDeleted`, `includeDeleted`, `search`, `createdFrom`, `createdTo`, `sortBy`, `sortDirection` | - | Paged admin vacancies | `PagedResponse<AdminVacancyDto>`; incl. deleted when filters absent |
+| GET | `/api/admin/jobs/vacancies?page=1&pageSize=20` | Admin | query | - | Smoke: all vacancies | `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/admin/jobs/vacancies?isDeleted=false` | Admin | query | - | Active vacancies only | |
+| GET | `/api/admin/jobs/vacancies?isDeleted=true` | Admin | query | - | Deleted vacancies only | |
+| GET | `/api/admin/jobs/vacancies?companyId={{companyId}}` | Admin | query | - | Vacancies by company | |
+| GET | `/api/admin/jobs/vacancies?search=developer` | Admin | query | - | Search title/description | case-insensitive contains |
+| GET | `/api/admin/jobs/vacancies?sortBy=createdAt&sortDirection=desc` | Admin | query | - | Sort vacancies | allowed `sortBy`: `createdAt`, `updatedAt`, `title`, `companyId`, `deletedAt` |
+| GET | `/api/admin/jobs/vacancies?sortBy=badField` | Admin | query | - | Negative: invalid sortBy | **400** unified validation |
 | DELETE | `/api/admin/jobs/vacancies/{vacancyId}` | Admin | route | - | Soft delete vacancy | 204 |
 | PATCH | `/api/admin/jobs/vacancies/{vacancyId}/restore` | Admin | route | - | Restore vacancy | 204 |
 | GET | `/api/admin/jobs/recommended-queries` | Admin | - | - | List recommended | |

@@ -12,6 +12,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ProfessionalManagement.Contracts.Services;
 
@@ -78,6 +79,10 @@ public interface IProfessionalManagementService
 
     Task<AcademyDto?> GetAcademyByIdAsync(Guid academyId);
 
+    Task<PagedResponse<AcademyDto>> GetAcademiesAsync(
+        GetAcademiesQueryRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<AcademyResponse> CreateAcademyAsync(CreateAcademyRequest request);
 
     Task<AcademyResponse> UploadAcademyLogoAsync(
@@ -142,6 +147,10 @@ public interface IProfessionalManagementService
 
     Task<SkillDto?> GetSkillByIdAsync(Guid skillId);
 
+    Task<PagedResponse<SkillDto>> GetSkillsAsync(
+        GetSkillsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<SkillResponse> CreateSkillAsync(CreateSkillRequest request);
 
     Task<IReadOnlyCollection<UserSkillDto>> GetMyUserSkillsAsync(string userId);
@@ -167,6 +176,10 @@ public interface IProfessionalManagementService
         Guid userSkillId);
 
     Task<LanguageDto?> GetLanguageByIdAsync(Guid languageId);
+
+    Task<PagedResponse<LanguageDto>> GetLanguagesAsync(
+        GetLanguagesQueryRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<LanguageResponse> CreateLanguageAsync(CreateLanguageRequest request);
 

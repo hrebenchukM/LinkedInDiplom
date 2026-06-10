@@ -3,6 +3,7 @@
 ## Ограничения v1 (факт)
 
 - realtime уведомлений нет; **SignalR Hub для Messaging** (`/hubs/messaging`): `JoinChat` / `LeaveChat`; backend realtime events — `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` (group `chat:{chatId}`) после успешных HTTP операций; **manual testing docs** — `docs/api/POSTMAN_TESTING.md` (раздел «Messaging SignalR manual testing»); **dev CORS** для SignalR: explicit localhost origins (`5173`, `3000`) + `AllowCredentials` в `DevelopmentCors`; **frontend SignalR integration still pending**; production CORS origins для deployed frontend **pending**; scale-out (Redis backplane / Azure SignalR Service) **pending**; HTTP send остаётся primary flow
+- **Backend local HTTPS** documented (`docs/10_DEVELOPMENT.md` → «Backend HTTPS local run»): `dotnet run --launch-profile https` → `https://localhost:7011`; HTTP frontend (`http://localhost:5173`) может вызывать HTTPS backend без mixed content; **frontend HTTPS / Vite dev-server HTTPS integration pending** (not in scope for backend-only step); **Production HTTPS** — через Azure App Service (platform TLS termination); **Docker local** — контейнер API слушает HTTP `:8080` / host `:5000`, TLS termination external / Azure, не внутри контейнера
 - domain events в Identity — in-memory (без outbox/broker); **`CommentCreatedEvent`** (Content) → notification для автора поста; **`ReactionUpsertedEvent`** (Content) → notification для автора поста **только при первой реакции** (update reaction type не создаёт новое notification); **`ContactRequestSentEvent`** (Network) → notification получателю contact request; **`ContactRequestAcceptedEvent`** (Network) → notification отправителю request; другие events pending: `MentionAddedEvent`, `VacancyApplicationSubmittedEvent`
 - Jobs: `CompanyId` не валидируется через Professional module
 - Network: ограниченная кросс-проверка существования target user
@@ -34,12 +35,21 @@
 - нет granular permissions — только роли **Admin** и **User**
 - admin post soft delete **не** обновляет `EditedAt` (в отличие от user delete поста)
 - recommended job queries: user write endpoints **удалены** — это исправление модели доступа, не limitation
+- **pending admin APIs:** admin content comments list/moderation; catalog update/delete; admin job applications overview; reports/complaints queue absent
+- **catalog list (skills):** `GET /api/professional/skills` — paged list (публичный read); `POST /api/professional/skills` — Admin-only create
+- **catalog list (languages):** `GET /api/professional/languages` — paged list (публичный read); `POST /api/professional/languages` — Admin-only create
+- **catalog list (academies):** `GET /api/professional/academies` — paged list (публичный read); `POST /api/professional/academies` — Admin-only create; `POST /api/professional/academies/{id}/logo` — Admin-only upload
+- **catalog list (hashtags):** `GET /api/content/hashtags` — paged list (User JWT); `POST /api/content/hashtags` — Admin-only create
 
 ### Исправлено в admin v1 (не limitation)
 
 - user не может POST/DELETE `/api/jobs/recommended-queries` (только Admin)
 - **catalog writes** (Skill, Hashtag, Academy, Language, RecommendedSkill, EventSpeaker) — Admin-only; user **403** на POST/PATCH/DELETE глобального справочника
 - защита: admin не lock/delete себя; не снять себе Admin; не снять Admin у последнего admin
+- `PATCH /api/admin/users/{userId}/restore` — восстановление soft-deleted user (`DeletedAt` cleared, lockout cleared)
+- `GET /api/admin/users` — search/filter/sort query params (`email`, `role`, `isDeleted`, `isLocked`, `sortBy`, `sortDirection`)
+- `GET /api/admin/content/posts` — paged admin posts list with filters (`authorId`, `isDeleted`, `search`, date range, sort)
+- `GET /api/admin/jobs/vacancies` — paged admin vacancies list with filters (`companyId`, `postedByUserId`, `isDeleted`, `search`, date range, sort)
 
 ### Catalog security (осознанная модель)
 

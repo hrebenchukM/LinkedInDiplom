@@ -19,6 +19,67 @@ dotnet run
 
 Порты локально: смотрите `backend/Facade.API/Properties/launchSettings.json`.
 
+По умолчанию `dotnet run` без профиля использует первый profile **`http`** (`http://localhost:5282`). Для HTTPS см. раздел ниже.
+
+## Backend HTTPS local run
+
+Backend-only HTTPS flow для локальной разработки и тестов (Postman/Swagger). **Frontend не обязан** переходить на HTTPS.
+
+### 1. Проверить dev certificate
+
+```bash
+dotnet dev-certs https --check
+```
+
+### 2. Если сертификат не trusted
+
+```bash
+dotnet dev-certs https --trust
+```
+
+(Windows/macOS — подтвердить trust в системном диалоге.)
+
+### 3. Запустить backend через HTTPS profile
+
+```bash
+cd backend/Facade.API
+dotnet run --launch-profile https
+```
+
+Profile **`https`** слушает `https://localhost:7011` и `http://localhost:5282` (см. `launchSettings.json`). `UseHttpsRedirection()` перенаправляет HTTP → HTTPS.
+
+### 4. Открыть Swagger
+
+```
+https://localhost:7011/swagger
+```
+
+### 5. Smoke REST check
+
+```http
+POST https://localhost:7011/api/auth/login
+Content-Type: application/json
+
+{ "email": "...", "password": "..." }
+```
+
+Или через Swagger UI на том же host.
+
+### 6. Frontend остаётся HTTP — это нормально
+
+| Компонент | URL |
+|-----------|-----|
+| Frontend (Vite) | `http://localhost:5173` |
+| Backend API | `https://localhost:7011` |
+
+**HTTP frontend → HTTPS backend** работает в браузере (mixed content **не** блокируется).
+
+**HTTPS frontend → HTTP backend** может быть заблокирован браузером как mixed content — такой сценарий для dev не рекомендуется.
+
+`DevelopmentCors` уже разрешает `http://localhost:5173` (и `https://localhost:5173`) с `AllowCredentials`.
+
+Для REST из браузера при HTTP frontend задайте в frontend env (когда frontend-команда подключит API): `VITE_API_BASE_URL=https://localhost:7011`. На этом шаге frontend **не меняем** — проверка через Swagger/Postman.
+
 ## Сборка и тесты
 
 ```bash

@@ -1,10 +1,15 @@
 using Content.Client.Contracts.Resources;
+using Content.Contracts.DTOs;
+using Content.Contracts.Parameters.Post;
+using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
 using Facade.Shared.Contracts.Pagination;
 using Identity.Client.Contracts.Resources;
 using Identity.Contracts.DTOs;
 using Identity.Contracts.Parameters;
 using Jobs.Client.Contracts.Resources;
+using Jobs.Contracts.DTOs;
+using Jobs.Contracts.Parameters.Vacancy;
 
 namespace Facade.AdminManagement.Services.Services;
 
@@ -28,7 +33,7 @@ public partial class AdminManagementService : IAdminManagementService
     }
 
     public async Task<PagedResponse<AdminUserDto>> GetUsersAsync(
-        PagedRequest request,
+        AdminUsersQueryRequest request,
         CancellationToken cancellationToken = default)
     {
         var (page, pageSize, skip) = Pagination.Normalize(request);
@@ -37,7 +42,13 @@ public partial class AdminManagementService : IAdminManagementService
             new GetUsersParameters
             {
                 Skip = skip,
-                Take = pageSize
+                Take = pageSize,
+                Email = request.Email,
+                Role = request.Role,
+                IsDeleted = request.IsDeleted,
+                IsLocked = request.IsLocked,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
             },
             cancellationToken);
 
@@ -65,6 +76,11 @@ public partial class AdminManagementService : IAdminManagementService
         CancellationToken cancellationToken = default)
         => _userResource.SoftDeleteUserAsync(userId, cancellationToken);
 
+    public Task RestoreUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _userResource.RestoreUserAsync(userId, cancellationToken);
+
     public Task<IReadOnlyCollection<RoleDto>> GetRolesAsync(
         CancellationToken cancellationToken = default)
         => _userResource.GetRolesAsync(cancellationToken);
@@ -86,6 +102,38 @@ public partial class AdminManagementService : IAdminManagementService
         CancellationToken cancellationToken = default)
         => _userResource.RemoveUserFromRoleAsync(userId, roleName, cancellationToken);
 
+    public async Task<PagedResponse<AdminPostDto>> GetAdminPostsAsync(
+        AdminPostsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.CreatedFrom.HasValue
+            && request.CreatedTo.HasValue
+            && request.CreatedFrom > request.CreatedTo)
+        {
+            throw new InvalidOperationException("CreatedFrom must be less than or equal to CreatedTo.");
+        }
+
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _postResource.GetAdminPostsAsync(
+            new GetAdminPostsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                AuthorId = request.AuthorId,
+                IsDeleted = request.IsDeleted,
+                IncludeDeleted = request.IncludeDeleted,
+                Search = request.Search,
+                CreatedFrom = request.CreatedFrom,
+                CreatedTo = request.CreatedTo,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        return Pagination.Create(result.Items.ToList(), page, pageSize, result.TotalCount);
+    }
+
     public Task AdminSoftDeletePostAsync(
         Guid postId,
         CancellationToken cancellationToken = default)
@@ -95,6 +143,39 @@ public partial class AdminManagementService : IAdminManagementService
         Guid postId,
         CancellationToken cancellationToken = default)
         => _postResource.AdminRestorePostAsync(postId, cancellationToken);
+
+    public async Task<PagedResponse<AdminVacancyDto>> GetAdminVacanciesAsync(
+        AdminVacanciesQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.CreatedFrom.HasValue
+            && request.CreatedTo.HasValue
+            && request.CreatedFrom > request.CreatedTo)
+        {
+            throw new InvalidOperationException("CreatedFrom must be less than or equal to CreatedTo.");
+        }
+
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _vacancyResource.GetAdminVacanciesAsync(
+            new GetAdminVacanciesParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                CompanyId = request.CompanyId,
+                PostedByUserId = request.PostedByUserId,
+                IsDeleted = request.IsDeleted,
+                IncludeDeleted = request.IncludeDeleted,
+                Search = request.Search,
+                CreatedFrom = request.CreatedFrom,
+                CreatedTo = request.CreatedTo,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        return Pagination.Create(result.Items.ToList(), page, pageSize, result.TotalCount);
+    }
 
     public Task AdminSoftDeleteVacancyAsync(
         Guid vacancyId,

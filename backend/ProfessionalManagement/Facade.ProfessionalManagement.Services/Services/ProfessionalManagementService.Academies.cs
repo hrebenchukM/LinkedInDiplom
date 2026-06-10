@@ -3,6 +3,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
 using Facade.FileStorage.Contracts.Upload;
+using Facade.Shared.Contracts.Pagination;
 using Professional.Contracts.Parameters.Academy;
 
 namespace Facade.ProfessionalManagement.Services.Services;
@@ -19,6 +20,31 @@ public partial class ProfessionalManagementService
             });
 
         return academy == null ? null : MapAcademyToFacadeDto(academy);
+    }
+
+    // Получить список учебных заведений в справочнике
+    public async Task<PagedResponse<AcademyDto>> GetAcademiesAsync(
+        GetAcademiesQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _professionalClient.Academies.GetAcademiesAsync(
+            new GetAcademiesParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapAcademyToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     // Создать учебное заведение

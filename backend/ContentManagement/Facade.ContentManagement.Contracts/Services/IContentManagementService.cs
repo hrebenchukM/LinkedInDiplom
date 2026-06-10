@@ -78,6 +78,10 @@ public interface IContentManagementService
 
     Task<HashtagDto?> GetHashtagByIdAsync(Guid hashtagId);
 
+    Task<PagedResponse<HashtagDto>> GetHashtagsAsync(
+        GetHashtagsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<PostHashtagResponse> AttachPostHashtagAsync(
         string userId,
         Guid postId,

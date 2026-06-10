@@ -260,6 +260,75 @@ public class PostService : IPostService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<AdminPostsResult> GetAdminPostsAsync(
+        GetAdminPostsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Posts.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.AuthorId))
+        {
+            query = query.Where(p => p.UserId == parameters.AuthorId.Trim());
+        }
+
+        if (parameters.IsDeleted == true)
+        {
+            query = query.Where(p => p.DeletedAt != null);
+        }
+        else if (parameters.IsDeleted == false)
+        {
+            query = query.Where(p => p.DeletedAt == null);
+        }
+        else if (parameters.IncludeDeleted == false)
+        {
+            query = query.Where(p => p.DeletedAt == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var searchPattern = $"%{parameters.Search.Trim()}%";
+            query = query.Where(p => EF.Functions.ILike(p.Content, searchPattern));
+        }
+
+        if (parameters.CreatedFrom.HasValue)
+        {
+            query = query.Where(p => p.CreatedAt >= parameters.CreatedFrom.Value);
+        }
+
+        if (parameters.CreatedTo.HasValue)
+        {
+            query = query.Where(p => p.CreatedAt <= parameters.CreatedTo.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyAdminSorting(query, sortBy, descending);
+
+        var posts = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        var mediaCounts = await GetMediaCountsByPostIdsAsync(
+            posts.Select(p => p.Id),
+            cancellationToken);
+
+        var items = posts
+            .Select(p => MapToAdminDto(p, mediaCounts.GetValueOrDefault(p.Id)))
+            .ToList();
+
+        return new AdminPostsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task<ContentStatsDto> GetContentStatsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -287,6 +356,45 @@ public class PostService : IPostService
             .ToListAsync();
 
         return media.Select(MapMediaToDto).ToList();
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, int>> GetMediaCountsByPostIdsAsync(
+        IEnumerable<Guid> postIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = postIds.Distinct().ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await _dbContext.PostMedia
+            .AsNoTracking()
+            .Where(pm => ids.Contains(pm.PostId))
+            .GroupBy(pm => pm.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count, cancellationToken);
+    }
+
+    private static IQueryable<Post> ApplyAdminSorting(
+        IQueryable<Post> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "updatedat" when descending => query.OrderByDescending(p => p.EditedAt),
+            "updatedat" => query.OrderBy(p => p.EditedAt),
+            "authorid" when descending => query.OrderByDescending(p => p.UserId),
+            "authorid" => query.OrderBy(p => p.UserId),
+            "deletedat" when descending => query.OrderByDescending(p => p.DeletedAt),
+            "deletedat" => query.OrderBy(p => p.DeletedAt),
+            "createdat" when descending => query.OrderByDescending(p => p.CreatedAt),
+            "createdat" => query.OrderBy(p => p.CreatedAt),
+            _ when descending => query.OrderByDescending(p => p.CreatedAt),
+            _ => query.OrderBy(p => p.CreatedAt)
+        };
     }
 
     private async Task<IReadOnlyDictionary<Guid, IReadOnlyCollection<MediaDto>>> GetMediaByPostIdsAsync(
@@ -374,6 +482,25 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             EditedAt = post.EditedAt,
             Media = media
+        };
+    }
+
+    private static AdminPostDto MapToAdminDto(Post post, int mediaCount)
+    {
+        return new AdminPostDto
+        {
+            Id = post.Id,
+            UserId = post.UserId,
+            Content = post.Content,
+            Visibility = post.Visibility,
+            ReactionCount = post.ReactionCount,
+            CommentCount = post.CommentCount,
+            RepostCount = post.RepostCount,
+            MediaCount = mediaCount,
+            CreatedAt = post.CreatedAt,
+            EditedAt = post.EditedAt,
+            DeletedAt = post.DeletedAt,
+            IsDeleted = post.DeletedAt != null
         };
     }
 

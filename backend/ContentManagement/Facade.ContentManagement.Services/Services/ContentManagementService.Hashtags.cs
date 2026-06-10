@@ -4,6 +4,7 @@ using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -27,6 +28,30 @@ public partial class ContentManagementService
         });
 
         return hashtag == null ? null : MapHashtagToFacadeDto(hashtag);
+    }
+
+    public async Task<PagedResponse<HashtagDto>> GetHashtagsAsync(
+        GetHashtagsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _contentClient.Hashtags.GetHashtagsAsync(
+            new GetHashtagsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapHashtagToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<PostHashtagResponse> AttachPostHashtagAsync(

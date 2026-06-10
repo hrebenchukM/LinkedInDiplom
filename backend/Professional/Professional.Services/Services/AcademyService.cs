@@ -28,6 +28,40 @@ public class AcademyService : IAcademyService
         return academy == null ? null : MapToDto(academy);
     }
 
+    // Получить список учебных заведений в справочнике
+    public async Task<AcademiesResult> GetAcademiesAsync(
+        GetAcademiesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Academies.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var searchPattern = $"%{parameters.Search.Trim()}%";
+            query = query.Where(a => EF.Functions.ILike(a.Name, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "name"
+            : parameters.SortBy.Trim();
+        var descending = string.Equals(parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplySorting(query, sortBy, descending);
+
+        var academies = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new AcademiesResult
+        {
+            Items = academies.Select(MapToDto).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
     // Создать учебное заведение
     public async Task<AcademyResult> CreateAsync(CreateAcademyParameters parameters)
     {
@@ -99,6 +133,24 @@ public class AcademyService : IAcademyService
         {
             Succeeded = true,
             Academy = MapToDto(academy)
+        };
+    }
+
+    private static IQueryable<Academy> ApplySorting(
+        IQueryable<Academy> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "createdat" when descending => query.OrderByDescending(a => a.CreatedAt),
+            "createdat" => query.OrderBy(a => a.CreatedAt),
+            "updatedat" when descending => query.OrderByDescending(a => a.UpdatedAt),
+            "updatedat" => query.OrderBy(a => a.UpdatedAt),
+            "name" when descending => query.OrderByDescending(a => a.Name),
+            "name" => query.OrderBy(a => a.Name),
+            _ when descending => query.OrderByDescending(a => a.Name),
+            _ => query.OrderBy(a => a.Name)
         };
     }
 

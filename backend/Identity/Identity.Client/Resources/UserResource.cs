@@ -60,6 +60,11 @@ public class UserResource : IUserResource
         CancellationToken cancellationToken = default)
         => _userAdminService.SoftDeleteUserAsync(userId, cancellationToken);
 
+    public Task RestoreUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+        => _userAdminService.RestoreUserAsync(userId, cancellationToken);
+
     public Task<IReadOnlyCollection<RoleDto>> GetRolesAsync(
         CancellationToken cancellationToken = default)
         => _roleService.GetRolesAsync(cancellationToken);

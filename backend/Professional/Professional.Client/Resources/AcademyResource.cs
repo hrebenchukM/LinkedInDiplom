@@ -22,6 +22,13 @@ public class AcademyResource : IAcademyResource
         return _academyService.GetByIdAsync(parameters);
     }
 
+    public Task<AcademiesResult> GetAcademiesAsync(
+        GetAcademiesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _academyService.GetAcademiesAsync(parameters, cancellationToken);
+    }
+
     public Task<AcademyResult> CreateAsync(CreateAcademyParameters parameters)
     {
         return _academyService.CreateAsync(parameters);

@@ -1,7 +1,9 @@
 using Facade.FileStorage.Contracts.Upload;
+using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,6 +16,18 @@ public class ProfessionalAcademiesController : ProfessionalManagementControllerB
     public ProfessionalAcademiesController(IProfessionalManagementService professionalManagementService)
         : base(professionalManagementService)
     {
+    }
+
+    // GET api/professional/academies
+    [HttpGet("academies")]
+    [ProducesResponseType(typeof(PagedResponse<AcademyDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetAcademies(
+        [FromQuery] GetAcademiesQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var academies = await ProfessionalService.GetAcademiesAsync(request, cancellationToken);
+        return Ok(academies);
     }
 
     // GET api/professional/academies/{academyId}

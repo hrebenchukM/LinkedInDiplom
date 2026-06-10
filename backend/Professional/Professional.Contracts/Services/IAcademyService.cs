@@ -10,6 +10,10 @@ public interface IAcademyService
     Task<AcademyDto?> GetByIdAsync(
         GetAcademyByIdParameters parameters);
 
+    Task<AcademiesResult> GetAcademiesAsync(
+        GetAcademiesParameters parameters,
+        CancellationToken cancellationToken = default);
+
     Task<AcademyResult> CreateAsync(
         CreateAcademyParameters parameters);
 

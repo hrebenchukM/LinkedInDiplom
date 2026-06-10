@@ -25,7 +25,7 @@ public class AdminUsersController : AdminControllerBase
     [ProducesResponseType(typeof(PagedResponse<AdminUserDto>), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> GetUsers(
-        [FromQuery] PagedRequest request,
+        [FromQuery] AdminUsersQueryRequest request,
         CancellationToken cancellationToken)
     {
         var users = await _adminManagementService.GetUsersAsync(request, cancellationToken);
@@ -156,6 +156,23 @@ public class AdminUsersController : AdminControllerBase
         try
         {
             await _adminManagementService.UnlockUserAsync(userId, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return MapInvalidOperationException(ex);
+        }
+    }
+
+    [HttpPatch("{userId}/restore")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> RestoreUser(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _adminManagementService.RestoreUserAsync(userId, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException ex)

@@ -1,7 +1,9 @@
+using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,18 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
     public ProfessionalLanguagesController(IProfessionalManagementService professionalManagementService)
         : base(professionalManagementService)
     {
+    }
+
+    // GET api/professional/languages
+    [HttpGet("languages")]
+    [ProducesResponseType(typeof(PagedResponse<LanguageDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetLanguages(
+        [FromQuery] GetLanguagesQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var languages = await ProfessionalService.GetLanguagesAsync(request, cancellationToken);
+        return Ok(languages);
     }
 
     // GET api/professional/languages/{languageId}

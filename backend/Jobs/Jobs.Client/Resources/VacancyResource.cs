@@ -54,6 +54,11 @@ public class VacancyResource : IVacancyResource
         CancellationToken cancellationToken = default)
         => _vacancyService.AdminRestoreVacancyAsync(vacancyId, cancellationToken);
 
+    public Task<AdminVacanciesResult> GetAdminVacanciesAsync(
+        GetAdminVacanciesParameters parameters,
+        CancellationToken cancellationToken = default)
+        => _vacancyService.GetAdminVacanciesAsync(parameters, cancellationToken);
+
     public Task<JobsStatsDto> GetJobsStatsAsync(
         CancellationToken cancellationToken = default)
         => _vacancyService.GetJobsStatsAsync(cancellationToken);

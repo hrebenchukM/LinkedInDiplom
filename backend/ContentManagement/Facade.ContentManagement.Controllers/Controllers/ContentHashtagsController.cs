@@ -1,7 +1,9 @@
+using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,20 @@ public class ContentHashtagsController : ContentManagementControllerBase
     public ContentHashtagsController(IContentManagementService contentManagementService)
         : base(contentManagementService)
     {
+    }
+
+    // GET api/content/hashtags
+    [Authorize]
+    [HttpGet("hashtags")]
+    [ProducesResponseType(typeof(PagedResponse<HashtagDto>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetHashtags(
+        [FromQuery] GetHashtagsQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var hashtags = await ContentService.GetHashtagsAsync(request, cancellationToken);
+        return Ok(hashtags);
     }
 
     // POST api/content/hashtags

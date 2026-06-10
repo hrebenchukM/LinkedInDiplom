@@ -27,6 +27,10 @@ public interface IPostService
         Guid postId,
         CancellationToken cancellationToken = default);
 
+    Task<AdminPostsResult> GetAdminPostsAsync(
+        GetAdminPostsParameters parameters,
+        CancellationToken cancellationToken = default);
+
     Task<ContentStatsDto> GetContentStatsAsync(
         CancellationToken cancellationToken = default);
 }

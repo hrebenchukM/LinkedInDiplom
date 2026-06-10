@@ -13,4 +13,8 @@ public interface IHashtagResource
     Task<HashtagDto?> GetByIdAsync(GetHashtagByIdParameters parameters);
 
     Task<HashtagDto?> GetByNameAsync(GetHashtagByNameParameters parameters);
+
+    Task<HashtagsResult> GetHashtagsAsync(
+        GetHashtagsParameters parameters,
+        CancellationToken cancellationToken = default);
 }

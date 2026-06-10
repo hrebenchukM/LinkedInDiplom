@@ -28,6 +28,40 @@ public class SkillService : ISkillService
         return skill == null ? null : MapToDto(skill);
     }
 
+    // Получить список навыков в справочнике
+    public async Task<SkillsResult> GetSkillsAsync(
+        GetSkillsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Skills.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var searchPattern = $"%{parameters.Search.Trim()}%";
+            query = query.Where(s => EF.Functions.ILike(s.Name, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "name"
+            : parameters.SortBy.Trim();
+        var descending = string.Equals(parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplySorting(query, sortBy, descending);
+
+        var skills = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new SkillsResult
+        {
+            Items = skills.Select(MapToDto).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
     // Создать навык в справочнике
     public async Task<SkillResult> CreateAsync(CreateSkillParameters parameters)
     {
@@ -55,6 +89,24 @@ public class SkillService : ISkillService
         {
             Succeeded = true,
             Skill = MapToDto(skill)
+        };
+    }
+
+    private static IQueryable<Skill> ApplySorting(
+        IQueryable<Skill> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "createdat" when descending => query.OrderByDescending(s => s.CreatedAt),
+            "createdat" => query.OrderBy(s => s.CreatedAt),
+            "updatedat" when descending => query.OrderByDescending(s => s.UpdatedAt),
+            "updatedat" => query.OrderBy(s => s.UpdatedAt),
+            "name" when descending => query.OrderByDescending(s => s.Name),
+            "name" => query.OrderBy(s => s.Name),
+            _ when descending => query.OrderByDescending(s => s.Name),
+            _ => query.OrderBy(s => s.Name)
         };
     }
 

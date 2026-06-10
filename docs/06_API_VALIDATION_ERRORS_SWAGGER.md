@@ -259,7 +259,7 @@
 
 - **404** — если `InvalidOperationException.Message` содержит `not found` или `was not found` (user, post, vacancy, recommended query и т.д.)
 - **400** — business/security validation, прочие `InvalidOperationException`
-- успешные write без тела: **204** (lock, delete user, delete/restore post/vacancy, delete recommended query)
+- успешные write без тела: **204** (lock, delete/restore user, delete/restore post/vacancy, delete recommended query)
 - `POST /api/admin/jobs/recommended-queries` → **200** с DTO в теле при успехе; invalid model (пустой body, пустой `query` и т.д.) — только **auto-validation** из `Facade.API` (шаг 16): `{ success, errors, fieldErrors }`; ручной `BadRequest(ModelState)` в admin controllers не используется
 - `GET /api/admin/stats/overview` → **200** с `AdminStatsOverviewDto`
 

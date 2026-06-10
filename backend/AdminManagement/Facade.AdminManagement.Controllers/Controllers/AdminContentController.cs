@@ -1,4 +1,7 @@
+using Content.Contracts.DTOs;
+using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +18,24 @@ public class AdminContentController : AdminControllerBase
     public AdminContentController(IAdminManagementService adminManagementService)
     {
         _adminManagementService = adminManagementService;
+    }
+
+    [HttpGet("posts")]
+    [ProducesResponseType(typeof(PagedResponse<AdminPostDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetAdminPosts(
+        [FromQuery] AdminPostsQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var posts = await _adminManagementService.GetAdminPostsAsync(request, cancellationToken);
+            return Ok(posts);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return MapInvalidOperationException(ex);
+        }
     }
 
     [HttpDelete("posts/{postId:guid}")]

@@ -71,6 +71,39 @@ public class HashtagService : IHashtagService
         return hashtag == null ? null : MapToDto(hashtag);
     }
 
+    public async Task<HashtagsResult> GetHashtagsAsync(
+        GetHashtagsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Hashtags.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var searchPattern = $"%{parameters.Search.Trim()}%";
+            query = query.Where(h => EF.Functions.ILike(h.Name, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "name"
+            : parameters.SortBy.Trim();
+        var descending = string.Equals(parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplySorting(query, sortBy, descending);
+
+        var hashtags = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new HashtagsResult
+        {
+            Items = hashtags.Select(MapToDto).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
     private static bool TryNormalizeName(string name, out string normalizedName, out string? error)
     {
         normalizedName = name.Trim().ToLowerInvariant();
@@ -100,6 +133,24 @@ public class HashtagService : IHashtagService
         {
             Succeeded = false,
             Errors = new[] { message }
+        };
+    }
+
+    private static IQueryable<Hashtag> ApplySorting(
+        IQueryable<Hashtag> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "createdat" when descending => query.OrderByDescending(h => h.CreatedAt),
+            "createdat" => query.OrderBy(h => h.CreatedAt),
+            "updatedat" when descending => query.OrderByDescending(h => h.UpdatedAt),
+            "updatedat" => query.OrderBy(h => h.UpdatedAt),
+            "name" when descending => query.OrderByDescending(h => h.Name),
+            "name" => query.OrderBy(h => h.Name),
+            _ when descending => query.OrderByDescending(h => h.Name),
+            _ => query.OrderBy(h => h.Name)
         };
     }
 

@@ -66,10 +66,10 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 
 | Controller | Route prefix | Назначение |
 |---|---|---|
-| `AdminUsersController` | `/api/admin/users` | users, roles assignment, lock/unlock, soft delete |
+| `AdminUsersController` | `/api/admin/users` | users, roles assignment, lock/unlock, soft delete / restore |
 | `AdminRolesController` | `/api/admin/roles` | список ролей платформы |
-| `AdminContentController` | `/api/admin/content` | moderation постов (soft delete / restore) |
-| `AdminJobsController` | `/api/admin/jobs` | moderation вакансий + CRUD recommended job queries |
+| `AdminContentController` | `/api/admin/content` | moderation постов (list / soft delete / restore) |
+| `AdminJobsController` | `/api/admin/jobs` | moderation вакансий (list / soft delete / restore) + CRUD recommended job queries |
 | `AdminStatsController` | `/api/admin/stats` | сводная статистика |
 
 ### Admin endpoints (факт)
@@ -77,7 +77,7 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 | Method | Route | Description | Access | Notes |
 |---|---|---|---|---|
 | GET | `/api/admin/roles` | Список ролей | Admin | |
-| GET | `/api/admin/users` | Список пользователей (включая soft-deleted) | Admin | без pagination (v1) |
+| GET | `/api/admin/users` | Список пользователей (включая soft-deleted) | Admin | `PagedResponse`; `page`, `pageSize`; filters: `email`, `role`, `isDeleted`, `isLocked`; sort: `sortBy`, `sortDirection` |
 | GET | `/api/admin/users/{userId}` | Пользователь по id | Admin | not found → 400 `{ error }` |
 | GET | `/api/admin/users/{userId}/roles` | Роли пользователя | Admin | |
 | POST | `/api/admin/users/{userId}/roles` | Назначить роль | Admin | body: `{ "roleName": "..." }` → 204 |
@@ -85,8 +85,11 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 | PATCH | `/api/admin/users/{userId}/lock` | Заблокировать | Admin | self lock → 400; revoke refresh tokens |
 | PATCH | `/api/admin/users/{userId}/unlock` | Разблокировать | Admin | |
 | DELETE | `/api/admin/users/{userId}` | Soft delete пользователя | Admin | self delete → 400; lock + `DeletedAt` + revoke tokens |
+| PATCH | `/api/admin/users/{userId}/restore` | Восстановить пользователя | Admin | 204; clears `DeletedAt`, unlocks; idempotent if not deleted |
+| GET | `/api/admin/content/posts` | Список постов для moderation | Admin | `PagedResponse<AdminPostDto>`; filters: `authorId`, `isDeleted`, `includeDeleted`, `search`, `createdFrom`, `createdTo`; sort: `sortBy`, `sortDirection` |
 | DELETE | `/api/admin/content/posts/{postId}` | Soft delete поста | Admin | 204; без ownership |
 | PATCH | `/api/admin/content/posts/{postId}/restore` | Восстановить пост | Admin | 204 |
+| GET | `/api/admin/jobs/vacancies` | Список вакансий для moderation | Admin | `PagedResponse<AdminVacancyDto>`; filters: `companyId`, `postedByUserId`, `isDeleted`, `includeDeleted`, `search`, `createdFrom`, `createdTo`; sort: `sortBy`, `sortDirection` |
 | DELETE | `/api/admin/jobs/vacancies/{vacancyId}` | Soft delete вакансии | Admin | 204 |
 | PATCH | `/api/admin/jobs/vacancies/{vacancyId}/restore` | Восстановить вакансию | Admin | 204 |
 | GET | `/api/admin/jobs/recommended-queries` | Список recommended queries | Admin | |
@@ -126,6 +129,35 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 | **Catalog write** | POST/PATCH/DELETE глобального справочника — **только Admin** (`[Authorize(Roles = IdentityRoleNames.Admin)]`) |
 
 Обычный пользователь с валидным JWT на catalog write → **403 Forbidden** (пустое тело). Admin → **200** (или business **400**).
+
+### Professional catalog (skills)
+
+| Method | Route | Auth |
+|---|---|---|
+| GET | `/api/professional/skills` | публичный read (paged list) |
+| POST | `/api/professional/skills` | **Admin-only** |
+
+### Professional catalog (languages)
+
+| Method | Route | Auth |
+|---|---|---|
+| GET | `/api/professional/languages` | публичный read (paged list) |
+| POST | `/api/professional/languages` | **Admin-only** |
+
+### Professional catalog (academies)
+
+| Method | Route | Auth |
+|---|---|---|
+| GET | `/api/professional/academies` | публичный read (paged list) |
+| POST | `/api/professional/academies` | **Admin-only** |
+| POST | `/api/professional/academies/{academyId}/logo` | **Admin-only** (upload) |
+
+### Content catalog (hashtags)
+
+| Method | Route | Auth |
+|---|---|---|
+| GET | `/api/content/hashtags` | User JWT (authorized read, paged list) |
+| POST | `/api/content/hashtags` | **Admin-only** |
 
 ### Admin-only catalog write endpoints
 

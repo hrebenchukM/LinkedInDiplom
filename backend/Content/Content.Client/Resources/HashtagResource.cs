@@ -31,4 +31,11 @@ public class HashtagResource : IHashtagResource
     {
         return _hashtagService.GetByNameAsync(parameters);
     }
+
+    public Task<HashtagsResult> GetHashtagsAsync(
+        GetHashtagsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _hashtagService.GetHashtagsAsync(parameters, cancellationToken);
+    }
 }

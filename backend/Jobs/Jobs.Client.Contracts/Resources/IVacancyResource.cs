@@ -20,6 +20,10 @@ public interface IVacancyResource
         Guid vacancyId,
         CancellationToken cancellationToken = default);
 
+    Task<AdminVacanciesResult> GetAdminVacanciesAsync(
+        GetAdminVacanciesParameters parameters,
+        CancellationToken cancellationToken = default);
+
     Task<JobsStatsDto> GetJobsStatsAsync(
         CancellationToken cancellationToken = default);
 }

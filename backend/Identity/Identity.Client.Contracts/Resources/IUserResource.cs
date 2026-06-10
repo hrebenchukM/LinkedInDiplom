@@ -34,6 +34,10 @@ public interface IUserResource
         string userId,
         CancellationToken cancellationToken = default);
 
+    Task RestoreUserAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<RoleDto>> GetRolesAsync(
         CancellationToken cancellationToken = default);
 

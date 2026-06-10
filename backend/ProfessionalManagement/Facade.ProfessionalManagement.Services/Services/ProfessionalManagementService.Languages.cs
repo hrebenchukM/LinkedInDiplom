@@ -2,6 +2,7 @@ using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
 using Facade.ProfessionalManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Professional.Contracts.Parameters.Language;
 using Professional.Contracts.Parameters.UserLanguage;
 
@@ -19,6 +20,31 @@ public partial class ProfessionalManagementService
             });
 
         return language == null ? null : MapLanguageToFacadeDto(language);
+    }
+
+    // Получить список языков в справочнике
+    public async Task<PagedResponse<LanguageDto>> GetLanguagesAsync(
+        GetLanguagesQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _professionalClient.Languages.GetLanguagesAsync(
+            new GetLanguagesParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapLanguageToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     // Создать язык в справочнике

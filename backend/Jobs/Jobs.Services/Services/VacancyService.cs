@@ -206,6 +206,74 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<AdminVacanciesResult> GetAdminVacanciesAsync(
+        GetAdminVacanciesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Vacancies.AsNoTracking();
+
+        if (parameters.CompanyId.HasValue)
+        {
+            query = query.Where(v => v.CompanyId == parameters.CompanyId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.PostedByUserId))
+        {
+            query = query.Where(v => v.PostedBy == parameters.PostedByUserId.Trim());
+        }
+
+        if (parameters.IsDeleted == true)
+        {
+            query = query.Where(v => v.DeletedAt != null);
+        }
+        else if (parameters.IsDeleted == false)
+        {
+            query = query.Where(v => v.DeletedAt == null);
+        }
+        else if (parameters.IncludeDeleted == false)
+        {
+            query = query.Where(v => v.DeletedAt == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var searchTerm = parameters.Search.Trim().ToLowerInvariant();
+            query = query.Where(v =>
+                v.Title.ToLower().Contains(searchTerm)
+                || (v.Description != null && v.Description.ToLower().Contains(searchTerm)));
+        }
+
+        if (parameters.CreatedFrom.HasValue)
+        {
+            query = query.Where(v => v.PostedAt >= parameters.CreatedFrom.Value);
+        }
+
+        if (parameters.CreatedTo.HasValue)
+        {
+            query = query.Where(v => v.PostedAt <= parameters.CreatedTo.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyAdminSorting(query, sortBy, descending);
+
+        var vacancies = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new AdminVacanciesResult
+        {
+            Items = vacancies.Select(MapAdmin).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
     public async Task<JobsStatsDto> GetJobsStatsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -241,6 +309,45 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
             PostedAt = vacancy.PostedAt,
             UpdatedAt = vacancy.UpdatedAt
         };
+
+    private static AdminVacancyDto MapAdmin(Vacancy vacancy) =>
+        new()
+        {
+            Id = vacancy.Id,
+            CompanyId = vacancy.CompanyId,
+            PostedBy = vacancy.PostedBy,
+            Title = vacancy.Title,
+            JobType = vacancy.JobType,
+            Schedule = vacancy.Schedule,
+            Location = vacancy.Location,
+            Description = vacancy.Description,
+            CreatedAt = vacancy.PostedAt,
+            UpdatedAt = vacancy.UpdatedAt,
+            DeletedAt = vacancy.DeletedAt,
+            IsDeleted = vacancy.DeletedAt != null
+        };
+
+    private static IQueryable<Vacancy> ApplyAdminSorting(
+        IQueryable<Vacancy> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "title" when descending => query.OrderByDescending(v => v.Title),
+            "title" => query.OrderBy(v => v.Title),
+            "companyid" when descending => query.OrderByDescending(v => v.CompanyId),
+            "companyid" => query.OrderBy(v => v.CompanyId),
+            "updatedat" when descending => query.OrderByDescending(v => v.UpdatedAt),
+            "updatedat" => query.OrderBy(v => v.UpdatedAt),
+            "deletedat" when descending => query.OrderByDescending(v => v.DeletedAt),
+            "deletedat" => query.OrderBy(v => v.DeletedAt),
+            "createdat" when descending => query.OrderByDescending(v => v.PostedAt),
+            "createdat" => query.OrderBy(v => v.PostedAt),
+            _ when descending => query.OrderByDescending(v => v.PostedAt),
+            _ => query.OrderBy(v => v.PostedAt)
+        };
+    }
 
     private static string? Normalize(string? value)
     {
