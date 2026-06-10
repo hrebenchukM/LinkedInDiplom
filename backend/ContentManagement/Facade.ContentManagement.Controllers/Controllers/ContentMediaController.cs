@@ -2,6 +2,7 @@ using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Facade.ContentManagement.Controllers.Controllers;
@@ -34,6 +35,40 @@ public class ContentMediaController : ContentManagementControllerBase
         return Ok(response);
     }
 
+    // POST api/content/me/media/upload
+    [Authorize]
+    [HttpPost("me/media/upload")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(MediaResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> UploadMedia(IFormFile file, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        if (file == null || file.Length == 0)
+            return MediaBadRequest("File is empty.");
+        if (file.Length > 5 * 1024 * 1024)
+            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+
+        await using var stream = file.OpenReadStream();
+
+        var response = await ContentService.UploadMediaAsync(
+            userId,
+            stream,
+            file.FileName,
+            file.ContentType,
+            cancellationToken);
+
+        if (!response.Success)
+            return MapMediaError(response);
+
+        return Ok(response);
+    }
+
     // GET api/content/media/{mediaId}
     [Authorize]
     [HttpGet("media/{mediaId:guid}")]
@@ -54,4 +89,7 @@ public class ContentMediaController : ContentManagementControllerBase
 
         return Ok(media);
     }
+
+    private static IActionResult MediaBadRequest(string message) =>
+        new BadRequestObjectResult(new { success = false, errors = new[] { message } });
 }

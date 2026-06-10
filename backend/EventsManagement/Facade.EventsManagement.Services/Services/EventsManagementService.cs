@@ -12,6 +12,7 @@ using EventsCoreSpeakerResult = Events.Contracts.Results.EventSpeakerResult;
 using Facade.EventsManagement.Contracts.DTOs;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.EventsManagement.Contracts.Services;
+using Facade.FileStorage.Contracts.Services;
 
 namespace Facade.EventsManagement.Services.Services;
 
@@ -22,10 +23,14 @@ namespace Facade.EventsManagement.Services.Services;
 public partial class EventsManagementService : IEventsManagementService
 {
     private readonly IEventsClient _eventsClient;
+    private readonly IFileStorageService _fileStorageService;
 
-    public EventsManagementService(IEventsClient eventsClient)
+    public EventsManagementService(
+        IEventsClient eventsClient,
+        IFileStorageService fileStorageService)
     {
         _eventsClient = eventsClient;
+        _fileStorageService = fileStorageService;
     }
 
 

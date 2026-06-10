@@ -2,11 +2,15 @@ using Events.Contracts.Parameters.Event;
 using Facade.EventsManagement.Contracts.DTOs;
 using Facade.EventsManagement.Contracts.Requests.Event;
 using Facade.EventsManagement.Contracts.Responses;
+using Facade.FileStorage.Contracts;
 
 namespace Facade.EventsManagement.Services.Services;
 
 public partial class EventsManagementService
 {
+    private static readonly string[] EventsImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+    private static readonly string[] EventsImageContentTypes =
+        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     public async Task<EventResponse> CreateEventAsync(string userId, CreateEventRequest request)
     {
         var result = await _eventsClient.Events.CreateAsync(new CreateEventParameters
@@ -74,6 +78,73 @@ public partial class EventsManagementService
         });
 
         return MapEventResultToFacadeResponse(result);
+    }
+
+    public async Task<EventResponse> UploadEventCoverAsync(
+        string userId,
+        Guid eventId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        string coverImageUrl;
+
+        try
+        {
+            coverImageUrl = await _fileStorageService.SaveAsync(
+                fileStream,
+                fileName,
+                contentType,
+                new FileStoragePathOptions
+                {
+                    ModuleName = "events",
+                    EntityName = "event-cover",
+                    OwnerId = userId,
+                    EntityId = eventId.ToString(),
+                    AllowedExtensions = EventsImageExtensions,
+                    AllowedContentTypes = EventsImageContentTypes
+                },
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new EventResponse
+            {
+                Success = false,
+                Errors = new[] { ex.Message }
+            };
+        }
+
+        var existingEvent = await GetEventByIdAsync(eventId);
+
+        if (existingEvent is null || !string.Equals(existingEvent.OrganizerId, userId, StringComparison.Ordinal))
+        {
+            return new EventResponse
+            {
+                Success = false,
+                Errors = new[] { "Event not found." }
+            };
+        }
+
+        return await UpdateEventAsync(
+            userId,
+            eventId,
+            new UpdateEventRequest
+            {
+                OrganizerType = existingEvent.OrganizerType,
+                Title = existingEvent.Title,
+                Description = existingEvent.Description,
+                CoverImageUrl = coverImageUrl,
+                Location = existingEvent.Location,
+                IsOnline = existingEvent.IsOnline,
+                ExternalLink = existingEvent.ExternalLink,
+                Timezone = existingEvent.Timezone,
+                Visibility = existingEvent.Visibility,
+                AllowComments = existingEvent.AllowComments,
+                StartAt = existingEvent.StartAt,
+                EndAt = existingEvent.EndAt
+            });
     }
 
     public async Task<EventResponse> DeleteEventAsync(string userId, Guid eventId)

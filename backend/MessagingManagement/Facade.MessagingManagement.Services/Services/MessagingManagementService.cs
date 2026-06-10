@@ -1,6 +1,7 @@
 using Facade.MessagingManagement.Contracts.DTOs;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.MessagingManagement.Contracts.Services;
+using Facade.FileStorage.Contracts.Services;
 using Messaging.Client.Contracts;
 using MessagingChatDto = Messaging.Contracts.DTOs.ChatDto;
 using MessagingChatMemberDto = Messaging.Contracts.DTOs.ChatMemberDto;
@@ -22,10 +23,14 @@ namespace Facade.MessagingManagement.Services.Services;
 public partial class MessagingManagementService : IMessagingManagementService
 {
     private readonly IMessagingClient _messagingClient;
+    private readonly IFileStorageService _fileStorageService;
 
-    public MessagingManagementService(IMessagingClient messagingClient)
+    public MessagingManagementService(
+        IMessagingClient messagingClient,
+        IFileStorageService fileStorageService)
     {
         _messagingClient = messagingClient;
+        _fileStorageService = fileStorageService;
     }
 
 

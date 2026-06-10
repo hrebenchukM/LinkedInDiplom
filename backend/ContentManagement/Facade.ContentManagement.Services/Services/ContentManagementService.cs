@@ -3,6 +3,7 @@ using Content.Contracts.Results;
 using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
+using Facade.FileStorage.Contracts.Services;
 using ContentCommentDto = Content.Contracts.DTOs.CommentDto;
 using ContentHashtagDto = Content.Contracts.DTOs.HashtagDto;
 using ContentMediaDto = Content.Contracts.DTOs.MediaDto;
@@ -25,10 +26,14 @@ namespace Facade.ContentManagement.Services.Services;
 public partial class ContentManagementService : IContentManagementService
 {
     private readonly IContentClient _contentClient;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ContentManagementService(IContentClient contentClient)
+    public ContentManagementService(
+        IContentClient contentClient,
+        IFileStorageService fileStorageService)
     {
         _contentClient = contentClient;
+        _fileStorageService = fileStorageService;
     }
 
     // Маппинг из core-результата в facade-response держим в одном месте,

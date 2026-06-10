@@ -1,6 +1,7 @@
 using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
+using Facade.FileStorage.Contracts;
 using Network.Contracts.Parameters.UserGroup;
 
 namespace Facade.NetworkManagement.Services.Services;
@@ -56,6 +57,64 @@ public partial class NetworkManagementService
         });
 
         return MapUserGroupResult(result);
+    }
+
+    public async Task<UserGroupResponse> UploadGroupAvatarAsync(
+        string userId,
+        Guid groupId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        string avatarUrl;
+
+        try
+        {
+            avatarUrl = await _fileStorageService.SaveAsync(
+                fileStream,
+                fileName,
+                contentType,
+                new FileStoragePathOptions
+                {
+                    ModuleName = "network",
+                    EntityName = "group-avatar",
+                    OwnerId = userId,
+                    EntityId = groupId.ToString(),
+                    AllowedExtensions = NetworkImageExtensions,
+                    AllowedContentTypes = NetworkImageContentTypes
+                },
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new UserGroupResponse
+            {
+                Success = false,
+                Errors = new[] { ex.Message }
+            };
+        }
+
+        var existingGroup = await GetMyUserGroupByIdAsync(userId, groupId);
+
+        if (existingGroup == null)
+        {
+            return new UserGroupResponse
+            {
+                Success = false,
+                Errors = new[] { "Group not found." }
+            };
+        }
+
+        return await UpdateUserGroupAsync(
+            userId,
+            groupId,
+            new UpdateUserGroupRequest
+            {
+                Name = existingGroup.Name,
+                Description = existingGroup.Description,
+                AvatarUrl = avatarUrl
+            });
     }
 
     public async Task<UserGroupResponse> DeleteUserGroupAsync(string userId, Guid groupId)

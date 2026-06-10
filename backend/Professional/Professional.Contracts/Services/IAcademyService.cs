@@ -12,4 +12,7 @@ public interface IAcademyService
 
     Task<AcademyResult> CreateAsync(
         CreateAcademyParameters parameters);
+
+    Task<AcademyResult> PatchAsync(
+        PatchAcademyParameters parameters);
 }

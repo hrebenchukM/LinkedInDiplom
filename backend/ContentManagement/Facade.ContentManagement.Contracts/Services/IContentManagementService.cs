@@ -16,6 +16,13 @@ public interface IContentManagementService
 {
     Task<MediaResponse> CreateMediaAsync(CreateMediaRequest request);
 
+    Task<MediaResponse> UploadMediaAsync(
+        string userId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
+
     Task<MediaDto?> GetMediaByIdAsync(Guid mediaId);
 
     Task<PostResponse> CreatePostAsync(string userId, CreatePostRequest request);

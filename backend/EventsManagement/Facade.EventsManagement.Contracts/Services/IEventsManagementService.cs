@@ -13,6 +13,13 @@ public interface IEventsManagementService
     Task<IReadOnlyCollection<EventDto>> GetMyEventsAsync(string userId, int? limit, DateTime? fromStartAt, DateTime? toStartAt);
     Task<EventDto?> GetEventByIdAsync(Guid eventId);
     Task<EventResponse> UpdateEventAsync(string userId, Guid eventId, UpdateEventRequest request);
+    Task<EventResponse> UploadEventCoverAsync(
+        string userId,
+        Guid eventId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
     Task<EventResponse> DeleteEventAsync(string userId, Guid eventId);
 
     Task<EventAttendeeResponse> JoinEventAsync(string userId, Guid eventId);
@@ -27,6 +34,13 @@ public interface IEventsManagementService
     Task<EventSpeakerResponse> CreateSpeakerAsync(string userId, CreateEventSpeakerRequest request);
     Task<EventSpeakerDto?> GetSpeakerByIdAsync(string userId, Guid speakerId);
     Task<EventSpeakerResponse> UpdateSpeakerAsync(string userId, Guid speakerId, UpdateEventSpeakerRequest request);
+    Task<EventSpeakerResponse> UploadSpeakerAvatarAsync(
+        string userId,
+        Guid speakerId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
     Task<EventSpeakerResponse> DeleteSpeakerAsync(string userId, Guid speakerId);
 
     Task<EventSpeakerMapResponse> AttachSpeakerToEventAsync(string userId, Guid eventId, AttachSpeakerToEventRequest request);

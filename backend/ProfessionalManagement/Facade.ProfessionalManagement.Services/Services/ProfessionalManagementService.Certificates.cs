@@ -2,6 +2,7 @@ using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
+using Facade.FileStorage.Contracts;
 using Professional.Contracts.Parameters.Certificate;
 using Professional.Contracts.Parameters.CertificateSkill;
 
@@ -9,6 +10,9 @@ namespace Facade.ProfessionalManagement.Services.Services;
 
 public partial class ProfessionalManagementService
 {
+    private static readonly string[] CertificateFileExtensions = { ".pdf", ".jpg", ".jpeg", ".png", ".webp" };
+    private static readonly string[] CertificateFileContentTypes =
+        { "application/pdf", "image/jpeg", "image/png", "image/webp" };
     // Получить все мои сертификаты
     public async Task<IReadOnlyCollection<CertificateDto>> GetMyCertificatesAsync(string userId)
     {
@@ -116,6 +120,51 @@ public partial class ProfessionalManagementService
             Certificate = result.Certificate == null ? null : MapCertificateToFacadeDto(result.Certificate),
             Errors = result.Errors
         };
+    }
+
+    public async Task<CertificateResponse> UploadCertificateFileAsync(
+        string userId,
+        Guid certificateId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        string downloadRef;
+
+        try
+        {
+            downloadRef = await _fileStorageService.SaveAsync(
+                fileStream,
+                fileName,
+                contentType,
+                new FileStoragePathOptions
+                {
+                    ModuleName = "professional",
+                    EntityName = "certificate-file",
+                    OwnerId = userId,
+                    EntityId = certificateId.ToString(),
+                    AllowedExtensions = CertificateFileExtensions,
+                    AllowedContentTypes = CertificateFileContentTypes
+                },
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new CertificateResponse
+            {
+                Success = false,
+                Errors = new[] { ex.Message }
+            };
+        }
+
+        return await PatchMyCertificateAsync(
+            userId,
+            certificateId,
+            new PatchCertificateRequest
+            {
+                DownloadRef = downloadRef
+            });
     }
 
     // Удалить сертификат

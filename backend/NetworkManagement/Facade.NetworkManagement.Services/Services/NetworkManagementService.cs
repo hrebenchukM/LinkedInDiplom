@@ -7,6 +7,7 @@ using Facade.NetworkManagement.Contracts.Requests.Page;
 using Facade.NetworkManagement.Contracts.Requests.PageAdmin;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
+using Facade.FileStorage.Contracts.Services;
 using Content.Client.Contracts;
 using Content.Contracts.Parameters.Post;
 using Network.Client.Contracts;
@@ -43,11 +44,16 @@ public partial class NetworkManagementService : INetworkManagementService
 
     private readonly INetworkClient _networkClient;
     private readonly IContentClient _contentClient;
+    private readonly IFileStorageService _fileStorageService;
 
-    public NetworkManagementService(INetworkClient networkClient, IContentClient contentClient)
+    public NetworkManagementService(
+        INetworkClient networkClient,
+        IContentClient contentClient,
+        IFileStorageService fileStorageService)
     {
         _networkClient = networkClient;
         _contentClient = contentClient;
+        _fileStorageService = fileStorageService;
     }
 
     private static ContactResponse MapContactResult(ContactResult result)

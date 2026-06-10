@@ -68,9 +68,25 @@ public interface IProfessionalManagementService
         string userId,
         Guid companyId);
 
+    Task<CompanyResponse> UploadCompanyLogoAsync(
+        string userId,
+        Guid companyId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
+
     Task<AcademyDto?> GetAcademyByIdAsync(Guid academyId);
 
     Task<AcademyResponse> CreateAcademyAsync(CreateAcademyRequest request);
+
+    Task<AcademyResponse> UploadAcademyLogoAsync(
+        string userId,
+        Guid academyId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<EducationDto>> GetMyEducationsAsync(string userId);
 
@@ -111,6 +127,14 @@ public interface IProfessionalManagementService
         string userId,
         Guid certificateId,
         PatchCertificateRequest request);
+
+    Task<CertificateResponse> UploadCertificateFileAsync(
+        string userId,
+        Guid certificateId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
 
     Task<CertificateResponse> DeleteMyCertificateAsync(
         string userId,

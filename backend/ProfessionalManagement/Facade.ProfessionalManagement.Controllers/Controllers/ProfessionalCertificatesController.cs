@@ -3,6 +3,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Facade.ProfessionalManagement.Controllers.Controllers;
@@ -124,6 +125,45 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
             userId,
             certificateId,
             request);
+
+        if (!response.Success)
+            return MapCertificateError(response);
+
+        return Ok(response);
+    }
+
+    // POST api/professional/me/certificates/{certificateId}/file
+    [Authorize]
+    [HttpPost("me/certificates/{certificateId:guid}/file")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(CertificateResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UploadCertificateFile(
+        Guid certificateId,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        if (file == null || file.Length == 0)
+            return MediaBadRequest("File is empty.");
+        if (file.Length > 10 * 1024 * 1024)
+            return MediaBadRequest("File is too large. Maximum size is 10 MB.");
+
+        await using var stream = file.OpenReadStream();
+
+        var response = await ProfessionalService.UploadCertificateFileAsync(
+            userId,
+            certificateId,
+            stream,
+            file.FileName,
+            file.ContentType,
+            cancellationToken);
 
         if (!response.Success)
             return MapCertificateError(response);
@@ -255,4 +295,7 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
 
         return Ok(response);
     }
+
+    private static IActionResult MediaBadRequest(string message) =>
+        new BadRequestObjectResult(new { success = false, errors = new[] { message } });
 }

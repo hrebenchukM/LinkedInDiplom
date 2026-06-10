@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Contracts\Facade.FileStorage.Contracts.csproj" />
     <ProjectReference Include="..\Facade.EventsManagement.Contracts\Facade.EventsManagement.Contracts.csproj" />
     <ProjectReference Include="..\..\Events\Events.Client.Contracts\Events.Client.Contracts.csproj" />
     <ProjectReference Include="..\..\Events\Events.Contracts\Events.Contracts.csproj" />

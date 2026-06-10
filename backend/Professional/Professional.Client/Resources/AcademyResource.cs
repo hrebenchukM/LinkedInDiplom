@@ -26,4 +26,9 @@ public class AcademyResource : IAcademyResource
     {
         return _academyService.CreateAsync(parameters);
     }
+
+    public Task<AcademyResult> PatchAsync(PatchAcademyParameters parameters)
+    {
+        return _academyService.PatchAsync(parameters);
+    }
 }

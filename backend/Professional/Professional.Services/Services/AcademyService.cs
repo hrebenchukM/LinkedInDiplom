@@ -59,6 +59,49 @@ public class AcademyService : IAcademyService
         };
     }
 
+    public async Task<AcademyResult> PatchAsync(PatchAcademyParameters parameters)
+    {
+        var academy = await _dbContext.Academies
+            .FirstOrDefaultAsync(a => a.Id == parameters.AcademyId);
+
+        if (academy == null)
+        {
+            return new AcademyResult
+            {
+                Succeeded = false,
+                Errors = new[] { "Academy not found." }
+            };
+        }
+
+        if (parameters.Name != null)
+        {
+            var name = parameters.Name.Trim();
+
+            if (string.IsNullOrEmpty(name))
+            {
+                return new AcademyResult
+                {
+                    Succeeded = false,
+                    Errors = new[] { "Academy name is required." }
+                };
+            }
+
+            academy.Name = name;
+        }
+
+        academy.LogoUrl = parameters.LogoUrl ?? academy.LogoUrl;
+        academy.WebsiteUrl = parameters.WebsiteUrl ?? academy.WebsiteUrl;
+        academy.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new AcademyResult
+        {
+            Succeeded = true,
+            Academy = MapToDto(academy)
+        };
+    }
+
     private static AcademyDto MapToDto(Academy academy)
     {
         return new AcademyDto

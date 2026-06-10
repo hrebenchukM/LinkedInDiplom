@@ -1,12 +1,16 @@
 using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Responses;
+using Facade.FileStorage.Contracts;
 using Professional.Contracts.Parameters.Company;
 
 namespace Facade.ProfessionalManagement.Services.Services;
 
 public partial class ProfessionalManagementService
 {
+    private static readonly string[] CompanyLogoExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+    private static readonly string[] CompanyLogoContentTypes =
+        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     // Получить мои компании
     public async Task<IReadOnlyCollection<CompanyDto>> GetMyCompaniesAsync(string userId)
     {
@@ -130,6 +134,51 @@ public partial class ProfessionalManagementService
             Company = result.Company == null ? null : MapCompanyToFacadeDto(result.Company),
             Errors = result.Errors
         };
+    }
+
+    public async Task<CompanyResponse> UploadCompanyLogoAsync(
+        string userId,
+        Guid companyId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        string logoUrl;
+
+        try
+        {
+            logoUrl = await _fileStorageService.SaveAsync(
+                fileStream,
+                fileName,
+                contentType,
+                new FileStoragePathOptions
+                {
+                    ModuleName = "professional",
+                    EntityName = "company-logo",
+                    OwnerId = userId,
+                    EntityId = companyId.ToString(),
+                    AllowedExtensions = CompanyLogoExtensions,
+                    AllowedContentTypes = CompanyLogoContentTypes
+                },
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new CompanyResponse
+            {
+                Success = false,
+                Errors = new[] { ex.Message }
+            };
+        }
+
+        return await PatchMyCompanyAsync(
+            userId,
+            companyId,
+            new PatchCompanyRequest
+            {
+                LogoUrl = logoUrl
+            });
     }
 
     private static CompanyDto MapCompanyToFacadeDto(Professional.Contracts.DTOs.CompanyDto company)

@@ -2,6 +2,7 @@ using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Facade.NetworkManagement.Controllers.Controllers;
@@ -96,6 +97,45 @@ public class NetworkGroupsController : NetworkManagementControllerBase
         return Ok(response);
     }
 
+    // POST api/network/me/groups/{groupId}/avatar
+    [Authorize]
+    [HttpPost("me/groups/{groupId:guid}/avatar")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(UserGroupResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UploadGroupAvatar(
+        Guid groupId,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        if (file == null || file.Length == 0)
+            return MediaBadRequest("File is empty.");
+        if (file.Length > 5 * 1024 * 1024)
+            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+
+        await using var stream = file.OpenReadStream();
+
+        var response = await NetworkService.UploadGroupAvatarAsync(
+            userId,
+            groupId,
+            stream,
+            file.FileName,
+            file.ContentType,
+            cancellationToken);
+
+        if (!response.Success)
+            return MapUserGroupError(response);
+
+        return Ok(response);
+    }
+
     // DELETE api/network/me/groups/{groupId}
     [Authorize]
     [HttpDelete("me/groups/{groupId:guid}")]
@@ -116,4 +156,7 @@ public class NetworkGroupsController : NetworkManagementControllerBase
 
         return Ok(response);
     }
+
+    private static IActionResult MediaBadRequest(string message) =>
+        new BadRequestObjectResult(new { success = false, errors = new[] { message } });
 }

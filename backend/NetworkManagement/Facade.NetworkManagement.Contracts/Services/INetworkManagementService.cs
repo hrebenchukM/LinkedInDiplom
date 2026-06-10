@@ -46,6 +46,14 @@ public interface INetworkManagementService
 
     Task<UserGroupResponse> UpdateUserGroupAsync(string userId, Guid groupId, UpdateUserGroupRequest request);
 
+    Task<UserGroupResponse> UploadGroupAvatarAsync(
+        string userId,
+        Guid groupId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
+
     Task<UserGroupResponse> DeleteUserGroupAsync(string userId, Guid groupId);
 
     Task<GroupMemberResponse> JoinGroupAsync(string userId, Guid groupId);
@@ -67,6 +75,14 @@ public interface INetworkManagementService
     Task<PageDto?> GetMyPageByIdAsync(string userId, Guid pageId);
 
     Task<PageResponse> UpdatePageAsync(string userId, Guid pageId, UpdatePageRequest request);
+
+    Task<PageResponse> UploadPageLogoAsync(
+        string userId,
+        Guid pageId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
 
     Task<PageResponse> DeletePageAsync(string userId, Guid pageId);
 

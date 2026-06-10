@@ -1,12 +1,16 @@
 using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Page;
 using Facade.NetworkManagement.Contracts.Responses;
+using Facade.FileStorage.Contracts;
 using Network.Contracts.Parameters.Page;
 
 namespace Facade.NetworkManagement.Services.Services;
 
 public partial class NetworkManagementService
 {
+    private static readonly string[] NetworkImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+    private static readonly string[] NetworkImageContentTypes =
+        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     public async Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request)
     {
         var result = await _networkClient.Pages.CreateAsync(new CreatePageParameters
@@ -53,6 +57,64 @@ public partial class NetworkManagementService
         });
 
         return MapPageResult(result);
+    }
+
+    public async Task<PageResponse> UploadPageLogoAsync(
+        string userId,
+        Guid pageId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        string logoUrl;
+
+        try
+        {
+            logoUrl = await _fileStorageService.SaveAsync(
+                fileStream,
+                fileName,
+                contentType,
+                new FileStoragePathOptions
+                {
+                    ModuleName = "network",
+                    EntityName = "page-logo",
+                    OwnerId = userId,
+                    EntityId = pageId.ToString(),
+                    AllowedExtensions = NetworkImageExtensions,
+                    AllowedContentTypes = NetworkImageContentTypes
+                },
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new PageResponse
+            {
+                Success = false,
+                Errors = new[] { ex.Message }
+            };
+        }
+
+        var existingPage = await GetMyPageByIdAsync(userId, pageId);
+
+        if (existingPage == null)
+        {
+            return new PageResponse
+            {
+                Success = false,
+                Errors = new[] { "Page not found." }
+            };
+        }
+
+        return await UpdatePageAsync(
+            userId,
+            pageId,
+            new UpdatePageRequest
+            {
+                Name = existingPage.Name,
+                Description = existingPage.Description,
+                LogoUrl = logoUrl
+            });
     }
 
     public async Task<PageResponse> DeletePageAsync(string userId, Guid pageId)
