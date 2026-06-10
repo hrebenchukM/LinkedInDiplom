@@ -3,6 +3,7 @@ using Facade.EventsManagement.Contracts.DTOs;
 using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 
 namespace Facade.EventsManagement.Services.Services;
 
@@ -54,6 +55,19 @@ public partial class EventsManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingSpeaker = await GetSpeakerByIdAsync(userId, speakerId);
+
+        if (existingSpeaker is null)
+        {
+            return new EventSpeakerResponse
+            {
+                Success = false,
+                Errors = new[] { "Speaker not found." }
+            };
+        }
+
+        var oldAvatarUrl = existingSpeaker.AvatarUrl;
+
         string avatarUrl;
 
         try
@@ -68,8 +82,8 @@ public partial class EventsManagementService
                     EntityName = "speaker-avatar",
                     OwnerId = userId,
                     EntityId = speakerId.ToString(),
-                    AllowedExtensions = EventsImageExtensions,
-                    AllowedContentTypes = EventsImageContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }
@@ -82,18 +96,7 @@ public partial class EventsManagementService
             };
         }
 
-        var existingSpeaker = await GetSpeakerByIdAsync(userId, speakerId);
-
-        if (existingSpeaker is null)
-        {
-            return new EventSpeakerResponse
-            {
-                Success = false,
-                Errors = new[] { "Speaker not found." }
-            };
-        }
-
-        return await UpdateSpeakerAsync(
+        var response = await UpdateSpeakerAsync(
             userId,
             speakerId,
             new UpdateEventSpeakerRequest
@@ -102,6 +105,11 @@ public partial class EventsManagementService
                 Title = existingSpeaker.Title,
                 AvatarUrl = avatarUrl
             });
+
+        if (response.Success)
+            await _fileStorageService.DeleteAsync(oldAvatarUrl, cancellationToken);
+
+        return response;
     }
 
     public async Task<EventSpeakerResponse> DeleteSpeakerAsync(string userId, Guid speakerId)

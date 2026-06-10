@@ -1,3 +1,4 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.EventsManagement.Contracts.Requests.Event;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.EventsManagement.Contracts.Services;
@@ -116,12 +117,14 @@ public class EventsEventsController : EventsManagementControllerBase
             return Unauthorized();
         }
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 5 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.ImageMaxSizeBytes,
+            FileUploadValidation.ImageTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = file!.OpenReadStream();
 
         var response = await EventsService.UploadEventCoverAsync(
             userId,

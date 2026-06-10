@@ -66,15 +66,23 @@
 | GET | `/api/professional/me/experiences/{experienceId}` | Yes | route | - | Опыт по id | - |
 | POST | `/api/professional/me/experiences` | Yes | create body | `experienceId`* | Создать опыт | Сохранение id может потребовать ручной настройки |
 | PUT/PATCH/DELETE | `/api/professional/me/experiences/{experienceId}` | Yes | body/route | - | Управление опытом | - |
-| GET/POST | `/api/professional/academies/{academyId}` / `/api/professional/academies` | No/Yes | route/body | `academyId`* | Справочник академий | POST требует auth |
+| GET | `/api/professional/academies/{academyId}` | No | route | - | Академия по id | публичный read |
+| POST | `/api/professional/academies` | **Admin** | body | `academyId`* | Создать академию | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/educations...` | Yes | body/route | `educationId`* | Образование | - |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/companies...` + `/api/professional/companies/{companyId}` | Yes | body/route | `companyId` | Компании | Для Jobs часто нужен `companyId` |
+| POST | `/api/professional/me/companies/{companyId}/logo` | Yes | form-data `file` | - | Logo компании | `CompanyResponse` |
+| POST | `/api/professional/academies/{academyId}/logo` | Admin | form-data `file` | - | Logo академии | `AcademyResponse` |
+| POST | `/api/professional/me/certificates/{certificateId}/file` | Yes | form-data `file` | - | Файл сертификата | 10 MB |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/certificates...` | Yes | body/route | `certificateId`* | Сертификаты | - |
 | GET/POST/DELETE | `/api/professional/me/certificates/{certificateId}/skills...` | Yes | body/route | `certificateSkillId`* | Связь сертификат-скилл | - |
-| GET/POST | `/api/professional/skills/{skillId}` / `/api/professional/skills` | No/Yes | route/body | `skillId`* | Справочник навыков | POST требует auth |
+| GET | `/api/professional/skills/{skillId}` | No | route | - | Skill по id | публичный read |
+| POST | `/api/professional/skills` | **Admin** | body | `skillId`* | Создать skill | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/skills...` | Yes | body/route | `userSkillId`* | Навыки пользователя | - |
-| GET/POST/DELETE | `/api/professional/recommended-skills...` | Yes | body/route | - | Рекомендуемые навыки | - |
-| GET/POST | `/api/professional/languages/{languageId}` / `/api/professional/languages` | No/Yes | route/body | `languageId`* | Справочник языков | POST требует auth |
+| GET | `/api/professional/recommended-skills?position=...` | No | query | - | Рекомендуемые навыки | публичный read |
+| POST | `/api/professional/recommended-skills` | **Admin** | body | - | Создать mapping | User → **403** |
+| DELETE | `/api/professional/recommended-skills/{rspId}` | **Admin** | route | - | Удалить mapping | User → **403** |
+| GET | `/api/professional/languages/{languageId}` | No | route | - | Language по id | публичный read |
+| POST | `/api/professional/languages` | **Admin** | body | `languageId`* | Создать language | User → **403** |
 | GET/POST/PUT/PATCH/DELETE | `/api/professional/me/languages...` | Yes | body/route | `userLanguageId`* | Языки пользователя | - |
 | GET | `/api/professional/users/{userId}/recommendations` | No | route | - | Рекомендации пользователя | Публичный |
 | GET | `/api/professional/recommendations/{recommendationId}` | No | route | - | Рекомендация по id | Публичный |
@@ -92,6 +100,8 @@
 | POST/DELETE/GET | `/api/network/me/groups/{groupId}/join|membership|members` | Yes | route | - | Членство в группе | - |
 | POST/DELETE/GET | `/api/network/me/groups/{groupId}/posts/{postId}` | Yes | route | - | Посты группы | Требуется существующий `postId` |
 | POST/GET/GET/GET/PATCH/DELETE | `/api/network/me/pages...` | Yes | body/route | `pageId`* | Страницы | - |
+| POST | `/api/network/me/pages/{pageId}/logo` | Yes | form-data `file` | - | Logo страницы | |
+| POST | `/api/network/me/groups/{groupId}/avatar` | Yes | form-data `file` | - | Аватар группы | |
 | POST/DELETE/GET | `/api/network/me/pages/{pageId}/admins...` | Yes | body/route | - | Админы страницы | Нужен `otherUserId` |
 | POST/DELETE/GET | `/api/network/me/pages/{pageId}/follow` + `/followers` | Yes | route | - | Подписчики страницы | - |
 
@@ -101,10 +111,12 @@
 |---|---|---|---|---|---|---|
 | POST/GET/GET/PATCH/DELETE | `/api/content/me/posts...` + `/api/content/posts/{postId}` | Yes | body/route | `postId` | Посты | Базовый модуль для зависимостей |
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/media...` | Yes | body/route | - | Медиа поста | Нужен `mediaId` |
-| POST/GET | `/api/content/me/media` / `/api/content/media/{mediaId}` | Yes | file/route | `mediaId`* | Медиа-файлы | Upload через form-data |
+| POST | `/api/content/me/media/upload` | Yes | form-data `file` | `mediaId`* | Upload медиа-файла | multipart; см. smoke checklist ниже |
+| POST/GET | `/api/content/me/media` / `/api/content/media/{mediaId}` | Yes | JSON body / route | `mediaId`* | Медиа по URL / read | `POST me/media` — JSON URL, не файл |
 | POST/GET/PATCH/DELETE | `/api/content/posts/{postId}/comments` + `/api/content/me/comments/{commentId}` | Yes | body/route | `commentId`* | Комментарии | - |
 | PUT/DELETE/GET/GET | `/api/content/posts/{postId}/reactions...` | Yes | body/route | - | Реакции | - |
-| POST/GET | `/api/content/hashtags...` | Yes | body/route | `hashtagId`* | Хэштеги | - |
+| POST | `/api/content/hashtags` | **Admin** | body | `hashtagId`* | Создать hashtag | User → **403** |
+| GET | `/api/content/hashtags/{hashtagId}` | Yes | route | - | Hashtag по id | User JWT |
 | POST/GET/DELETE | `/api/content/me/posts/{postId}/hashtags...` | Yes | body/route | - | Хэштеги поста | - |
 | POST/DELETE/GET | `/api/content/me/hashtags/{hashtagId}/follow` + `/following` | Yes | route | - | Подписки на хэштеги | - |
 | POST/DELETE/GET | `/api/content/me/posts/{postId}/save` + `/me/saved-posts` | Yes | route | - | Сохранённые посты | - |
@@ -121,7 +133,8 @@
 | POST/GET | `/api/messaging/me/chats/{chatId}/messages` | Yes | body/route | `messageId`* | Сообщения | - |
 | GET/PATCH/DELETE | `/api/messaging/me/messages/{messageId}` | Yes | body/route | - | Сообщение по id | - |
 | POST/GET | `/api/messaging/me/messages/{messageId}/read|reads` | Yes | route | - | Прочтение | - |
-| POST/GET/DELETE | `/api/messaging/me/messages/{messageId}/media...` | Yes | file/route | `messageMediaId`* | Медиа сообщения | Upload через form-data |
+| POST | `/api/messaging/me/messages/{messageId}/media/upload` | Yes | form-data `file` | `messageMediaId`* | Upload медиа сообщения | multipart |
+| POST/GET/DELETE | `/api/messaging/me/messages/{messageId}/media...` | Yes | JSON/route | `messageMediaId`* | Attach/read/delete media | JSON attach по URL |
 
 ### 07 Jobs
 
@@ -151,8 +164,70 @@
 | POST/GET/GET/PATCH/DELETE | `/api/events/me...` + `/api/events/{eventId}` | Yes | body/route | `eventId` | События | - |
 | POST/DELETE/GET | `/api/events/me/{eventId}/join|attendance` + `/api/events/{eventId}/attendees` | Yes | route | - | Посетители | - |
 | POST/GET/PATCH/DELETE | `/api/events/me/{eventId}/schedule...` + `/api/events/{eventId}/schedule` | Yes | body/route | `scheduleItemId`* | Расписание | - |
-| POST/GET/PATCH/DELETE | `/api/events/me/speakers...` | Yes | body/route | `speakerId`* | Спикеры | - |
+| POST | `/api/events/me/speakers` | **Admin** | body | `speakerId`* | Создать speaker | User → **403** |
+| GET | `/api/events/me/speakers/{speakerId}` | Yes | route | - | Speaker по id | User JWT |
+| PATCH | `/api/events/me/speakers/{speakerId}` | **Admin** | body | - | Обновить speaker | User → **403** |
+| DELETE | `/api/events/me/speakers/{speakerId}` | **Admin** | route | - | Удалить speaker | User → **403** |
 | POST/DELETE/GET | `/api/events/me/{eventId}/speakers...` + `/api/events/{eventId}/speakers` | Yes | body/route | - | Спикеры события | - |
+| POST | `/api/events/me/{eventId}/cover` | Yes | form-data `file` | - | Обложка события | `EventResponse` |
+| POST | `/api/events/me/speakers/{speakerId}/avatar` | **Admin** | form-data `file` | - | Аватар спикера | User → **403** |
+
+### File uploads (11 endpoints)
+
+Полная таблица (auth, limits, DB fields, local paths): **`09_CONFIG_UPLOADS.md`**.
+
+| Method | Route | Auth | form-data | Response |
+|---|---|---|---|---|
+| POST | `/api/profile/me/avatar` | User | `file` | `ProfileResponse` |
+| POST | `/api/profile/me/header` | User | `file` | `ProfileResponse` |
+| POST | `/api/content/me/media/upload` | User | `file` | `MediaResponse` |
+| POST | `/api/professional/me/companies/{companyId}/logo` | User | `file` | `CompanyResponse` |
+| POST | `/api/professional/academies/{academyId}/logo` | **Admin** | `file` | `AcademyResponse` |
+| POST | `/api/professional/me/certificates/{certificateId}/file` | User | `file` | `CertificateResponse` |
+| POST | `/api/network/me/pages/{pageId}/logo` | User | `file` | `PageResponse` |
+| POST | `/api/network/me/groups/{groupId}/avatar` | User | `file` | `UserGroupResponse` |
+| POST | `/api/events/me/{eventId}/cover` | User | `file` | `EventResponse` |
+| POST | `/api/events/me/speakers/{speakerId}/avatar` | **Admin** | `file` | `EventSpeakerResponse` |
+| POST | `/api/messaging/me/messages/{messageId}/media/upload` | User | `file` | `MessageMediaResponse` |
+
+#### Upload smoke checklist (любой endpoint из таблицы)
+
+1. **401** без JWT.
+2. **400** `errors: ["File is empty."]` — нет файла / пустой `file`.
+3. **400** too large — 5 MB (images) или 10 MB (certificate / message media).
+4. **404 / 400** — чужая или несуществующая сущность (для entity-scoped routes).
+5. **200** — валидный файл; URL в response и в БД.
+6. **Local mode** (`AwsS3:BucketName` пустой): открыть `/uploads/...` URL в браузере.
+
+Postman: Body → **form-data** → key **`file`**, type **File**.
+
+### Global catalog writes (Admin-only)
+
+Полная таблица: `04_FACADE_MODULES.md`.
+
+| Method | Route | Entity | Role | User (no Admin) |
+|---|---|---|---|---|
+| POST | `/api/professional/skills` | Skill | Admin | **403** |
+| POST | `/api/professional/recommended-skills` | RecommendedSkill | Admin | **403** |
+| DELETE | `/api/professional/recommended-skills/{rspId}` | RecommendedSkill | Admin | **403** |
+| POST | `/api/professional/academies` | Academy | Admin | **403** |
+| POST | `/api/professional/academies/{academyId}/logo` | Academy | Admin | **403** |
+| POST | `/api/professional/languages` | Language | Admin | **403** |
+| POST | `/api/content/hashtags` | Hashtag | Admin | **403** |
+| POST | `/api/events/me/speakers` | EventSpeaker | Admin | **403** |
+| PATCH | `/api/events/me/speakers/{speakerId}` | EventSpeaker | Admin | **403** |
+| DELETE | `/api/events/me/speakers/{speakerId}` | EventSpeaker | Admin | **403** |
+| POST | `/api/events/me/speakers/{speakerId}/avatar` | EventSpeaker | Admin | **403** |
+
+#### Catalog smoke checklist
+
+1. **401** — catalog write без JWT.
+2. **403** — `{{accessToken}}` (User) на любой catalog write из таблицы выше.
+3. **200** — `{{adminToken}}` на тот же write с валидным body/file.
+4. **200** (не 403) — User на `POST /api/professional/me/skills`, `POST .../hashtags/{id}/follow`, attach hashtag к post.
+5. **200** — публичный `GET /api/professional/skills/{id}` или `GET recommended-skills?position=...` без Admin.
+
+В Postman для catalog writes используйте **`{{adminToken}}`** (папка `10 Admin` → Admin Login). Для negative test **403** — тот же request с `{{accessToken}}`.
 
 ### 10 Admin / Platform
 

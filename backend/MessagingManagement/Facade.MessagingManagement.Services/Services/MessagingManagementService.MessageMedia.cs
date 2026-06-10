@@ -2,22 +2,13 @@ using Facade.MessagingManagement.Contracts.DTOs;
 using Facade.MessagingManagement.Contracts.Requests.MessageMedia;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Messaging.Contracts.Parameters.MessageMedia;
 
 namespace Facade.MessagingManagement.Services.Services;
 
 public partial class MessagingManagementService
 {
-    private static readonly string[] MessageMediaExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf" };
-    private static readonly string[] MessageMediaContentTypes =
-    {
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-        "application/pdf"
-    };
-
     public async Task<MessageMediaResponse> UploadMessageMediaAsync(
         string userId,
         Guid messageId,
@@ -26,6 +17,18 @@ public partial class MessagingManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var accessResult = await _messagingClient.MessageMedia.ValidateAttachAccessAsync(
+            new GetMessageMediaParameters
+            {
+                UserId = userId,
+                MessageId = messageId
+            });
+
+        if (!accessResult.Succeeded)
+        {
+            return MapMessageMediaResult(accessResult);
+        }
+
         string mediaUrl;
 
         try
@@ -40,9 +43,9 @@ public partial class MessagingManagementService
                     EntityName = "message-media",
                     OwnerId = userId,
                     EntityId = messageId.ToString(),
-                    AllowedExtensions = MessageMediaExtensions,
-                    AllowedContentTypes = MessageMediaContentTypes,
-                    MaxFileSizeBytes = 10 * 1024 * 1024
+                    AllowedExtensions = FileUploadConstants.MessageMediaExtensions,
+                    AllowedContentTypes = FileUploadConstants.MessageMediaContentTypes,
+                    MaxFileSizeBytes = FileUploadConstants.DocumentMaxSizeBytes
                 },
                 cancellationToken);
         }

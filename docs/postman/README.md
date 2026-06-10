@@ -107,20 +107,49 @@ Collection использует переменные:
 2. проверьте test script этого запроса (сохранилась ли переменная)
 3. при необходимости вручную вставьте id в environment
 
-## 8) Upload endpoints (avatar/header/media)
+## 8) Upload endpoints (11 multipart routes)
 
-Для endpoint-ов с `form-data`:
+Все upload endpoints используют **`multipart/form-data`**, поле **`file`**, type **File** в Postman.
 
-- вручную выберите файл в Postman
-- key: `file` (или как указано в конкретном request)
+| Route | Notes |
+|---|---|
+| `POST /api/profile/me/avatar` | 5 MB, jpg/jpeg/png/webp |
+| `POST /api/profile/me/header` | то же |
+| `POST /api/content/me/media/upload` | **не** `POST /api/content/me/media` (тот — JSON URL) |
+| `POST /api/professional/me/companies/{companyId}/logo` | |
+| `POST /api/professional/academies/{academyId}/logo` | **Admin** token |
+| `POST /api/professional/me/certificates/{certificateId}/file` | 10 MB, pdf + images |
+| `POST /api/network/me/pages/{pageId}/logo` | |
+| `POST /api/network/me/groups/{groupId}/avatar` | |
+| `POST /api/events/me/{eventId}/cover` | |
+| `POST /api/events/me/speakers/{speakerId}/avatar` | **Admin** token |
+| `POST /api/messaging/me/messages/{messageId}/media/upload` | 10 MB |
 
-Если не уверены по key, сверяйтесь с endpoint в Swagger.
+**Smoke checklist:** 401 без JWT → 400 empty file → 400 too large → 404 чужая сущность → 200 + URL в response/БД → (local) открыть `/uploads/...`.
+
+Подробно: `09_CONFIG_UPLOADS.md`, `api/POSTMAN_TESTING.md`.
+
+## 8b) Global catalog writes (Admin-only)
+
+Создание/изменение **глобальных справочников** (Skill, Hashtag, Academy, Language, RecommendedSkill, EventSpeaker) — только с **`{{adminToken}}`**.
+
+| Request в коллекции | Token | User `{{accessToken}}` |
+|---|---|---|
+| Create Skill / Academy / Language | `adminToken` | **403** |
+| Create / Delete Recommended Skill | `adminToken` | **403** |
+| Create Hashtag | `adminToken` | **403** |
+| Create / Patch / Delete Speaker | `adminToken` | **403** |
+
+**Не Admin-only (User token):** `Create My Skill`, `Follow Hashtag`, `Attach Hashtag To Post`, `GET` справочников.
+
+**Smoke:** Admin Login → catalog write → **200**; тот же URL с `accessToken` → **403**.
 
 ## 9) Ошибки и как читать ответы
 
 - `400` — валидация/бизнес-правило
-- `401` — нет/просрочен JWT
-- `404` — сущность не найдена или нет доступа
+- `401` — нет/невалидный JWT
+- `403` — JWT есть, но нет роли Admin (catalog write, `/api/admin/*`)
+- `404` — сущность не найдена или чужая user-owned сущность
 - `500` — внутренняя ошибка сервера
 
 Ответы в проекте могут быть:

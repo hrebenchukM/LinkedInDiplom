@@ -15,6 +15,11 @@ public class MessageMediaResource : IMessageMediaResource
         _messageMediaService = messageMediaService;
     }
 
+    public Task<MessageMediaResult> ValidateAttachAccessAsync(GetMessageMediaParameters parameters)
+    {
+        return _messageMediaService.ValidateAttachAccessAsync(parameters);
+    }
+
     public Task<MessageMediaResult> AttachAsync(AttachMessageMediaParameters parameters)
     {
         return _messageMediaService.AttachAsync(parameters);

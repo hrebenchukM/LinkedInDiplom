@@ -2,6 +2,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Language;
 using Facade.ProfessionalManagement.Contracts.Requests.UserLanguage;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
+using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,7 +30,7 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
     }
 
     // POST api/professional/languages
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("languages")]
     [ProducesResponseType(typeof(LanguageResponse), 200)]
     [ProducesResponseType(400)]

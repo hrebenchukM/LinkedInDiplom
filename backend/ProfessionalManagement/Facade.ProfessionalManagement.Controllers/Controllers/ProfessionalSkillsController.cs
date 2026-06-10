@@ -3,6 +3,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Skill;
 using Facade.ProfessionalManagement.Contracts.Requests.UserSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.ProfessionalManagement.Contracts.Services;
+using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     }
 
     // POST api/professional/skills
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("skills")]
     [ProducesResponseType(typeof(SkillResponse), 200)]
     [ProducesResponseType(400)]
@@ -206,7 +207,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     }
 
     // POST api/professional/recommended-skills
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("recommended-skills")]
     [ProducesResponseType(typeof(RecommendedSkillByPositionResponse), 200)]
     [ProducesResponseType(400)]
@@ -228,7 +229,7 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
     }
 
     // DELETE api/professional/recommended-skills/{rspId}
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpDelete("recommended-skills/{rspId:guid}")]
     [ProducesResponseType(typeof(RecommendedSkillByPositionResponse), 200)]
     [ProducesResponseType(401)]

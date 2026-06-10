@@ -9,7 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Facade.AdminManagement.Contracts\Facade.AdminManagement.Contracts.csproj" />
     <ProjectReference Include="..\Facade.AdminManagement.Services\Facade.AdminManagement.Services.csproj" />
-    <ProjectReference Include="..\Facade.AdminManagement.Controllers\Facade.AdminManagement.Controllers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

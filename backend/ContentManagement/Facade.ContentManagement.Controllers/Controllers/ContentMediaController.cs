@@ -1,3 +1,4 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
@@ -49,12 +50,14 @@ public class ContentMediaController : ContentManagementControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 5 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.ImageMaxSizeBytes,
+            FileUploadValidation.ImageTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = file!.OpenReadStream();
 
         var response = await ContentService.UploadMediaAsync(
             userId,

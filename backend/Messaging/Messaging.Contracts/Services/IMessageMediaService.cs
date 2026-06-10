@@ -6,6 +6,7 @@ namespace Messaging.Contracts.Services;
 
 public interface IMessageMediaService
 {
+    Task<MessageMediaResult> ValidateAttachAccessAsync(GetMessageMediaParameters parameters);
     Task<MessageMediaResult> AttachAsync(AttachMessageMediaParameters parameters);
     Task<IReadOnlyCollection<MessageMediaDto>> GetByMessageIdAsync(GetMessageMediaParameters parameters);
     Task<MessageMediaResult> DeleteAsync(DeleteMessageMediaParameters parameters);

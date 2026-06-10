@@ -27,7 +27,7 @@
 - build: root Dockerfile
 - port: `5000:8080`
 - depends_on postgres healthy
-- volume: `profile_uploads:/app/uploads`
+- volume: `uploads_data:/app/uploads` (FileStorage local mode)
 
 env:
 

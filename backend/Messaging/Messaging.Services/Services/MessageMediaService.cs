@@ -24,6 +24,20 @@ public class MessageMediaService : IMessageMediaService
         _dbContext = dbContext;
     }
 
+    public async Task<MessageMediaResult> ValidateAttachAccessAsync(GetMessageMediaParameters parameters)
+    {
+        var accessError = await GetAttachAccessErrorAsync(parameters.UserId, parameters.MessageId);
+        if (accessError != null)
+        {
+            return accessError;
+        }
+
+        return new MessageMediaResult
+        {
+            Succeeded = true
+        };
+    }
+
     public async Task<MessageMediaResult> AttachAsync(AttachMessageMediaParameters parameters)
     {
         var mediaUrl = parameters.MediaUrl.Trim();
@@ -44,15 +58,10 @@ public class MessageMediaService : IMessageMediaService
             return Error("Unsupported media type.");
         }
 
-        var message = await _dbContext.Messages
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m =>
-                m.Id == parameters.MessageId &&
-                m.DeletedAt == null);
-
-        if (message == null || message.SenderId != parameters.UserId || !await HasActiveChatAccess(message.ChatId, parameters.UserId))
+        var accessError = await GetAttachAccessErrorAsync(parameters.UserId, parameters.MessageId);
+        if (accessError != null)
         {
-            return Error("Message not found.");
+            return accessError;
         }
 
         var media = new MessageMedia
@@ -127,6 +136,24 @@ public class MessageMediaService : IMessageMediaService
             Succeeded = true,
             MessageMedia = Map(media)
         };
+    }
+
+    private async Task<MessageMediaResult?> GetAttachAccessErrorAsync(string userId, Guid messageId)
+    {
+        var message = await _dbContext.Messages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m =>
+                m.Id == messageId &&
+                m.DeletedAt == null);
+
+        if (message == null
+            || message.SenderId != userId
+            || !await HasActiveChatAccess(message.ChatId, userId))
+        {
+            return Error("Message not found.");
+        }
+
+        return null;
     }
 
     private async Task<bool> HasActiveChatAccess(Guid chatId, string userId)

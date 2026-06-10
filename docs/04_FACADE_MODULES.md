@@ -19,29 +19,34 @@ Controllers лежат только в facade.
 ## ProfileManagement (`/api/profile`)
 
 - controllers: profiles, message settings, views, media
-- сервис: `IProfileManagementService` → `IProfileClient`
-- uploads avatar/header и раздача `/uploads`
+- сервис: `IProfileManagementService` → `IProfileClient` + `IFileStorageService`
+- multipart uploads: `POST me/avatar`, `POST me/header` → `AvatarUrl` / `HeaderUrl`
 
 ## ProfessionalManagement (`/api/professional`)
 
 - controllers: experiences/companies/academies/educations/certificates/skills/languages/recommendations
-- сервис: `IProfessionalManagementService` → `IProfessionalClient`
+- сервис: `IProfessionalManagementService` → `IProfessionalClient` + `IFileStorageService`
+- catalog writes: skills, academies, languages, recommended-skills — **Admin-only**; uploads: company logo (user), academy logo (Admin), certificate file
 
 ## NetworkManagement (`/api/network`)
 
 - controllers: contacts/follows/blocked/groups/group members/group posts/pages/page admins/page followers
-- сервис: `INetworkManagementService` → `INetworkClient`
+- сервис: `INetworkManagementService` → `INetworkClient` + `IFileStorageService`
 - orchestration с `IContentClient` для group posts
+- uploads: page logo, group avatar
 
 ## ContentManagement (`/api/content`)
 
 - controllers: posts/media/comments/reactions/hashtags/saved/reposts/views/mentions
-- сервис: `IContentManagementService` → `IContentClient`
+- сервис: `IContentManagementService` → `IContentClient` + `IFileStorageService`
+- upload: `POST me/media/upload` → `Media.Url`; attach к post — отдельный flow
+- catalog write: `POST hashtags` — **Admin-only**; follow/attach — User JWT
 
 ## MessagingManagement (`/api/messaging`)
 
 - controllers: chats/chat members/messages/message reads/message media
-- сервис: `IMessagingManagementService` → `IMessagingClient`
+- сервис: `IMessagingManagementService` → `IMessagingClient` + `IFileStorageService`
+- upload: `POST me/messages/{messageId}/media/upload`; JSON attach — `POST .../media`
 
 ## JobsManagement (`/api/jobs`)
 
@@ -97,7 +102,50 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 ## EventsManagement (`/api/events`)
 
 - controllers: events/attendees/schedule/speakers/event-speakers
-- сервис: `IEventsManagementService` → `IEventsClient`
+- сервис: `IEventsManagementService` → `IEventsClient` + `IFileStorageService`
+- uploads: event cover (user), speaker avatar (**Admin**); catalog write speakers — **Admin-only**
+
+## AIManagement (`/api/ai`)
+
+- controllers: `AIController`
+- сервис: `IAIManagementService` → `IAIService` (Gemini + fallback)
+- **без** FileStorage uploads
+
+## FileStorage (shared, не facade CRUD)
+
+См. `09_CONFIG_UPLOADS.md` — `IFileStorageService`, local/S3, 11 upload endpoints, `FileUploadConstants`, `FileUploadValidation`.
+
+## Global catalog / reference entities (Admin-only writes)
+
+Глобальные справочники (не user-owned): **Skill**, **RecommendedSkillByPosition**, **Academy**, **Language**, **Hashtag**, **EventSpeaker**.
+
+| Правило | Описание |
+|---|---|
+| **Read** | GET/list/search — как раньше (публично или с User JWT, без роли Admin) |
+| **User-scoped** | `me/skills`, `me/languages`, attach/detach/follow hashtags, attach speaker к event — User JWT |
+| **Catalog write** | POST/PATCH/DELETE глобального справочника — **только Admin** (`[Authorize(Roles = IdentityRoleNames.Admin)]`) |
+
+Обычный пользователь с валидным JWT на catalog write → **403 Forbidden** (пустое тело). Admin → **200** (или business **400**).
+
+### Admin-only catalog write endpoints
+
+| Method | Route | Entity |
+|---|---|---|
+| POST | `/api/professional/skills` | Skill |
+| POST | `/api/professional/recommended-skills` | RecommendedSkillByPosition |
+| DELETE | `/api/professional/recommended-skills/{rspId}` | RecommendedSkillByPosition |
+| POST | `/api/professional/academies` | Academy |
+| POST | `/api/professional/academies/{academyId}/logo` | Academy (upload) |
+| POST | `/api/professional/languages` | Language |
+| POST | `/api/content/hashtags` | Hashtag |
+| POST | `/api/events/me/speakers` | EventSpeaker |
+| PATCH | `/api/events/me/speakers/{speakerId}` | EventSpeaker |
+| DELETE | `/api/events/me/speakers/{speakerId}` | EventSpeaker |
+| POST | `/api/events/me/speakers/{speakerId}/avatar` | EventSpeaker (upload) |
+
+**EventSpeaker:** глобальный справочник без `OwnerId`; write/avatar — Admin-only; read (`GET me/speakers/{id}`) — User JWT.
+
+**Recommended job queries** (`/api/jobs/recommended-queries`): user только **GET**; write — `/api/admin/jobs/recommended-queries`.
 
 ## Общие правила facade
 

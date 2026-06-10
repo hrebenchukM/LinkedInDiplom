@@ -1,3 +1,4 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -26,14 +27,16 @@ public class ProfileMediaController : ProfileManagementControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 5 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.ImageMaxSizeBytes,
+            FileUploadValidation.ImageTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
         try
         {
-            await using var stream = file.OpenReadStream();
+            await using var stream = file!.OpenReadStream();
 
             var response = await ProfileService.UploadMyAvatarAsync(
                 userId,
@@ -65,14 +68,16 @@ public class ProfileMediaController : ProfileManagementControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 5 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.ImageMaxSizeBytes,
+            FileUploadValidation.ImageTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
         try
         {
-            await using var stream = file.OpenReadStream();
+            await using var stream = file!.OpenReadStream();
 
             var response = await ProfileService.UploadMyHeaderAsync(
                 userId,

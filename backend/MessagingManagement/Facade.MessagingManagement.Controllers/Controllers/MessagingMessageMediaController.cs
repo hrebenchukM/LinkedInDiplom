@@ -1,3 +1,4 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.MessagingManagement.Contracts.Requests.MessageMedia;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.MessagingManagement.Contracts.Services;
@@ -49,12 +50,14 @@ public class MessagingMessageMediaController : MessagingManagementControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MessageMediaBadRequest("File is empty.");
-        if (file.Length > 10 * 1024 * 1024)
-            return MessageMediaBadRequest("File is too large. Maximum size is 10 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.DocumentMaxSizeBytes,
+            FileUploadValidation.DocumentTooLargeMessage);
+        if (validationError != null)
+            return MessageMediaBadRequest(validationError);
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = file!.OpenReadStream();
 
         var response = await MessagingService.UploadMessageMediaAsync(
             userId,

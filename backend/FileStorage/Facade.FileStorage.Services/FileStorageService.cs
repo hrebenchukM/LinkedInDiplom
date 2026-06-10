@@ -3,23 +3,29 @@ using Amazon.S3.Model;
 using Facade.FileStorage.Contracts;
 using Facade.FileStorage.Contracts.Options;
 using Facade.FileStorage.Contracts.Services;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Facade.FileStorage.Services;
 
 public class FileStorageService : IFileStorageService
 {
+    private const string UploadsUrlPrefix = "/uploads/";
+
     private readonly FileStorageOptions _fileStorageOptions;
     private readonly AwsS3Settings _s3Settings;
     private readonly IAmazonS3? _s3Client;
+    private readonly ILogger<FileStorageService> _logger;
 
     public FileStorageService(
         IOptions<FileStorageOptions> fileStorageOptions,
         IOptions<AwsS3Settings> s3Settings,
+        ILogger<FileStorageService> logger,
         IAmazonS3? s3Client = null)
     {
         _fileStorageOptions = fileStorageOptions.Value;
         _s3Settings = s3Settings.Value;
+        _logger = logger;
         _s3Client = s3Client;
     }
 
@@ -62,6 +68,109 @@ public class FileStorageService : IFileStorageService
             options,
             newFileName,
             cancellationToken);
+    }
+
+    public async Task DeleteAsync(string? fileUrl, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileUrl))
+            return;
+
+        var normalizedUrl = fileUrl.Trim();
+
+        try
+        {
+            if (IsLocalUploadsUrl(normalizedUrl))
+            {
+                DeleteLocalFile(normalizedUrl);
+                return;
+            }
+
+            if (TryExtractS3ObjectKey(normalizedUrl, out var objectKey))
+                await DeleteS3ObjectAsync(objectKey, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete stored file at {FileUrl}", normalizedUrl);
+        }
+    }
+
+    private static bool IsLocalUploadsUrl(string fileUrl) =>
+        fileUrl.StartsWith(UploadsUrlPrefix, StringComparison.OrdinalIgnoreCase);
+
+    private void DeleteLocalFile(string fileUrl)
+    {
+        var relativeAfterUploads = fileUrl[UploadsUrlPrefix.Length..];
+        if (string.IsNullOrWhiteSpace(relativeAfterUploads))
+            return;
+
+        var segments = relativeAfterUploads.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Any(segment => segment is "." or ".."))
+            return;
+
+        var uploadsRoot = Path.GetFullPath(_fileStorageOptions.UploadsRootPath);
+        var candidatePath = Path.GetFullPath(Path.Combine(uploadsRoot, Path.Combine(segments)));
+
+        if (!IsUnderDirectory(uploadsRoot, candidatePath))
+            return;
+
+        if (!File.Exists(candidatePath))
+            return;
+
+        File.Delete(candidatePath);
+    }
+
+    private static bool IsUnderDirectory(string rootDirectory, string candidatePath)
+    {
+        var normalizedRoot = rootDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var prefix = normalizedRoot + Path.DirectorySeparatorChar;
+
+        return candidatePath.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase)
+            || candidatePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool TryExtractS3ObjectKey(string fileUrl, out string objectKey)
+    {
+        objectKey = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(_s3Settings.BucketName) || _s3Client is null)
+            return false;
+
+        if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+            return false;
+
+        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!IsCurrentBucketHost(uri.Host))
+            return false;
+
+        objectKey = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
+        return !string.IsNullOrWhiteSpace(objectKey);
+    }
+
+    private bool IsCurrentBucketHost(string host)
+    {
+        var bucket = _s3Settings.BucketName.Trim();
+
+        if (host.Equals($"{bucket}.s3.amazonaws.com", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var region = _s3Settings.Region?.Trim();
+        if (string.IsNullOrWhiteSpace(region))
+            return false;
+
+        return host.Equals($"{bucket}.s3.{region}.amazonaws.com", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task DeleteS3ObjectAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        var deleteRequest = new DeleteObjectRequest
+        {
+            BucketName = _s3Settings.BucketName,
+            Key = objectKey
+        };
+
+        await _s3Client!.DeleteObjectAsync(deleteRequest, cancellationToken);
     }
 
     private async Task<string> SaveLocallyAsync(

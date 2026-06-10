@@ -51,10 +51,32 @@
 Обычно:
 
 - `400` — validation/business error
-- `401` — не авторизован
-- `403` — forbidden (нет нужной роли; типично User на `/api/admin/*`)
-- `404` — not found: **GET-by-id** в facade (шаг 33) → slim `{ success, errors }`; **mutations** и часть endpoints — по-прежнему через `MapErrors` / полный facade `*Response` (отдельный будущий этап)
+- `401` — нет JWT или невалидный/просроченный токен (пустое тело)
+- `403` — JWT есть, но **нет роли Admin** на защищённом endpoint (пустое тело); типично: User на `/api/admin/*` или catalog write (`POST /api/professional/skills`, `POST /api/content/hashtags`, …)
+- `404` — not found: **GET-by-id** в facade (шаг 33) → slim `{ success, errors }`; для user-owned mutations — также «сущность не найдена» или «чужая сущность» через `MapErrors`
 - `200/204` — успех
+
+### Catalog write: 401 vs 403 vs 404
+
+| Ситуация | Код |
+|---|---|
+| Нет `Authorization: Bearer` | **401** |
+| User JWT (роль User) на Admin-only catalog write | **403** |
+| Admin JWT, невалидный body | **400** (auto-validation или business) |
+| Admin JWT, валидный create | **200** |
+| User JWT на `POST /api/professional/me/skills` (привязка skill к профилю) | **200** / **400** / **404** — не **403** |
+
+**Проверка (Postman):**
+
+| Сценарий | Ожидание |
+|---|---|
+| `POST /api/professional/skills` без JWT | **401** |
+| `POST /api/professional/skills` с `{{accessToken}}` (User) | **403** |
+| `POST /api/professional/skills` с `{{adminToken}}` | **200** (при валидном body) |
+| `POST /api/content/hashtags` с User token | **403** |
+| `POST /api/content/me/hashtags/{id}/follow` с User token | **200** / **404** (не **403**) |
+| `POST /api/events/me/speakers/{id}/avatar` с User token | **403** |
+| `POST /api/events/me/speakers/{id}/avatar` с Admin token | **200** (при валидном файле) |
 
 ### GET not-found в facade controllers (шаг 33)
 
@@ -217,8 +239,10 @@
 | `POST /api/profile/me/avatar` без файла / пустой файл | **400**, `{ success: false, errors: ["File is empty."] }` |
 | `POST /api/profile/me/header` без файла / пустой файл | **400**, `{ success: false, errors: ["File is empty."] }` |
 | `POST .../avatar` или `.../header` файл > 5 MB | **400**, `errors: ["File is too large. Maximum size is 5 MB."]` |
-| `POST .../avatar` недопустимое расширение (например `.gif`) | **400**, `errors: ["Only jpg, jpeg, png and webp files are allowed."]` |
+| `POST .../avatar` недопустимое расширение (например `.gif`) | **400**, `errors: ["File extension is not allowed."]` |
 | Валидный jpg/png/webp ≤ 5 MB | **200**, `ProfileResponse` как раньше |
+
+**Все 11 multipart upload endpoints** (Profile, Content, Professional, Network, Events, Messaging) используют поле `file`, те же тексты `FileUploadValidation` для empty/too large, и `FileStorageService` для extension/content-type. Полная таблица: `09_CONFIG_UPLOADS.md`.
 
 ### Admin API (`/api/admin/*`)
 

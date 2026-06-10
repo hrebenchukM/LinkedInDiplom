@@ -7,7 +7,7 @@ Frontend
 Facade.API  
 ↓ Controllers (`Facade.*.Controllers`)  
 Facade services (`Facade.*.Services`)  
-↓ `I*Client` / Resource  
+↓ `I*Client` / Resource (+ `IFileStorageService` для uploads)  
 Core services (`*.Services`)  
 ↓ `*DbContext` (`*.DataAccess`)  
 PostgreSQL schema
@@ -17,9 +17,27 @@ PostgreSQL schema
 Facade.API регистрирует:
 
 - 9 core модулей: `AddIdentityModule ... AddEventsModule`
-- 10 facade модулей: `AddAccountManagementFacade ... AddEventsManagementFacade` + `AddAdminManagementFacade`
-- controllers через `AddApplicationPart(...)` (включая `AdminManagementControllersAssemblyMarker`)
+- shared **FileStorage**: `AddFileStorage(configuration)`
+- facade модулей: `AddAccountManagementFacade`, `AddProfileManagementFacade`, … `AddEventsManagementFacade`, `AddAdminManagementFacade`, `AddAIManagementFacade`
+- controllers через `AddApplicationPart(...)` (включая `AdminManagementControllersAssemblyMarker`, `AIController`)
 - JWT, CORS, Swagger (dev), static files `/uploads`
+
+## FileStorage (shared infrastructure)
+
+Не core-модуль и не facade bounded context. Отдельные проекты `backend/FileStorage/Facade.FileStorage.*`.
+
+```
+Upload Controller (IFormFile)
+  → Facade *ManagementService
+    → permission / existence check (entity uploads)
+    → IFileStorageService.SaveAsync
+      → local /uploads/...  OR  S3 HTTPS URL
+    → I*Client updates URL in DB (string only, no blob)
+```
+
+- Feature facades зависят только от `Facade.FileStorage.Contracts`.
+- `FileStorageService` не зависит от Profile/Content/Professional/Network/Events/Messaging.
+- Подробности: `09_CONFIG_UPLOADS.md`.
 
 ## Platform Admin (Facade.AdminManagement)
 

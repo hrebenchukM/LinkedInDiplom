@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Identity\Identity.Contracts\Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Contracts\Facade.FileStorage.Contracts.csproj" />
     <ProjectReference Include="..\Facade.ContentManagement.Contracts\Facade.ContentManagement.Contracts.csproj" />
     <ProjectReference Include="..\Facade.ContentManagement.Services\Facade.ContentManagement.Services.csproj" />
   </ItemGroup>

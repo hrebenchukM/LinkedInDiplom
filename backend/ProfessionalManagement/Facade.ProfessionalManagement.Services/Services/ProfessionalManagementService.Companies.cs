@@ -2,15 +2,13 @@ using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Professional.Contracts.Parameters.Company;
 
 namespace Facade.ProfessionalManagement.Services.Services;
 
 public partial class ProfessionalManagementService
 {
-    private static readonly string[] CompanyLogoExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-    private static readonly string[] CompanyLogoContentTypes =
-        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     // Получить мои компании
     public async Task<IReadOnlyCollection<CompanyDto>> GetMyCompaniesAsync(string userId)
     {
@@ -144,6 +142,20 @@ public partial class ProfessionalManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingCompany = await GetCompanyByIdAsync(companyId);
+
+        if (existingCompany is null
+            || !string.Equals(existingCompany.OwnerUserId, userId, StringComparison.Ordinal))
+        {
+            return new CompanyResponse
+            {
+                Success = false,
+                Errors = new[] { "Company not found." }
+            };
+        }
+
+        var oldLogoUrl = existingCompany.LogoUrl;
+
         string logoUrl;
 
         try
@@ -158,8 +170,8 @@ public partial class ProfessionalManagementService
                     EntityName = "company-logo",
                     OwnerId = userId,
                     EntityId = companyId.ToString(),
-                    AllowedExtensions = CompanyLogoExtensions,
-                    AllowedContentTypes = CompanyLogoContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }
@@ -172,13 +184,18 @@ public partial class ProfessionalManagementService
             };
         }
 
-        return await PatchMyCompanyAsync(
+        var response = await PatchMyCompanyAsync(
             userId,
             companyId,
             new PatchCompanyRequest
             {
                 LogoUrl = logoUrl
             });
+
+        if (response.Success)
+            await _fileStorageService.DeleteAsync(oldLogoUrl, cancellationToken);
+
+        return response;
     }
 
     private static CompanyDto MapCompanyToFacadeDto(Professional.Contracts.DTOs.CompanyDto company)

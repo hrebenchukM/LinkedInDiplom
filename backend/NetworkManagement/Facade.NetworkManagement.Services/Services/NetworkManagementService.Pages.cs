@@ -2,15 +2,13 @@ using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Page;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Network.Contracts.Parameters.Page;
 
 namespace Facade.NetworkManagement.Services.Services;
 
 public partial class NetworkManagementService
 {
-    private static readonly string[] NetworkImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-    private static readonly string[] NetworkImageContentTypes =
-        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     public async Task<PageResponse> CreatePageAsync(string userId, CreatePageRequest request)
     {
         var result = await _networkClient.Pages.CreateAsync(new CreatePageParameters
@@ -67,6 +65,19 @@ public partial class NetworkManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingPage = await GetMyPageByIdAsync(userId, pageId);
+
+        if (existingPage == null)
+        {
+            return new PageResponse
+            {
+                Success = false,
+                Errors = new[] { "Page not found." }
+            };
+        }
+
+        var oldLogoUrl = existingPage.LogoUrl;
+
         string logoUrl;
 
         try
@@ -81,8 +92,8 @@ public partial class NetworkManagementService
                     EntityName = "page-logo",
                     OwnerId = userId,
                     EntityId = pageId.ToString(),
-                    AllowedExtensions = NetworkImageExtensions,
-                    AllowedContentTypes = NetworkImageContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }
@@ -95,18 +106,7 @@ public partial class NetworkManagementService
             };
         }
 
-        var existingPage = await GetMyPageByIdAsync(userId, pageId);
-
-        if (existingPage == null)
-        {
-            return new PageResponse
-            {
-                Success = false,
-                Errors = new[] { "Page not found." }
-            };
-        }
-
-        return await UpdatePageAsync(
+        var response = await UpdatePageAsync(
             userId,
             pageId,
             new UpdatePageRequest
@@ -115,6 +115,11 @@ public partial class NetworkManagementService
                 Description = existingPage.Description,
                 LogoUrl = logoUrl
             });
+
+        if (response.Success)
+            await _fileStorageService.DeleteAsync(oldLogoUrl, cancellationToken);
+
+        return response;
     }
 
     public async Task<PageResponse> DeletePageAsync(string userId, Guid pageId)

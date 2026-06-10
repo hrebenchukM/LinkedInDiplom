@@ -1,3 +1,4 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
@@ -150,12 +151,14 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 10 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 10 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.DocumentMaxSizeBytes,
+            FileUploadValidation.DocumentTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = file!.OpenReadStream();
 
         var response = await ProfessionalService.UploadCertificateFileAsync(
             userId,

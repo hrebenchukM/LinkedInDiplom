@@ -2,15 +2,13 @@ using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Professional.Contracts.Parameters.Academy;
 
 namespace Facade.ProfessionalManagement.Services.Services;
 
 public partial class ProfessionalManagementService
 {
-    private static readonly string[] AcademyLogoExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-    private static readonly string[] AcademyLogoContentTypes =
-        { "image/jpeg", "image/png", "image/webp", "image/gif" };
     // Получить учебное заведение по Id
     public async Task<AcademyDto?> GetAcademyByIdAsync(Guid academyId)
     {
@@ -50,6 +48,19 @@ public partial class ProfessionalManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingAcademy = await GetAcademyByIdAsync(academyId);
+
+        if (existingAcademy is null)
+        {
+            return new AcademyResponse
+            {
+                Success = false,
+                Errors = new[] { "Academy not found." }
+            };
+        }
+
+        var oldLogoUrl = existingAcademy.LogoUrl;
+
         string logoUrl;
 
         try
@@ -64,8 +75,8 @@ public partial class ProfessionalManagementService
                     EntityName = "academy-logo",
                     OwnerId = userId,
                     EntityId = academyId.ToString(),
-                    AllowedExtensions = AcademyLogoExtensions,
-                    AllowedContentTypes = AcademyLogoContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }
@@ -84,6 +95,9 @@ public partial class ProfessionalManagementService
                 AcademyId = academyId,
                 LogoUrl = logoUrl
             });
+
+        if (result.Succeeded)
+            await _fileStorageService.DeleteAsync(oldLogoUrl, cancellationToken);
 
         return new AcademyResponse
         {

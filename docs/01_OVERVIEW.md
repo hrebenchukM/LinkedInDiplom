@@ -6,7 +6,8 @@ LinkedInDiplom backend — **microservice-ready modular monolith + BFF** на `.
 
 - один host: `backend/Facade.API`
 - 9 core-модулей: Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications, Events
-- 10 facade-модулей: AccountManagement, ProfileManagement, ProfessionalManagement, NetworkManagement, ContentManagement, MessagingManagement, JobsManagement, NotificationsManagement, EventsManagement, **AdminManagement**
+- facade-модулей: AccountManagement, ProfileManagement, ProfessionalManagement, NetworkManagement, ContentManagement, MessagingManagement, JobsManagement, NotificationsManagement, EventsManagement, **AdminManagement**, **AIManagement**
+- shared infrastructure: **FileStorage** (`Facade.FileStorage.*`) — uploads local/S3 для 6 feature facades
 
 ## Техстек
 
@@ -54,6 +55,11 @@ Identity дополнительно:
 - `/api/notifications`
 - `/api/events`
 - `/api/admin` (platform admin; роль JWT `Admin`)
+- `/api/ai` (рекомендации / career advice; Gemini + fallback)
+
+## File uploads (backend)
+
+11 multipart endpoints через `IFileStorageService`; в БД только URL. Frontend integration **ещё не выполнена**. Подробно: `09_CONFIG_UPLOADS.md`.
 
 ## Устаревшие вещи
 

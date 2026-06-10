@@ -77,7 +77,7 @@ builder.Services.AddAdminManagementFacade();
 builder.Services.AddAccountManagementFacade();
 
 // Подключаем ProfileManagement facade
-builder.Services.AddProfileManagementFacade(configuration);
+builder.Services.AddProfileManagementFacade();
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
@@ -258,7 +258,7 @@ app.UseHttpsRedirection();
 // Включаем CORS в зависимости от окружения
 app.UseCors(app.Environment.IsDevelopment() ? "DevelopmentCors" : "ProductionCors");
 
-// Отдача загруженных файлов из той же папки, что и ProfileManagementService
+// Отдача загруженных файлов из той же папки, что и FileStorage (FileStorage:UploadsRootPath)
 if (!Directory.Exists(uploadsPath))
 {
     Directory.CreateDirectory(uploadsPath);

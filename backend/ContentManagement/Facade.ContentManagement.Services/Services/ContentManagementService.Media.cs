@@ -5,15 +5,12 @@ using Facade.ContentManagement.Contracts.Requests.Media;
 using Facade.ContentManagement.Contracts.Requests.PostMedia;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 
 namespace Facade.ContentManagement.Services.Services;
 
 public partial class ContentManagementService
 {
-    private static readonly string[] ContentImageExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-    private static readonly string[] ContentImageContentTypes =
-        { "image/jpeg", "image/png", "image/webp", "image/gif" };
-
     public async Task<MediaResponse> CreateMediaAsync(CreateMediaRequest request)
     {
         var result = await _contentClient.Media.CreateAsync(new CreateMediaParameters
@@ -45,8 +42,8 @@ public partial class ContentManagementService
                     ModuleName = "content",
                     EntityName = "media",
                     OwnerId = userId,
-                    AllowedExtensions = ContentImageExtensions,
-                    AllowedContentTypes = ContentImageContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }

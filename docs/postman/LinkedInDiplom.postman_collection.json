@@ -256,7 +256,7 @@
         { "name": "Delete Company", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}" } },
 
         { "name": "Get Academy By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/academies/{{academyId}}" } },
-        { "name": "Create Academy", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/academies", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Academy\"\n}" } } },
+        { "name": "Create Academy (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/academies", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Academy\"\n}" } } },
 
         { "name": "Get My Educations", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations" } },
         { "name": "Get Education By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}" } },
@@ -277,7 +277,7 @@
         { "name": "Delete Certificate Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}" } },
 
         { "name": "Get Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/skills/{{skillId}}" } },
-        { "name": "Create Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/skills", "body": { "mode": "raw", "raw": "{\n  \"name\": \"C#\"\n}" } } },
+        { "name": "Create Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/skills", "body": { "mode": "raw", "raw": "{\n  \"name\": \"C#\"\n}" } } },
         { "name": "Get My Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills" } },
         { "name": "Get My Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
         { "name": "Create My Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills", "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\",\n  \"level\": \"advanced\"\n}" } } },
@@ -285,11 +285,11 @@
         { "name": "Patch My Skill", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}", "body": { "mode": "raw", "raw": "{\n  \"isMain\": true\n}" } } },
         { "name": "Delete My Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
         { "name": "Get Recommended Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/recommended-skills" } },
-        { "name": "Create Recommended Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommended-skills", "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"skillId\": \"{{skillId}}\"\n}" } } },
-        { "name": "Delete Recommended Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommended-skills/{{recommendedQueryId}}" } },
+        { "name": "Create Recommended Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommended-skills", "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"skillId\": \"{{skillId}}\"\n}" } } },
+        { "name": "Delete Recommended Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommended-skills/{{recommendedQueryId}}" } },
 
         { "name": "Get Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/languages/{{languageId}}" } },
-        { "name": "Create Language", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/languages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"English\"\n}" } } },
+        { "name": "Create Language (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/languages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"English\"\n}" } } },
         { "name": "Get My Languages", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages" } },
         { "name": "Get My Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}" } },
         { "name": "Create My Language", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages", "body": { "mode": "raw", "raw": "{\n  \"languageId\": \"{{languageId}}\",\n  \"level\": \"B2\"\n}" } } },
@@ -363,7 +363,7 @@
         { "name": "Get Post Media", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media" } },
         { "name": "Detach Media From Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}" } },
 
-        { "name": "Upload Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/media", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
+        { "name": "Upload Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/media/upload", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
         { "name": "Get Media By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/media/{{mediaId}}" } },
 
         { "name": "Create Comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Nice post!\"\n}" } } },
@@ -376,7 +376,7 @@
         { "name": "Get My Reaction", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me" } },
         { "name": "Get Post Reactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions" } },
 
-        { "name": "Create Hashtag", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/hashtags", "body": { "mode": "raw", "raw": "{\n  \"name\": \"dotnet\"\n}" } } },
+        { "name": "Create Hashtag (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/hashtags", "body": { "mode": "raw", "raw": "{\n  \"name\": \"dotnet\"\n}" } } },
         { "name": "Get Hashtag By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}" } },
         { "name": "Attach Hashtag To Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags", "body": { "mode": "raw", "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}" } } },
         { "name": "Get Post Hashtags", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags" } },
@@ -478,10 +478,11 @@
         { "name": "Get Event Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/schedule" } },
         { "name": "Patch Event Schedule Item", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Opening Updated\"\n}" } } },
         { "name": "Delete Event Schedule Item", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}" } },
-        { "name": "Create Speaker", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers", "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}" } } },
+        { "name": "Create Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers", "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}" } } },
         { "name": "Get Speaker By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
-        { "name": "Patch Speaker", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Principal Engineer\"\n}" } } },
-        { "name": "Delete Speaker", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
+        { "name": "Patch Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Principal Engineer\"\n}" } } },
+        { "name": "Delete Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
+        { "name": "Upload Speaker Avatar (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
         { "name": "Attach Speaker To Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers", "body": { "mode": "raw", "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}" } } },
         { "name": "Detach Speaker From Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}" } },
         { "name": "Get Event Speakers", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/speakers" } }

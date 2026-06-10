@@ -2,6 +2,7 @@ using Facade.ContentManagement.Contracts.Requests.Hashtag;
 using Facade.ContentManagement.Contracts.Requests.PostHashtag;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
+using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +16,7 @@ public class ContentHashtagsController : ContentManagementControllerBase
     }
 
     // POST api/content/hashtags
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("hashtags")]
     [ProducesResponseType(typeof(HashtagResponse), 200)]
     [ProducesResponseType(400)]

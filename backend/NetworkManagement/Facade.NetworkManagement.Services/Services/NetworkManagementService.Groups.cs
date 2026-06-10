@@ -2,6 +2,7 @@ using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Network.Contracts.Parameters.UserGroup;
 
 namespace Facade.NetworkManagement.Services.Services;
@@ -67,6 +68,19 @@ public partial class NetworkManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingGroup = await GetMyUserGroupByIdAsync(userId, groupId);
+
+        if (existingGroup == null)
+        {
+            return new UserGroupResponse
+            {
+                Success = false,
+                Errors = new[] { "Group not found." }
+            };
+        }
+
+        var oldAvatarUrl = existingGroup.AvatarUrl;
+
         string avatarUrl;
 
         try
@@ -81,8 +95,8 @@ public partial class NetworkManagementService
                     EntityName = "group-avatar",
                     OwnerId = userId,
                     EntityId = groupId.ToString(),
-                    AllowedExtensions = NetworkImageExtensions,
-                    AllowedContentTypes = NetworkImageContentTypes
+                    AllowedExtensions = FileUploadConstants.GeneralImageExtensions,
+                    AllowedContentTypes = FileUploadConstants.GeneralImageContentTypes
                 },
                 cancellationToken);
         }
@@ -95,18 +109,7 @@ public partial class NetworkManagementService
             };
         }
 
-        var existingGroup = await GetMyUserGroupByIdAsync(userId, groupId);
-
-        if (existingGroup == null)
-        {
-            return new UserGroupResponse
-            {
-                Success = false,
-                Errors = new[] { "Group not found." }
-            };
-        }
-
-        return await UpdateUserGroupAsync(
+        var response = await UpdateUserGroupAsync(
             userId,
             groupId,
             new UpdateUserGroupRequest
@@ -115,6 +118,11 @@ public partial class NetworkManagementService
                 Description = existingGroup.Description,
                 AvatarUrl = avatarUrl
             });
+
+        if (response.Success)
+            await _fileStorageService.DeleteAsync(oldAvatarUrl, cancellationToken);
+
+        return response;
     }
 
     public async Task<UserGroupResponse> DeleteUserGroupAsync(string userId, Guid groupId)

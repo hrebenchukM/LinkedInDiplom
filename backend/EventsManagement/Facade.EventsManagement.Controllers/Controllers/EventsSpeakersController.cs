@@ -1,6 +1,8 @@
+using Facade.FileStorage.Contracts.Upload;
 using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.EventsManagement.Contracts.Services;
+using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +16,7 @@ public class EventsSpeakersController : EventsManagementControllerBase
     {
     }
 
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("me/speakers")]
     [ProducesResponseType(typeof(EventSpeakerResponse), 200)]
     [ProducesResponseType(400)]
@@ -50,7 +52,7 @@ public class EventsSpeakersController : EventsManagementControllerBase
         return Ok(speaker);
     }
 
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPatch("me/speakers/{speakerId:guid}")]
     [ProducesResponseType(typeof(EventSpeakerResponse), 200)]
     [ProducesResponseType(400)]
@@ -70,7 +72,7 @@ public class EventsSpeakersController : EventsManagementControllerBase
     }
 
     // POST api/events/me/speakers/{speakerId}/avatar
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpPost("me/speakers/{speakerId:guid}/avatar")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(EventSpeakerResponse), 200)]
@@ -86,12 +88,14 @@ public class EventsSpeakersController : EventsManagementControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        if (file == null || file.Length == 0)
-            return MediaBadRequest("File is empty.");
-        if (file.Length > 5 * 1024 * 1024)
-            return MediaBadRequest("File is too large. Maximum size is 5 MB.");
+        var validationError = FileUploadValidation.Validate(
+            file?.Length,
+            FileUploadConstants.ImageMaxSizeBytes,
+            FileUploadValidation.ImageTooLargeMessage);
+        if (validationError != null)
+            return MediaBadRequest(validationError);
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = file!.OpenReadStream();
 
         var response = await EventsService.UploadSpeakerAvatarAsync(
             userId,
@@ -107,7 +111,7 @@ public class EventsSpeakersController : EventsManagementControllerBase
         return Ok(response);
     }
 
-    [Authorize]
+    [Authorize(Roles = IdentityRoleNames.Admin)]
     [HttpDelete("me/speakers/{speakerId:guid}")]
     [ProducesResponseType(typeof(EventSpeakerResponse), 200)]
     [ProducesResponseType(400)]

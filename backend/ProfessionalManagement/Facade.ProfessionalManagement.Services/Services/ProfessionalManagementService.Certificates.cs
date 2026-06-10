@@ -3,6 +3,7 @@ using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.CertificateSkill;
 using Facade.ProfessionalManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
+using Facade.FileStorage.Contracts.Upload;
 using Professional.Contracts.Parameters.Certificate;
 using Professional.Contracts.Parameters.CertificateSkill;
 
@@ -10,9 +11,6 @@ namespace Facade.ProfessionalManagement.Services.Services;
 
 public partial class ProfessionalManagementService
 {
-    private static readonly string[] CertificateFileExtensions = { ".pdf", ".jpg", ".jpeg", ".png", ".webp" };
-    private static readonly string[] CertificateFileContentTypes =
-        { "application/pdf", "image/jpeg", "image/png", "image/webp" };
     // Получить все мои сертификаты
     public async Task<IReadOnlyCollection<CertificateDto>> GetMyCertificatesAsync(string userId)
     {
@@ -130,6 +128,19 @@ public partial class ProfessionalManagementService
         string contentType,
         CancellationToken cancellationToken = default)
     {
+        var existingCertificate = await GetMyCertificateByIdAsync(userId, certificateId);
+
+        if (existingCertificate is null)
+        {
+            return new CertificateResponse
+            {
+                Success = false,
+                Errors = new[] { "Certificate not found." }
+            };
+        }
+
+        var oldDownloadRef = existingCertificate.DownloadRef;
+
         string downloadRef;
 
         try
@@ -144,8 +155,8 @@ public partial class ProfessionalManagementService
                     EntityName = "certificate-file",
                     OwnerId = userId,
                     EntityId = certificateId.ToString(),
-                    AllowedExtensions = CertificateFileExtensions,
-                    AllowedContentTypes = CertificateFileContentTypes
+                    AllowedExtensions = FileUploadConstants.CertificateFileExtensions,
+                    AllowedContentTypes = FileUploadConstants.CertificateFileContentTypes
                 },
                 cancellationToken);
         }
@@ -158,13 +169,18 @@ public partial class ProfessionalManagementService
             };
         }
 
-        return await PatchMyCertificateAsync(
+        var response = await PatchMyCertificateAsync(
             userId,
             certificateId,
             new PatchCertificateRequest
             {
                 DownloadRef = downloadRef
             });
+
+        if (response.Success)
+            await _fileStorageService.DeleteAsync(oldDownloadRef, cancellationToken);
+
+        return response;
     }
 
     // Удалить сертификат
