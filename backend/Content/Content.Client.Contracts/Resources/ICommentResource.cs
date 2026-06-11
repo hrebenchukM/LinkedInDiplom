@@ -15,4 +15,16 @@ public interface ICommentResource
     Task<CommentResult> UpdateAsync(UpdateCommentParameters parameters);
 
     Task<CommentResult> DeleteAsync(DeleteCommentParameters parameters);
+
+    Task<AdminCommentsResult> GetAdminCommentsAsync(
+        GetAdminCommentsParameters parameters,
+        CancellationToken cancellationToken = default);
+
+    Task AdminSoftDeleteCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestoreCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default);
 }

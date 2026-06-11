@@ -36,4 +36,25 @@ public class CommentResource : ICommentResource
     {
         return _commentService.DeleteAsync(parameters);
     }
+
+    public Task<AdminCommentsResult> GetAdminCommentsAsync(
+        GetAdminCommentsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _commentService.GetAdminCommentsAsync(parameters, cancellationToken);
+    }
+
+    public Task AdminSoftDeleteCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+    {
+        return _commentService.AdminSoftDeleteCommentAsync(commentId, cancellationToken);
+    }
+
+    public Task AdminRestoreCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+    {
+        return _commentService.AdminRestoreCommentAsync(commentId, cancellationToken);
+    }
 }

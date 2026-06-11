@@ -64,6 +64,18 @@ public interface IAdminManagementService
         Guid postId,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResponse<AdminCommentDto>> GetAdminCommentsAsync(
+        AdminCommentsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task AdminSoftDeleteCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestoreCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default);
+
     Task<PagedResponse<AdminVacancyDto>> GetAdminVacanciesAsync(
         AdminVacanciesQueryRequest request,
         CancellationToken cancellationToken = default);

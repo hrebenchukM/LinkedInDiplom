@@ -208,6 +208,171 @@ public class CommentService : ICommentService
         return Success(comment);
     }
 
+    public async Task AdminSoftDeleteCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+    {
+        var comment = await _dbContext.Comments
+            .FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
+
+        if (comment == null)
+        {
+            throw new InvalidOperationException($"Comment with id '{commentId}' was not found.");
+        }
+
+        if (comment.DeletedAt != null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        comment.DeletedAt = now;
+        comment.UpdatedAt = now;
+
+        var post = await _dbContext.Posts
+            .FirstOrDefaultAsync(p => p.Id == comment.PostId && p.DeletedAt == null, cancellationToken);
+
+        if (post != null)
+        {
+            post.CommentCount = Math.Max(0, post.CommentCount - 1);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AdminRestoreCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+    {
+        var comment = await _dbContext.Comments
+            .FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
+
+        if (comment == null)
+        {
+            throw new InvalidOperationException($"Comment with id '{commentId}' was not found.");
+        }
+
+        if (comment.DeletedAt == null)
+        {
+            return;
+        }
+
+        comment.DeletedAt = null;
+        comment.UpdatedAt = DateTime.UtcNow;
+
+        var post = await _dbContext.Posts
+            .FirstOrDefaultAsync(p => p.Id == comment.PostId && p.DeletedAt == null, cancellationToken);
+
+        if (post != null)
+        {
+            post.CommentCount += 1;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AdminCommentsResult> GetAdminCommentsAsync(
+        GetAdminCommentsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Comments.AsNoTracking();
+
+        if (parameters.PostId.HasValue)
+        {
+            query = query.Where(c => c.PostId == parameters.PostId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.AuthorUserId))
+        {
+            query = query.Where(c => c.UserId == parameters.AuthorUserId.Trim());
+        }
+
+        if (parameters.IsDeleted == true)
+        {
+            query = query.Where(c => c.DeletedAt != null);
+        }
+        else if (parameters.IsDeleted == false)
+        {
+            query = query.Where(c => c.DeletedAt == null);
+        }
+        else if (parameters.IncludeDeleted == false)
+        {
+            query = query.Where(c => c.DeletedAt == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Query))
+        {
+            var searchPattern = $"%{parameters.Query.Trim()}%";
+            query = query.Where(c => EF.Functions.ILike(c.Content, searchPattern));
+        }
+
+        if (parameters.FromCreatedAt.HasValue)
+        {
+            query = query.Where(c => c.CreatedAt >= parameters.FromCreatedAt.Value);
+        }
+
+        if (parameters.ToCreatedAt.HasValue)
+        {
+            query = query.Where(c => c.CreatedAt <= parameters.ToCreatedAt.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyAdminSorting(query, sortBy, descending);
+
+        var comments = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new AdminCommentsResult
+        {
+            Items = comments.Select(MapToAdminDto).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
+    private static IQueryable<Comment> ApplyAdminSorting(
+        IQueryable<Comment> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "updatedat" when descending => query.OrderByDescending(c => c.UpdatedAt),
+            "updatedat" => query.OrderBy(c => c.UpdatedAt),
+            "deletedat" when descending => query.OrderByDescending(c => c.DeletedAt),
+            "deletedat" => query.OrderBy(c => c.DeletedAt),
+            "authoruserid" when descending => query.OrderByDescending(c => c.UserId),
+            "authoruserid" => query.OrderBy(c => c.UserId),
+            "postid" when descending => query.OrderByDescending(c => c.PostId),
+            "postid" => query.OrderBy(c => c.PostId),
+            "createdat" when descending => query.OrderByDescending(c => c.CreatedAt),
+            "createdat" => query.OrderBy(c => c.CreatedAt),
+            _ when descending => query.OrderByDescending(c => c.CreatedAt),
+            _ => query.OrderBy(c => c.CreatedAt)
+        };
+    }
+
+    private static AdminCommentDto MapToAdminDto(Comment comment) =>
+        new()
+        {
+            Id = comment.Id,
+            PostId = comment.PostId,
+            AuthorUserId = comment.UserId,
+            ParentCommentId = comment.ParentCommentId,
+            Content = comment.Content,
+            CreatedAt = comment.CreatedAt,
+            UpdatedAt = comment.UpdatedAt,
+            DeletedAt = comment.DeletedAt,
+            IsDeleted = comment.DeletedAt != null
+        };
+
     private static CommentResult Success(Comment comment)
     {
         return new CommentResult

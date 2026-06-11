@@ -1,5 +1,6 @@
 using Content.Client.Contracts.Resources;
 using Content.Contracts.DTOs;
+using Content.Contracts.Parameters.Comment;
 using Content.Contracts.Parameters.Post;
 using Events.Client.Contracts.Resources;
 using Events.Contracts.DTOs;
@@ -20,6 +21,7 @@ public partial class AdminManagementService : IAdminManagementService
 {
     private readonly IUserResource _userResource;
     private readonly IPostResource _postResource;
+    private readonly ICommentResource _commentResource;
     private readonly IVacancyResource _vacancyResource;
     private readonly IEventResource _eventResource;
     private readonly IRecommendedJobQueryResource _recommendedJobQueryResource;
@@ -27,12 +29,14 @@ public partial class AdminManagementService : IAdminManagementService
     public AdminManagementService(
         IUserResource userResource,
         IPostResource postResource,
+        ICommentResource commentResource,
         IVacancyResource vacancyResource,
         IEventResource eventResource,
         IRecommendedJobQueryResource recommendedJobQueryResource)
     {
         _userResource = userResource;
         _postResource = postResource;
+        _commentResource = commentResource;
         _vacancyResource = vacancyResource;
         _eventResource = eventResource;
         _recommendedJobQueryResource = recommendedJobQueryResource;
@@ -149,6 +153,49 @@ public partial class AdminManagementService : IAdminManagementService
         Guid postId,
         CancellationToken cancellationToken = default)
         => _postResource.AdminRestorePostAsync(postId, cancellationToken);
+
+    public async Task<PagedResponse<AdminCommentDto>> GetAdminCommentsAsync(
+        AdminCommentsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.FromCreatedAt.HasValue
+            && request.ToCreatedAt.HasValue
+            && request.FromCreatedAt > request.ToCreatedAt)
+        {
+            throw new InvalidOperationException("FromCreatedAt must be less than or equal to ToCreatedAt.");
+        }
+
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _commentResource.GetAdminCommentsAsync(
+            new GetAdminCommentsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                PostId = request.PostId,
+                AuthorUserId = request.AuthorUserId,
+                IsDeleted = request.IsDeleted,
+                IncludeDeleted = request.IncludeDeleted,
+                Query = request.Query,
+                FromCreatedAt = request.FromCreatedAt,
+                ToCreatedAt = request.ToCreatedAt,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        return Pagination.Create(result.Items.ToList(), page, pageSize, result.TotalCount);
+    }
+
+    public Task AdminSoftDeleteCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+        => _commentResource.AdminSoftDeleteCommentAsync(commentId, cancellationToken);
+
+    public Task AdminRestoreCommentAsync(
+        Guid commentId,
+        CancellationToken cancellationToken = default)
+        => _commentResource.AdminRestoreCommentAsync(commentId, cancellationToken);
 
     public async Task<PagedResponse<AdminVacancyDto>> GetAdminVacanciesAsync(
         AdminVacanciesQueryRequest request,
