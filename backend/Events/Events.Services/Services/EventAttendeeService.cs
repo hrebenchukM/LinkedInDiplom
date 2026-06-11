@@ -126,6 +126,17 @@ public class EventAttendeeService(EventsDbContext dbContext) : IEventAttendeeSer
         return attendees.Select(Map).ToList();
     }
 
+    public async Task<IReadOnlyCollection<Guid>> GetUserAttendingEventIdsAsync(
+        GetUserAttendingEventIdsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return await dbContext.EventAttendees
+            .AsNoTracking()
+            .Where(x => x.UserId == parameters.UserId && x.DeletedAt == null)
+            .Select(x => x.EventId)
+            .ToListAsync(cancellationToken);
+    }
+
     private static EventAttendeeDto Map(EventAttendee entity) =>
         new()
         {

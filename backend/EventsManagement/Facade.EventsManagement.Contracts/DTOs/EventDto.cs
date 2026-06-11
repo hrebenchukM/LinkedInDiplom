@@ -18,4 +18,8 @@ public record EventDto
     public DateTime? EndAt { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+
+    public int AttendeeCount { get; init; }
+
+    public bool IsAttending { get; init; }
 }

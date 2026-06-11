@@ -1,7 +1,9 @@
+using Facade.EventsManagement.Contracts.DTOs;
 using Facade.FileStorage.Contracts.Upload;
 using Facade.EventsManagement.Contracts.Requests.Event;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.EventsManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,37 @@ public class EventsEventsController : EventsManagementControllerBase
     public EventsEventsController(IEventsManagementService eventsManagementService)
         : base(eventsManagementService)
     {
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<EventDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> DiscoverEvents(
+        [FromQuery] DiscoverEventsQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = GetCurrentUserId();
+        var events = await EventsService.DiscoverEventsAsync(currentUserId, request, cancellationToken);
+        return Ok(events);
+    }
+
+    [Authorize]
+    [HttpGet("me/attending")]
+    [ProducesResponseType(typeof(PagedResponse<EventDto>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyAttendingEvents(
+        [FromQuery] AttendingEventsQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var events = await EventsService.GetMyAttendingEventsAsync(userId, request, cancellationToken);
+        return Ok(events);
     }
 
     [Authorize]
@@ -66,7 +99,7 @@ public class EventsEventsController : EventsManagementControllerBase
             return Unauthorized();
         }
 
-        var item = await EventsService.GetEventByIdAsync(eventId);
+        var item = await EventsService.GetEventByIdAsync(eventId, userId);
         if (item is null)
         {
             return NotFoundError(EventNotFoundError);

@@ -1,5 +1,6 @@
 using Facade.EventsManagement.Contracts.DTOs;
 using Facade.EventsManagement.Contracts.Requests.Event;
+using Facade.Shared.Contracts.Pagination;
 using Facade.EventsManagement.Contracts.Requests.EventSchedule;
 using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
 using Facade.EventsManagement.Contracts.Requests.EventSpeakerMap;
@@ -11,7 +12,18 @@ public interface IEventsManagementService
 {
     Task<EventResponse> CreateEventAsync(string userId, CreateEventRequest request);
     Task<IReadOnlyCollection<EventDto>> GetMyEventsAsync(string userId, int? limit, DateTime? fromStartAt, DateTime? toStartAt);
-    Task<EventDto?> GetEventByIdAsync(Guid eventId);
+    Task<PagedResponse<EventDto>> DiscoverEventsAsync(
+        string? currentUserId,
+        DiscoverEventsQueryRequest request,
+        CancellationToken cancellationToken = default);
+    Task<PagedResponse<EventDto>> GetMyAttendingEventsAsync(
+        string userId,
+        AttendingEventsQueryRequest request,
+        CancellationToken cancellationToken = default);
+    Task<EventDto?> GetEventByIdAsync(Guid eventId, string? currentUserId = null);
+    Task<PagedResponse<EventSpeakerDto>> GetSpeakersAsync(
+        GetEventSpeakersQueryRequest request,
+        CancellationToken cancellationToken = default);
     Task<EventResponse> UpdateEventAsync(string userId, Guid eventId, UpdateEventRequest request);
     Task<EventResponse> UploadEventCoverAsync(
         string userId,

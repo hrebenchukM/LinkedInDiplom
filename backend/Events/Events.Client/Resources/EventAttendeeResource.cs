@@ -22,4 +22,11 @@ public class EventAttendeeResource(IEventAttendeeService attendeeService) : IEve
     {
         return attendeeService.GetEventAttendeesAsync(parameters);
     }
+
+    public Task<IReadOnlyCollection<Guid>> GetUserAttendingEventIdsAsync(
+        GetUserAttendingEventIdsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return attendeeService.GetUserAttendingEventIdsAsync(parameters, cancellationToken);
+    }
 }

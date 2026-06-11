@@ -22,6 +22,20 @@ public class EventResource(IEventService eventService) : IEventResource
         return eventService.GetMyEventsAsync(parameters);
     }
 
+    public Task<EventsPageResult> DiscoverEventsAsync(
+        DiscoverEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.DiscoverEventsAsync(parameters, cancellationToken);
+    }
+
+    public Task<EventsPageResult> GetAttendingEventsAsync(
+        GetAttendingEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.GetAttendingEventsAsync(parameters, cancellationToken);
+    }
+
     public Task<EventDto?> GetByIdAsync(GetEventByIdParameters parameters)
     {
         return eventService.GetByIdAsync(parameters);

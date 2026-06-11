@@ -50,6 +50,35 @@ public class EventSpeakerService(EventsDbContext dbContext) : IEventSpeakerServi
         return entity is null ? null : Map(entity);
     }
 
+    public async Task<EventSpeakersPageResult> GetSpeakersAsync(
+        GetEventSpeakersParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.EventSpeakers.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.Query))
+        {
+            var searchPattern = $"%{parameters.Query.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Name, searchPattern) ||
+                EF.Functions.ILike(x.Title ?? string.Empty, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var speakers = await query
+            .OrderBy(x => x.Name)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new EventSpeakersPageResult
+        {
+            Items = speakers.Select(Map).ToList(),
+            TotalCount = totalCount
+        };
+    }
+
     public async Task<EventSpeakerResult> UpdateAsync(UpdateEventSpeakerParameters parameters)
     {
         var entity = await dbContext.EventSpeakers

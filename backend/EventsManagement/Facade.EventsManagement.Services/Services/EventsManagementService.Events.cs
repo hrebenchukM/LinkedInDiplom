@@ -4,6 +4,7 @@ using Facade.EventsManagement.Contracts.Requests.Event;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
 using Facade.FileStorage.Contracts.Upload;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.EventsManagement.Services.Services;
 
@@ -41,18 +42,70 @@ public partial class EventsManagementService
             ToStartAt = toStartAt
         });
 
-        return events.Select(MapEventToFacadeDto).ToList();
+        return await MapEventsWithEngagementAsync(events, userId, CancellationToken.None);
     }
 
-    public async Task<EventDto?> GetEventByIdAsync(Guid eventId)
+    public async Task<PagedResponse<EventDto>> DiscoverEventsAsync(
+        string? currentUserId,
+        DiscoverEventsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _eventsClient.Events.DiscoverEventsAsync(
+            new DiscoverEventsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Query = request.Query,
+                FromStartAt = request.FromStartAt,
+                ToStartAt = request.ToStartAt,
+                OrganizerUserId = request.OrganizerUserId,
+                Location = request.Location,
+                IsOnline = request.IsOnline
+            },
+            cancellationToken);
+
+        return await MapEventsPageWithEngagementAsync(result, currentUserId, page, pageSize, cancellationToken);
+    }
+
+    public async Task<PagedResponse<EventDto>> GetMyAttendingEventsAsync(
+        string userId,
+        AttendingEventsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _eventsClient.Events.GetAttendingEventsAsync(
+            new GetAttendingEventsParameters
+            {
+                CurrentUserId = userId,
+                Skip = skip,
+                Take = pageSize,
+                FromStartAt = request.FromStartAt,
+                ToStartAt = request.ToStartAt
+            },
+            cancellationToken);
+
+        return await MapEventsPageWithEngagementAsync(result, userId, page, pageSize, cancellationToken);
+    }
+
+    public async Task<EventDto?> GetEventByIdAsync(Guid eventId, string? currentUserId = null)
     {
         var entity = await _eventsClient.Events.GetByIdAsync(new GetEventByIdParameters
         {
-            CurrentUserId = string.Empty,
+            CurrentUserId = currentUserId ?? string.Empty,
             EventId = eventId
         });
 
-        return entity is null ? null : MapEventToFacadeDto(entity);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var attendingIds = await GetAttendingEventIdsAsync(currentUserId, CancellationToken.None);
+
+        return MapEventToFacadeDto(entity, attendingIds);
     }
 
     public async Task<EventResponse> UpdateEventAsync(string userId, Guid eventId, UpdateEventRequest request)

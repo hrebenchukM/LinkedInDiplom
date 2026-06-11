@@ -4,6 +4,7 @@ using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.FileStorage.Contracts;
 using Facade.FileStorage.Contracts.Upload;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.EventsManagement.Services.Services;
 
@@ -20,6 +21,28 @@ public partial class EventsManagementService
         });
 
         return MapEventSpeakerResultToFacadeResponse(result);
+    }
+
+    public async Task<PagedResponse<EventSpeakerDto>> GetSpeakersAsync(
+        GetEventSpeakersQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _eventsClient.Speakers.GetSpeakersAsync(
+            new GetEventSpeakersParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                Query = request.Query
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapEventSpeakerToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<EventSpeakerDto?> GetSpeakerByIdAsync(string userId, Guid speakerId)

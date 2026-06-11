@@ -1,4 +1,6 @@
 using Events.Client.Contracts;
+using Events.Contracts.Parameters.EventAttendee;
+using Facade.Shared.Contracts.Pagination;
 using EventsCoreAttendeeDto = Events.Contracts.DTOs.EventAttendeeDto;
 using EventsCoreAttendeeResult = Events.Contracts.Results.EventAttendeeResult;
 using EventsCoreEventDto = Events.Contracts.DTOs.EventDto;
@@ -74,7 +76,9 @@ public partial class EventsManagementService : IEventsManagementService
             Errors = result.Errors
         };
 
-    private static EventDto MapEventToFacadeDto(EventsCoreEventDto dto) =>
+    private static EventDto MapEventToFacadeDto(
+        EventsCoreEventDto dto,
+        IReadOnlySet<Guid>? attendingEventIds = null) =>
         new()
         {
             Id = dto.Id,
@@ -92,8 +96,57 @@ public partial class EventsManagementService : IEventsManagementService
             StartAt = dto.StartAt,
             EndAt = dto.EndAt,
             CreatedAt = dto.CreatedAt,
-            UpdatedAt = dto.UpdatedAt
+            UpdatedAt = dto.UpdatedAt,
+            AttendeeCount = dto.AttendeeCount,
+            IsAttending = attendingEventIds?.Contains(dto.Id) ?? false
         };
+
+    private async Task<HashSet<Guid>?> GetAttendingEventIdsAsync(
+        string? currentUserId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return null;
+        }
+
+        var ids = await _eventsClient.Attendees.GetUserAttendingEventIdsAsync(
+            new GetUserAttendingEventIdsParameters
+            {
+                UserId = currentUserId
+            },
+            cancellationToken);
+
+        return ids.ToHashSet();
+    }
+
+    private async Task<IReadOnlyList<EventDto>> MapEventsWithEngagementAsync(
+        IReadOnlyCollection<EventsCoreEventDto> events,
+        string? currentUserId,
+        CancellationToken cancellationToken)
+    {
+        if (events.Count == 0)
+        {
+            return [];
+        }
+
+        var attendingIds = await GetAttendingEventIdsAsync(currentUserId, cancellationToken);
+
+        return events
+            .Select(e => MapEventToFacadeDto(e, attendingIds))
+            .ToList();
+    }
+
+    private async Task<PagedResponse<EventDto>> MapEventsPageWithEngagementAsync(
+        Events.Contracts.Results.EventsPageResult result,
+        string? currentUserId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var items = await MapEventsWithEngagementAsync(result.Items, currentUserId, cancellationToken);
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
+    }
 
     private static EventAttendeeDto MapEventAttendeeToFacadeDto(EventsCoreAttendeeDto dto) =>
         new()

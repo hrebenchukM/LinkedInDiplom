@@ -1,7 +1,9 @@
+using Facade.EventsManagement.Contracts.DTOs;
 using Facade.FileStorage.Contracts.Upload;
 using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
 using Facade.EventsManagement.Contracts.Responses;
 using Facade.EventsManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Identity.Contracts.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,6 +16,17 @@ public class EventsSpeakersController : EventsManagementControllerBase
     public EventsSpeakersController(IEventsManagementService eventsManagementService)
         : base(eventsManagementService)
     {
+    }
+
+    [HttpGet("speakers")]
+    [ProducesResponseType(typeof(PagedResponse<EventSpeakerDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetSpeakers(
+        [FromQuery] GetEventSpeakersQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var speakers = await EventsService.GetSpeakersAsync(request, cancellationToken);
+        return Ok(speakers);
     }
 
     [Authorize(Roles = IdentityRoleNames.Admin)]

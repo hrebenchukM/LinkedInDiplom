@@ -8,6 +8,12 @@ public interface IEventResource
 {
     Task<EventResult> CreateAsync(CreateEventParameters parameters);
     Task<IReadOnlyCollection<EventDto>> GetMyEventsAsync(GetMyEventsParameters parameters);
+    Task<EventsPageResult> DiscoverEventsAsync(
+        DiscoverEventsParameters parameters,
+        CancellationToken cancellationToken = default);
+    Task<EventsPageResult> GetAttendingEventsAsync(
+        GetAttendingEventsParameters parameters,
+        CancellationToken cancellationToken = default);
     Task<EventDto?> GetByIdAsync(GetEventByIdParameters parameters);
     Task<EventResult> UpdateAsync(UpdateEventParameters parameters);
     Task<EventResult> DeleteAsync(DeleteEventParameters parameters);

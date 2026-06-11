@@ -14,6 +14,7 @@ namespace Events.Services.Services;
 /// </summary>
 public class EventService(EventsDbContext dbContext) : IEventService
 {
+    private const string VisibilityPublic = "public";
     public async Task<EventResult> CreateAsync(CreateEventParameters parameters)
     {
         var organizerType = parameters.OrganizerType?.Trim();
@@ -89,7 +90,125 @@ public class EventService(EventsDbContext dbContext) : IEventService
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
 
-        return list.Select(Map).ToList();
+        var attendeeCounts = await GetAttendeeCountsByEventIdsAsync(list.Select(x => x.Id));
+
+        return list
+            .Select(x => Map(x, attendeeCounts.GetValueOrDefault(x.Id)))
+            .ToList();
+    }
+
+    public async Task<EventsPageResult> DiscoverEventsAsync(
+        DiscoverEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        var query = dbContext.Events
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null && x.Visibility == VisibilityPublic);
+
+        if (parameters.FromStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt >= parameters.FromStartAt.Value);
+        }
+        else
+        {
+            query = query.Where(x => x.StartAt >= now);
+        }
+
+        if (parameters.ToStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt <= parameters.ToStartAt.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.OrganizerUserId))
+        {
+            var organizerUserId = parameters.OrganizerUserId.Trim();
+            query = query.Where(x => x.OrganizerId == organizerUserId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Location))
+        {
+            var locationPattern = $"%{parameters.Location.Trim()}%";
+            query = query.Where(x => EF.Functions.ILike(x.Location ?? string.Empty, locationPattern));
+        }
+
+        if (parameters.IsOnline.HasValue)
+        {
+            query = query.Where(x => x.IsOnline == parameters.IsOnline.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Query))
+        {
+            var searchPattern = $"%{parameters.Query.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Title, searchPattern) ||
+                EF.Functions.ILike(x.Description ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(x.Location ?? string.Empty, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var events = await query
+            .OrderBy(x => x.StartAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        var attendeeCounts = await GetAttendeeCountsByEventIdsAsync(
+            events.Select(x => x.Id),
+            cancellationToken);
+
+        return new EventsPageResult
+        {
+            Items = events
+                .Select(x => Map(x, attendeeCounts.GetValueOrDefault(x.Id)))
+                .ToList(),
+            TotalCount = totalCount
+        };
+    }
+
+    public async Task<EventsPageResult> GetAttendingEventsAsync(
+        GetAttendingEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query =
+            from attendee in dbContext.EventAttendees.AsNoTracking()
+            join entity in dbContext.Events.AsNoTracking() on attendee.EventId equals entity.Id
+            where attendee.UserId == parameters.CurrentUserId
+                  && attendee.DeletedAt == null
+                  && entity.DeletedAt == null
+            select entity;
+
+        if (parameters.FromStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt >= parameters.FromStartAt.Value);
+        }
+
+        if (parameters.ToStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt <= parameters.ToStartAt.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var events = await query
+            .OrderBy(x => x.StartAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        var attendeeCounts = await GetAttendeeCountsByEventIdsAsync(
+            events.Select(x => x.Id),
+            cancellationToken);
+
+        return new EventsPageResult
+        {
+            Items = events
+                .Select(x => Map(x, attendeeCounts.GetValueOrDefault(x.Id)))
+                .ToList(),
+            TotalCount = totalCount
+        };
     }
 
     public async Task<EventDto?> GetByIdAsync(GetEventByIdParameters parameters)
@@ -98,7 +217,14 @@ public class EventService(EventsDbContext dbContext) : IEventService
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == parameters.EventId && x.DeletedAt == null);
 
-        return entity is null ? null : Map(entity);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var attendeeCounts = await GetAttendeeCountsByEventIdsAsync([entity.Id]);
+
+        return Map(entity, attendeeCounts.GetValueOrDefault(entity.Id));
     }
 
     public async Task<EventResult> UpdateAsync(UpdateEventParameters parameters)
@@ -191,7 +317,26 @@ public class EventService(EventsDbContext dbContext) : IEventService
         };
     }
 
-    private static EventDto Map(Event entity) =>
+    private async Task<IReadOnlyDictionary<Guid, int>> GetAttendeeCountsByEventIdsAsync(
+        IEnumerable<Guid> eventIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = eventIds.Distinct().ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await dbContext.EventAttendees
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.EventId) && x.DeletedAt == null)
+            .GroupBy(x => x.EventId)
+            .Select(g => new { EventId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.EventId, x => x.Count, cancellationToken);
+    }
+
+    private static EventDto Map(Event entity, int attendeeCount = 0) =>
         new()
         {
             Id = entity.Id,
@@ -209,7 +354,8 @@ public class EventService(EventsDbContext dbContext) : IEventService
             StartAt = entity.StartAt,
             EndAt = entity.EndAt,
             CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt
+            UpdatedAt = entity.UpdatedAt,
+            AttendeeCount = attendeeCount
         };
 
     private static string? Normalize(string? value)

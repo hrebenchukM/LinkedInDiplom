@@ -18,6 +18,13 @@ public class EventSpeakerResource(IEventSpeakerService speakerService) : IEventS
         return speakerService.GetByIdAsync(parameters);
     }
 
+    public Task<EventSpeakersPageResult> GetSpeakersAsync(
+        GetEventSpeakersParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return speakerService.GetSpeakersAsync(parameters, cancellationToken);
+    }
+
     public Task<EventSpeakerResult> UpdateAsync(UpdateEventSpeakerParameters parameters)
     {
         return speakerService.UpdateAsync(parameters);
