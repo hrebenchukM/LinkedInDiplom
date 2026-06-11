@@ -32,6 +32,7 @@ public static class NetworkModuleServiceCollectionExtensions
         services.AddScoped<IPageService, PageService>();
         services.AddScoped<IPageAdminService, PageAdminService>();
         services.AddScoped<IPageFollowerService, PageFollowerService>();
+        services.AddScoped<INetworkUserGraphService, NetworkUserGraphService>();
 
         services.AddScoped<IContactResource, ContactResource>();
         services.AddScoped<IFollowResource, FollowResource>();
@@ -42,6 +43,7 @@ public static class NetworkModuleServiceCollectionExtensions
         services.AddScoped<IPageResource, PageResource>();
         services.AddScoped<IPageAdminResource, PageAdminResource>();
         services.AddScoped<IPageFollowerResource, PageFollowerResource>();
+        services.AddScoped<INetworkUserGraphResource, NetworkUserGraphResource>();
 
         services.AddScoped<INetworkClient, NetworkClient>();
 

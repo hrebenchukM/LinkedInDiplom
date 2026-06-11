@@ -23,4 +23,6 @@ public interface INetworkClient
     IPageAdminResource PageAdmins { get; }
 
     IPageFollowerResource PageFollowers { get; }
+
+    INetworkUserGraphResource UserGraph { get; }
 }

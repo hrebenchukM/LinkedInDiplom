@@ -11,6 +11,8 @@ public interface IPostService
 
     Task<MyPostsResult> GetMyPostsAsync(GetMyPostsParameters parameters);
 
+    Task<MyPostsResult> GetUserPublicPostsAsync(GetUserPublicPostsParameters parameters);
+
     Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters);
 
     Task<PostDto?> GetByIdAsync(GetPostByIdParameters parameters);

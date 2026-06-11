@@ -70,22 +70,34 @@ public class ContentPostsController : ContentManagementControllerBase
         return Ok(posts);
     }
 
+    // GET api/content/users/{userId}/posts
+    [HttpGet("users/{userId}/posts")]
+    [ProducesResponseType(typeof(PagedResponse<PostDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetUserPosts(
+        string userId,
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var posts = await ContentService.GetUserPostsAsync(userId, request, cancellationToken);
+
+        return Ok(posts);
+    }
+
     // GET api/content/feed
-    [Authorize]
     [HttpGet("feed")]
     [ProducesResponseType(typeof(PagedResponse<PostDto>), 200)]
     [ProducesResponseType(400)]
-    [ProducesResponseType(401)]
     public async Task<IActionResult> GetFeed(
         [FromQuery] FeedPagedRequest request,
         CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
-
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            return Unauthorized();
-        }
 
         var feed = await ContentService.GetFeedPostsAsync(userId, request, cancellationToken);
 

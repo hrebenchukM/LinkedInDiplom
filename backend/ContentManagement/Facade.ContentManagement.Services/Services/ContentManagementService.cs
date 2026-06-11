@@ -1,5 +1,6 @@
 using Content.Client.Contracts;
 using Content.Contracts.Results;
+using Network.Client.Contracts;
 using Facade.ContentManagement.Contracts.DTOs;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.ContentManagement.Contracts.Services;
@@ -26,13 +27,16 @@ namespace Facade.ContentManagement.Services.Services;
 public partial class ContentManagementService : IContentManagementService
 {
     private readonly IContentClient _contentClient;
+    private readonly INetworkClient _networkClient;
     private readonly IFileStorageService _fileStorageService;
 
     public ContentManagementService(
         IContentClient contentClient,
+        INetworkClient networkClient,
         IFileStorageService fileStorageService)
     {
         _contentClient = contentClient;
+        _networkClient = networkClient;
         _fileStorageService = fileStorageService;
     }
 

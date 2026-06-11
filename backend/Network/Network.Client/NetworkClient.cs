@@ -25,6 +25,8 @@ public class NetworkClient : INetworkClient
 
     public IPageFollowerResource PageFollowers { get; }
 
+    public INetworkUserGraphResource UserGraph { get; }
+
     public NetworkClient(
         IContactResource contacts,
         IFollowResource follows,
@@ -34,7 +36,8 @@ public class NetworkClient : INetworkClient
         IGroupPostResource groupPosts,
         IPageResource pages,
         IPageAdminResource pageAdmins,
-        IPageFollowerResource pageFollowers)
+        IPageFollowerResource pageFollowers,
+        INetworkUserGraphResource userGraph)
     {
         Contacts = contacts;
         Follows = follows;
@@ -45,5 +48,6 @@ public class NetworkClient : INetworkClient
         Pages = pages;
         PageAdmins = pageAdmins;
         PageFollowers = pageFollowers;
+        UserGraph = userGraph;
     }
 }

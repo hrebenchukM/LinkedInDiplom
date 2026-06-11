@@ -4,6 +4,7 @@ using Facade.ContentManagement.Contracts.Requests.Feed;
 using Facade.ContentManagement.Contracts.Requests.Post;
 using Facade.ContentManagement.Contracts.Responses;
 using Facade.Shared.Contracts.Pagination;
+using Network.Contracts.Parameters.Network;
 
 namespace Facade.ContentManagement.Services.Services;
 
@@ -40,21 +41,74 @@ public partial class ContentManagementService
         return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
-    public async Task<PagedResponse<PostDto>> GetFeedPostsAsync(
-        string userId,
-        FeedPagedRequest request,
+    public async Task<PagedResponse<PostDto>> GetUserPostsAsync(
+        string authorUserId,
+        PagedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var (page, pageSize, skip) = request.ResolvePaging();
+        var (page, pageSize, skip) = Pagination.Normalize(request);
 
-        var result = await _contentClient.Posts.GetFeedPostsAsync(new GetFeedPostsParameters
+        var result = await _contentClient.Posts.GetUserPublicPostsAsync(new GetUserPublicPostsParameters
         {
+            AuthorUserId = authorUserId,
             Skip = skip,
             Take = pageSize
         });
 
         var items = result.Items.Select(MapPostToFacadeDto).ToList();
         return Pagination.Create(items, page, pageSize, result.TotalCount);
+    }
+
+    public async Task<PagedResponse<PostDto>> GetFeedPostsAsync(
+        string? userId,
+        FeedPagedRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = request.ResolvePaging();
+
+        IReadOnlyCollection<string>? authorUserIds = null;
+        string? viewerUserId = null;
+
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            viewerUserId = userId;
+            authorUserIds = await ResolveFeedAuthorUserIdsAsync(userId, cancellationToken);
+        }
+
+        var result = await _contentClient.Posts.GetFeedPostsAsync(new GetFeedPostsParameters
+        {
+            Skip = skip,
+            Take = pageSize,
+            ViewerUserId = viewerUserId,
+            AuthorUserIds = authorUserIds
+        });
+
+        var items = result.Items.Select(MapPostToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
+    }
+
+    private async Task<IReadOnlyCollection<string>?> ResolveFeedAuthorUserIdsAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var networkResult = await _networkClient.UserGraph.GetUserNetworkUserIdsAsync(
+            new GetUserNetworkUserIdsParameters
+            {
+                UserId = userId
+            },
+            cancellationToken);
+
+        if (networkResult.UserIds.Count == 0)
+        {
+            return null;
+        }
+
+        var authorIds = new HashSet<string>(networkResult.UserIds, StringComparer.Ordinal)
+        {
+            userId
+        };
+
+        return authorIds.ToList();
     }
 
     public async Task<PostDto?> GetPostByIdAsync(string userId, Guid postId)

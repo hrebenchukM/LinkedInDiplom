@@ -34,8 +34,13 @@ public interface IContentManagementService
         PagedRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResponse<PostDto>> GetUserPostsAsync(
+        string authorUserId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<PagedResponse<PostDto>> GetFeedPostsAsync(
-        string userId,
+        string? userId,
         FeedPagedRequest request,
         CancellationToken cancellationToken = default);
 

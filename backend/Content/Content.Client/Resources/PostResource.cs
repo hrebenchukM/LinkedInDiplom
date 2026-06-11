@@ -29,6 +29,11 @@ public class PostResource : IPostResource
         return _postService.GetMyPostsAsync(parameters);
     }
 
+    public Task<MyPostsResult> GetUserPublicPostsAsync(GetUserPublicPostsParameters parameters)
+    {
+        return _postService.GetUserPublicPostsAsync(parameters);
+    }
+
     public Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters)
     {
         return _postService.GetFeedPostsAsync(parameters);

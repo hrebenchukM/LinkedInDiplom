@@ -113,11 +113,56 @@ public class PostService : IPostService
         };
     }
 
+    public async Task<MyPostsResult> GetUserPublicPostsAsync(GetUserPublicPostsParameters parameters)
+    {
+        var query = _dbContext.Posts
+            .AsNoTracking()
+            .Where(p =>
+                p.UserId == parameters.AuthorUserId &&
+                p.DeletedAt == null &&
+                p.Visibility == VisibilityPublic);
+
+        var totalCount = await query.CountAsync();
+
+        var posts = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync();
+
+        var mediaByPostId = await GetMediaByPostIdsAsync(posts.Select(p => p.Id));
+
+        var items = posts
+            .Select(p => MapToDto(p, mediaByPostId.GetValueOrDefault(p.Id)))
+            .ToList();
+
+        return new MyPostsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
+    }
+
     public async Task<FeedPostsResult> GetFeedPostsAsync(GetFeedPostsParameters parameters)
     {
         var query = _dbContext.Posts
             .AsNoTracking()
-            .Where(p => p.DeletedAt == null && p.Visibility == VisibilityPublic);
+            .Where(p => p.DeletedAt == null);
+
+        if (parameters.AuthorUserIds is { Count: > 0 })
+        {
+            var authorIds = parameters.AuthorUserIds;
+            var viewerUserId = parameters.ViewerUserId;
+
+            query = query.Where(p =>
+                authorIds.Contains(p.UserId) &&
+                (p.Visibility == VisibilityPublic ||
+                 (p.Visibility == VisibilityPrivate && p.UserId == viewerUserId)));
+        }
+        else
+        {
+            query = query.Where(p => p.Visibility == VisibilityPublic);
+        }
 
         var totalCount = await query.CountAsync();
 
