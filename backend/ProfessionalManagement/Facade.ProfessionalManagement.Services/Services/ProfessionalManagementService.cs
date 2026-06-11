@@ -1,6 +1,7 @@
 ﻿using Facade.ProfessionalManagement.Contracts.Services;
 using Facade.FileStorage.Contracts.Services;
 using Professional.Client.Contracts;
+using Profile.Client.Contracts;
 
 namespace Facade.ProfessionalManagement.Services.Services;
 
@@ -11,13 +12,16 @@ namespace Facade.ProfessionalManagement.Services.Services;
 public partial class ProfessionalManagementService : IProfessionalManagementService
 {
     private readonly IProfessionalClient _professionalClient;
+    private readonly IProfileClient _profileClient;
     private readonly IFileStorageService _fileStorageService;
 
     public ProfessionalManagementService(
         IProfessionalClient professionalClient,
+        IProfileClient profileClient,
         IFileStorageService fileStorageService)
     {
         _professionalClient = professionalClient;
+        _profileClient = profileClient;
         _fileStorageService = fileStorageService;
     }
 }

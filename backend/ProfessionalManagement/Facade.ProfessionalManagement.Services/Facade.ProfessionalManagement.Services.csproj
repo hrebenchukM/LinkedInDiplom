@@ -6,6 +6,8 @@
     <ProjectReference Include="..\Facade.ProfessionalManagement.Contracts\Facade.ProfessionalManagement.Contracts.csproj" />
     <ProjectReference Include="..\..\Professional\Professional.Client.Contracts\Professional.Client.Contracts.csproj" />
     <ProjectReference Include="..\..\Professional\Professional.Contracts\Professional.Contracts.csproj" />
+    <ProjectReference Include="..\..\Profile\Profile.Client.Contracts\Profile.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Profile\Profile.Contracts\Profile.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

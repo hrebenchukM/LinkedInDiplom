@@ -2,6 +2,7 @@
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 using Facade.ProfileManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.ProfileManagement.Contracts.Services;
 
@@ -13,6 +14,11 @@ public interface IProfileManagementService
 
     // Получить профиль по UserId
     Task<ProfileDto?> GetProfileByUserIdAsync(string userId);
+
+    // Поиск профилей
+    Task<PagedResponse<ProfileSearchResultDto>> SearchProfilesAsync(
+        ProfileSearchQueryRequest request,
+        CancellationToken cancellationToken = default);
 
     // Обновить мой профиль
     Task<ProfileResponse> UpdateMyProfileAsync(string userId, UpdateMyProfileRequest request);

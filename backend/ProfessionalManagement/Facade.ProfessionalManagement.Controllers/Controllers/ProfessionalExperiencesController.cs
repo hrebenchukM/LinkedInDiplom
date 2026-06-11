@@ -13,6 +13,27 @@ public class ProfessionalExperiencesController : ProfessionalManagementControlle
     {
     }
 
+    [HttpGet("users/{userId}/experiences")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetUserExperiences(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var items = await ProfessionalService.GetUserExperiencesAsync(userId);
+
+        if (items is null)
+        {
+            return NotFoundError(UserProfileNotFoundError);
+        }
+
+        return Ok(items);
+    }
+
     [Authorize]
     [HttpGet("me/experiences")]
     [ProducesResponseType(200)]

@@ -21,6 +21,8 @@ public interface IProfessionalManagementService
 {
     Task<IReadOnlyCollection<ExperienceDto>> GetMyExperiencesAsync(string userId);
 
+    Task<IReadOnlyCollection<ExperienceDto>?> GetUserExperiencesAsync(string userId);
+
     Task<ExperienceDto?> GetMyExperienceByIdAsync(string userId, Guid experienceId);
 
     Task<ExperienceResponse> CreateMyExperienceAsync(
@@ -95,6 +97,8 @@ public interface IProfessionalManagementService
 
     Task<IReadOnlyCollection<EducationDto>> GetMyEducationsAsync(string userId);
 
+    Task<IReadOnlyCollection<EducationDto>?> GetUserEducationsAsync(string userId);
+
     Task<EducationDto?> GetMyEducationByIdAsync(string userId, Guid educationId);
 
     Task<EducationResponse> CreateMyEducationAsync(
@@ -154,6 +158,8 @@ public interface IProfessionalManagementService
     Task<SkillResponse> CreateSkillAsync(CreateSkillRequest request);
 
     Task<IReadOnlyCollection<UserSkillDto>> GetMyUserSkillsAsync(string userId);
+
+    Task<IReadOnlyCollection<UserSkillDto>?> GetUserSkillsAsync(string userId);
 
     Task<UserSkillDto?> GetMyUserSkillByIdAsync(string userId, Guid userSkillId);
 

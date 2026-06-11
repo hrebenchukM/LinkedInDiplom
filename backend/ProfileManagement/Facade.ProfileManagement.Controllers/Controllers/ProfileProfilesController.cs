@@ -1,6 +1,8 @@
+using Facade.ProfileManagement.Contracts.DTOs;
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Responses;
 using Facade.ProfileManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -63,6 +65,17 @@ public class ProfileProfilesController : ProfileManagementControllerBase
         }
 
         return Ok(response);
+    }
+
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(PagedResponse<ProfileSearchResultDto>), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> SearchProfiles(
+        [FromQuery] ProfileSearchQueryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var profiles = await ProfileService.SearchProfilesAsync(request, cancellationToken);
+        return Ok(profiles);
     }
 
     [HttpGet("{userId}")]

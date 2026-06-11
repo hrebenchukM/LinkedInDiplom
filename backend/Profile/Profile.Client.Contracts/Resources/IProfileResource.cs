@@ -1,5 +1,6 @@
 ﻿using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
+using Profile.Contracts.Results;
 
 namespace Profile.Client.Contracts.Resources;
 
@@ -9,6 +10,11 @@ public interface IProfileResource
 {
     // Найти профиль по UserId
     Task<UserProfileDto?> GetAsync(GetProfileByUserIdParameters parameters);
+
+    // Поиск профилей
+    Task<SearchProfilesResult> SearchAsync(
+        SearchProfilesParameters parameters,
+        CancellationToken cancellationToken = default);
 
     // Создать пустой профиль
     Task<UserProfileDto> CreateEmptyAsync(string userId);

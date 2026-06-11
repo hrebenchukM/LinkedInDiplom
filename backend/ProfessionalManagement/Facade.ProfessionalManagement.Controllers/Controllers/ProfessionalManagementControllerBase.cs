@@ -25,6 +25,7 @@ public abstract class ProfessionalManagementControllerBase : ControllerBase
     protected const string UserLanguageNotFoundError = "User language not found.";
     protected const string RecommendationNotFoundError = "Recommendation not found.";
     protected const string RecommendedSkillNotFoundError = "Recommended skill not found.";
+    protected const string UserProfileNotFoundError = "Profile not found.";
 
     protected IProfessionalManagementService ProfessionalService { get; }
 

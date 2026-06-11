@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
+using Profile.Contracts.Results;
 using Profile.Contracts.Services;
 using Profile.DataAccess;
 using Profile.DataAccess.Entities;
@@ -38,6 +39,46 @@ public class ProfileService : IProfileService
 
         // Если найден — превращаем UserProfile в UserProfileDto
         return MapToDto(profile);
+    }
+
+    public async Task<SearchProfilesResult> SearchAsync(
+        SearchProfilesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => p.DeletedAt == null);
+
+        if (!string.IsNullOrWhiteSpace(parameters.Query))
+        {
+            var searchPattern = $"%{parameters.Query.Trim()}%";
+            query = query.Where(p =>
+                EF.Functions.ILike(p.FirstName ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(p.LastName ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(p.Headline ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(p.Location ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(p.ProfileTitle ?? string.Empty, searchPattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Location))
+        {
+            var locationPattern = $"%{parameters.Location.Trim()}%";
+            query = query.Where(p => EF.Functions.ILike(p.Location ?? string.Empty, locationPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var profiles = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new SearchProfilesResult
+        {
+            Items = profiles.Select(MapToSearchDto).ToList(),
+            TotalCount = totalCount
+        };
     }
 
     // Создать пустой профиль для нового пользователя
@@ -149,6 +190,21 @@ public class ProfileService : IProfileService
 
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt
+        };
+    }
+
+    private static ProfileSearchItemDto MapToSearchDto(UserProfile profile)
+    {
+        return new ProfileSearchItemDto
+        {
+            UserId = profile.UserId,
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            DisplayName = $"{profile.FirstName} {profile.LastName}".Trim(),
+            Headline = profile.Headline ?? profile.ProfileTitle,
+            Location = profile.Location,
+            AvatarUrl = profile.AvatarUrl,
+            HeaderUrl = profile.HeaderUrl
         };
     }
 }

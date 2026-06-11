@@ -65,6 +65,28 @@ public class ProfessionalSkillsController : ProfessionalManagementControllerBase
         return Ok(response);
     }
 
+    // GET api/professional/users/{userId}/skills
+    [HttpGet("users/{userId}/skills")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetUserSkills(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var userSkills = await ProfessionalService.GetUserSkillsAsync(userId);
+
+        if (userSkills is null)
+        {
+            return NotFoundError(UserProfileNotFoundError);
+        }
+
+        return Ok(userSkills);
+    }
+
     // GET api/professional/me/skills
     [Authorize]
     [HttpGet("me/skills")]

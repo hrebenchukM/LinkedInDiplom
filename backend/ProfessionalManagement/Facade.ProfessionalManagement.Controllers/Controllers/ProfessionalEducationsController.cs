@@ -13,6 +13,28 @@ public class ProfessionalEducationsController : ProfessionalManagementController
     {
     }
 
+    // GET api/professional/users/{userId}/educations
+    [HttpGet("users/{userId}/educations")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetUserEducations(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var educations = await ProfessionalService.GetUserEducationsAsync(userId);
+
+        if (educations is null)
+        {
+            return NotFoundError(UserProfileNotFoundError);
+        }
+
+        return Ok(educations);
+    }
+
     // GET api/professional/me/educations
     [Authorize]
     [HttpGet("me/educations")]

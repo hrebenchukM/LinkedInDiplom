@@ -1,6 +1,7 @@
 ﻿using Profile.Client.Contracts.Resources;
 using Profile.Contracts.DTOs;
 using Profile.Contracts.Parameters;
+using Profile.Contracts.Results;
 using Profile.Contracts.Services;
 
 namespace Profile.Client.Resources;
@@ -21,6 +22,13 @@ public class ProfileResource : IProfileResource
     public Task<UserProfileDto?> GetAsync(GetProfileByUserIdParameters parameters)
     {
         return _profileService.GetAsync(parameters);
+    }
+
+    public Task<SearchProfilesResult> SearchAsync(
+        SearchProfilesParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _profileService.SearchAsync(parameters, cancellationToken);
     }
 
     public Task<UserProfileDto> CreateEmptyAsync(string userId)
