@@ -1,5 +1,8 @@
 # POSTMAN_TESTING: полная схема тестирования API
 
+> Сводка endpoint-ов и ограничений V1 также в `docs/04_FACADE_MODULES.md` и `docs/13_V1_LIMITATIONS.md`.  
+> Коллекция: `docs/postman/LinkedInDiplom.postman_collection.json` (папки `01`–`12`, incl. `11 AI`, `12 Validation / Negative cases`).
+
 ## Подготовка
 
 1. Запуск backend:

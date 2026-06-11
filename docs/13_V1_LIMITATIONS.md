@@ -21,35 +21,71 @@
 
 ### Pagination (v1)
 
-- **Pagination common contract** (`Facade.Shared.Contracts`: `PagedRequest`, `PagedResponse<T>`, `Pagination` helper) добавлен; **`GET /api/admin/users`**, **`GET /api/content/feed`**, **`GET /api/content/me/posts`**, **`GET /api/content/posts/{postId}/comments`**, **`GET /api/messaging/me/chats`** и **`GET /api/messaging/me/chats/{chatId}/messages`** уже возвращают `PagedResponse`; остальные Content list endpoints (media, reactions и т.д.) и остальные Messaging list endpoints (members, reads, media) пока ещё возвращают старые массивы — подключение будет выполняться по модулям.
-- **`GET /api/content/feed`**: response shape изменён с массива на `PagedResponse<PostDto>`; query `limit` поддерживается как backward-compatible alias для `pageSize` на `page=1`; frontend должен читать `response.items`.
-- **`GET /api/content/me/posts`**: response shape изменён с массива на `PagedResponse<PostDto>`; query `page`/`pageSize`; frontend должен читать `response.items`.
-- **`GET /api/content/posts/{postId}/comments`**: response shape изменён с массива на `PagedResponse<CommentDto>`; query `page`/`pageSize` (default `page=1`, `pageSize=20`, max `pageSize=100`); frontend должен читать `response.items`.
-- **`GET /api/messaging/me/chats`**: response shape изменён с массива на `PagedResponse<ChatDto>`; query `page`/`pageSize` (default `page=1`, `pageSize=20`, max `pageSize=100`); frontend должен читать `response.items`.
-- **`GET /api/messaging/me/chats/{chatId}/messages`**: response shape изменён с массива на `PagedResponse<MessageDto>`; query `page`/`pageSize` (default `page=1`, `pageSize=20`, max `pageSize=100`); frontend должен читать `response.items`.
+- **Pagination common contract** (`Facade.Shared.Contracts`: `PagedRequest`, `PagedResponse<T>`, `Pagination` helper).
+- **Уже `PagedResponse`:** admin users; content feed / me posts / post comments / user public posts; messaging chats & messages; **jobs vacancies**, **notifications me**, **network contacts**; events discover / attending / speakers catalog; admin posts/vacancies/events/comments lists; professional/content catalog lists (skills, languages, academies, hashtags).
+- **`GET /api/content/feed`:** без JWT — public global feed; с JWT — network-aware feed (author IDs из Network graph). **V1 limitation:** feed **не фильтрует** blocked users.
+- **`limit` alias:** сохранён на feed и notifications (`pageSize` на page 1).
+- **Ещё plain array / без paging (medium/low priority):**
+  - network: followers, following, blocked users, my groups/pages lists
+  - content: reactions list, saved posts, reposts, post media list
+  - jobs: favorites, applications, search results
+  - events: `GET /api/events/me` (my events), attendees list (limit-based)
+  - messaging: chat members, message reads, message media list
+  - notifications: user activity list
+
+### Events (v1 limitations)
+
+- **discover / attending / speakers catalog** — реализованы; это **не** limitation.
+- **visibility на `GET /api/events/{eventId}`** может не полностью enforce visibility rules (V1 read-by-id behavior).
+- **capacity, status, lifecycle** (draft/published/cancelled), waitlist — **не реализованы**.
 
 ### Platform Admin (v1)
-- `GET /api/admin/stats/overview` — только агрегаты, **без фильтров по датам** и без графиков
-- нет moderation компаний (Professional companies)
+- `GET /api/admin/stats/overview` — агрегаты (users, posts, vacancies, recommended queries, **events**); **без фильтров по датам** и без графиков
+- нет moderation компаний (Professional companies), groups, pages
 - нет очереди жалоб / reports / complaints
+- нет audit log
 - нет granular permissions — только роли **Admin** и **User**
 - admin post soft delete **не** обновляет `EditedAt` (в отличие от user delete поста)
 - recommended job queries: user write endpoints **удалены** — это исправление модели доступа, не limitation
-- **pending admin APIs:** admin content comments list/moderation; catalog update/delete; admin job applications overview; reports/complaints queue absent
+- **pending admin APIs:** catalog update/delete (кроме существующих writes); admin job applications overview
 - **catalog list (skills):** `GET /api/professional/skills` — paged list (публичный read); `POST /api/professional/skills` — Admin-only create
 - **catalog list (languages):** `GET /api/professional/languages` — paged list (публичный read); `POST /api/professional/languages` — Admin-only create
 - **catalog list (academies):** `GET /api/professional/academies` — paged list (публичный read); `POST /api/professional/academies` — Admin-only create; `POST /api/professional/academies/{id}/logo` — Admin-only upload
 - **catalog list (hashtags):** `GET /api/content/hashtags` — paged list (User JWT); `POST /api/content/hashtags` — Admin-only create
 
-### Исправлено в admin v1 (не limitation)
+### Исправлено в v1 (не limitation)
 
+**Profile & Professional**
+- people search: `GET /api/profile/search`
+- public professional sections: `GET /api/professional/users/{userId}/experiences|educations|skills`
+
+**Content & Network**
+- network-aware feed (JWT) + public feed (anonymous)
+- public user posts: `GET /api/content/users/{userId}/posts`
+- contacts pagination + cancel outgoing pending + pending counts + incoming/outgoing shortcuts
+
+**Jobs & Notifications**
+- `GET /api/jobs/vacancies` — `PagedResponse<VacancyDto>`
+- `GET /api/notifications/me` — `PagedResponse<NotificationDto>`
+
+**Events**
+- discover: `GET /api/events`; attending: `GET /api/events/me/attending`; speakers catalog: `GET /api/events/speakers`
+- `EventDto`: `attendeeCount`, `isAttending` (facade, с JWT)
+
+**Admin**
 - user не может POST/DELETE `/api/jobs/recommended-queries` (только Admin)
-- **catalog writes** (Skill, Hashtag, Academy, Language, RecommendedSkill, EventSpeaker) — Admin-only; user **403** на POST/PATCH/DELETE глобального справочника
-- защита: admin не lock/delete себя; не снять себе Admin; не снять Admin у последнего admin
-- `PATCH /api/admin/users/{userId}/restore` — восстановление soft-deleted user (`DeletedAt` cleared, lockout cleared)
-- `GET /api/admin/users` — search/filter/sort query params (`email`, `role`, `isDeleted`, `isLocked`, `sortBy`, `sortDirection`)
-- `GET /api/admin/content/posts` — paged admin posts list with filters (`authorId`, `isDeleted`, `search`, date range, sort)
-- `GET /api/admin/jobs/vacancies` — paged admin vacancies list with filters (`companyId`, `postedByUserId`, `isDeleted`, `search`, date range, sort)
+- **catalog writes** — Admin-only
+- защита self-lock/delete/remove Admin role
+- `GET /api/admin/users` — search/filter/sort
+- `GET /api/admin/content/posts` — paged moderation
+- `GET /api/admin/jobs/vacancies` — paged moderation
+- **`GET /api/admin/events`** + soft delete/restore
+- **`GET /api/admin/content/comments`** + soft delete/restore
+- stats overview incl. event aggregates
+
+### AI (v1 architectural note)
+
+- `AIManagement` вызывает `IAIService` напрямую (без `AI.Client` / `I*Resource`); при microservice extraction потребуется client boundary.
 
 ### Catalog security (осознанная модель)
 

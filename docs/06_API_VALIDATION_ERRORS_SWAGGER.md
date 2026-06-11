@@ -4,7 +4,8 @@
 
 - DataAnnotations на facade Request-моделях
 - invalid body на `[ApiController]` — auto-validation в `Facade.API` (шаг 16); ручной `BadRequest(ModelState)` **удалён из всех facade controllers** (шаги 18–24: Admin, Account, Network, Jobs, Events, Content, Professional, Messaging, Notifications, Profile message settings)
-- бизнес-валидация (дубликаты, ownership) — в core services
+- controllers **не** вызывают ручной `ModelState.IsValid` — source of truth: `InvalidModelStateResponseFactory` в `Facade.API/Program.cs`
+- бизнес-валидация (дубликаты, ownership) — в core services; часть query/body rules — `IValidatableObject` на facade Request DTO (Step 8)
 
 ### Unified automatic validation errors
 
@@ -141,17 +142,23 @@
 ### Jobs (`/api/jobs/*`) и Events (`/api/events/*`)
 
 - **Invalid request body** на write endpoints (vacancies create/update, events create/update, speakers, schedule, attach speaker) — только **auto-validation** (шаг 16): `{ success, errors, fieldErrors }`. Ручной `BadRequest(ModelState)` удалён из Jobs/Events controllers (шаг 21).
+- **Events body validation (Step 8):** `CreateEventRequest` / `UpdateEventRequest` (`IValidatableObject`):
+  - `StartAt` required;
+  - если `EndAt` задан — `EndAt` **должен быть позже** `StartAt`;
+  - `Visibility` ∈ `public` / `private`.
+- **Jobs/Notifications query date range (Step 8):** `GetVacanciesQueryRequest`, `GetMyNotificationsQueryRequest` — `fromCreatedAt` ≤ `toCreatedAt`, иначе **400** unified validation.
 - **Business errors** — без изменений: `JobsManagementControllerBase` / `EventsManagementControllerBase` → `MapErrors` → **400/404** + facade `*Response`.
-- **GET not-found (шаг 33):** `GET /api/jobs/vacancies/{id}`, applications, search queries; `GET /api/events/{id}`, speakers — **404** + slim envelope (`"Vacancy not found."`, `"Application not found."`, `"Search query not found."`, `"Event not found."`, `"Speaker not found."`).
+- **GET not-found (шаг 33):** `GET /api/jobs/vacancies/{id}`, applications, search queries; `GET /api/events/{id}`, speakers — **404** + slim envelope.
 
 **Проверка Jobs/Events validation (Postman, Bearer):**
 
 | Сценарий | Ожидание |
 |----------|----------|
 | `POST /api/jobs/me/vacancies` с `{}` или без `title` | **400**, unified validation |
-| `POST /api/events/me/events` с `{}` или без required полей | **400**, unified validation |
+| `POST /api/events/me` с `endAt <= startAt` | **400**, unified validation |
+| `PATCH /api/events/me/{eventId}` с `endAt <= startAt` | **400**, unified validation |
+| `GET /api/jobs/vacancies?fromCreatedAt=...&toCreatedAt=...` где from > to | **400**, unified validation |
 | Валидный vacancy / event create | **200**, как раньше |
-| Несуществующий `vacancyId` / `eventId` на update/delete | **404** через `MapErrors`, как раньше |
 | `GET /api/jobs/vacancies/{nonExistingId}` | **404**, `{ success: false, errors: ["Vacancy not found."] }` |
 | `GET /api/events/{nonExistingId}` | **404**, `{ success: false, errors: ["Event not found."] }` |
 
@@ -195,6 +202,8 @@
 | `GET /api/professional/companies/{nonExistingId}` | **404**, `{ success: false, errors: ["Company not found."] }` |
 | `GET /api/professional/recommended-skills` без `position` или с пустым `position` | **400**, `{ success: false, errors: ["Position is required."] }` |
 | `GET /api/professional/recommended-skills?position=Developer` | **200**, список skills как раньше |
+| `PATCH /api/professional/me/experiences/{id}` с `endDate < startDate` (оба заданы) | **400**, unified validation (Step 8) |
+| `PATCH /api/professional/me/educations/{id}` с `endDate < startDate` (оба заданы) | **400**, unified validation (Step 8) |
 
 ### Messaging (`/api/messaging/*`), Notifications (`/api/notifications/*`), Profile settings
 
@@ -261,7 +270,11 @@
 - **400** — business/security validation, прочие `InvalidOperationException`
 - успешные write без тела: **204** (lock, delete/restore user, delete/restore post/vacancy, delete recommended query)
 - `POST /api/admin/jobs/recommended-queries` → **200** с DTO в теле при успехе; invalid model (пустой body, пустой `query` и т.д.) — только **auto-validation** из `Facade.API` (шаг 16): `{ success, errors, fieldErrors }`; ручной `BadRequest(ModelState)` в admin controllers не используется
-- `GET /api/admin/stats/overview` → **200** с `AdminStatsOverviewDto`
+- `GET /api/admin/stats/overview` → **200** с `AdminStatsOverviewDto` (incl. event aggregates)
+- **Admin body validation (Step 8):**
+  - `AssignUserRoleRequest`: `roleName` required, allowed values `Admin` / `User` only;
+  - `LockUserRequest`: если `lockoutEnd` задан — дата **в будущем**.
+- **Admin query date ranges (Step 8):** `AdminPostsQueryRequest`, `AdminVacanciesQueryRequest`, `AdminEventsQueryRequest`, `AdminCommentsQueryRequest` — `from* <= to*`, иначе **400**.
 
 **Проверка Admin errors (Swagger/Postman):**
 
@@ -273,6 +286,12 @@
 | `GET /api/admin/stats/overview` без роли Admin | **403** Forbidden |
 | `POST /api/admin/jobs/recommended-queries` с пустым/невалидным body (Admin token) | **400**, unified validation (шаг 16) |
 | `POST /api/admin/jobs/recommended-queries` с валидным `{ "query": "dotnet" }` | **200** с DTO |
+| `POST /api/admin/users/{id}/roles` с `{ "roleName": "SuperAdmin" }` | **400**, unified validation |
+| `PATCH /api/admin/users/{id}/lock` с `lockoutEnd` в прошлом | **400**, unified validation |
+| `GET /api/admin/events?fromStartAt=...&toStartAt=...` где from > to | **400**, unified validation |
+| `GET /api/admin/content/comments?fromCreatedAt=...&toCreatedAt=...` где from > to | **400**, unified validation |
+
+Postman: папка `12 Validation / Negative cases` — готовые запросы с ожидаемым **400**.
 
 ### Admin self-protection (400)
 

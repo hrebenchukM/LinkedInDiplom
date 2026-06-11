@@ -1,6 +1,8 @@
 # 12. DB schema (сжатый обзор)
 
-Полная логическая модель таблиц ранее находилась в `docs/database/DB_SCHEMA.md`.
+Актуальный сжатый обзор — **этот файл** (`docs/12_DB_SCHEMA.md`).
+
+Ранее планировался отдельный `docs/database/DB_SCHEMA.md` — **файл отсутствует**; детальная схема — в EF migrations (`backend/*/DataAccess/Migrations`) и `08_INFRA_DB_MIGRATIONS.md`.
 
 ## Сопоставление модуль → schema
 
@@ -35,3 +37,9 @@
 ## Примечание
 
 `init-db.sql` создает только `identity` schema; остальные создаются EF migrations.
+
+### Изменения Steps 1–10 и migrations
+
+API/DTO изменения Steps 1–9 (search, feed, pagination, admin moderation, validation) в основном использовали **существующие таблицы** и поля (`DeletedAt`, contacts, events, comments и т.д.). **Новых EF migrations специально под Steps 1–10 не добавлялось**, если в репозитории нет соответствующих migration files после этих шагов — проверяйте `git log` / папки `*/Migrations/`.
+
+`attendeeCount` / `isAttending` в API — вычисляемые/enriched поля, не обязательно новые колонки.

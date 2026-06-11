@@ -62,12 +62,40 @@ Upload Controller (IFormFile)
 HTTP /api/admin/*
   → Facade.AdminManagement.Controllers (Admin*Controller)
   → IAdminManagementService (Facade.AdminManagement.Services)
-  → Identity / Content / Jobs Client Resources (IUserResource, IPostResource, IVacancyResource, IRecommendedJobQueryResource)
-  → Core Services (UserAdminService, RoleService, PostService, VacancyService, RecommendedJobQueryService, …)
-  → свой DbContext модуля (IdentityDbContext, ContentDbContext, JobsDbContext)
+  → Client Resources: IUserResource (Identity), IPostResource + ICommentResource (Content),
+    IVacancyResource + IRecommendedJobQueryResource (Jobs), IEventResource (Events)
+  → Core Services (UserAdminService, PostService, CommentService, VacancyService, EventService, …)
+  → свой DbContext модуля
 ```
 
 Правило сохранено: `Facade.AdminManagement` **не ссылается** на чужой `*DataAccess` напрямую.
+
+### Cross-module read orchestration (примеры)
+
+**Network-aware feed (Content → Network):**
+
+```
+GET /api/content/feed (+ optional JWT)
+  → ContentManagementService
+  → INetworkClient.UserGraph.GetUserNetworkUserIdsAsync (если JWT)
+  → IPostResource.GetFeedPostsAsync(GetFeedPostsParameters { AuthorUserIds, ViewerUserId })
+  → PostService (Content schema)
+```
+
+**Events list enrichment (Events facade):**
+
+```
+GET /api/events (discover)
+  → EventsManagementService
+  → IEventResource.DiscoverEventsAsync + attendee counts из core
+  → при JWT: IsAttending вычисляется в facade по attending set
+```
+
+Такой orchestration **не** нарушает границу модулей: facade координирует, core владеет данными своей schema.
+
+### Facade.API как composition root
+
+`Facade.API/Program.cs` — host-level composition root: регистрация core modules, facades, JWT, Swagger, **и** `ApplyMigrationsAsync` для всех 9 `DbContext` в фиксированном порядке (см. «Порядок migrations» ниже). Отдельного migration runner проекта нет.
 
 ## Domain events (loose coupling)
 
@@ -86,6 +114,10 @@ HTTP /api/admin/*
 **Пример (реализовано):** Network `ContactService` публикует `ContactRequestAcceptedEvent` → Notifications `CreateNotificationOnContactRequestAcceptedHandler` создаёт notification для отправителя request (requester). Network **не зависит** от Notifications.
 
 **Текущий transport:** in-memory (`InMemoryDomainEventPublisher` в Identity.DI). При выделении microservices — заменить publisher на broker/outbox; handlers и event contracts остаются на границе модулей.
+
+### AI module (microservice readiness note)
+
+`AIManagement` регистрирует `IAIService` напрямую в facade DI (`AddAIManagementFacade`), без `AI.Client` / `I*Resource`. Для выделения AI в отдельный сервис потребуется client boundary по тому же паттерну, что у остальных модулей.
 
 ## Порядок migrations
 
