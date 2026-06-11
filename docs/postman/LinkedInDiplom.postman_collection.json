@@ -13,7 +13,12 @@
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/register",
             "body": {
               "mode": "raw",
@@ -39,7 +44,12 @@
           "name": "Login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/login",
             "body": {
               "mode": "raw",
@@ -69,27 +79,51 @@
           "name": "Google Login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/google",
-            "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"replace_me\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"replace_me\"\n}"
+            }
           }
         },
         {
           "name": "Facebook Login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/facebook",
-            "body": { "mode": "raw", "raw": "{\n  \"accessToken\": \"replace_me\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"replace_me\"\n}"
+            }
           }
         },
         {
           "name": "Refresh Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/refresh",
-            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
           },
           "event": [
             {
@@ -114,15 +148,32 @@
           "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/logout",
-            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
           }
         },
         {
           "name": "Get Current User",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{baseUrl}}/api/auth/me"
           }
@@ -131,34 +182,91 @@
     },
     {
       "name": "02 Profile",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Get My Profile", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me" } },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/profile/me"
+          }
+        },
         {
           "name": "Update My Profile (PUT)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/profile/me",
-            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"headline\": \".NET Developer\",\n  \"location\": \"Chisinau\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"headline\": \".NET Developer\",\n  \"location\": \"Chisinau\"\n}"
+            }
           }
         },
         {
           "name": "Patch My Profile",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/profile/me",
-            "body": { "mode": "raw", "raw": "{\n  \"headline\": \"Senior .NET Developer\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"Senior .NET Developer\"\n}"
+            }
           }
         },
-        { "name": "Get Profile By UserId", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/{{userId}}" } },
+        {
+          "name": "Get Profile By UserId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/profile/{{userId}}"
+          }
+        },
+        {
+          "name": "Search Profiles (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/profile/search?query=developer&location=&page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "PagedResponse. Public people search (Step 1)."
+          }
+        },
         {
           "name": "Upload Avatar",
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/profile/me/avatar",
-            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] }
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
           }
         },
         {
@@ -166,332 +274,2696 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/profile/me/header",
-            "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] }
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
           }
         },
-        { "name": "Get My Message Settings", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me/message-settings" } },
+        {
+          "name": "Get My Message Settings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/profile/me/message-settings"
+          }
+        },
         {
           "name": "Put My Message Settings",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/profile/me/message-settings",
-            "body": { "mode": "raw", "raw": "{\n  \"officeAbsenceEnabled\": true,\n  \"officeAbsenceMessage\": \"Out of office\",\n  \"notificationsEnabled\": true\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"officeAbsenceEnabled\": true,\n  \"officeAbsenceMessage\": \"Out of office\",\n  \"notificationsEnabled\": true\n}"
+            }
           }
         },
         {
           "name": "Patch My Message Settings",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/profile/me/message-settings",
-            "body": { "mode": "raw", "raw": "{\n  \"notificationsEnabled\": false\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificationsEnabled\": false\n}"
+            }
           }
         },
         {
           "name": "Create Profile View (public)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "url": {
               "raw": "{{baseUrl}}/api/profile/{{userId}}/views?source=profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "profile", "{{userId}}", "views"],
-              "query": [{ "key": "source", "value": "profile" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile",
+                "{{userId}}",
+                "views"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "profile"
+                }
+              ]
             }
           }
         },
-        { "name": "Get My Profile Views", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/me/profile-views" } }
+        {
+          "name": "Get My Profile Views",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/profile/me/profile-views"
+          }
+        }
       ]
     },
     {
       "name": "03 Professional",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Get My Experiences", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/experiences" } },
+        {
+          "name": "Get My Experiences",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/experiences"
+          }
+        },
+        {
+          "name": "Get User Experiences (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/users/{{otherUserId}}/experiences",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get User Educations (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/users/{{otherUserId}}/educations",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get User Skills (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/users/{{otherUserId}}/skills",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
         {
           "name": "Create Experience",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/professional/me/experiences",
-            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"companyId\": \"{{companyId}}\",\n  \"startDate\": \"2026-01-01\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"Backend Developer\",\n  \"companyId\": \"{{companyId}}\",\n  \"startDate\": \"2026-01-01\"\n}"
+            }
           }
         },
-        { "name": "Get Experience By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}" } },
+        {
+          "name": "Get Experience By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}"
+          }
+        },
         {
           "name": "Put Experience",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}",
-            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Senior Backend Developer\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"Senior Backend Developer\"\n}"
+            }
           }
         },
         {
           "name": "Patch Experience",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}",
-            "body": { "mode": "raw", "raw": "{\n  \"position\": \"Lead Backend Developer\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"Lead Backend Developer\"\n}"
+            }
           }
         },
-        { "name": "Delete Experience", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}" } },
-
-        { "name": "Get My Companies", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/companies" } },
+        {
+          "name": "Delete Experience",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/experiences/{{experienceId}}"
+          }
+        },
+        {
+          "name": "Get My Companies",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/companies"
+          }
+        },
         {
           "name": "Create Company",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/professional/me/companies",
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Company\",\n  \"websiteUrl\": \"https://example.com\"\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Company\",\n  \"websiteUrl\": \"https://example.com\"\n}"
+            }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.item?.id||j?.company?.id||j?.id;", "if(id) pm.environment.set('companyId', id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "const id=j?.item?.id||j?.company?.id||j?.id;",
+                  "if(id) pm.environment.set('companyId', id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "Get Company By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/companies/{{companyId}}" } },
-        { "name": "Put Company", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Company Updated\"\n}" } } },
-        { "name": "Patch Company", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated description\"\n}" } } },
-        { "name": "Delete Company", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}" } },
-
-        { "name": "List Academies", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/academies?page=1&pageSize=20" } },
-        { "name": "Get Academy By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/academies/{{academyId}}" } },
-        { "name": "Create Academy (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/academies", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Academy\"\n}" } } },
-
-        { "name": "Get My Educations", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations" } },
-        { "name": "Get Education By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}" } },
-        { "name": "Create Education", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations", "body": { "mode": "raw", "raw": "{\n  \"academyId\": \"{{academyId}}\",\n  \"degree\": \"Bachelor\"\n}" } } },
-        { "name": "Put Education", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}", "body": { "mode": "raw", "raw": "{\n  \"degree\": \"Master\"\n}" } } },
-        { "name": "Patch Education", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}", "body": { "mode": "raw", "raw": "{\n  \"fieldOfStudy\": \"Computer Science\"\n}" } } },
-        { "name": "Delete Education", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}" } },
-
-        { "name": "Get My Certificates", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates" } },
-        { "name": "Get Certificate By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}" } },
-        { "name": "Create Certificate", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates", "body": { "mode": "raw", "raw": "{\n  \"name\": \"AWS Certificate\",\n  \"academyId\": \"{{academyId}}\"\n}" } } },
-        { "name": "Put Certificate", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}", "body": { "mode": "raw", "raw": "{\n  \"name\": \"AWS Certificate Updated\"\n}" } } },
-        { "name": "Patch Certificate", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}", "body": { "mode": "raw", "raw": "{\n  \"organizationUrl\": \"https://example.com/cert\"\n}" } } },
-        { "name": "Delete Certificate", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}" } },
-        { "name": "Get Certificate Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills" } },
-        { "name": "Get Certificate Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}" } },
-        { "name": "Create Certificate Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills", "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\"\n}" } } },
-        { "name": "Delete Certificate Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}" } },
-
-        { "name": "List Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/skills?page=1&pageSize=20" } },
-        { "name": "Get Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/skills/{{skillId}}" } },
-        { "name": "Create Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/skills", "body": { "mode": "raw", "raw": "{\n  \"name\": \"C#\"\n}" } } },
-        { "name": "Get My Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills" } },
-        { "name": "Get My Skill By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
-        { "name": "Create My Skill", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills", "body": { "mode": "raw", "raw": "{\n  \"skillId\": \"{{skillId}}\",\n  \"level\": \"advanced\"\n}" } } },
-        { "name": "Put My Skill", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"expert\"\n}" } } },
-        { "name": "Patch My Skill", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}", "body": { "mode": "raw", "raw": "{\n  \"isMain\": true\n}" } } },
-        { "name": "Delete My Skill", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}" } },
-        { "name": "Get Recommended Skills", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/recommended-skills" } },
-        { "name": "Create Recommended Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommended-skills", "body": { "mode": "raw", "raw": "{\n  \"position\": \"Backend Developer\",\n  \"skillId\": \"{{skillId}}\"\n}" } } },
-        { "name": "Delete Recommended Skill (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommended-skills/{{recommendedQueryId}}" } },
-
-        { "name": "List Languages", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/languages?page=1&pageSize=20" } },
-        { "name": "Get Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/languages/{{languageId}}" } },
-        { "name": "Create Language (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/languages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"English\"\n}" } } },
-        { "name": "Get My Languages", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages" } },
-        { "name": "Get My Language By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}" } },
-        { "name": "Create My Language", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages", "body": { "mode": "raw", "raw": "{\n  \"languageId\": \"{{languageId}}\",\n  \"level\": \"B2\"\n}" } } },
-        { "name": "Put My Language", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"C1\"\n}" } } },
-        { "name": "Patch My Language", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}", "body": { "mode": "raw", "raw": "{\n  \"level\": \"C2\"\n}" } } },
-        { "name": "Delete My Language", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}" } },
-
-        { "name": "Get Recommendations By User", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/professional/users/{{userId}}/recommendations" } },
-        { "name": "Get Recommendation By Id", "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}" } },
-        { "name": "Create Recommendation", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommendations", "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{otherUserId}}\",\n  \"text\": \"Great teammate\"\n}" } } },
-        { "name": "Patch Recommendation", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}", "body": { "mode": "raw", "raw": "{\n  \"text\": \"Excellent engineer\"\n}" } } },
-        { "name": "Delete Recommendation", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}" } }
+        {
+          "name": "Get Company By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/companies/{{companyId}}"
+          }
+        },
+        {
+          "name": "Put Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Company Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch Company",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}"
+          }
+        },
+        {
+          "name": "List Academies",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/academies?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Academy By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/academies/{{academyId}}"
+          }
+        },
+        {
+          "name": "Create Academy (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/academies",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Academy\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Educations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/educations"
+          }
+        },
+        {
+          "name": "Get Education By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}"
+          }
+        },
+        {
+          "name": "Create Education",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/educations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"academyId\": \"{{academyId}}\",\n  \"degree\": \"Bachelor\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Put Education",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"degree\": \"Master\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch Education",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fieldOfStudy\": \"Computer Science\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Education",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/educations/{{educationId}}"
+          }
+        },
+        {
+          "name": "Get My Certificates",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/certificates"
+          }
+        },
+        {
+          "name": "Get Certificate By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}"
+          }
+        },
+        {
+          "name": "Create Certificate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/certificates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AWS Certificate\",\n  \"academyId\": \"{{academyId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Put Certificate",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AWS Certificate Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch Certificate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationUrl\": \"https://example.com/cert\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Certificate",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}"
+          }
+        },
+        {
+          "name": "Get Certificate Skills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills"
+          }
+        },
+        {
+          "name": "Get Certificate Skill By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}"
+          }
+        },
+        {
+          "name": "Create Certificate Skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillId\": \"{{skillId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Certificate Skill",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/skills/{{certificateSkillId}}"
+          }
+        },
+        {
+          "name": "List Skills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/skills?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Skill By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/skills/{{skillId}}"
+          }
+        },
+        {
+          "name": "Create Skill (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/skills",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"C#\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Skills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/skills"
+          }
+        },
+        {
+          "name": "Get My Skill By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}"
+          }
+        },
+        {
+          "name": "Create My Skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/skills",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillId\": \"{{skillId}}\",\n  \"level\": \"advanced\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Put My Skill",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"level\": \"expert\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch My Skill",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isMain\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete My Skill",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/skills/{{userSkillId}}"
+          }
+        },
+        {
+          "name": "Get Recommended Skills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/recommended-skills?position=Backend%20Developer"
+          }
+        },
+        {
+          "name": "Create Recommended Skill (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/recommended-skills",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"Backend Developer\",\n  \"skillId\": \"{{skillId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Recommended Skill (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/recommended-skills/{{recommendedQueryId}}"
+          }
+        },
+        {
+          "name": "List Languages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/languages?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Language By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/languages/{{languageId}}"
+          }
+        },
+        {
+          "name": "Create Language (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/languages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"English\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Languages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/languages"
+          }
+        },
+        {
+          "name": "Get My Language By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}"
+          }
+        },
+        {
+          "name": "Create My Language",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/languages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"languageId\": \"{{languageId}}\",\n  \"level\": \"B2\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Put My Language",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"level\": \"C1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch My Language",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"level\": \"C2\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete My Language",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/me/languages/{{userLanguageId}}"
+          }
+        },
+        {
+          "name": "Get Recommendations By User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/users/{{userId}}/recommendations"
+          }
+        },
+        {
+          "name": "Get Recommendation By Id",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}"
+          }
+        },
+        {
+          "name": "Create Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/recommendations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{otherUserId}}\",\n  \"text\": \"Great teammate\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Patch Recommendation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Excellent engineer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Recommendation",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/professional/recommendations/{{recommendationId}}"
+          }
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}/logo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Academy Logo (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/professional/academies/{{academyId}}/logo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Certificate File",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/file",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     {
       "name": "04 Network",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Create Contact", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/contacts", "body": { "mode": "raw", "raw": "{\n  \"receiverId\": \"{{otherUserId}}\"\n}" } } },
-        { "name": "Get My Contacts", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/contacts" } },
-        { "name": "Get Contact By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}" } },
-        { "name": "Accept Contact", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/accept" } },
-        { "name": "Reject Contact", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/reject" } },
-        { "name": "Delete Contact", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}" } },
-
-        { "name": "Follow User", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/following", "body": { "mode": "raw", "raw": "{\n  \"followingId\": \"{{followedUserId}}\"\n}" } } },
-        { "name": "Unfollow User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/following/{{followedUserId}}" } },
-        { "name": "Get Following", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/following" } },
-        { "name": "Get Followers", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/followers" } },
-
-        { "name": "Block User", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/blocked-users", "body": { "mode": "raw", "raw": "{\n  \"blockedUserId\": \"{{blockedUserId}}\"\n}" } } },
-        { "name": "Unblock User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/blocked-users/{{blockedUserId}}" } },
-        { "name": "Get Blocked Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/blocked-users" } },
-
-        { "name": "Create Group", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/groups", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Backend Group\",\n  \"description\": \"Test group\"\n}" } } },
-        { "name": "Get My Groups", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups" } },
-        { "name": "Get Group By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}" } },
-        { "name": "Patch Group", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated\"\n}" } } },
-        { "name": "Delete Group", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}" } },
-        { "name": "Join Group", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/join" } },
-        { "name": "Leave Group", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/membership" } },
-        { "name": "Get Group Members", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/members" } },
-        { "name": "Attach Group Post", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}" } },
-        { "name": "Detach Group Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}" } },
-        { "name": "Get Group Posts", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts" } },
-
-        { "name": "Create Page", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages", "body": { "mode": "raw", "raw": "{\n  \"name\": \"Test Page\",\n  \"description\": \"Company page\"\n}" } } },
-        { "name": "Get My Pages", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages" } },
-        { "name": "Get My Following Pages", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/following" } },
-        { "name": "Get Page By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}" } },
-        { "name": "Patch Page", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}", "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated page\"\n}" } } },
-        { "name": "Delete Page", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}" } },
-        { "name": "Add Page Admin", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins", "body": { "mode": "raw", "raw": "{\n  \"adminUserId\": \"{{otherUserId}}\"\n}" } } },
-        { "name": "Remove Page Admin", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins/{{otherUserId}}" } },
-        { "name": "Get Page Admins", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins" } },
-        { "name": "Follow Page", "request": { "method": "POST", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow" } },
-        { "name": "Unfollow Page", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow" } },
-        { "name": "Get Page Followers", "request": { "method": "GET", "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/followers" } }
+        {
+          "name": "Create Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/contacts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiverId\": \"{{receiverId}}\"\n}"
+            },
+            "description": "Use receiverId (typically same GUID as otherUserId)."
+          }
+        },
+        {
+          "name": "Get My Contacts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?page=1&pageSize=20",
+            "description": "PagedResponse<ContactDto> (Step 5)."
+          }
+        },
+        {
+          "name": "Get Contact By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
+          }
+        },
+        {
+          "name": "Accept Contact",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/accept"
+          }
+        },
+        {
+          "name": "Reject Contact",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/reject"
+          }
+        },
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
+          }
+        },
+        {
+          "name": "Get Contacts Pending Incoming",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=incoming&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Contacts Pending Outgoing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=outgoing&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Incoming Contact Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/incoming?page=1&pageSize=20",
+            "description": "Shortcut: pending incoming (Step 6)."
+          }
+        },
+        {
+          "name": "Get Outgoing Contact Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/outgoing?page=1&pageSize=20",
+            "description": "Shortcut: pending outgoing (Step 6)."
+          }
+        },
+        {
+          "name": "Get Contact Pending Counts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/pending-counts",
+            "description": "incomingCount, outgoingCount badges."
+          }
+        },
+        {
+          "name": "Cancel Outgoing Contact Request",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/cancel",
+            "description": "Outgoing pending only. Accepted cannot be cancelled here."
+          }
+        },
+        {
+          "name": "Upload Page Logo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/logo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Group Avatar",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/following",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followingId\": \"{{followedUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/following/{{followedUserId}}"
+          }
+        },
+        {
+          "name": "Get Following",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/following"
+          }
+        },
+        {
+          "name": "Get Followers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/followers"
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/blocked-users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"blockedUserId\": \"{{blockedUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/blocked-users/{{blockedUserId}}"
+          }
+        },
+        {
+          "name": "Get Blocked Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/blocked-users"
+          }
+        },
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/groups",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Group\",\n  \"description\": \"Test group\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups"
+          }
+        },
+        {
+          "name": "Get Group By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
+          }
+        },
+        {
+          "name": "Patch Group",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
+          }
+        },
+        {
+          "name": "Join Group",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/join"
+          }
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/membership"
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/members"
+          }
+        },
+        {
+          "name": "Attach Group Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Detach Group Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Get Group Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts"
+          }
+        },
+        {
+          "name": "Create Page",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Page\",\n  \"description\": \"Company page\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Pages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages"
+          }
+        },
+        {
+          "name": "Get My Following Pages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/following"
+          }
+        },
+        {
+          "name": "Get Page By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
+          }
+        },
+        {
+          "name": "Patch Page",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated page\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Page",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
+          }
+        },
+        {
+          "name": "Add Page Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminUserId\": \"{{otherUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Page Admin",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins/{{otherUserId}}"
+          }
+        },
+        {
+          "name": "Get Page Admins",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins"
+          }
+        },
+        {
+          "name": "Follow Page",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
+          }
+        },
+        {
+          "name": "Unfollow Page",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
+          }
+        },
+        {
+          "name": "Get Page Followers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/followers"
+          }
+        }
       ]
     },
     {
       "name": "05 Content",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Create Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"visibility\": \"public\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.post?.id||j?.item?.id||j?.id;", "if(id) pm.environment.set('postId', id);"] } }] },
-        { "name": "Get My Posts", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/content/me/posts?page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "content", "me", "posts"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-        { "name": "Get Feed", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/content/feed?page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "content", "feed"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-        { "name": "Get Feed (limit alias)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/content/feed?limit=50", "host": ["{{baseUrl}}"], "path": ["api", "content", "feed"], "query": [{ "key": "limit", "value": "50" }] } } },
-        { "name": "Get Post By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}" } },
-        { "name": "Patch Post", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Updated content\"\n}" } } },
-        { "name": "Delete Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}" } },
-        { "name": "Attach Media To Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media", "body": { "mode": "raw", "raw": "{\n  \"mediaId\": \"{{mediaId}}\"\n}" } } },
-        { "name": "Get Post Media", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media" } },
-        { "name": "Detach Media From Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}" } },
-
-        { "name": "Upload Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/media/upload", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
-        { "name": "Get Media By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/media/{{mediaId}}" } },
-
-        { "name": "Create Comment", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Nice post!\"\n}" } } },
-        { "name": "Get Comments By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments?page=1&pageSize=20" } },
-        { "name": "Patch Comment", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Edited comment\"\n}" } } },
-        { "name": "Delete Comment", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}" } },
-
-        { "name": "Put Reaction", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions", "body": { "mode": "raw", "raw": "{\n  \"reactionType\": \"like\"\n}" } } },
-        { "name": "Delete Reaction", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions" } },
-        { "name": "Get My Reaction", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me" } },
-        { "name": "Get Post Reactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions" } },
-
-        { "name": "List Hashtags", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/hashtags?page=1&pageSize=20" } },
-        { "name": "Create Hashtag (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/hashtags", "body": { "mode": "raw", "raw": "{\n  \"name\": \"dotnet\"\n}" } } },
-        { "name": "Get Hashtag By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}" } },
-        { "name": "Attach Hashtag To Post", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags", "body": { "mode": "raw", "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}" } } },
-        { "name": "Get Post Hashtags", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags" } },
-        { "name": "Detach Hashtag From Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags/{{hashtagId}}" } },
-        { "name": "Follow Hashtag", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow" } },
-        { "name": "Unfollow Hashtag", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow" } },
-        { "name": "Get My Hashtag Follows", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/hashtags/following" } },
-
-        { "name": "Save Post", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save" } },
-        { "name": "Unsave Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save" } },
-        { "name": "Get My Saved Posts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/saved-posts" } },
-
-        { "name": "Repost", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost" } },
-        { "name": "Delete Repost", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost" } },
-        { "name": "Get My Reposts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/reposts" } },
-        { "name": "Get Post Reposts", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/reposts" } },
-
-        { "name": "Create Post View", "request": { "method": "POST", "url": "{{baseUrl}}/api/content/posts/{{postId}}/views?source=feed" } },
-        { "name": "Get My Post Views", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/views" } },
-
-        { "name": "Create Mention", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions", "body": { "mode": "raw", "raw": "{\n  \"mentionedUserId\": \"{{otherUserId}}\"\n}" } } },
-        { "name": "Delete Mention", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions/{{otherUserId}}" } },
-        { "name": "Get Mentions By Post", "request": { "method": "GET", "url": "{{baseUrl}}/api/content/posts/{{postId}}/mentions" } }
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"visibility\": \"public\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "const id=j?.post?.id||j?.item?.id||j?.id;",
+                  "if(id) pm.environment.set('postId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Posts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/me/posts?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "me",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "feed"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Feed (public, no JWT)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Public global feed without JWT. With JWT same URL returns network-aware feed."
+          }
+        },
+        {
+          "name": "Get User Public Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/users/{{otherUserId}}/posts?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "PagedResponse<PostDto>. Public posts of user (Step 2)."
+          }
+        },
+        {
+          "name": "Get Feed (limit alias)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/feed?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "feed"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Post By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Patch Post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated content\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Attach Media To Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mediaId\": \"{{mediaId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Post Media",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media"
+          }
+        },
+        {
+          "name": "Detach Media From Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}"
+          }
+        },
+        {
+          "name": "Upload Media",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/media/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Media By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/media/{{mediaId}}"
+          }
+        },
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Nice post!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Comments By Post",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Patch Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Edited comment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Put Reaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reactionType\": \"like\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Reaction",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
+          }
+        },
+        {
+          "name": "Get My Reaction",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me"
+          }
+        },
+        {
+          "name": "Get Post Reactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
+          }
+        },
+        {
+          "name": "List Hashtags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/hashtags?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Create Hashtag (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/hashtags",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dotnet\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Hashtag By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}"
+          }
+        },
+        {
+          "name": "Attach Hashtag To Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Post Hashtags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags"
+          }
+        },
+        {
+          "name": "Detach Hashtag From Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags/{{hashtagId}}"
+          }
+        },
+        {
+          "name": "Follow Hashtag",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
+          }
+        },
+        {
+          "name": "Unfollow Hashtag",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
+          }
+        },
+        {
+          "name": "Get My Hashtag Follows",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/hashtags/following"
+          }
+        },
+        {
+          "name": "Save Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
+          }
+        },
+        {
+          "name": "Unsave Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
+          }
+        },
+        {
+          "name": "Get My Saved Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/saved-posts"
+          }
+        },
+        {
+          "name": "Repost",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
+          }
+        },
+        {
+          "name": "Delete Repost",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
+          }
+        },
+        {
+          "name": "Get My Reposts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/reposts"
+          }
+        },
+        {
+          "name": "Get Post Reposts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reposts"
+          }
+        },
+        {
+          "name": "Create Post View",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/views?source=feed"
+          }
+        },
+        {
+          "name": "Get My Post Views",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/views"
+          }
+        },
+        {
+          "name": "Create Mention",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentionedUserId\": \"{{otherUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Mention",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions/{{otherUserId}}"
+          }
+        },
+        {
+          "name": "Get Mentions By Post",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/mentions"
+          }
+        },
+        {
+          "name": "Create Media By URL",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/media",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/image.png\",\n  \"type\": \"image\"\n}"
+            },
+            "description": "JSON attach by URL. Use me/media/upload for file upload."
+          }
+        }
       ]
     },
     {
       "name": "06 Messaging",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Create Chat", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/chats", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test chat\"\n}" } } },
-        { "name": "Get My Chats", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats?page=1&pageSize=20" } },
-        { "name": "Get Chat By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
-        { "name": "Delete Chat", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}" } },
-        { "name": "Join Chat", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join" } },
-        { "name": "Leave Chat", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/membership" } },
-        { "name": "Get Chat Members", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/members" } },
-        { "name": "Send Message", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Hello\"\n}" } } },
-        { "name": "Get Chat Messages", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages?page=1&pageSize=20" } },
-        { "name": "Get Message By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}" } },
-        { "name": "Patch Message", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}", "body": { "mode": "raw", "raw": "{\n  \"content\": \"Edited\"\n}" } } },
-        { "name": "Delete Message", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}" } },
-        { "name": "Mark Message Read", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/read" } },
-        { "name": "Get Message Reads", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/reads" } },
-        { "name": "Attach Message Media", "request": { "method": "POST", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
-        { "name": "Get Message Media", "request": { "method": "GET", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media" } },
-        { "name": "Delete Message Media", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/{{messageMediaId}}" } }
+        {
+          "name": "Create Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/chats",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Creates personal chat for current user. Empty body is valid."
+          }
+        },
+        {
+          "name": "Get My Chats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Chat By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
+          }
+        },
+        {
+          "name": "Delete Chat",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
+          }
+        },
+        {
+          "name": "Join Chat",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join"
+          }
+        },
+        {
+          "name": "Leave Chat",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/membership"
+          }
+        },
+        {
+          "name": "Get Chat Members",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/members"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Chat Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Message By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
+          }
+        },
+        {
+          "name": "Patch Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Edited\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
+          }
+        },
+        {
+          "name": "Mark Message Read",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/read"
+          }
+        },
+        {
+          "name": "Get Message Reads",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/reads"
+          }
+        },
+        {
+          "name": "Attach Message Media (JSON URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mediaUrl\": \"https://example.com/file.pdf\",\n  \"mediaType\": \"document\"\n}"
+            },
+            "description": "JSON body — not form-data. Use Upload Message Media for files."
+          }
+        },
+        {
+          "name": "Upload Message Media",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "description": "multipart/form-data file upload."
+          }
+        },
+        {
+          "name": "Get Message Media",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media"
+          }
+        },
+        {
+          "name": "Delete Message Media",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/{{messageMediaId}}"
+          }
+        }
       ]
     },
     {
       "name": "07 Jobs",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Create Vacancy", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/vacancies", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Backend Developer\",\n  \"description\": \"Test vacancy\",\n  \"companyId\": \"{{companyId}}\"\n}" } } },
-        { "name": "Get Vacancies", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/vacancies" } },
-        { "name": "Get Vacancy By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/vacancies/{{vacancyId}}" } },
-        { "name": "Patch Vacancy", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Senior Backend Developer\"\n}" } } },
-        { "name": "Delete Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}" } },
-        { "name": "Favorite Vacancy", "request": { "method": "POST", "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}" } },
-        { "name": "Unfavorite Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}" } },
-        { "name": "Get My Favorites", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/favorites" } },
-        { "name": "Apply To Vacancy", "request": { "method": "POST", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/apply" } },
-        { "name": "Delete Application", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/applications/{{applicationId}}" } },
-        { "name": "Get My Applications", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/applications" } },
-        { "name": "Get Vacancy Applications", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/applications" } },
-        { "name": "Create Search Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/jobs/me/search-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"backend\",\n  \"location\": \"Chisinau\"\n}" } } },
-        { "name": "Get My Search Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries" } },
-        { "name": "Get Search Query By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
-        { "name": "Delete Search Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}" } },
-        { "name": "Get Search Results", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results" } },
-        { "name": "Get Recommended Queries (user read-only)", "request": { "method": "GET", "url": "{{baseUrl}}/api/jobs/recommended-queries" } }
+        {
+          "name": "Create Vacancy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/vacancies",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Developer\",\n  \"description\": \"Test vacancy\",\n  \"companyId\": \"{{companyId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Vacancies (legacy URL)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies",
+            "description": "Deprecated: use paged variants below."
+          }
+        },
+        {
+          "name": "Get Vacancies (paged)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?page=1&pageSize=20",
+            "description": "PagedResponse<VacancyDto> (Step 5)."
+          }
+        },
+        {
+          "name": "Get Vacancies (query)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?query=developer&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancies (search alias)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?search=developer&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancies (sorted)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?sortBy=createdAt&sortDirection=desc&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancy By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Patch Vacancy",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Backend Developer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Vacancy",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Favorite Vacancy",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Unfavorite Vacancy",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Get My Favorites",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/favorites"
+          }
+        },
+        {
+          "name": "Apply To Vacancy",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/apply"
+          }
+        },
+        {
+          "name": "Delete Application",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/applications/{{applicationId}}"
+          }
+        },
+        {
+          "name": "Get My Applications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/applications"
+          }
+        },
+        {
+          "name": "Get Vacancy Applications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/applications"
+          }
+        },
+        {
+          "name": "Create Search Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/search-queries",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"backend\",\n  \"location\": \"Chisinau\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Search Queries",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries"
+          }
+        },
+        {
+          "name": "Get Search Query By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
+          }
+        },
+        {
+          "name": "Delete Search Query",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
+          }
+        },
+        {
+          "name": "Get Search Results",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results"
+          }
+        },
+        {
+          "name": "Get Recommended Queries (user read-only)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/recommended-queries"
+          }
+        }
       ]
     },
     {
       "name": "08 Notifications",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Get My Notifications", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me" } },
-        { "name": "Get Notification By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}" } },
-        { "name": "Mark Notification Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}/read" } },
-        { "name": "Mark All Notifications Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/notifications/me/read-all" } },
-        { "name": "Delete Notification", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}" } },
-        { "name": "Create User Activity", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/notifications/me/activity", "body": { "mode": "raw", "raw": "{\n  \"action\": \"manual-test\",\n  \"entityType\": \"post\",\n  \"entityId\": \"{{postId}}\"\n}" } } },
-        { "name": "Get User Activity", "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/me/activity" } }
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/me?page=1&pageSize=20",
+            "description": "PagedResponse<NotificationDto> (Step 5)."
+          }
+        },
+        {
+          "name": "Get My Notifications (limit alias)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/me?limit=10",
+            "description": "Backward-compatible limit as pageSize on page 1."
+          }
+        },
+        {
+          "name": "Get My Notifications (unread)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/me?isRead=false&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Notification By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}"
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}/read"
+          }
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/notifications/me/read-all"
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/notifications/me/{{notificationId}}"
+          }
+        },
+        {
+          "name": "Create User Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications/me/activity",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"manual-test\",\n  \"entityType\": \"post\",\n  \"entityId\": \"{{postId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get User Activity",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications/me/activity"
+          }
+        }
       ]
     },
     {
       "name": "09 Events",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Create Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test Event\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-05-28T10:00:00Z\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "const id=j?.item?.id||j?.event?.id||j?.id; if(id) pm.environment.set('eventId', id);"] } }] },
-        { "name": "Get My Events", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/me" } },
-        { "name": "Get Event By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}" } },
-        { "name": "Patch Event", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Event\"\n}" } } },
-        { "name": "Delete Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}" } },
-        { "name": "Join Event", "request": { "method": "POST", "url": "{{baseUrl}}/api/events/me/{{eventId}}/join" } },
-        { "name": "Leave Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/attendance" } },
-        { "name": "Get Event Attendees", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/attendees" } },
-        { "name": "Create Event Schedule Item", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Opening\",\n  \"orderIndex\": 1\n}" } } },
-        { "name": "Get Event Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/schedule" } },
-        { "name": "Patch Event Schedule Item", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Opening Updated\"\n}" } } },
-        { "name": "Delete Event Schedule Item", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}" } },
-        { "name": "Create Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers", "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}" } } },
-        { "name": "Get Speaker By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
-        { "name": "Patch Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}", "body": { "mode": "raw", "raw": "{\n  \"title\": \"Principal Engineer\"\n}" } } },
-        { "name": "Delete Speaker (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}" } },
-        { "name": "Upload Speaker Avatar (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] } } },
-        { "name": "Attach Speaker To Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers", "body": { "mode": "raw", "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}" } } },
-        { "name": "Detach Speaker From Event", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}" } },
-        { "name": "Get Event Speakers", "request": { "method": "GET", "url": "{{baseUrl}}/api/events/{{eventId}}/speakers" } }
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Event\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-05-28T10:00:00Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "const id=j?.item?.id||j?.event?.id||j?.id; if(id) pm.environment.set('eventId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discover Events (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Optional JWT adds isAttending. PagedResponse<EventDto> with attendeeCount."
+          }
+        },
+        {
+          "name": "Discover Events (filters)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events?query=conference&fromStartAt=2026-01-01T00:00:00Z&toStartAt=2026-12-31T23:59:59Z&location=&isOnline=true&page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get Attending Events",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me/attending?page=1&pageSize=20",
+            "description": "Requires JWT. PagedResponse<EventDto>."
+          }
+        },
+        {
+          "name": "List Event Speakers (public catalog)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/speakers?page=1&pageSize=20&query=",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Upload Event Cover",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/cover",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Events",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me"
+          }
+        },
+        {
+          "name": "Get Event By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}"
+          }
+        },
+        {
+          "name": "Patch Event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Event\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}"
+          }
+        },
+        {
+          "name": "Join Event",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/join"
+          }
+        },
+        {
+          "name": "Leave Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/attendance"
+          }
+        },
+        {
+          "name": "Get Event Attendees",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/attendees"
+          }
+        },
+        {
+          "name": "Create Event Schedule Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Opening\",\n  \"orderIndex\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Event Schedule",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/schedule"
+          }
+        },
+        {
+          "name": "Patch Event Schedule Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Opening Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event Schedule Item",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}"
+          }
+        },
+        {
+          "name": "Create Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/speakers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Speaker By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Patch Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Principal Engineer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Upload Speaker Avatar (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach Speaker To Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Detach Speaker From Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Get Event Speakers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/speakers"
+          }
+        }
       ]
     },
     {
@@ -501,65 +2973,1075 @@
           "name": "Admin Login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/login",
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@local.dev\",\n  \"password\": \"Admin123!\"\n}" }
-          },
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "const j = pm.response.json();",
-                "const access = j?.token?.accessToken || j?.accessToken;",
-                "const uid = j?.account?.id || j?.userId || j?.id;",
-                "if (access) pm.environment.set('adminToken', access);",
-                "if (uid) pm.environment.set('adminUserId', uid);"
-              ]
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@local.dev\",\n  \"password\": \"Admin123!\"\n}"
             }
-          }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const access = j?.token?.accessToken || j?.accessToken;",
+                  "const uid = j?.account?.id || j?.userId || j?.id;",
+                "if (access) { pm.environment.set('adminToken', access); pm.environment.set('adminAccessToken', access); }",
+                "if (uid) pm.environment.set('adminUserId', uid);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Admin API",
-          "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{adminToken}}",
+                "type": "string"
+              }
+            ]
+          },
           "item": [
-            { "name": "Get Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/roles" } },
-            { "name": "Get Users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }, { "key": "sortBy", "value": "createdAt" }, { "key": "sortDirection", "value": "desc" }] } } },
-            { "name": "Get Users By Email", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?email=admin&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "email", "value": "admin" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get Deleted Users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?isDeleted=true&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "isDeleted", "value": "true" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get Locked Users", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?isLocked=true&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "isLocked", "value": "true" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get Users By Role", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?role=Admin&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "role", "value": "Admin" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get Users Sorted By Email", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?sortBy=email&sortDirection=asc&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "sortBy", "value": "email" }, { "key": "sortDirection", "value": "asc" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get Users Invalid Sort (expect 400)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users?sortBy=badField&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{ "key": "sortBy", "value": "badField" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Get User By Id", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}" } },
-            { "name": "Get User Roles", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles" } },
-            { "name": "Add User Role", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles", "body": { "mode": "raw", "raw": "{\n  \"roleName\": \"Admin\"\n}" } } },
-            { "name": "Remove User Role", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles/User" } },
-            { "name": "Self Remove Admin Role (expect 400)", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles/Admin" } },
-            { "name": "Lock User", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/lock", "body": { "mode": "raw", "raw": "{}" } } },
-            { "name": "Self Lock (expect 400)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/lock", "body": { "mode": "raw", "raw": "{}" } } },
-            { "name": "Unlock User", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/unlock" } },
-            { "name": "Soft Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}" } },
-            { "name": "Restore User", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/restore" } },
-            { "name": "List Admin Posts", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/content/posts?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc", "host": ["{{baseUrl}}"], "path": ["api", "admin", "content", "posts"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }, { "key": "sortBy", "value": "createdAt" }, { "key": "sortDirection", "value": "desc" }] } } },
-            { "name": "List Admin Posts Deleted", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/content/posts?isDeleted=true&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "content", "posts"], "query": [{ "key": "isDeleted", "value": "true" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Posts By Author", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/content/posts?authorId={{otherUserId}}&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "content", "posts"], "query": [{ "key": "authorId", "value": "{{otherUserId}}" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Posts Search", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/content/posts?search=test&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "content", "posts"], "query": [{ "key": "search", "value": "test" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Posts Invalid Sort (expect 400)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/content/posts?sortBy=badField&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "content", "posts"], "query": [{ "key": "sortBy", "value": "badField" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Admin Delete Post", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}" } },
-            { "name": "Admin Restore Post", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}/restore" } },
-            { "name": "List Admin Vacancies", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/jobs/vacancies?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc", "host": ["{{baseUrl}}"], "path": ["api", "admin", "jobs", "vacancies"], "query": [{ "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }, { "key": "sortBy", "value": "createdAt" }, { "key": "sortDirection", "value": "desc" }] } } },
-            { "name": "List Admin Vacancies Deleted", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/jobs/vacancies?isDeleted=true&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "jobs", "vacancies"], "query": [{ "key": "isDeleted", "value": "true" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Vacancies By Company", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/jobs/vacancies?companyId={{companyId}}&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "jobs", "vacancies"], "query": [{ "key": "companyId", "value": "{{companyId}}" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Vacancies Search", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/jobs/vacancies?search=developer&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "jobs", "vacancies"], "query": [{ "key": "search", "value": "developer" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "List Admin Vacancies Invalid Sort (expect 400)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/jobs/vacancies?sortBy=badField&page=1&pageSize=20", "host": ["{{baseUrl}}"], "path": ["api", "admin", "jobs", "vacancies"], "query": [{ "key": "sortBy", "value": "badField" }, { "key": "page", "value": "1" }, { "key": "pageSize", "value": "20" }] } } },
-            { "name": "Admin Delete Vacancy", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}" } },
-            { "name": "Admin Restore Vacancy", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}/restore" } },
-            { "name": "Get Recommended Queries", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/jobs/recommended-queries" } },
-            { "name": "Create Recommended Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/api/admin/jobs/recommended-queries", "body": { "mode": "raw", "raw": "{\n  \"query\": \"dotnet developer\"\n}" } }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["let j={};try{j=pm.response.json()}catch(e){}", "if(j.id) pm.environment.set('recommendedJobQueryId', j.id);"] } }] },
-            { "name": "Delete Recommended Query", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedJobQueryId}}" } },
-            { "name": "Stats Overview", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/stats/overview" } },
-            { "name": "Stats Overview As User (expect 403)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/admin/stats/overview" } }
+            {
+              "name": "Get Roles",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/roles"
+              }
+            },
+            {
+              "name": "Get Users",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt"
+                    },
+                    {
+                      "key": "sortDirection",
+                      "value": "desc"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Users By Email",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?email=admin&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "email",
+                      "value": "admin"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Deleted Users",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?isDeleted=true&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "isDeleted",
+                      "value": "true"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Locked Users",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?isLocked=true&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "isLocked",
+                      "value": "true"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Users By Role",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?role=Admin&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "Admin"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Users Sorted By Email",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?sortBy=email&sortDirection=asc&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "sortBy",
+                      "value": "email"
+                    },
+                    {
+                      "key": "sortDirection",
+                      "value": "asc"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Users Invalid Sort (expect 400)",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users?sortBy=badField&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "sortBy",
+                      "value": "badField"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get User By Id",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}"
+              }
+            },
+            {
+              "name": "Get User Roles",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles"
+              }
+            },
+            {
+              "name": "Add User Role",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"roleName\": \"Admin\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Remove User Role",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles/User"
+              }
+            },
+            {
+              "name": "Self Remove Admin Role (expect 400)",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/roles/Admin"
+              }
+            },
+            {
+              "name": "Lock User",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/lock",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                }
+              }
+            },
+            {
+              "name": "Self Lock (expect 400)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/admin/users/{{adminUserId}}/lock",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                }
+              }
+            },
+            {
+              "name": "Unlock User",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/unlock"
+              }
+            },
+            {
+              "name": "Soft Delete User",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}"
+              }
+            },
+            {
+              "name": "Restore User",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/restore"
+              }
+            },
+            {
+              "name": "List Admin Posts",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/content/posts?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "content",
+                    "posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt"
+                    },
+                    {
+                      "key": "sortDirection",
+                      "value": "desc"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Posts Deleted",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/content/posts?isDeleted=true&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "content",
+                    "posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "isDeleted",
+                      "value": "true"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Posts By Author",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/content/posts?authorId={{otherUserId}}&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "content",
+                    "posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "authorId",
+                      "value": "{{otherUserId}}"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Posts Search",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/content/posts?search=test&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "content",
+                    "posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "test"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Posts Invalid Sort (expect 400)",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/content/posts?sortBy=badField&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "content",
+                    "posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "sortBy",
+                      "value": "badField"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Admin Delete Post",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}"
+              }
+            },
+            {
+              "name": "Admin Restore Post",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/content/posts/{{postId}}/restore"
+              }
+            },
+            {
+              "name": "List Admin Vacancies",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/jobs/vacancies?page=1&pageSize=20&sortBy=createdAt&sortDirection=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "jobs",
+                    "vacancies"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt"
+                    },
+                    {
+                      "key": "sortDirection",
+                      "value": "desc"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Vacancies Deleted",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/jobs/vacancies?isDeleted=true&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "jobs",
+                    "vacancies"
+                  ],
+                  "query": [
+                    {
+                      "key": "isDeleted",
+                      "value": "true"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Vacancies By Company",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/jobs/vacancies?companyId={{companyId}}&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "jobs",
+                    "vacancies"
+                  ],
+                  "query": [
+                    {
+                      "key": "companyId",
+                      "value": "{{companyId}}"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Vacancies Search",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/jobs/vacancies?search=developer&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "jobs",
+                    "vacancies"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "developer"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Admin Vacancies Invalid Sort (expect 400)",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/jobs/vacancies?sortBy=badField&page=1&pageSize=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "jobs",
+                    "vacancies"
+                  ],
+                  "query": [
+                    {
+                      "key": "sortBy",
+                      "value": "badField"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Admin Delete Vacancy",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}"
+              }
+            },
+            {
+              "name": "Admin Restore Vacancy",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/jobs/vacancies/{{vacancyId}}/restore"
+              }
+            },
+            {
+              "name": "Get Recommended Queries",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/jobs/recommended-queries"
+              }
+            },
+            {
+              "name": "Create Recommended Query",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/admin/jobs/recommended-queries",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"dotnet developer\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let j={};try{j=pm.response.json()}catch(e){}",
+                      "if(j.id) pm.environment.set('recommendedJobQueryId', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Recommended Query",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedJobQueryId}}"
+              }
+            },
+            {
+              "name": "List Admin Events",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/events?page=1&pageSize=20",
+                "description": "PagedResponse<AdminEventDto>. Admin token required."
+              }
+            },
+            {
+              "name": "List Admin Events (includeDeleted)",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/events?includeDeleted=true&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "List Admin Events (deleted only)",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/events?isDeleted=true&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "Admin Delete Event",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/events/{{eventId}}",
+                "description": "Soft delete. 204."
+              }
+            },
+            {
+              "name": "Admin Restore Event",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/events/{{eventId}}/restore",
+                "description": "Restore soft-deleted event. 204."
+              }
+            },
+            {
+              "name": "List Admin Comments",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/content/comments?page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "List Admin Comments (includeDeleted)",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/content/comments?includeDeleted=true&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "List Admin Comments By Post",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/content/comments?postId={{postId}}&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "List Admin Comments By Author",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/content/comments?authorUserId={{otherUserId}}&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "Admin Delete Comment",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/content/comments/{{commentId}}"
+              }
+            },
+            {
+              "name": "Admin Restore Comment",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/content/comments/{{commentId}}/restore"
+              }
+            },
+            {
+              "name": "Stats Overview",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/stats/overview",
+                "description": "Includes totalEvents, activeEvents, deletedEvents, upcomingEvents (Step 4)."
+              }
+            },
+            {
+              "name": "Stats Overview As User (expect 403)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/stats/overview"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 AI",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Recommended Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/recommended-jobs",
+            "description": "GET not POST. Requires JWT."
+          }
+        },
+        {
+          "name": "Get Career Advice",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/career-advice",
+            "description": "GET not POST. Requires JWT."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Validation / Negative cases",
+      "item": [
+        {
+          "name": "Events",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{accessToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "item": [
+            {
+              "name": "Create Event invalid EndAt (expect 400)",
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/events/me",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Bad Dates\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-06-01T10:00:00Z\",\n  \"endAt\": \"2026-06-01T09:00:00Z\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Update Event invalid EndAt (expect 400)",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/events/me/{{eventId}}",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Bad Dates\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-06-01T10:00:00Z\",\n  \"endAt\": \"2026-06-01T09:00:00Z\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{adminToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "item": [
+            {
+              "name": "Add User Role invalid (expect 400)",
+              "request": {
+                "method": "POST",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/roles",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"roleName\": \"SuperAdmin\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Lock User past date (expect 400)",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/admin/users/{{otherUserId}}/lock",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lockoutEnd\": \"2020-01-01T00:00:00Z\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Query date ranges",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{adminToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "item": [
+            {
+              "name": "Admin Events invalid date range (expect 400)",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/events?fromStartAt=2026-12-01T00:00:00Z&toStartAt=2026-01-01T00:00:00Z&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "Admin Comments invalid date range (expect 400)",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/content/comments?fromCreatedAt=2026-12-01T00:00:00Z&toCreatedAt=2026-01-01T00:00:00Z&page=1&pageSize=20"
+              }
+            },
+            {
+              "name": "Jobs Vacancies invalid date range (expect 400)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/api/jobs/vacancies?fromCreatedAt=2026-12-01T00:00:00Z&toCreatedAt=2026-01-01T00:00:00Z&page=1&pageSize=20",
+                "description": "Public endpoint. Expect 400 ValidationErrorResponse."
+              }
+            },
+            {
+              "name": "Notifications invalid date range (expect 400)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{baseUrl}}/api/notifications/me?fromCreatedAt=2026-12-01T00:00:00Z&toCreatedAt=2026-01-01T00:00:00Z&page=1&pageSize=20",
+                "description": "User JWT required (not admin). Expect 400 ValidationErrorResponse."
+              }
+            }
           ]
         }
       ]

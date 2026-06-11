@@ -38,7 +38,9 @@ Self-signed dev certificate: Postman может потребовать **Setting
 8. Notifications
 9. Events
 10. **Admin** (отдельный admin token — см. ниже)
-11. Auth: `logout`
+11. **AI** (`11 AI` — JWT required)
+12. **Validation / Negative cases** (`12 Validation / Negative cases` — ожидаемые 400)
+13. Auth: `logout`
 
 ## Таблицы endpoint-ов по модулям
 
@@ -71,6 +73,15 @@ Self-signed dev certificate: Postman может потребовать **Setting
 | PATCH | `/api/profile/me/message-settings` | Yes | Частичный settings | - | Частичное обновление settings | - |
 | POST | `/api/profile/{profileOwnerId}/views` | No | query (например source) | - | Зафиксировать просмотр профиля | Публичный endpoint |
 | GET | `/api/profile/me/profile-views` | Yes | - | - | Мои просмотры | - |
+| GET | `/api/profile/search` | No | `query`, `location`, `page`, `pageSize` | - | People search | `PagedResponse`; публичный (Step 1) |
+
+#### New public profile APIs (Step 1)
+
+```
+GET /api/profile/search?query=developer&location=&page=1&pageSize=20
+```
+
+Postman: `02 Profile` → **Search Profiles (public)**. Auth не обязателен.
 
 ### 03 Professional
 
@@ -104,12 +115,23 @@ Self-signed dev certificate: Postman может потребовать **Setting
 | GET | `/api/professional/users/{userId}/recommendations` | No | route | - | Рекомендации пользователя | Публичный |
 | GET | `/api/professional/recommendations/{recommendationId}` | No | route | - | Рекомендация по id | Публичный |
 | POST/PATCH/DELETE | `/api/professional/recommendations...` | Yes | body/route | `recommendationId`* | Управление рекомендациями | Может требоваться 2-й пользователь |
+| GET | `/api/professional/users/{userId}/experiences` | No | route | - | Публичный опыт пользователя | Step 1; без JWT |
+| GET | `/api/professional/users/{userId}/educations` | No | route | - | Публичное образование | Step 1; без JWT |
+| GET | `/api/professional/users/{userId}/skills` | No | route | - | Публичные навыки | Step 1; без JWT |
+
+Postman: `03 Professional` → **Get User Experiences/Educations/Skills (public)**. Используйте `{{otherUserId}}`.
 
 ### 04 Network
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET | `/api/network/me/contacts` | Yes | body/list | `contactId`* | Контакты | После send request — см. manual check в Notifications |
+| POST | `/api/network/me/contacts` | Yes | `{ "receiverId": "..." }` | `contactId`* | Отправить contact request | Body: **`receiverId`**, не `otherUserId` |
+| GET | `/api/network/me/contacts` | Yes | `page`, `pageSize`, `status`, `direction` | - | Paged contacts | `PagedResponse<ContactDto>` (Step 5) |
+| GET | `/api/network/me/contacts?status=pending&direction=incoming` | Yes | query | - | Входящие pending | `direction`: `incoming` / `outgoing` |
+| GET | `/api/network/me/contacts/incoming` | Yes | `page`, `pageSize` | - | Shortcut: pending incoming | Step 6 |
+| GET | `/api/network/me/contacts/outgoing` | Yes | `page`, `pageSize` | - | Shortcut: pending outgoing | Step 6 |
+| GET | `/api/network/me/contacts/pending-counts` | Yes | - | - | Badge counts | `incomingCount`, `outgoingCount` |
+| DELETE | `/api/network/me/contacts/{contactId}/cancel` | Yes | route | - | Отменить исходящий pending | Только outgoing pending; accepted нельзя отменить здесь (Step 6) |
 | GET/PATCH/PATCH/DELETE | `/api/network/me/contacts/{contactId}` + `/accept` `/reject` | Yes | route | - | Подтверждение/отклонение | - |
 | POST/DELETE/GET | `/api/network/me/following`... + `/me/followers` | Yes | body/route | - | Подписки | Нужен `followedUserId` |
 | POST/DELETE/GET | `/api/network/me/blocked-users...` | Yes | body/route | - | Блокировки | Нужен `blockedUserId` |
@@ -126,9 +148,10 @@ Self-signed dev certificate: Postman может потребовать **Setting
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| GET | `/api/content/feed` | Yes | `page`, `pageSize`, `limit` | - | Paged public feed | `PagedResponse<PostDto>`; default `page=1`, `pageSize=20`; `limit` = alias `pageSize` on page 1 |
-| GET | `/api/content/feed?page=1&pageSize=20` | Yes | query | - | Smoke: paged feed | `items`, `totalCount`, `hasNextPage` |
-| GET | `/api/content/feed?limit=50` | Yes | query | - | Backward-compat limit | `page=1`, `pageSize=50` |
+| GET | `/api/content/feed` | Optional | `page`, `pageSize`, `limit` | - | Network-aware feed | `PagedResponse<PostDto>`; **без JWT** — public global feed; **с JWT** — personalized network-aware feed (Step 2) |
+| GET | `/api/content/feed?page=1&pageSize=20` | Optional | query | - | Smoke: paged feed | `items`, `totalCount`, `hasNextPage` |
+| GET | `/api/content/feed?limit=20` | Optional | query | - | Backward-compat limit alias | `page=1`, `pageSize=20` |
+| GET | `/api/content/users/{userId}/posts` | No | `page`, `pageSize` | - | Публичные посты пользователя | `PagedResponse<PostDto>` (Step 2) |
 | GET | `/api/content/feed?page=0` | Yes | query | - | Negative: invalid page | **400** unified validation |
 | GET | `/api/content/feed?pageSize=101` | Yes | query | - | Negative: pageSize too large | **400** unified validation |
 | GET | `/api/content/me/posts` | Yes | `page`, `pageSize` | - | Paged my posts | `PagedResponse<PostDto>`; default `page=1`, `pageSize=20` |
@@ -274,7 +297,11 @@ Body: `{ "content": "Hello from REST" }`
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET/GET/PATCH/DELETE | `/api/jobs/me/vacancies...` + `/api/jobs/vacancies...` | Yes | body/route | `vacancyId`* | Вакансии | Для create часто нужен `companyId` |
+| POST/GET/GET/PATCH/DELETE | `/api/jobs/me/vacancies...` | Yes | body/route | `vacancyId`* | Мои вакансии | Для create часто нужен `companyId` |
+| GET | `/api/jobs/vacancies` | Optional | `page`, `pageSize`, `query`, `search`, `sortBy`, `sortDirection`, `fromCreatedAt`, `toCreatedAt` | - | Список вакансий | **`PagedResponse<VacancyDto>`**, не plain array (Step 5); `search` — alias для `query` |
+| GET | `/api/jobs/vacancies?query=developer&page=1&pageSize=20` | Optional | query | - | Поиск вакансий | |
+| GET | `/api/jobs/vacancies?search=developer&page=1&pageSize=20` | Optional | query | - | Backward-compat search alias | |
+| GET | `/api/jobs/vacancies?sortBy=createdAt&sortDirection=desc` | Optional | query | - | Сортировка | |
 | POST/DELETE/GET | `/api/jobs/me/favorites/{vacancyId}` + `/me/favorites` | Yes | route | - | Избранные вакансии | - |
 | POST/DELETE/GET/GET | `/api/jobs/me/vacancies/{vacancyId}/apply` + `/me/applications...` | Yes | route | `applicationId`* | Отклики | - |
 | POST/GET/GET/DELETE/GET | `/api/jobs/me/search-queries...` | Yes | body/route | `searchQueryId`* | Поисковые запросы | - |
@@ -284,7 +311,9 @@ Body: `{ "content": "Hello from REST" }`
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| GET | `/api/notifications/me` | Yes | - | - | Мои уведомления | После comment на post — см. manual check ниже |
+| GET | `/api/notifications/me` | Yes | `page`, `pageSize`, `limit`, `isRead`, `fromCreatedAt`, `toCreatedAt` | - | Мои уведомления | **`PagedResponse<NotificationDto>`** (Step 5); `limit` — alias `pageSize` на page 1 |
+| GET | `/api/notifications/me?limit=10` | Yes | query | - | Backward-compat limit | |
+| GET | `/api/notifications/me?isRead=false&page=1&pageSize=20` | Yes | query | - | Только непрочитанные | |
 | GET | `/api/notifications/me/{notificationId}` | Yes | route | - | Уведомление по id | - |
 | PATCH | `/api/notifications/me/{notificationId}/read` | Yes | route | - | Прочитать 1 уведомление | - |
 | PATCH | `/api/notifications/me/read-all` | Yes | - | - | Прочитать всё | - |
@@ -305,7 +334,7 @@ Body: `{ "content": "Hello from REST" }`
 
 1. Login **user A** → `POST /api/auth/login`.
 2. Login **user B** → сохранить `otherUserId` user B.
-3. **User A** отправляет contact request → `POST /api/network/me/contacts` `{ "otherUserId": "<user B id>" }`.
+3. **User A** отправляет contact request → `POST /api/network/me/contacts` `{ "receiverId": "<user B id>" }` (или `{{receiverId}}` = id user B).
 4. Login **user B**.
 5. `GET /api/notifications/me` → ожидается notification с `type: "contact_request"`, `entityType: "contact_request"`, `entityId` = contactRequestId.
 6. **Self-request:** user A отправляет request самому себе → API error, notification **не** создаётся.
@@ -331,7 +360,10 @@ Body: `{ "content": "Hello from REST" }`
 
 | Method | Route | Auth | Body/Params | Saves variable | Purpose | Notes |
 |---|---|---|---|---|---|---|
-| POST/GET/GET/PATCH/DELETE | `/api/events/me...` + `/api/events/{eventId}` | Yes | body/route | `eventId` | События | - |
+| GET | `/api/events` | Optional | `page`, `pageSize`, `query`, `fromStartAt`, `toStartAt`, `location`, `isOnline` | - | Discover events | Публичный; optional JWT для `isAttending` в `EventDto` (Step 3) |
+| GET | `/api/events/me/attending` | Yes | `page`, `pageSize` | - | События, где я участник | JWT required (Step 3) |
+| GET | `/api/events/speakers` | No | `page`, `pageSize`, `query` | - | Каталог спикеров | Публичный (Step 3) |
+| POST/GET/GET/PATCH/DELETE | `/api/events/me...` + `/api/events/{eventId}` | Yes | body/route | `eventId` | CRUD моих событий | `EventDto`: `attendeeCount`, `isAttending` (с JWT) |
 | POST/DELETE/GET | `/api/events/me/{eventId}/join|attendance` + `/api/events/{eventId}/attendees` | Yes | route | - | Посетители | - |
 | POST/GET/PATCH/DELETE | `/api/events/me/{eventId}/schedule...` + `/api/events/{eventId}/schedule` | Yes | body/route | `scheduleItemId`* | Расписание | - |
 | POST | `/api/events/me/speakers` | **Admin** | body | `speakerId`* | Создать speaker | User → **403** |
@@ -486,7 +518,13 @@ GET /api/content/hashtags?sortBy=bad   → 400
 | GET | `/api/admin/jobs/recommended-queries` | Admin | - | - | List recommended | |
 | POST | `/api/admin/jobs/recommended-queries` | Admin | `{ "query": "..." }` | `recommendedJobQueryId`* | Create recommended | 200 |
 | DELETE | `/api/admin/jobs/recommended-queries/{id}` | Admin | route | - | Delete recommended | 204 |
-| GET | `/api/admin/stats/overview` | Admin | - | - | Stats overview | |
+| GET | `/api/admin/events` | Admin | `page`, `pageSize`, `includeDeleted`, `isDeleted`, `fromStartAt`, `toStartAt`, filters | - | Admin events list | `PagedResponse<AdminEventDto>` (Step 4) |
+| DELETE | `/api/admin/events/{eventId}` | Admin | route | - | Soft delete event | 204 |
+| PATCH | `/api/admin/events/{eventId}/restore` | Admin | route | - | Restore event | 204 |
+| GET | `/api/admin/content/comments` | Admin | `page`, `pageSize`, `includeDeleted`, `postId`, `authorUserId`, `fromCreatedAt`, `toCreatedAt` | - | Admin comments | `PagedResponse<AdminCommentDto>` (Step 7); soft delete/restore |
+| DELETE | `/api/admin/content/comments/{commentId}` | Admin | route | - | Soft delete comment | 204 |
+| PATCH | `/api/admin/content/comments/{commentId}/restore` | Admin | route | - | Restore comment | 204 |
+| GET | `/api/admin/stats/overview` | Admin | - | - | Stats overview | incl. `totalEvents`, `activeEvents`, `deletedEvents`, `upcomingEvents` (Step 4) |
 | GET | `/api/admin/stats/overview` | User token | - | - | Negative: 403 | обычный user |
 
 #### Сценарии безопасности (smoke)
@@ -504,12 +542,57 @@ GET /api/content/hashtags?sortBy=bad   → 400
 | User JWT | **200** | **404** (endpoints removed) |
 | Admin JWT | N/A (use admin routes) | `POST/DELETE` under `/api/admin/jobs/recommended-queries` |
 
+### 11 AI
+
+| Method | Route | Auth | Body/Params | Purpose | Notes |
+|---|---|---|---|---|---|
+| GET | `/api/ai/recommended-jobs` | Yes | - | Рекомендуемые вакансии | **GET**, не POST; JWT required |
+| GET | `/api/ai/career-advice` | Yes | - | Карьерный совет | **GET**, не POST; JWT required |
+
+Postman: папка `11 AI`. Используйте `{{accessToken}}`.
+
+### 12 Validation / Negative cases
+
+Папка `12 Validation / Negative cases`. Ожидаемый ответ: **400** `ValidationErrorResponse` (`errors` array).
+
+| Area | Request | Expected |
+|---|---|---|
+| Events | `POST /api/events/me` с `endAt <= startAt` | 400 |
+| Events | `PATCH /api/events/me/{eventId}` с `endAt <= startAt` | 400 |
+| Admin | `POST /api/admin/users/{userId}/roles` с `roleName: "SuperAdmin"` | 400 |
+| Admin | `PATCH .../lock` с `lockoutEnd` в прошлом | 400 |
+| Query | `GET /api/admin/events?fromStartAt=...&toStartAt=...` где from > to | 400 |
+| Query | `GET /api/admin/content/comments?fromCreatedAt=...&toCreatedAt=...` где from > to | 400 |
+| Query | `GET /api/jobs/vacancies?fromCreatedAt=...&toCreatedAt=...` где from > to | 400 |
+| Query | `GET /api/notifications/me?fromCreatedAt=...&toCreatedAt=...` где from > to | 400 |
+
+## PagedResponse changes (Steps 2, 5)
+
+Следующие list endpoints возвращают **`PagedResponse<T>`** (`items`, `totalCount`, `page`, `pageSize`, `hasNextPage`), а не plain array:
+
+| Endpoint | Item type |
+|---|---|
+| `GET /api/content/feed` | `PostDto` |
+| `GET /api/content/users/{userId}/posts` | `PostDto` |
+| `GET /api/jobs/vacancies` | `VacancyDto` |
+| `GET /api/notifications/me` | `NotificationDto` |
+| `GET /api/network/me/contacts` | `ContactDto` |
+
+## Known V1 limitations
+
+- **Feed:** network-aware feed с JWT пока **не фильтрует** заблокированных пользователей.
+- **Events:** visibility на `GET /api/events/{eventId}` может следовать текущему V1 поведению (не все visibility rules enforced на read-by-id).
+- **Reports / audit:** admin reports и audit log **не реализованы** в V1.
+- **Messaging:** `POST /api/messaging/me/chats` создаёт чат для текущего JWT user; `participantIds` в body нет — join отдельно.
+
 ## Какие переменные должны быть подготовлены заранее
 
-- `otherUserId` — для контактов, подписок, упоминаний, чатов.
+- `otherUserId` — второй пользователь (профиль, упоминания, admin filters).
+- `receiverId` — **получатель contact request** и messaging receiver; обычно тот же GUID, что `otherUserId`, но отдельная переменная для ясности в docs.
 - `companyId` — для некоторых профессиональных и job-сценариев.
 - `postId` — для content/network/jobs/notifications cross-flow.
-- `adminToken`, `adminUserId` — для `/api/admin/*` (после login admin).
+- `adminToken` (alias `adminAccessToken` в environment) — для `/api/admin/*` (после login admin).
+- `adminUserId` — id admin user.
 - `normalUserToken`, `normalUserId` — для negative tests (403 на admin routes).
 - `recommendedJobQueryId` — для admin DELETE recommended query.
 - `eventId`, `speakerId`, `scheduleItemId` — для module Events.
@@ -531,5 +614,5 @@ GET /api/content/hashtags?sortBy=bad   → 400
 ## Что стоит проверить позже
 
 1. Точные JSON shape ответов для всех create endpoint-ов (чтобы расширить авто-save scripts).
-2. Отдельный набор Negative tests (ожидаемые 400/401/404) в отдельной папке коллекции.
-3. Дополнительные сценарии с двумя пользователями (race/ownership cases).
+2. Дополнительные сценарии с двумя пользователями (race/ownership cases).
+3. E2E negative tests для 401/403/404 (папка `12 Validation` покрывает только 400 validation).
