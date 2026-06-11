@@ -75,11 +75,6 @@ public class AdminUsersController : AdminControllerBase
         [FromBody] AssignUserRoleRequest request,
         CancellationToken cancellationToken)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.RoleName))
-        {
-            return BadRequestError("RoleName is required.");
-        }
-
         try
         {
             await _adminManagementService.AddUserToRoleAsync(
@@ -127,7 +122,7 @@ public class AdminUsersController : AdminControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> LockUser(
         string userId,
-        [FromBody] LockUserRequest request,
+        [FromBody] LockUserRequest? request,
         CancellationToken cancellationToken)
     {
         var currentUserId = GetCurrentUserId();

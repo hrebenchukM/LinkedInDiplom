@@ -20,7 +20,7 @@ public class MessagingChatsController : MessagingManagementControllerBase
     [ProducesResponseType(typeof(ChatResponse), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> CreateChat([FromBody] CreateChatRequest? request)
+    public async Task<IActionResult> CreateChat([FromBody] CreateChatRequest request)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))

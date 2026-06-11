@@ -3,7 +3,7 @@ using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.AdminManagement.Contracts.Requests;
 
-public record AdminCommentsQueryRequest : PagedRequest
+public record AdminCommentsQueryRequest : PagedRequest, IValidatableObject
 {
     public Guid? PostId { get; init; }
 
@@ -26,4 +26,14 @@ public record AdminCommentsQueryRequest : PagedRequest
 
     [AllowedValues("asc", "desc")]
     public string? SortDirection { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromCreatedAt.HasValue && ToCreatedAt.HasValue && FromCreatedAt > ToCreatedAt)
+        {
+            yield return new ValidationResult(
+                "FromCreatedAt must be less than or equal to ToCreatedAt.",
+                [nameof(FromCreatedAt), nameof(ToCreatedAt)]);
+        }
+    }
 }

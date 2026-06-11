@@ -3,7 +3,7 @@ using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.JobsManagement.Contracts.Requests.Vacancy;
 
-public record GetVacanciesQueryRequest : PagedRequest
+public record GetVacanciesQueryRequest : PagedRequest, IValidatableObject
 {
     [StringLength(200)]
     public string? Query { get; init; }
@@ -34,4 +34,14 @@ public record GetVacanciesQueryRequest : PagedRequest
 
     [AllowedValues("asc", "desc")]
     public string? SortDirection { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromCreatedAt.HasValue && ToCreatedAt.HasValue && FromCreatedAt > ToCreatedAt)
+        {
+            yield return new ValidationResult(
+                "FromCreatedAt must be less than or equal to ToCreatedAt.",
+                [nameof(FromCreatedAt), nameof(ToCreatedAt)]);
+        }
+    }
 }

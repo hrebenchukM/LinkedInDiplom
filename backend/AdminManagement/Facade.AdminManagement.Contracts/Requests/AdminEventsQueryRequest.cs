@@ -3,7 +3,7 @@ using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.AdminManagement.Contracts.Requests;
 
-public record AdminEventsQueryRequest : PagedRequest
+public record AdminEventsQueryRequest : PagedRequest, IValidatableObject
 {
     [StringLength(500)]
     public string? Query { get; init; }
@@ -29,4 +29,14 @@ public record AdminEventsQueryRequest : PagedRequest
 
     [AllowedValues("asc", "desc")]
     public string? SortDirection { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromStartAt.HasValue && ToStartAt.HasValue && FromStartAt > ToStartAt)
+        {
+            yield return new ValidationResult(
+                "FromStartAt must be less than or equal to ToStartAt.",
+                [nameof(FromStartAt), nameof(ToStartAt)]);
+        }
+    }
 }

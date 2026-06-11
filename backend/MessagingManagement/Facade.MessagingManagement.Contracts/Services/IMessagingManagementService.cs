@@ -9,7 +9,7 @@ namespace Facade.MessagingManagement.Contracts.Services;
 
 public interface IMessagingManagementService
 {
-    Task<ChatResponse> CreateChatAsync(string userId, CreateChatRequest? request);
+    Task<ChatResponse> CreateChatAsync(string userId, CreateChatRequest request);
     Task<PagedResponse<ChatDto>> GetMyChatsAsync(
         string userId,
         PagedRequest request,

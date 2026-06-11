@@ -8,7 +8,7 @@ namespace Facade.MessagingManagement.Services.Services;
 
 public partial class MessagingManagementService
 {
-    public async Task<ChatResponse> CreateChatAsync(string userId, CreateChatRequest? request)
+    public async Task<ChatResponse> CreateChatAsync(string userId, CreateChatRequest request)
     {
         var result = await _messagingClient.Chats.CreateAsync(new CreateChatParameters
         {

@@ -3,7 +3,7 @@ using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.AdminManagement.Contracts.Requests;
 
-public record AdminVacanciesQueryRequest : PagedRequest
+public record AdminVacanciesQueryRequest : PagedRequest, IValidatableObject
 {
     public Guid? CompanyId { get; init; }
 
@@ -26,4 +26,14 @@ public record AdminVacanciesQueryRequest : PagedRequest
 
     [AllowedValues("asc", "desc")]
     public string? SortDirection { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (CreatedFrom.HasValue && CreatedTo.HasValue && CreatedFrom > CreatedTo)
+        {
+            yield return new ValidationResult(
+                "CreatedFrom must be less than or equal to CreatedTo.",
+                [nameof(CreatedFrom), nameof(CreatedTo)]);
+        }
+    }
 }
