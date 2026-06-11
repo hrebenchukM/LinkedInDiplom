@@ -17,4 +17,15 @@ public interface IEventResource
     Task<EventDto?> GetByIdAsync(GetEventByIdParameters parameters);
     Task<EventResult> UpdateAsync(UpdateEventParameters parameters);
     Task<EventResult> DeleteAsync(DeleteEventParameters parameters);
+    Task<AdminEventsResult> GetAdminEventsAsync(
+        GetAdminEventsParameters parameters,
+        CancellationToken cancellationToken = default);
+    Task AdminSoftDeleteEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default);
+    Task AdminRestoreEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default);
+    Task<EventsStatsDto> GetEventsStatsAsync(
+        CancellationToken cancellationToken = default);
 }

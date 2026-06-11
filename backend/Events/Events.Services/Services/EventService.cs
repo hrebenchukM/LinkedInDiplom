@@ -317,6 +317,199 @@ public class EventService(EventsDbContext dbContext) : IEventService
         };
     }
 
+    public async Task AdminSoftDeleteEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await dbContext.Events
+            .FirstOrDefaultAsync(x => x.Id == eventId, cancellationToken);
+
+        if (entity is null)
+        {
+            throw new InvalidOperationException($"Event with id '{eventId}' was not found.");
+        }
+
+        if (entity.DeletedAt != null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        entity.DeletedAt = now;
+        entity.UpdatedAt = now;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AdminRestoreEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await dbContext.Events
+            .FirstOrDefaultAsync(x => x.Id == eventId, cancellationToken);
+
+        if (entity is null)
+        {
+            throw new InvalidOperationException($"Event with id '{eventId}' was not found.");
+        }
+
+        if (entity.DeletedAt == null)
+        {
+            return;
+        }
+
+        entity.DeletedAt = null;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AdminEventsResult> GetAdminEventsAsync(
+        GetAdminEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Events.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.OrganizerUserId))
+        {
+            var organizerUserId = parameters.OrganizerUserId.Trim();
+            query = query.Where(x => x.OrganizerId == organizerUserId);
+        }
+
+        if (parameters.IsDeleted == true)
+        {
+            query = query.Where(x => x.DeletedAt != null);
+        }
+        else if (parameters.IsDeleted == false)
+        {
+            query = query.Where(x => x.DeletedAt == null);
+        }
+        else if (parameters.IncludeDeleted == false)
+        {
+            query = query.Where(x => x.DeletedAt == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Query))
+        {
+            var searchPattern = $"%{parameters.Query.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Title, searchPattern) ||
+                EF.Functions.ILike(x.Description ?? string.Empty, searchPattern) ||
+                EF.Functions.ILike(x.Location ?? string.Empty, searchPattern));
+        }
+
+        if (parameters.FromStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt >= parameters.FromStartAt.Value);
+        }
+
+        if (parameters.ToStartAt.HasValue)
+        {
+            query = query.Where(x => x.StartAt <= parameters.ToStartAt.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Location))
+        {
+            var locationPattern = $"%{parameters.Location.Trim()}%";
+            query = query.Where(x => EF.Functions.ILike(x.Location ?? string.Empty, locationPattern));
+        }
+
+        if (parameters.IsOnline.HasValue)
+        {
+            query = query.Where(x => x.IsOnline == parameters.IsOnline.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyAdminSorting(query, sortBy, descending);
+
+        var events = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        var attendeeCounts = await GetAttendeeCountsByEventIdsAsync(
+            events.Select(x => x.Id),
+            cancellationToken);
+
+        return new AdminEventsResult
+        {
+            Items = events
+                .Select(x => MapToAdminDto(x, attendeeCounts.GetValueOrDefault(x.Id)))
+                .ToList(),
+            TotalCount = totalCount
+        };
+    }
+
+    public async Task<EventsStatsDto> GetEventsStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var totalEvents = await dbContext.Events.CountAsync(cancellationToken);
+        var deletedEvents = await dbContext.Events.CountAsync(
+            x => x.DeletedAt != null,
+            cancellationToken);
+        var upcomingEvents = await dbContext.Events.CountAsync(
+            x => x.DeletedAt == null && x.StartAt >= now,
+            cancellationToken);
+
+        return new EventsStatsDto
+        {
+            TotalEvents = totalEvents,
+            DeletedEvents = deletedEvents,
+            ActiveEvents = totalEvents - deletedEvents,
+            UpcomingEvents = upcomingEvents
+        };
+    }
+
+    private IQueryable<Event> ApplyAdminSorting(
+        IQueryable<Event> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "startat" when descending => query.OrderByDescending(x => x.StartAt),
+            "startat" => query.OrderBy(x => x.StartAt),
+            "title" when descending => query.OrderByDescending(x => x.Title),
+            "title" => query.OrderBy(x => x.Title),
+            "updatedat" when descending => query.OrderByDescending(x => x.UpdatedAt),
+            "updatedat" => query.OrderBy(x => x.UpdatedAt),
+            "deletedat" when descending => query.OrderByDescending(x => x.DeletedAt),
+            "deletedat" => query.OrderBy(x => x.DeletedAt),
+            "attendeecount" when descending => query.OrderByDescending(x =>
+                dbContext.EventAttendees.Count(a => a.EventId == x.Id && a.DeletedAt == null)),
+            "attendeecount" => query.OrderBy(x =>
+                dbContext.EventAttendees.Count(a => a.EventId == x.Id && a.DeletedAt == null)),
+            "createdat" when descending => query.OrderByDescending(x => x.CreatedAt),
+            "createdat" => query.OrderBy(x => x.CreatedAt),
+            _ when descending => query.OrderByDescending(x => x.CreatedAt),
+            _ => query.OrderBy(x => x.CreatedAt)
+        };
+    }
+
+    private static AdminEventDto MapToAdminDto(Event entity, int attendeeCount) =>
+        new()
+        {
+            Id = entity.Id,
+            OrganizerUserId = entity.OrganizerId,
+            Title = entity.Title,
+            StartAt = entity.StartAt,
+            EndAt = entity.EndAt,
+            Location = entity.Location,
+            IsOnline = entity.IsOnline,
+            AttendeeCount = attendeeCount,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt,
+            DeletedAt = entity.DeletedAt,
+            IsDeleted = entity.DeletedAt != null
+        };
+
     private async Task<IReadOnlyDictionary<Guid, int>> GetAttendeeCountsByEventIdsAsync(
         IEnumerable<Guid> eventIds,
         CancellationToken cancellationToken = default)

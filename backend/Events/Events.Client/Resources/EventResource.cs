@@ -50,4 +50,31 @@ public class EventResource(IEventService eventService) : IEventResource
     {
         return eventService.DeleteAsync(parameters);
     }
+
+    public Task<AdminEventsResult> GetAdminEventsAsync(
+        GetAdminEventsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.GetAdminEventsAsync(parameters, cancellationToken);
+    }
+
+    public Task AdminSoftDeleteEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.AdminSoftDeleteEventAsync(eventId, cancellationToken);
+    }
+
+    public Task AdminRestoreEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.AdminRestoreEventAsync(eventId, cancellationToken);
+    }
+
+    public Task<EventsStatsDto> GetEventsStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return eventService.GetEventsStatsAsync(cancellationToken);
+    }
 }

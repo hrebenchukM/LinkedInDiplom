@@ -1,6 +1,9 @@
 using Content.Client.Contracts.Resources;
 using Content.Contracts.DTOs;
 using Content.Contracts.Parameters.Post;
+using Events.Client.Contracts.Resources;
+using Events.Contracts.DTOs;
+using Events.Contracts.Parameters.Event;
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.AdminManagement.Contracts.Services;
 using Facade.Shared.Contracts.Pagination;
@@ -18,17 +21,20 @@ public partial class AdminManagementService : IAdminManagementService
     private readonly IUserResource _userResource;
     private readonly IPostResource _postResource;
     private readonly IVacancyResource _vacancyResource;
+    private readonly IEventResource _eventResource;
     private readonly IRecommendedJobQueryResource _recommendedJobQueryResource;
 
     public AdminManagementService(
         IUserResource userResource,
         IPostResource postResource,
         IVacancyResource vacancyResource,
+        IEventResource eventResource,
         IRecommendedJobQueryResource recommendedJobQueryResource)
     {
         _userResource = userResource;
         _postResource = postResource;
         _vacancyResource = vacancyResource;
+        _eventResource = eventResource;
         _recommendedJobQueryResource = recommendedJobQueryResource;
     }
 
@@ -186,4 +192,48 @@ public partial class AdminManagementService : IAdminManagementService
         Guid vacancyId,
         CancellationToken cancellationToken = default)
         => _vacancyResource.AdminRestoreVacancyAsync(vacancyId, cancellationToken);
+
+    public async Task<PagedResponse<AdminEventDto>> GetAdminEventsAsync(
+        AdminEventsQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.FromStartAt.HasValue
+            && request.ToStartAt.HasValue
+            && request.FromStartAt > request.ToStartAt)
+        {
+            throw new InvalidOperationException("FromStartAt must be less than or equal to ToStartAt.");
+        }
+
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _eventResource.GetAdminEventsAsync(
+            new GetAdminEventsParameters
+            {
+                Skip = skip,
+                Take = pageSize,
+                OrganizerUserId = request.OrganizerUserId,
+                IsDeleted = request.IsDeleted,
+                IncludeDeleted = request.IncludeDeleted,
+                Query = request.Query,
+                FromStartAt = request.FromStartAt,
+                ToStartAt = request.ToStartAt,
+                Location = request.Location,
+                IsOnline = request.IsOnline,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        return Pagination.Create(result.Items.ToList(), page, pageSize, result.TotalCount);
+    }
+
+    public Task AdminSoftDeleteEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+        => _eventResource.AdminSoftDeleteEventAsync(eventId, cancellationToken);
+
+    public Task AdminRestoreEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
+        => _eventResource.AdminRestoreEventAsync(eventId, cancellationToken);
 }

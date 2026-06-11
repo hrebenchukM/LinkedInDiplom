@@ -1,4 +1,5 @@
 using Content.Contracts.DTOs;
+using Events.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.DTOs;
 using Facade.AdminManagement.Contracts.Requests;
 using Facade.Shared.Contracts.Pagination;
@@ -73,6 +74,18 @@ public interface IAdminManagementService
 
     Task AdminRestoreVacancyAsync(
         Guid vacancyId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResponse<AdminEventDto>> GetAdminEventsAsync(
+        AdminEventsQueryRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task AdminSoftDeleteEventAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default);
+
+    Task AdminRestoreEventAsync(
+        Guid eventId,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<RecommendedJobQueryDto>> GetRecommendedJobQueriesAsync(

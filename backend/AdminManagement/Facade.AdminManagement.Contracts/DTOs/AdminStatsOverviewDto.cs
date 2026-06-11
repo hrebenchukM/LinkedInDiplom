@@ -12,4 +12,8 @@ public record AdminStatsOverviewDto
     public int DeletedVacancies { get; init; }
     public int ActiveVacancies { get; init; }
     public int TotalRecommendedJobQueries { get; init; }
+    public int TotalEvents { get; init; }
+    public int DeletedEvents { get; init; }
+    public int ActiveEvents { get; init; }
+    public int UpcomingEvents { get; init; }
 }

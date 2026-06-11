@@ -10,6 +10,7 @@ public partial class AdminManagementService
         var identityStats = await _userResource.GetIdentityStatsAsync(cancellationToken);
         var contentStats = await _postResource.GetContentStatsAsync(cancellationToken);
         var jobsStats = await _vacancyResource.GetJobsStatsAsync(cancellationToken);
+        var eventsStats = await _eventResource.GetEventsStatsAsync(cancellationToken);
 
         return new AdminStatsOverviewDto
         {
@@ -22,7 +23,11 @@ public partial class AdminManagementService
             TotalVacancies = jobsStats.TotalVacancies,
             DeletedVacancies = jobsStats.DeletedVacancies,
             ActiveVacancies = jobsStats.ActiveVacancies,
-            TotalRecommendedJobQueries = jobsStats.TotalRecommendedJobQueries
+            TotalRecommendedJobQueries = jobsStats.TotalRecommendedJobQueries,
+            TotalEvents = eventsStats.TotalEvents,
+            DeletedEvents = eventsStats.DeletedEvents,
+            ActiveEvents = eventsStats.ActiveEvents,
+            UpcomingEvents = eventsStats.UpcomingEvents
         };
     }
 }
