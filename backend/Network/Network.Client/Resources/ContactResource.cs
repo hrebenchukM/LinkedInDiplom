@@ -24,9 +24,11 @@ public class ContactResource : IContactResource
         return _contactService.SendRequestAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(GetMyContactsParameters parameters)
+    public Task<ContactsPageResult> GetMyContactsAsync(
+        GetMyContactsParameters parameters,
+        CancellationToken cancellationToken = default)
     {
-        return _contactService.GetMyContactsAsync(parameters);
+        return _contactService.GetMyContactsAsync(parameters, cancellationToken);
     }
 
     public Task<ContactDto?> GetByIdAsync(GetContactByIdParameters parameters)

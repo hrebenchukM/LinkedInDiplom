@@ -1,5 +1,8 @@
+using Facade.NotificationsManagement.Contracts.DTOs;
+using Facade.NotificationsManagement.Contracts.Requests.Notification;
 using Facade.NotificationsManagement.Contracts.Responses;
 using Facade.NotificationsManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,9 +17,12 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
 
     [Authorize]
     [HttpGet("me")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<NotificationDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetMyNotifications([FromQuery] bool? isRead, [FromQuery] int? limit)
+    public async Task<IActionResult> GetMyNotifications(
+        [FromQuery] GetMyNotificationsQueryRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
@@ -24,8 +30,15 @@ public class NotificationsItemsController : NotificationsManagementControllerBas
             return Unauthorized();
         }
 
-        var items = await NotificationsService.GetMyNotificationsAsync(userId, isRead, limit);
-        return Ok(items);
+        try
+        {
+            var notifications = await NotificationsService.GetMyNotificationsAsync(userId, request, cancellationToken);
+            return Ok(notifications);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, errors = new[] { ex.Message } });
+        }
     }
 
     [Authorize]

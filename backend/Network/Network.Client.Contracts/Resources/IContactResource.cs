@@ -10,7 +10,9 @@ public interface IContactResource
 {
     Task<ContactResult> SendRequestAsync(SendContactRequestParameters parameters);
 
-    Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(GetMyContactsParameters parameters);
+    Task<ContactsPageResult> GetMyContactsAsync(
+        GetMyContactsParameters parameters,
+        CancellationToken cancellationToken = default);
 
     Task<ContactDto?> GetByIdAsync(GetContactByIdParameters parameters);
 

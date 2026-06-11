@@ -62,24 +62,48 @@ public class NotificationService(NotificationsDbContext dbContext) : INotificati
         };
     }
 
-    public async Task<IReadOnlyCollection<NotificationDto>> GetMyNotificationsAsync(
-        GetMyNotificationsParameters parameters)
+    public async Task<NotificationsPageResult> GetMyNotificationsAsync(
+        GetMyNotificationsParameters parameters,
+        CancellationToken cancellationToken = default)
     {
         var query = dbContext.Notifications
             .AsNoTracking()
             .Where(n => n.UserId == parameters.UserId && n.DeletedAt == null);
 
         if (parameters.IsRead.HasValue)
+        {
             query = query.Where(n => n.IsRead == parameters.IsRead.Value);
+        }
 
-        var limit = ResolveLimit(parameters.Limit);
+        if (!string.IsNullOrWhiteSpace(parameters.Type))
+        {
+            var type = parameters.Type.Trim();
+            query = query.Where(n => n.Type == type);
+        }
+
+        if (parameters.FromCreatedAt.HasValue)
+        {
+            query = query.Where(n => n.CreatedAt >= parameters.FromCreatedAt.Value);
+        }
+
+        if (parameters.ToCreatedAt.HasValue)
+        {
+            query = query.Where(n => n.CreatedAt <= parameters.ToCreatedAt.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
 
         var notifications = await query
             .OrderByDescending(n => n.CreatedAt)
-            .Take(limit)
-            .ToListAsync();
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
 
-        return notifications.Select(Map).ToList();
+        return new NotificationsPageResult
+        {
+            Items = notifications.Select(Map).ToList(),
+            TotalCount = totalCount
+        };
     }
 
     public async Task<NotificationDto?> GetByIdAsync(GetNotificationByIdParameters parameters)
@@ -203,14 +227,6 @@ public class NotificationService(NotificationsDbContext dbContext) : INotificati
             CreatedAt = notification.CreatedAt,
             UpdatedAt = notification.UpdatedAt
         };
-
-    private static int ResolveLimit(int? limit)
-    {
-        if (!limit.HasValue || limit.Value <= 0 || limit.Value > 100)
-            return 100;
-
-        return limit.Value;
-    }
 
     private static string? Normalize(string? value)
     {

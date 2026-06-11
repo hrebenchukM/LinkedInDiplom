@@ -1,21 +1,45 @@
 using Facade.NotificationsManagement.Contracts.DTOs;
+using Facade.NotificationsManagement.Contracts.Requests.Notification;
 using Facade.NotificationsManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Notifications.Contracts.Parameters.Notification;
 
 namespace Facade.NotificationsManagement.Services.Services;
 
 public partial class NotificationsManagementService
 {
-    public async Task<IReadOnlyCollection<NotificationDto>> GetMyNotificationsAsync(string userId, bool? isRead, int? limit)
+    public async Task<PagedResponse<NotificationDto>> GetMyNotificationsAsync(
+        string userId,
+        GetMyNotificationsQueryRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var notifications = await _notificationsClient.Notifications.GetMyNotificationsAsync(new GetMyNotificationsParameters
+        if (request.FromCreatedAt.HasValue
+            && request.ToCreatedAt.HasValue
+            && request.FromCreatedAt > request.ToCreatedAt)
         {
-            UserId = userId,
-            IsRead = isRead,
-            Limit = limit
-        });
+            throw new InvalidOperationException("FromCreatedAt must be less than or equal to ToCreatedAt.");
+        }
 
-        return notifications.Select(MapNotificationToFacadeDto).ToList();
+        var (page, pageSize, skip) = request.ResolvePaging();
+
+        var result = await _notificationsClient.Notifications.GetMyNotificationsAsync(
+            new GetMyNotificationsParameters
+            {
+                UserId = userId,
+                Skip = skip,
+                Take = pageSize,
+                IsRead = request.IsRead,
+                Type = request.Type,
+                FromCreatedAt = request.FromCreatedAt,
+                ToCreatedAt = request.ToCreatedAt
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapNotificationToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<NotificationDto?> GetNotificationByIdAsync(string userId, Guid notificationId)

@@ -1,6 +1,7 @@
 using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.BlockedUser;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
+using Facade.Shared.Contracts.Pagination;
 using Facade.NetworkManagement.Contracts.Requests.Follow;
 using Facade.NetworkManagement.Contracts.Requests.Group;
 using Facade.NetworkManagement.Contracts.Requests.Page;
@@ -14,7 +15,10 @@ public interface INetworkManagementService
 {
     Task<ContactResponse> SendContactRequestAsync(string userId, SendContactRequest request);
 
-    Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(string userId);
+    Task<PagedResponse<ContactDto>> GetMyContactsAsync(
+        string userId,
+        GetMyContactsQueryRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<ContactDto?> GetMyContactByIdAsync(string userId, Guid contactId);
 

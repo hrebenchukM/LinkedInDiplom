@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Facade.JobsManagement.Contracts\Facade.JobsManagement.Contracts.csproj" />
     <ProjectReference Include="..\Facade.JobsManagement.Services\Facade.JobsManagement.Services.csproj" />
+    <ProjectReference Include="..\..\Facade\Facade.Shared.Contracts\Facade.Shared.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

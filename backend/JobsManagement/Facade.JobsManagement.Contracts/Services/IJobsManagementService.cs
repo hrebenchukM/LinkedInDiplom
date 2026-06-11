@@ -3,13 +3,17 @@ using Facade.JobsManagement.Contracts.Requests.SearchQuery;
 using Facade.JobsManagement.Contracts.Requests.SearchResult;
 using Facade.JobsManagement.Contracts.Requests.Vacancy;
 using Facade.JobsManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 
 namespace Facade.JobsManagement.Contracts.Services;
 
 public interface IJobsManagementService
 {
     Task<VacancyResponse> CreateVacancyAsync(string userId, CreateVacancyRequest request);
-    Task<IReadOnlyCollection<VacancyDto>> GetVacanciesAsync(string userId, string? query, string? location, Guid? companyId);
+    Task<PagedResponse<VacancyDto>> GetVacanciesAsync(
+        string userId,
+        GetVacanciesQueryRequest request,
+        CancellationToken cancellationToken = default);
     Task<VacancyDto?> GetVacancyByIdAsync(string userId, Guid vacancyId);
     Task<VacancyResponse> UpdateVacancyAsync(string userId, Guid vacancyId, UpdateVacancyRequest request);
     Task<VacancyResponse> DeleteVacancyAsync(string userId, Guid vacancyId);

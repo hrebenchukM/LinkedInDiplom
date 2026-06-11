@@ -1,6 +1,7 @@
 using Facade.JobsManagement.Contracts.DTOs;
 using Facade.JobsManagement.Contracts.Requests.Vacancy;
 using Facade.JobsManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Jobs.Contracts.Parameters.Vacancy;
 
 namespace Facade.JobsManagement.Services.Services;
@@ -26,17 +27,44 @@ public partial class JobsManagementService
         return MapVacancyResultToFacadeResponse(result);
     }
 
-    public async Task<IReadOnlyCollection<VacancyDto>> GetVacanciesAsync(string userId, string? query, string? location, Guid? companyId)
+    public async Task<PagedResponse<VacancyDto>> GetVacanciesAsync(
+        string userId,
+        GetVacanciesQueryRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var vacancies = await _jobsClient.Vacancies.GetVacanciesAsync(new GetVacanciesParameters
+        if (request.FromCreatedAt.HasValue
+            && request.ToCreatedAt.HasValue
+            && request.FromCreatedAt > request.ToCreatedAt)
         {
-            UserId = userId,
-            Query = query,
-            Location = location,
-            CompanyId = companyId
-        });
+            throw new InvalidOperationException("FromCreatedAt must be less than or equal to ToCreatedAt.");
+        }
 
-        return vacancies.Select(MapVacancyToFacadeDto).ToList();
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _jobsClient.Vacancies.GetVacanciesAsync(
+            new GetVacanciesParameters
+            {
+                UserId = userId,
+                Skip = skip,
+                Take = pageSize,
+                CompanyId = request.CompanyId,
+                PostedByUserId = request.PostedByUserId,
+                Query = request.Query ?? request.Search,
+                Location = request.Location,
+                JobType = request.EmploymentType,
+                Schedule = request.Schedule,
+                FromCreatedAt = request.FromCreatedAt,
+                ToCreatedAt = request.ToCreatedAt,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapVacancyToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<VacancyDto?> GetVacancyByIdAsync(string userId, Guid vacancyId)

@@ -7,7 +7,9 @@ namespace Notifications.Client.Contracts.Resources;
 public interface INotificationResource
 {
     Task<NotificationResult> CreateAsync(CreateNotificationParameters parameters);
-    Task<IReadOnlyCollection<NotificationDto>> GetMyNotificationsAsync(GetMyNotificationsParameters parameters);
+    Task<NotificationsPageResult> GetMyNotificationsAsync(
+        GetMyNotificationsParameters parameters,
+        CancellationToken cancellationToken = default);
     Task<NotificationDto?> GetByIdAsync(GetNotificationByIdParameters parameters);
     Task<NotificationResult> MarkReadAsync(MarkNotificationReadParameters parameters);
     Task<NotificationResult> MarkAllReadAsync(MarkAllNotificationsReadParameters parameters);

@@ -99,7 +99,9 @@ public class ContactService : IContactService
         return Success(contact);
     }
 
-    public async Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(GetMyContactsParameters parameters)
+    public async Task<ContactsPageResult> GetMyContactsAsync(
+        GetMyContactsParameters parameters,
+        CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Contacts
             .AsNoTracking()
@@ -113,11 +115,46 @@ public class ContactService : IContactService
             query = query.Where(c => c.Status == status);
         }
 
-        var contacts = await query
-            .OrderByDescending(c => c.RequestedAt)
-            .ToListAsync();
+        if (!string.IsNullOrWhiteSpace(parameters.Direction))
+        {
+            var direction = parameters.Direction.Trim().ToLowerInvariant();
+            query = direction switch
+            {
+                "incoming" => query.Where(c => c.ReceiverId == parameters.UserId),
+                "outgoing" => query.Where(c => c.RequesterId == parameters.UserId),
+                "accepted" => query.Where(c => c.Status == StatusAccepted),
+                _ => query
+            };
+        }
 
-        return contacts.Select(MapToDto).ToList();
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var search = parameters.Search.Trim();
+            var searchPattern = $"%{search}%";
+            query = query.Where(c =>
+                EF.Functions.ILike(c.RequesterId, searchPattern) ||
+                EF.Functions.ILike(c.ReceiverId, searchPattern));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "requestedAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyContactSorting(query, sortBy, descending);
+
+        var contacts = await query
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
+
+        return new ContactsPageResult
+        {
+            Items = contacts.Select(MapToDto).ToList(),
+            TotalCount = totalCount
+        };
     }
 
     public async Task<ContactDto?> GetByIdAsync(GetContactByIdParameters parameters)
@@ -283,6 +320,26 @@ public class ContactService : IContactService
         {
             Succeeded = false,
             Errors = new[] { "Contact not found." }
+        };
+    }
+
+    private static IQueryable<Contact> ApplyContactSorting(
+        IQueryable<Contact> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "respondedat" when descending => query.OrderByDescending(c => c.RespondedAt),
+            "respondedat" => query.OrderBy(c => c.RespondedAt),
+            "statuschangedat" when descending => query.OrderByDescending(c => c.StatusChangedAt),
+            "statuschangedat" => query.OrderBy(c => c.StatusChangedAt),
+            "status" when descending => query.OrderByDescending(c => c.Status),
+            "status" => query.OrderBy(c => c.Status),
+            "requestedat" when descending => query.OrderByDescending(c => c.RequestedAt),
+            "requestedat" => query.OrderBy(c => c.RequestedAt),
+            _ when descending => query.OrderByDescending(c => c.RequestedAt),
+            _ => query.OrderBy(c => c.RequestedAt)
         };
     }
 

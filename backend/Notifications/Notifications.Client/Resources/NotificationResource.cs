@@ -24,9 +24,11 @@ public class NotificationResource : INotificationResource
         return _notificationService.CreateAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<NotificationDto>> GetMyNotificationsAsync(GetMyNotificationsParameters parameters)
+    public Task<NotificationsPageResult> GetMyNotificationsAsync(
+        GetMyNotificationsParameters parameters,
+        CancellationToken cancellationToken = default)
     {
-        return _notificationService.GetMyNotificationsAsync(parameters);
+        return _notificationService.GetMyNotificationsAsync(parameters, cancellationToken);
     }
 
     public Task<NotificationDto?> GetByIdAsync(GetNotificationByIdParameters parameters)

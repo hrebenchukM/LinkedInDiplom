@@ -1,6 +1,8 @@
+using Facade.JobsManagement.Contracts.DTOs;
 using Facade.JobsManagement.Contracts.Requests.Vacancy;
 using Facade.JobsManagement.Contracts.Responses;
 using Facade.JobsManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,9 +39,12 @@ public class JobsVacanciesController : JobsManagementControllerBase
 
     [Authorize]
     [HttpGet("vacancies")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<VacancyDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetVacancies([FromQuery] string? query, [FromQuery] string? location, [FromQuery] Guid? companyId)
+    public async Task<IActionResult> GetVacancies(
+        [FromQuery] GetVacanciesQueryRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
@@ -47,8 +52,15 @@ public class JobsVacanciesController : JobsManagementControllerBase
             return Unauthorized();
         }
 
-        var items = await JobsService.GetVacanciesAsync(userId, query, location, companyId);
-        return Ok(items);
+        try
+        {
+            var vacancies = await JobsService.GetVacanciesAsync(userId, request, cancellationToken);
+            return Ok(vacancies);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, errors = new[] { ex.Message } });
+        }
     }
 
     [Authorize]

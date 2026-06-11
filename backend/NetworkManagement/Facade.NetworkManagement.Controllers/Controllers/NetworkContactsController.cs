@@ -1,6 +1,8 @@
+using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Responses;
 using Facade.NetworkManagement.Contracts.Services;
+using Facade.Shared.Contracts.Pagination;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,16 +39,19 @@ public class NetworkContactsController : NetworkManagementControllerBase
     // GET api/network/me/contacts
     [Authorize]
     [HttpGet("me/contacts")]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(PagedResponse<ContactDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<IActionResult> GetMyContacts()
+    public async Task<IActionResult> GetMyContacts(
+        [FromQuery] GetMyContactsQueryRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
 
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
-        var contacts = await NetworkService.GetMyContactsAsync(userId);
+        var contacts = await NetworkService.GetMyContactsAsync(userId, request, cancellationToken);
 
         return Ok(contacts);
     }

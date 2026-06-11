@@ -24,9 +24,11 @@ public class VacancyResource : IVacancyResource
         return _vacancyService.CreateAsync(parameters);
     }
 
-    public Task<IReadOnlyCollection<VacancyDto>> GetVacanciesAsync(GetVacanciesParameters parameters)
+    public Task<VacanciesPageResult> GetVacanciesAsync(
+        GetVacanciesParameters parameters,
+        CancellationToken cancellationToken = default)
     {
-        return _vacancyService.GetVacanciesAsync(parameters);
+        return _vacancyService.GetVacanciesAsync(parameters, cancellationToken);
     }
 
     public Task<VacancyDto?> GetByIdAsync(GetVacancyByIdParameters parameters)

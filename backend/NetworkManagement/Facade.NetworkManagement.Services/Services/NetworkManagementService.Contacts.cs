@@ -1,6 +1,7 @@
 using Facade.NetworkManagement.Contracts.DTOs;
 using Facade.NetworkManagement.Contracts.Requests.Contact;
 using Facade.NetworkManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
 using Network.Contracts.Parameters.Contact;
 using Network.Contracts.Results;
 
@@ -19,14 +20,32 @@ public partial class NetworkManagementService
         return MapContactResult(result);
     }
 
-    public async Task<IReadOnlyCollection<ContactDto>> GetMyContactsAsync(string userId)
+    public async Task<PagedResponse<ContactDto>> GetMyContactsAsync(
+        string userId,
+        GetMyContactsQueryRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var contacts = await _networkClient.Contacts.GetMyContactsAsync(new GetMyContactsParameters
-        {
-            UserId = userId
-        });
+        var (page, pageSize, skip) = Pagination.Normalize(request);
 
-        return contacts.Select(MapContactToFacadeDto).ToList();
+        var result = await _networkClient.Contacts.GetMyContactsAsync(
+            new GetMyContactsParameters
+            {
+                UserId = userId,
+                Skip = skip,
+                Take = pageSize,
+                Status = request.Status,
+                Direction = request.Direction,
+                Search = request.Search,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            },
+            cancellationToken);
+
+        var items = result.Items
+            .Select(MapContactToFacadeDto)
+            .ToList();
+
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
     }
 
     public async Task<ContactDto?> GetMyContactByIdAsync(string userId, Guid contactId)

@@ -54,29 +54,81 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
         };
     }
 
-    public async Task<IReadOnlyCollection<VacancyDto>> GetVacanciesAsync(GetVacanciesParameters parameters)
+    public async Task<VacanciesPageResult> GetVacanciesAsync(
+        GetVacanciesParameters parameters,
+        CancellationToken cancellationToken = default)
     {
         var query = dbContext.Vacancies
             .AsNoTracking()
             .Where(v => v.DeletedAt == null);
 
         if (parameters.CompanyId.HasValue)
+        {
             query = query.Where(v => v.CompanyId == parameters.CompanyId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.PostedByUserId))
+        {
+            query = query.Where(v => v.PostedBy == parameters.PostedByUserId.Trim());
+        }
 
         var searchText = Normalize(parameters.Query);
         if (!string.IsNullOrWhiteSpace(searchText))
-            query = query.Where(v => v.Title.Contains(searchText));
+        {
+            var searchPattern = $"%{searchText}%";
+            query = query.Where(v =>
+                EF.Functions.ILike(v.Title, searchPattern) ||
+                (v.Description != null && EF.Functions.ILike(v.Description, searchPattern)));
+        }
 
         var location = Normalize(parameters.Location);
         if (!string.IsNullOrWhiteSpace(location))
-            query = query.Where(v => v.Location != null && v.Location.Contains(location));
+        {
+            var locationPattern = $"%{location}%";
+            query = query.Where(v => v.Location != null && EF.Functions.ILike(v.Location, locationPattern));
+        }
+
+        var jobType = Normalize(parameters.JobType);
+        if (!string.IsNullOrWhiteSpace(jobType))
+        {
+            query = query.Where(v => v.JobType != null && v.JobType == jobType);
+        }
+
+        var schedule = Normalize(parameters.Schedule);
+        if (!string.IsNullOrWhiteSpace(schedule))
+        {
+            query = query.Where(v => v.Schedule != null && v.Schedule == schedule);
+        }
+
+        if (parameters.FromCreatedAt.HasValue)
+        {
+            query = query.Where(v => v.PostedAt >= parameters.FromCreatedAt.Value);
+        }
+
+        if (parameters.ToCreatedAt.HasValue)
+        {
+            query = query.Where(v => v.PostedAt <= parameters.ToCreatedAt.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortBy = string.IsNullOrWhiteSpace(parameters.SortBy)
+            ? "createdAt"
+            : parameters.SortBy.Trim();
+        var descending = !string.Equals(parameters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        query = ApplyPublicSorting(query, sortBy, descending);
 
         var vacancies = await query
-            .OrderByDescending(v => v.PostedAt)
-            .Select(v => Map(v))
-            .ToListAsync();
+            .Skip(parameters.Skip)
+            .Take(parameters.Take)
+            .ToListAsync(cancellationToken);
 
-        return vacancies;
+        return new VacanciesPageResult
+        {
+            Items = vacancies.Select(Map).ToList(),
+            TotalCount = totalCount
+        };
     }
 
     public async Task<VacancyDto?> GetByIdAsync(GetVacancyByIdParameters parameters)
@@ -326,6 +378,28 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
             DeletedAt = vacancy.DeletedAt,
             IsDeleted = vacancy.DeletedAt != null
         };
+
+    private static IQueryable<Vacancy> ApplyPublicSorting(
+        IQueryable<Vacancy> query,
+        string sortBy,
+        bool descending)
+    {
+        return sortBy.ToLowerInvariant() switch
+        {
+            "title" when descending => query.OrderByDescending(v => v.Title),
+            "title" => query.OrderBy(v => v.Title),
+            "companyid" when descending => query.OrderByDescending(v => v.CompanyId),
+            "companyid" => query.OrderBy(v => v.CompanyId),
+            "location" when descending => query.OrderByDescending(v => v.Location),
+            "location" => query.OrderBy(v => v.Location),
+            "updatedat" when descending => query.OrderByDescending(v => v.UpdatedAt),
+            "updatedat" => query.OrderBy(v => v.UpdatedAt),
+            "createdat" when descending => query.OrderByDescending(v => v.PostedAt),
+            "createdat" => query.OrderBy(v => v.PostedAt),
+            _ when descending => query.OrderByDescending(v => v.PostedAt),
+            _ => query.OrderBy(v => v.PostedAt)
+        };
+    }
 
     private static IQueryable<Vacancy> ApplyAdminSorting(
         IQueryable<Vacancy> query,
