@@ -55,4 +55,11 @@ public class ContactResource : IContactResource
     {
         return _contactService.RemoveAsync(parameters);
     }
+
+    public Task<ContactPendingCountsDto> GetPendingContactCountsAsync(
+        GetContactPendingCountsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        return _contactService.GetPendingContactCountsAsync(parameters, cancellationToken);
+    }
 }

@@ -81,6 +81,65 @@ public partial class NetworkManagementService
         return MapContactResult(result);
     }
 
+    public async Task<ContactResponse> CancelContactRequestAsync(string userId, Guid contactId)
+    {
+        var result = await _networkClient.Contacts.CancelAsync(new CancelContactRequestParameters
+        {
+            UserId = userId,
+            ContactId = contactId
+        });
+
+        return MapContactResult(result);
+    }
+
+    public Task<PagedResponse<ContactDto>> GetMyIncomingContactRequestsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
+        => GetMyContactsAsync(
+            userId,
+            new GetMyContactsQueryRequest
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                Status = StatusPending,
+                Direction = "incoming"
+            },
+            cancellationToken);
+
+    public Task<PagedResponse<ContactDto>> GetMyOutgoingContactRequestsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
+        => GetMyContactsAsync(
+            userId,
+            new GetMyContactsQueryRequest
+            {
+                Page = request.Page,
+                PageSize = request.PageSize,
+                Status = StatusPending,
+                Direction = "outgoing"
+            },
+            cancellationToken);
+
+    public async Task<ContactPendingCountsDto> GetMyContactPendingCountsAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var counts = await _networkClient.Contacts.GetPendingContactCountsAsync(
+            new GetContactPendingCountsParameters
+            {
+                UserId = userId
+            },
+            cancellationToken);
+
+        return new ContactPendingCountsDto
+        {
+            IncomingCount = counts.IncomingCount,
+            OutgoingCount = counts.OutgoingCount
+        };
+    }
+
     public async Task<ContactResponse> DeleteMyContactAsync(string userId, Guid contactId)
     {
         var contact = await _networkClient.Contacts.GetByIdAsync(new GetContactByIdParameters

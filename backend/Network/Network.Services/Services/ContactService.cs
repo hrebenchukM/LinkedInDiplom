@@ -226,6 +226,9 @@ public class ContactService : IContactService
         if (contact.RequesterId != parameters.UserId)
             return NotFound();
 
+        if (contact.Status == StatusCancelled)
+            return Success(contact);
+
         if (contact.Status != StatusPending)
             return Error("Only pending contact requests can be cancelled.");
 
@@ -236,6 +239,29 @@ public class ContactService : IContactService
         await _dbContext.SaveChangesAsync();
 
         return Success(contact);
+    }
+
+    public async Task<ContactPendingCountsDto> GetPendingContactCountsAsync(
+        GetContactPendingCountsParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var incomingCount = await _dbContext.Contacts
+            .AsNoTracking()
+            .CountAsync(
+                c => c.ReceiverId == parameters.UserId && c.Status == StatusPending,
+                cancellationToken);
+
+        var outgoingCount = await _dbContext.Contacts
+            .AsNoTracking()
+            .CountAsync(
+                c => c.RequesterId == parameters.UserId && c.Status == StatusPending,
+                cancellationToken);
+
+        return new ContactPendingCountsDto
+        {
+            IncomingCount = incomingCount,
+            OutgoingCount = outgoingCount
+        };
     }
 
     public async Task<ContactResult> RemoveAsync(RemoveContactParameters parameters)

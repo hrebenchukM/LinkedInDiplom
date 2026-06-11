@@ -56,6 +56,63 @@ public class NetworkContactsController : NetworkManagementControllerBase
         return Ok(contacts);
     }
 
+    // GET api/network/me/contacts/incoming
+    [Authorize]
+    [HttpGet("me/contacts/incoming")]
+    [ProducesResponseType(typeof(PagedResponse<ContactDto>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyIncomingContactRequests(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var contacts = await NetworkService.GetMyIncomingContactRequestsAsync(userId, request, cancellationToken);
+
+        return Ok(contacts);
+    }
+
+    // GET api/network/me/contacts/outgoing
+    [Authorize]
+    [HttpGet("me/contacts/outgoing")]
+    [ProducesResponseType(typeof(PagedResponse<ContactDto>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyOutgoingContactRequests(
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var contacts = await NetworkService.GetMyOutgoingContactRequestsAsync(userId, request, cancellationToken);
+
+        return Ok(contacts);
+    }
+
+    // GET api/network/me/contacts/pending-counts
+    [Authorize]
+    [HttpGet("me/contacts/pending-counts")]
+    [ProducesResponseType(typeof(ContactPendingCountsDto), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetMyContactPendingCounts(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var counts = await NetworkService.GetMyContactPendingCountsAsync(userId, cancellationToken);
+
+        return Ok(counts);
+    }
+
     // GET api/network/me/contacts/{contactId}
     [Authorize]
     [HttpGet("me/contacts/{contactId:guid}")]
@@ -114,6 +171,28 @@ public class NetworkContactsController : NetworkManagementControllerBase
             return Unauthorized();
 
         var response = await NetworkService.RejectContactAsync(userId, contactId);
+
+        if (!response.Success)
+            return MapContactError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/network/me/contacts/{contactId}/cancel
+    [Authorize]
+    [HttpDelete("me/contacts/{contactId:guid}/cancel")]
+    [ProducesResponseType(typeof(ContactResponse), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CancelContactRequest(Guid contactId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await NetworkService.CancelContactRequestAsync(userId, contactId);
 
         if (!response.Success)
             return MapContactError(response);

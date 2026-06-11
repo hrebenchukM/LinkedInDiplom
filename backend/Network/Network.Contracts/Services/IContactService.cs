@@ -22,4 +22,8 @@ public interface IContactService
     Task<ContactResult> CancelAsync(CancelContactRequestParameters parameters);
 
     Task<ContactResult> RemoveAsync(RemoveContactParameters parameters);
+
+    Task<ContactPendingCountsDto> GetPendingContactCountsAsync(
+        GetContactPendingCountsParameters parameters,
+        CancellationToken cancellationToken = default);
 }

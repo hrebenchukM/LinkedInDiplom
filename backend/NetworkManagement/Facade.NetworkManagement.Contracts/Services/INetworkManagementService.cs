@@ -26,7 +26,23 @@ public interface INetworkManagementService
 
     Task<ContactResponse> RejectContactAsync(string userId, Guid contactId);
 
+    Task<ContactResponse> CancelContactRequestAsync(string userId, Guid contactId);
+
     Task<ContactResponse> DeleteMyContactAsync(string userId, Guid contactId);
+
+    Task<PagedResponse<ContactDto>> GetMyIncomingContactRequestsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResponse<ContactDto>> GetMyOutgoingContactRequestsAsync(
+        string userId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ContactPendingCountsDto> GetMyContactPendingCountsAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
 
     Task<FollowResponse> FollowUserAsync(string userId, FollowUserRequest request);
 
