@@ -1,5 +1,6 @@
 ﻿using Content.DataAccess;
 using Events.DataAccess;
+using Facade.API.Seeding;
 using Identity.Contracts.Services;
 using Identity.DataAccess;
 using Jobs.DataAccess;
@@ -70,6 +71,12 @@ public static class DatabaseExtensions
             // Применяем миграции Content-модуля
             await contentContext.Database.MigrateAsync();
 
+            var demoContentSeeder = services.GetRequiredService<IDemoContentSeeder>();
+            await demoContentSeeder.SeedAsync();
+
+            var demoNetworkSeeder = services.GetRequiredService<IDemoNetworkSeeder>();
+            await demoNetworkSeeder.SeedAsync();
+
             // Получаем MessagingDbContext из DI
             var messagingContext = services.GetRequiredService<MessagingDbContext>();
 
@@ -81,6 +88,9 @@ public static class DatabaseExtensions
 
             // Применяем миграции Jobs-модуля
             await jobsContext.Database.MigrateAsync();
+
+            var demoJobsSeeder = services.GetRequiredService<IDemoJobsSeeder>();
+            await demoJobsSeeder.SeedAsync();
 
             // Получаем NotificationsDbContext из DI
             var notificationsContext = services.GetRequiredService<NotificationsDbContext>();

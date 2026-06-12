@@ -8,6 +8,7 @@ import { getContactAvatarUrl, getContactProfile } from "../../shared/constants/c
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
 import { getAiCommandChips, getAiQuickPrompts, isAiAssistantChat } from "../../features/chat/aiAssistantReplies";
 import { useUiSettings } from "../../app/providers/AppProviders";
+import { LoadStatus } from "../../shared/ui/LoadStatus";
 
 export function ChatPage() {
   const {
@@ -23,6 +24,9 @@ export function ChatPage() {
     addCallMessage,
     deleteMessage: removeMessage,
     useApi,
+    isLoading,
+    loadError,
+    reloadFromApi,
   } = useChatStore();
   const { t, lang } = useUiSettings();
   const navigate = useNavigate();
@@ -362,6 +366,12 @@ export function ChatPage() {
             placeholder={t("chat.search", "Search")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
+          />
+          <LoadStatus
+            isLoading={useApi ? isLoading : false}
+            loadError={useApi ? loadError : ""}
+            onRetry={reloadFromApi}
+            t={t}
           />
           <div className="chat-list__scroll">
             {filteredChats.length === 0 ? (

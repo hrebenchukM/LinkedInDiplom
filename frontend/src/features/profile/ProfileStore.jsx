@@ -1,13 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { withLoadState } from "../../shared/lib/asyncLoad";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import { readRegisteredAccount, patchRegisteredAccount } from "../../shared/lib/registeredAccount";
-import {
-  fetchCompaniesByIds,
-  fetchMyExperiences,
-  mapExperienceDtoToHistoryItem,
-} from "../professional/professionalApi";
+import { loadMyExperienceHistoryItems } from "../professional/professionalApi";
 import {
   mapProfileDtoToRegisteredPatch,
   mapProfileDtoToUiProfile,
@@ -60,18 +57,11 @@ export function ProfileProvider({ children }) {
     if (!isReady || !session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) {
       return null;
     }
-    setIsLoading(true);
-    setLoadError("");
-    try {
+    return withLoadState({ setIsLoading, setLoadError }, async () => {
       const dto = await profileApi.fetchMyProfile();
       if (dto) applyProfileDto(dto);
       return dto;
-    } catch (error) {
-      setLoadError(error?.message || "Failed to load profile.");
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
+    }, "Failed to load profile.");
   }, [isReady, session.isAuthenticated, session.user?.isGuest, applyProfileDto]);
 
   useEffect(() => {
@@ -87,12 +77,7 @@ export function ProfileProvider({ children }) {
       reloadFromApi,
       async loadProfessionalIntoForm() {
         if (!session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) return [];
-        const experiences = await fetchMyExperiences();
-        const companyIds = experiences.map((e) => e.companyId).filter(Boolean);
-        const companies = await fetchCompaniesByIds(companyIds);
-        return experiences.map((exp) =>
-          mapExperienceDtoToHistoryItem(exp, companies[exp.companyId]?.name || ""),
-        );
+        return loadMyExperienceHistoryItems();
       },
       buildInitialForm() {
         return buildFormFromSources(session.user, readRegisteredAccount(), profile);
@@ -168,6 +153,17 @@ export function ProfileProvider({ children }) {
         const result = await profileApi.uploadMyAvatar(file);
         if (!result.success || !result.profile) {
           throw new Error("Avatar upload failed.");
+        }
+        applyProfileDto(result.profile);
+        return result.profile;
+      },
+      async uploadHeader(file) {
+        if (session.user?.isGuest || USE_MOCK_AUTH) {
+          throw new Error("Header upload requires a signed-in API account.");
+        }
+        const result = await profileApi.uploadMyHeader(file);
+        if (!result.success || !result.profile) {
+          throw new Error("Header upload failed.");
         }
         applyProfileDto(result.profile);
         return result.profile;

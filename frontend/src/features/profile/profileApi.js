@@ -2,6 +2,8 @@ import { apiClient } from "../../shared/api/client";
 import { apiFetch, apiUpload } from "../../shared/api/http";
 import { PROFILE } from "../../shared/api/paths";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { unwrapPagedResponse } from "../../shared/lib/pagedResponse";
+import { mapProfileSearchToPerson, normalizeProfileSearchDto } from "./mapProfile";
 
 const profileCache = new Map();
 
@@ -9,6 +11,32 @@ function unwrapProfileResponse(data) {
   if (data?.profile) return data.profile;
   if (data?.id || data?.userId) return data;
   return null;
+}
+
+function buildProfileSearchQuery({ query, location, page = 1, pageSize = 20 } = {}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const trimmedQuery = String(query || "").trim();
+  if (trimmedQuery) params.set("query", trimmedQuery);
+  const trimmedLocation = String(location || "").trim();
+  if (trimmedLocation) params.set("location", trimmedLocation);
+  return params.toString();
+}
+
+/** Public profile search — `GET /api/profile/search`. */
+export async function searchProfiles({ query = "", location, page = 1, pageSize = 20, currentUserId } = {}) {
+  if (USE_MOCK_AUTH) {
+    return { items: [], page, pageSize, totalCount: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false };
+  }
+  const qs = buildProfileSearchQuery({ query, location, page, pageSize });
+  const data = await apiClient.get(`${PROFILE.search}?${qs}`);
+  const paged = unwrapPagedResponse(data, normalizeProfileSearchDto);
+  return {
+    ...paged,
+    items: paged.items.map((dto) => mapProfileSearchToPerson(dto, currentUserId)).filter(Boolean),
+  };
 }
 
 export async function fetchMyProfile() {
@@ -37,6 +65,20 @@ export async function uploadMyAvatar(file) {
   return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
 }
 
+export async function uploadMyHeader(file) {
+  if (USE_MOCK_AUTH) return { success: false, profile: null };
+  const { ok, data } = await apiUpload("POST", PROFILE.header, file);
+  if (!ok) {
+    const message =
+      (Array.isArray(data?.errors) && data.errors[0]) ||
+      data?.error ||
+      data?.message ||
+      "Header upload failed.";
+    throw new Error(String(message));
+  }
+  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
+}
+
 /** Non-throwing fetch for auth bootstrap. */
 export async function tryFetchMyProfile() {
   try {
@@ -44,6 +86,22 @@ export async function tryFetchMyProfile() {
   } catch {
     return null;
   }
+}
+
+/** Public profile by user id — throws on HTTP / missing profile (for profile view page). */
+export async function fetchPublicProfile(userId) {
+  if (USE_MOCK_AUTH) {
+    throw new Error("Public profiles are not available in mock auth mode.");
+  }
+  if (!userId) {
+    throw new Error("User id is required.");
+  }
+  const data = await apiClient.get(PROFILE.byUserId(String(userId)));
+  const profile = unwrapProfileResponse(data);
+  if (!profile) {
+    throw new Error("Profile not found.");
+  }
+  return profile;
 }
 
 /** Apply registration fields to backend profile after first login. */

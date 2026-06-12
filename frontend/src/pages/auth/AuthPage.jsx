@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useUiSettings } from "../../app/providers/AppProviders";
 import { ENABLE_GUEST, USE_MOCK_AUTH } from "../../shared/config/features";
-import { apiDemoSocialLogin, getSocialProfileTemplate, usesMockSocialFlow } from "../../features/auth/socialAuth";
+import {
+  apiDemoSocialLogin,
+  canUseOAuthSdk,
+  getSocialProfileTemplate,
+  profileFromProviderToken,
+  requestProviderToken,
+  shouldUseDemoSocialFallback,
+  usesMockSocialFlow,
+} from "../../features/auth/socialAuth";
 import { markPendingAiWelcome } from "../../shared/lib/aiWelcomeNotification";
 import "./auth-legacy.css";
 
@@ -131,7 +139,8 @@ function SocialOverlay({ provider, phase, account, exiting, onExitDone, t }) {
 }
 
 export function AuthPage() {
-  const { session, isReady, registerAndLogin, loginWithPassword, loginAsGuest, login } = useAuth();
+  const { session, isReady, registerAndLogin, loginWithPassword, loginWithOAuth, loginAsGuest, login } =
+    useAuth();
   const { t } = useUiSettings();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("register");
@@ -184,11 +193,13 @@ export function AuthPage() {
     const template = getSocialProfileTemplate(provider);
     setSocialOverlay({ provider, phase: "connecting", account: null, exiting: false });
     try {
-      await wait(850);
-      setSocialOverlay((prev) => (prev ? { ...prev, phase: "securing" } : prev));
-      await wait(700);
+      let successAccount = template;
 
       if (usesMockSocialFlow()) {
+        await wait(850);
+        setSocialOverlay((prev) => (prev ? { ...prev, phase: "securing" } : prev));
+        await wait(700);
+
         const rows = readSocialAccounts();
         let account = rows.find((row) => row.provider === provider);
         if (!account) {
@@ -206,7 +217,29 @@ export function AuthPage() {
           accessToken: `mock-access-${account.id}`,
           refreshToken: `mock-refresh-${account.id}`,
         });
-      } else {
+        successAccount = account;
+      } else if (canUseOAuthSdk(provider)) {
+        const providerToken = await requestProviderToken(provider);
+        setSocialOverlay((prev) => (prev ? { ...prev, phase: "securing" } : prev));
+
+        const profileFallback = profileFromProviderToken(provider, providerToken);
+        const result = await loginWithOAuth(provider, providerToken, profileFallback);
+        if (!result.ok) {
+          setLoading(false);
+          setSocialOverlay(null);
+          setBanner({ type: "error", text: result.error || t("auth.error.social", "Social sign-in failed.") });
+          return;
+        }
+
+        successAccount = {
+          ...template,
+          ...profileFallback,
+          firstName: profileFallback.firstName || result.user?.firstName,
+          lastName: profileFallback.lastName || result.user?.lastName,
+          avatarDataUrl: profileFallback.avatarDataUrl || result.user?.avatarDataUrl,
+        };
+      } else if (shouldUseDemoSocialFallback(provider)) {
+        setSocialOverlay((prev) => (prev ? { ...prev, phase: "securing" } : prev));
         const result = await apiDemoSocialLogin(provider, { loginWithPassword, registerAndLogin });
         if (!result.ok) {
           setLoading(false);
@@ -214,17 +247,32 @@ export function AuthPage() {
           setBanner({ type: "error", text: result.error || t("auth.error.social", "Social sign-in failed.") });
           return;
         }
+        successAccount = result.user ? { ...template, ...result.user } : template;
+      } else {
+        setLoading(false);
+        setSocialOverlay(null);
+        setBanner({
+          type: "error",
+          text: t(
+            "auth.error.oauthNotConfigured",
+            "OAuth is not configured. Set VITE_GOOGLE_CLIENT_ID / VITE_FACEBOOK_APP_ID.",
+          ),
+        });
+        return;
       }
 
       markPendingAiWelcome();
-      setSocialOverlay({ provider, phase: "success", account: template, exiting: false });
+      setSocialOverlay({ provider, phase: "success", account: successAccount, exiting: false });
       await wait(1100);
       setSocialOverlay((prev) => (prev ? { ...prev, exiting: true } : prev));
       setPendingRedirect("/home");
-    } catch {
+    } catch (error) {
       setLoading(false);
       setSocialOverlay(null);
-      setBanner({ type: "error", text: t("auth.error.social", "Social sign-in failed.") });
+      setBanner({
+        type: "error",
+        text: error?.message || t("auth.error.social", "Social sign-in failed."),
+      });
     }
   }
 

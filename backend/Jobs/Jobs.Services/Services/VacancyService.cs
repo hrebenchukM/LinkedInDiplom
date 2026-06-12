@@ -100,6 +100,14 @@ public class VacancyService(JobsDbContext dbContext) : IVacancyService
             query = query.Where(v => v.Schedule != null && v.Schedule == schedule);
         }
 
+        if (parameters.MinSalaryFrom.HasValue)
+        {
+            var minSalary = parameters.MinSalaryFrom.Value;
+            query = query.Where(v =>
+                (v.SalaryFrom.HasValue && v.SalaryFrom.Value >= minSalary) ||
+                (v.SalaryTo.HasValue && v.SalaryTo.Value >= minSalary));
+        }
+
         if (parameters.FromCreatedAt.HasValue)
         {
             query = query.Where(v => v.PostedAt >= parameters.FromCreatedAt.Value);

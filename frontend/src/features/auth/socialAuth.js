@@ -1,5 +1,17 @@
 import { clearAuthTokens } from "../../shared/api/tokens";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { decodeJwtPayload } from "../../shared/lib/jwtClaims";
+import { ENABLE_DEMO_SOCIAL_FALLBACK, USE_MOCK_AUTH } from "../../shared/config/features";
+import {
+  acquireProviderToken,
+  isOAuthSdkConfigured,
+} from "./oauthSdk";
+
+/**
+ * Social sign-in flows (priority in AuthPage):
+ * 1. USE_MOCK_AUTH — offline mock tokens in browser
+ * 2. OAuth SDK — id_token / access_token → POST /api/auth/google|facebook
+ * 3. apiDemoSocialLogin — diploma fallback: preset accounts on real API (no SDK)
+ */
 
 /** Shared password for preset Google/Facebook demo accounts (dev / diploma demo). */
 export const DEMO_SOCIAL_PASSWORD =
@@ -24,8 +36,50 @@ export function getSocialProfileTemplate(provider) {
   };
 }
 
+export function usesMockSocialFlow() {
+  return USE_MOCK_AUTH;
+}
+
+export function canUseOAuthSdk(provider) {
+  return !USE_MOCK_AUTH && isOAuthSdkConfigured(provider);
+}
+
+/** Preset API accounts when OAuth client IDs are not configured (diploma / local demo). */
+export function shouldUseDemoSocialFallback(provider) {
+  return !USE_MOCK_AUTH && !isOAuthSdkConfigured(provider) && ENABLE_DEMO_SOCIAL_FALLBACK;
+}
+
+export function profileFromGoogleIdToken(idToken) {
+  const payload = decodeJwtPayload(idToken);
+  if (!payload) return { authProvider: "google" };
+
+  return {
+    authProvider: "google",
+    email: payload.email,
+    userName: payload.email?.split("@")[0],
+    firstName: payload.given_name,
+    lastName: payload.family_name,
+    name: payload.name,
+    avatarDataUrl: payload.picture,
+  };
+}
+
+export function profileFromProviderToken(provider, providerToken) {
+  if (provider === "google") return profileFromGoogleIdToken(providerToken);
+  return { authProvider: provider };
+}
+
 /**
- * API-backed demo social login: register or sign in preset accounts on Facade.API.
+ * Load Google/Facebook SDK and return token for Facade.API external login.
+ * Google → id_token; Facebook → access_token.
+ */
+export function requestProviderToken(provider) {
+  return acquireProviderToken(provider);
+}
+
+/**
+ * Diploma fallback — no OAuth SDK required.
+ * Signs in (or registers) preset Google/Facebook demo users on Facade.API via email/password.
  * Returns the same shape as registerAndLogin / loginWithPassword from AuthContext.
  */
 export async function apiDemoSocialLogin(provider, { loginWithPassword, registerAndLogin }) {
@@ -51,8 +105,4 @@ export async function apiDemoSocialLogin(provider, { loginWithPassword, register
     password: DEMO_SOCIAL_PASSWORD,
     profileFallback,
   });
-}
-
-export function usesMockSocialFlow() {
-  return USE_MOCK_AUTH;
 }

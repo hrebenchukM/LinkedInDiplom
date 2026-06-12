@@ -28,7 +28,9 @@ export function mapProfileDtoToRegisteredPatch(dto = {}) {
     country,
     about: dto.genInfo || "",
     education: dto.university || "",
+    portfolioUrl: String(dto.portfolioUrl || "").trim(),
     avatarDataUrl: resolveMediaUrl(dto.avatarUrl),
+    headerDataUrl: resolveMediaUrl(dto.headerUrl),
   };
 }
 
@@ -58,10 +60,78 @@ export function mapProfileFormToPatchRequest(form = {}) {
     profileTitle: String(form.position || "").trim() || null,
     genInfo: String(form.about || "").trim() || null,
     university: String(form.education || "").trim() || null,
+    portfolioUrl: String(form.portfolioUrl || "").trim() || null,
     location: location || null,
   };
 
   return Object.fromEntries(Object.entries(patch).filter(([, value]) => value != null && value !== ""));
+}
+
+export function mapProfileDtoToPublicView(dto = {}) {
+  const patch = mapProfileDtoToRegisteredPatch(dto);
+  const firstName = String(dto.firstName || "").trim();
+  const lastName = String(dto.lastName || "").trim();
+  const fullName =
+    String(dto.fullName || "").trim() ||
+    `${firstName} ${lastName}`.trim() ||
+    "User";
+  const location = [patch.city, patch.country].filter(Boolean).join(", ");
+
+  return {
+    userId: dto.userId,
+    fullName,
+    headline: String(dto.headline || "").trim(),
+    profileTitle: String(dto.profileTitle || "").trim(),
+    location,
+    city: patch.city,
+    country: patch.country,
+    about: patch.about,
+    education: patch.education,
+    avatarUrl: patch.avatarDataUrl,
+    headerUrl: patch.headerDataUrl,
+    portfolioUrl: String(dto.portfolioUrl || "").trim(),
+  };
+}
+
+export function normalizeProfileSearchDto(dto) {
+  if (!dto || typeof dto !== "object") return null;
+  const userId = dto.userId ?? dto.UserId;
+  if (!userId) return null;
+  return {
+    userId: String(userId),
+    firstName: String(dto.firstName ?? dto.FirstName ?? "").trim(),
+    lastName: String(dto.lastName ?? dto.LastName ?? "").trim(),
+    displayName: String(dto.displayName ?? dto.DisplayName ?? "").trim(),
+    headline: String(dto.headline ?? dto.Headline ?? "").trim(),
+    location: String(dto.location ?? dto.Location ?? "").trim(),
+    avatarUrl: String(dto.avatarUrl ?? dto.AvatarUrl ?? "").trim(),
+  };
+}
+
+export function mapProfileSearchToPerson(dto, currentUserId) {
+  const normalized = normalizeProfileSearchDto(dto);
+  if (!normalized) return null;
+  if (currentUserId && String(normalized.userId) === String(currentUserId)) return null;
+
+  const name =
+    normalized.displayName ||
+    `${normalized.firstName} ${normalized.lastName}`.trim() ||
+    `User ${normalized.userId.slice(0, 8)}`;
+  const role = normalized.headline || normalized.location || "Member";
+  const avatar = normalized.avatarUrl ? resolveMediaUrl(normalized.avatarUrl) : "";
+
+  return {
+    id: `search-${normalized.userId}`,
+    userId: normalized.userId,
+    name,
+    role,
+    handle: normalized.userId.slice(0, 12),
+    seed: normalized.userId,
+    avatar,
+    keywords: `${name} ${normalized.headline} ${normalized.location}`.toLowerCase(),
+    _api: true,
+    _searchResult: true,
+  };
 }
 
 export function mapProfileDtoToUiProfile(dto = {}, account = {}) {

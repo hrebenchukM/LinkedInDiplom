@@ -53,6 +53,7 @@ public partial class JobsManagementService
                 Location = request.Location,
                 JobType = request.EmploymentType,
                 Schedule = request.Schedule,
+                MinSalaryFrom = request.MinSalaryFrom,
                 FromCreatedAt = request.FromCreatedAt,
                 ToCreatedAt = request.ToCreatedAt,
                 SortBy = request.SortBy,

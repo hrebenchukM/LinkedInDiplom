@@ -14,6 +14,12 @@ export function mapAccountToUser(account = {}, profileFallback = {}) {
     `${firstName} ${lastName}`.trim() ||
     String(profileFallback.name || account.name || userName || email || "User").trim();
 
+  const roles = Array.isArray(profileFallback.roles)
+    ? profileFallback.roles
+    : Array.isArray(account.roles)
+      ? account.roles
+      : [];
+
   return {
     id: id || "unknown",
     email: email || undefined,
@@ -27,6 +33,8 @@ export function mapAccountToUser(account = {}, profileFallback = {}) {
         .trim() || undefined,
     authProvider: profileFallback.authProvider || account.authProvider || null,
     isGuest: Boolean(profileFallback.isGuest),
+    roles,
+    isAdmin: Boolean(profileFallback.isAdmin ?? account.isAdmin),
   };
 }
 

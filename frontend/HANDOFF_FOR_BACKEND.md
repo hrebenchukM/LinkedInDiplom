@@ -5,65 +5,91 @@
 A **Vite + React 19 SPA** under `frontend/`.  
 Production entry: `frontend/index.html` → `frontend/src/main.jsx`.
 
-There is **no** secondary app in this folder (legacy `pages/` / `shared/` removed).
-
 ---
 
 ## API integration (implemented)
 
-| Endpoint | Module | Notes |
-|----------|--------|-------|
-| `POST /api/auth/register` | `src/features/auth/authApi.js` | Body: `{ email, password }` only |
-| `POST /api/auth/login` | same | Stores JWT, then hydrates session |
-| `GET /api/auth/me` | same | Called on app bootstrap if `authAccessToken` exists |
-| `POST /api/auth/logout` | same | Sends `{ refreshToken }` on logout |
-| `POST /api/auth/refresh` | same | Exported, not used in UI yet |
+| Area | Module | Notes |
+|------|--------|-------|
+| Auth | `src/features/auth/authApi.js` | register, login, refresh, logout, me |
+| Profile | `src/features/profile/profileApi.js` | me, search, avatar, public profiles |
+| Content / posts | `src/features/content/contentApi.js` | feed, CRUD, saved, reposts, hashtags, comments |
+| Network | `src/features/network/*.js` | contacts, follows, pages, groups, blocks |
+| Jobs | `src/features/jobs/jobsApi.js` | vacancies (paged), applications, favorites |
+| Events | `src/features/events/eventsApi.js` | paged lists |
+| Messaging | `src/features/messaging/messagingApi.js` | chats, messages |
+| Notifications | `src/features/notifications/notificationsApi.js` | list, mark read |
+| Professional | `src/features/professional/professionalApi.js` | skills, languages, academies, education |
 
-**HTTP layer:** `src/shared/api/http.js` (`apiFetch`)  
+**HTTP layer:** `src/shared/api/http.js` (`apiFetch`, reactive refresh on 401)  
 **Paths:** `src/shared/api/paths.js`  
-**Authenticated client:** `src/shared/api/client.js` (`apiClient.get/post/...`, throws on error)
+**Client:** `src/shared/api/client.js` — throws on error; POST/PATCH/PUT/DELETE show global banner by default
 
-**Tokens (localStorage):**
+**Paging:** `src/shared/lib/pagedResponse.js`
 
-- `authAccessToken` — sent as `Authorization: Bearer …`
-- `authRefreshToken` — used on logout
+- `unwrapPagedResponse(data, mapItem)` → full `PagedResponse`
+- `unwrapPagedItems(data, mapItem)` → `items[]` only (handles plain arrays too)
 
-**Session (React):**
-
-- `authSession` — `{ isAuthenticated, user }` (AuthContext only)
-- `registeredAccount` — extra UI fields (name, avatar) until `PUT /api/profile/me`
+Used across all `*Api.js` modules that return lists.
 
 ---
 
-## Not implemented (intentional for v1 merge)
+## Auth & tokens
 
-These screens use **local demo data** (`src/shared/constants/mockData.js` + `localStorage`):
+**localStorage keys:**
 
-- Home feed, Network, Chat, Vacancies, Profile editor
+- `authAccessToken` — `Authorization: Bearer …`
+- `authRefreshToken` — logout + proactive/reactive refresh
+- `authTokenExpiresAt` — ISO expiry from login/refresh `token.expiresAt` or JWT `exp`
 
-Flag: `UI_USES_LOCAL_DEMO_DATA` in `src/shared/config/features.js`.
+**Session (React):** `AuthContext` → `{ isAuthenticated, user }`  
+**Roles:** `src/shared/lib/jwtClaims.js` — parses `Admin` / `User` from JWT; `user.isAdmin` on session
 
-Next integration step for backend team: replace store loaders with `apiClient` calls module by module.
+**Token refresh:**
+
+1. **Reactive** — `http.js` retries once after `POST /api/auth/refresh` on 401
+2. **Proactive** — `tokenRefreshScheduler.js` refreshes ~60s before `expiresAt`; started on login and app bootstrap
+
+**Production env** (`frontend/.env.production`):
+
+```env
+VITE_USE_MOCK_AUTH=false
+VITE_ENABLE_GUEST=false
+```
+
+`features.js` also hard-disables mock auth when `import.meta.env.PROD`.
 
 ---
 
-## Auth UI behaviour
+## Global API feedback
 
-| Flow | Backend API | Notes |
-|------|-------------|--------|
-| Email register/login | ✅ `POST /api/auth/*` | Production path |
-| Google / Facebook buttons | ❌ UI demo only | Local mock session; real OAuth needs `ProviderToken` → `/api/auth/google` or `/facebook` |
-| Guest | ❌ by default | `VITE_ENABLE_GUEST=true` for demo without JWT |
+- `src/shared/ui/ApiFeedbackBanner.jsx` — fixed top banner (mounted in `AppProviders`)
+- `showApiFeedback(message)` from `src/shared/lib/apiFeedback.js`
+- `auth:expired` event → “Session expired…” before redirect to `/auth`
+- Page-level loaders may use `LoadStatus.jsx` for inline errors + retry
 
-`VITE_USE_MOCK_AUTH=true` — full offline auth without API.
+`apiClient` shows the banner automatically on failed **mutations** (POST/PATCH/PUT/DELETE).  
+Pass `{ feedback: false }` as the last argument to suppress; `{ feedback: true }` on GET to force.
+
+---
+
+## Demo / dev-only
+
+| Flag | Purpose |
+|------|---------|
+| `VITE_USE_MOCK_AUTH=true` | Offline in-browser auth (dev only) |
+| `VITE_ENABLE_GUEST=true` | Guest button on auth screen |
+| `VITE_DEV_PROXY_TARGET` | Vite proxy target (default Docker `:5000`) |
+
+Dev API startup seeds demo bot posts when `ASPNETCORE_ENVIRONMENT=Development`.
 
 ---
 
 ## Run locally against Facade.API
 
 ```bash
-# Terminal 1
-cd backend/Facade.API && dotnet run
+# Terminal 1 — Docker
+docker compose up -d
 
 # Terminal 2
 cd frontend
@@ -76,46 +102,46 @@ Open `http://localhost:5173`.
 
 | Backend | `.env.local` |
 |---------|----------------|
-| `http://localhost:5282` (http profile) | leave `VITE_API_BASE_URL` empty (Vite proxy) |
-| `https://localhost:7011` | `VITE_API_BASE_URL=https://localhost:7011` |
-| Docker `:5000` | `VITE_API_BASE_URL=http://localhost:5000` |
+| Docker `:5000` | `VITE_DEV_PROXY_TARGET=http://localhost:5000`, empty `VITE_API_BASE_URL` |
+| `dotnet run` `:5282` | `VITE_DEV_PROXY_TARGET=http://localhost:5282` |
 
 ---
 
 ## Production static hosting
 
-Build: `npm run build` → `frontend/dist/`.
-
-Facade.API does **not** serve SPA today. After merge, either:
-
-1. Copy `dist/` to `wwwroot` + `MapFallbackToFile("index.html")`, or  
-2. Serve SPA from nginx/CDN and proxy `/api` to the API.
+```bash
+npm run build   # → frontend/dist/
+```
 
 Set `VITE_API_BASE_URL` at **build time** if API is on another host.
+
+Facade.API does not serve the SPA by default — use nginx/CDN or `wwwroot` + SPA fallback.
 
 ---
 
 ## Acceptance checklist
 
 1. `npm ci && npm run build` — success  
-2. Register new user → `authAccessToken` in localStorage  
-3. Reload page → still logged in (`GET /api/auth/me` succeeds)  
-4. Logout → token cleared, redirect to `/auth`  
-5. Do not commit `node_modules/`, `dist/`, `.env.local`
+2. Register / login → `authAccessToken` + `authTokenExpiresAt` in localStorage  
+3. Reload → still logged in (`GET /api/auth/me`)  
+4. Wait until near token expiry → silent refresh (no logout)  
+5. Logout → tokens cleared, redirect to `/auth`  
+6. Home feed loads posts from `GET /api/content/feed` (not local mocks)  
+7. Do not commit `node_modules/`, `dist/`, `.env.local`
 
 ---
 
-## File map for backend developers
+## File map
 
 ```
 frontend/src/
   features/auth/
-    authApi.js       ← all /api/auth calls
-    AuthContext.jsx  ← session, bootstrap, logout
-    mapAccount.js    ← AccountDto → UI user
+    authApi.js, AuthContext.jsx, mapAccount.js
   shared/api/
-    http.js          ← fetch + Bearer
-    client.js        ← apiClient for future modules
-    paths.js         ← route constants
-  pages/             ← UI (mostly demo data today)
+    http.js, client.js, tokens.js, tokenRefreshScheduler.js, paths.js
+  shared/lib/
+    pagedResponse.js, jwtClaims.js, apiFeedback.js, apiError.js
+  shared/ui/
+    ApiFeedbackBanner.jsx, LoadStatus.jsx
+  app/providers/AppProviders.jsx
 ```
