@@ -1,4 +1,9 @@
+/**
+ * Dev/demo-only in-browser auth shim. Loaded only when VITE_USE_MOCK_AUTH=true (see authApi.js).
+ * Production builds alias this module to mockAuthApi.stub.js (see vite.config.js).
+ */
 import { AUTH } from "../../shared/api/paths";
+import { USE_MOCK_AUTH } from "../../shared/config/features";
 
 const MOCK_USERS_KEY = "mockAuthUsers";
 
@@ -24,6 +29,10 @@ function wait(ms) {
 }
 
 export async function mockAuthFetch(method, path, body) {
+  if (!USE_MOCK_AUTH) {
+    return { ok: false, status: 503, data: { message: "Mock auth is disabled." } };
+  }
+
   await wait(200);
   const users = readMockUsers();
 

@@ -1,12 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { formatBlockedDate } from "../../features/network/blockedUsersApi";
+import {
+  getRelationshipStatusLabels,
+  getUserRelationship,
+  RELATIONSHIP_STATE,
+  resolvePersonCardActions,
+} from "../../features/network/mapNetwork";
+import * as eventsApi from "../../features/events/eventsApi";
+import { formatEventDateTime } from "../../features/events/mapEvents";
+import * as pagesGroupsApi from "../../features/network/pagesGroupsApi";
 import { useNetworkStore } from "../../features/network/NetworkStore";
+import { fetchProfilesByUserIds, searchProfiles } from "../../features/profile/profileApi";
+import { useAuth } from "../../features/auth/AuthContext";
 import { useChatStore } from "../../features/chat/ChatStore";
 import { useUiSettings } from "../../app/providers/AppProviders";
+import { LoadStatus } from "../../shared/ui/LoadStatus";
 
 const NETWORK_SECTIONS = [
   { id: "connections", labelKey: "network.section.connections", fallback: "Connections", icon: "connections" },
   { id: "following", labelKey: "network.section.following", fallback: "Following", icon: "following" },
+  { id: "followers", labelKey: "network.section.followers", fallback: "Followers", icon: "followers" },
+  { id: "blocked", labelKey: "network.section.blocked", fallback: "Blocked", icon: "blocked" },
   { id: "groups", labelKey: "network.section.groups", fallback: "Groups", icon: "groups" },
   { id: "events", labelKey: "network.section.events", fallback: "Events", icon: "events" },
   { id: "pages", labelKey: "network.section.pages", fallback: "Pages", icon: "pages" },
@@ -25,6 +40,20 @@ function NetworkNavIcon({ type }) {
     return (
       <svg {...common}>
         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm7.2-7.9 1.4-1.4 1.4 1.4 1.4-1.4-1.4-1.4 1.4-1.4-1.4-1.4-1.4 1.4-1.4-1.4-1.4 1.4 1.4 1.4z" />
+      </svg>
+    );
+  }
+  if (type === "followers") {
+    return (
+      <svg {...common}>
+        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+      </svg>
+    );
+  }
+  if (type === "blocked") {
+    return (
+      <svg {...common}>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z" />
       </svg>
     );
   }
@@ -49,172 +78,60 @@ function NetworkNavIcon({ type }) {
   );
 }
 
-const UNFOLLOWED_KEY = "networkUnfollowedHandles";
-const GROUP_CHATS_KEY = "networkGroupChats";
-const FOLLOWED_PAGES_KEY = "networkPagesFollowed";
-const FOLLOWING = [
-  { id: "f1", name: "Duncan Callahan", role: "Senior UX Researcher", handle: "DuncanUX", seed: "DuncanCallahan" },
-  { id: "f2", name: "Sarah Chen", role: "Product Designer · Figma", handle: "SarahChen", seed: "SarahChen" },
-  { id: "f3", name: "Marcus Dias", role: "Senior Design Manager · Microsoft", handle: "MarcusDias", seed: "MarcusDias" },
-];
-
-const PAGES = [
-  {
-    id: "figma",
-    name: "Figma",
-    industryKey: "network.pageIndustryDesign",
-    industryFallback: "Design · Software",
-    seed: "Figma",
-    followersKey: "network.pageFollowers124",
-    followersFallback: "124K followers",
-    descKey: "network.pageFigmaDesc",
-    descFallback: "The collaborative interface design tool for teams building products together.",
-    updateKey: "network.pageFigmaUpdate",
-    updateFallback: "New: Dev Mode updates and improved design tokens workflow.",
-  },
-  {
-    id: "microsoft",
-    name: "Microsoft",
-    industryKey: "network.pageIndustryTech",
-    industryFallback: "Technology",
-    seed: "Microsoft",
-    followersKey: "network.pageFollowers22m",
-    followersFallback: "22M followers",
-    descKey: "network.pageMicrosoftDesc",
-    descFallback: "Empowering every person and organization on the planet to achieve more.",
-    updateKey: "network.pageMicrosoftUpdate",
-    updateFallback: "We're hiring across Azure, Copilot, and design systems teams.",
-  },
-  {
-    id: "stripe",
-    name: "Stripe",
-    industryKey: "network.pageIndustryFintech",
-    industryFallback: "Financial technology",
-    seed: "Stripe",
-    followersKey: "network.pageFollowers890",
-    followersFallback: "890K followers",
-    descKey: "network.pageStripeDesc",
-    descFallback: "Financial infrastructure for the internet — payments, billing, and more.",
-    updateKey: "network.pageStripeUpdate",
-    updateFallback: "Stripe Sessions 2026 registration is now open.",
-  },
-  {
-    id: "atlassian",
-    name: "Atlassian",
-    industryKey: "network.pageIndustrySoftware",
-    industryFallback: "Software",
-    seed: "Atlassian",
-    followersKey: "network.pageFollowers1m",
-    followersFallback: "1.2M followers",
-    descKey: "network.pageAtlassianDesc",
-    descFallback: "Tools like Jira, Confluence, and Trello for agile teams worldwide.",
-    updateKey: "network.pageAtlassianUpdate",
-    updateFallback: "Tips for running effective sprint retrospectives with remote teams.",
-  },
-  {
-    id: "datadog",
-    name: "Datadog",
-    industryKey: "network.pageIndustryDevops",
-    industryFallback: "Cloud monitoring",
-    seed: "Datadog",
-    followersKey: "network.pageFollowers420",
-    followersFallback: "420K followers",
-    descKey: "network.pageDatadogDesc",
-    descFallback: "Modern monitoring and security platform for cloud-scale applications.",
-    updateKey: "network.pageDatadogUpdate",
-    updateFallback: "Watch our webinar on SRE best practices for Kubernetes.",
-  },
-];
-
-const GROUPS = [
-  {
-    id: "ux-design-hub",
-    nameKey: "network.groupUxName",
-    nameFallback: "UI/UX Design Hub",
-    descKey: "network.groupUxDesc",
-    descFallback: "Design critiques, Figma tips, and portfolio feedback.",
-    members: [
-      { name: "Sarah Chen", seed: "SarahChen" },
-      { name: "Duncan Callahan", seed: "DuncanCallahan" },
-      { name: "David Jonson", seed: "DavidJonson" },
-    ],
-    seed: "UxDesignHub",
-    seedMessages: [
-      { id: "m1", author: "Sarah Chen", authorSeed: "SarahChen", out: false, textKey: "network.groupUxMsg1", textFallback: "Anyone free for a quick design critique at 3pm?" },
-      { id: "m2", author: "Duncan Callahan", authorSeed: "DuncanCallahan", out: false, textKey: "network.groupUxMsg2", textFallback: "I can join — share the Figma link here." },
-    ],
-    replyPool: [
-      { author: "Sarah Chen", authorSeed: "SarahChen", textKey: "network.groupUxReply1", textFallback: "Great point — I'll update the mockups." },
-      { author: "David Jonson", authorSeed: "DavidJonson", textKey: "network.groupUxReply2", textFallback: "Thanks! Let's sync on this tomorrow." },
-    ],
-  },
-  {
-    id: "frontend-circle",
-    nameKey: "network.groupFeName",
-    nameFallback: "Frontend Circle",
-    descKey: "network.groupFeDesc",
-    descFallback: "React, TypeScript, and code review for UI engineers.",
-    members: [
-      { name: "James Lee", seed: "JamesLee" },
-      { name: "Elena Volkov", seed: "ElenaVolkov" },
-      { name: "Alex Kim", seed: "AlexKim" },
-    ],
-    seed: "FrontendCircle",
-    seedMessages: [
-      { id: "m1", author: "James Lee", authorSeed: "JamesLee", out: false, textKey: "network.groupFeMsg1", textFallback: "Pushed a PR for the new filter component — reviews welcome." },
-      { id: "m2", author: "Elena Volkov", authorSeed: "ElenaVolkov", out: false, textKey: "network.groupFeMsg2", textFallback: "Left a few comments on accessibility — overall looks solid." },
-    ],
-    replyPool: [
-      { author: "Alex Kim", authorSeed: "AlexKim", textKey: "network.groupFeReply1", textFallback: "Merged — thanks for the quick review!" },
-      { author: "James Lee", authorSeed: "JamesLee", textKey: "network.groupFeReply2", textFallback: "I'll pick that up in the next sprint." },
-    ],
-  },
-];
-
-const NETWORK_EVENTS = [
-  { id: "ev-1", type: "career", name: "Marcus Dias", seed: "MarcusDias", role: "Senior Design Manager", company: "Microsoft", timeKey: "network.evTime1d", timeFallback: "1 day ago" },
-  { id: "ev-2", type: "career", name: "Elena Volkov", seed: "ElenaVolkov", role: "Frontend Developer", company: "Stripe", timeKey: "network.evTime3d", timeFallback: "3 days ago" },
-  { id: "ev-3", type: "career", name: "Ryan O'Brien", seed: "RyanOBrien", role: "Product Manager", company: "Atlassian", timeKey: "network.evTime1w", timeFallback: "1 week ago" },
-  { id: "ev-4", type: "birthdays", name: "Sarah Chen", seed: "SarahChen", whenKey: "network.evBirthdayToday", whenFallback: "today", timeKey: "network.evTimeToday", timeFallback: "Today" },
-  { id: "ev-5", type: "birthdays", name: "Joshua Cortez", seed: "JoshuaCortez", whenKey: "network.evBirthdayIn", whenFallback: "in 3 days", whenVars: { days: "3" }, timeKey: "network.evTimeSoon", timeFallback: "Coming up" },
-  { id: "ev-6", type: "birthdays", name: "Maria Rodriguez", seed: "MariaRodriguez", whenKey: "network.evBirthdayIn", whenFallback: "in 5 days", whenVars: { days: "5" }, timeKey: "network.evTimeSoon", timeFallback: "Coming up" },
-  { id: "ev-7", type: "education", name: "James Lee", seed: "JamesLee", program: "Advanced React Patterns", timeKey: "network.evTime4d", timeFallback: "4 days ago" },
-  { id: "ev-8", type: "education", name: "Nina Petrova", seed: "NinaPetrova", program: "UX Research Certificate", timeKey: "network.evTime2w", timeFallback: "2 weeks ago" },
-  { id: "ev-9", type: "education", name: "Priya Patel", seed: "PriyaPatel", program: "Kubernetes Administrator", timeKey: "network.evTime5d", timeFallback: "5 days ago" },
-];
+const PROFILE_SEARCH_MIN_LENGTH = 2;
 
 export function NetworkPage() {
   const navigate = useNavigate();
-  const { t } = useUiSettings();
-  const { people, pendingContacts, connect, acceptContact, rejectContact, isLoading, loadError, useApi, reloadFromApi } =
-    useNetworkStore();
+  const { t, lang } = useUiSettings();
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id ?? session?.user?.userId ?? null;
+  const {
+    people,
+    incomingContacts,
+    outgoingContacts,
+    pendingContactCounts,
+    connect,
+    connectWithUser,
+    acceptContact,
+    rejectContact,
+    isLoading,
+    loadError,
+    useApi,
+    reloadFromApi,
+    followingPeople,
+    followerPeople,
+    blockedPeople,
+    getRelationship,
+    relationshipIndex,
+    followUser,
+    unfollowUser,
+    blockUser,
+    unblockUser,
+    pages,
+    groups,
+    followPage,
+    unfollowPage,
+  } = useNetworkStore();
   const { chats, setActiveChat, ensureChat } = useChatStore();
   const [section, setSection] = useState("connections");
   const [query, setQuery] = useState("");
-  const [eventFilter, setEventFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("discover");
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState("");
+  const [eventsActionId, setEventsActionId] = useState("");
   const [activeGroupId, setActiveGroupId] = useState(null);
-  const [groupInput, setGroupInput] = useState("");
-  const [followedPageIds, setFollowedPageIds] = useState(() => {
-    try {
-      const raw = localStorage.getItem(FOLLOWED_PAGES_KEY);
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(parsed) && parsed.length) return new Set(parsed.map(String));
-    } catch {
-      // ignore
-    }
-    return new Set(["figma", "microsoft", "stripe"]);
-  });
-  const [unfollowedHandles, setUnfollowedHandles] = useState(() => {
-    try {
-      const raw = localStorage.getItem(UNFOLLOWED_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
-    } catch {
-      return new Set();
-    }
-  });
+  const [activeGroupMembers, setActiveGroupMembers] = useState([]);
+  const [groupMembersLoading, setGroupMembersLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [searchTotalCount, setSearchTotalCount] = useState(0);
+  const [searchRetry, setSearchRetry] = useState(0);
 
   const normalizedPeopleQuery = query.trim().toLowerCase();
+  const isApiProfileSearch = useApi && normalizedPeopleQuery.length >= PROFILE_SEARCH_MIN_LENGTH;
+
   const filteredPeople = useMemo(() => {
     if (!normalizedPeopleQuery) return people;
     return people.filter((person) => {
@@ -231,20 +148,81 @@ export function NetworkPage() {
       return blob.includes(normalizedPeopleQuery);
     });
   }, [people, normalizedPeopleQuery]);
+
+  useEffect(() => {
+    if (!isApiProfileSearch) {
+      setSearchResults([]);
+      setSearchError("");
+      setSearchLoading(false);
+      setSearchTotalCount(0);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError("");
+      try {
+        const result = await searchProfiles({
+          query: query.trim(),
+          page: 1,
+          pageSize: 20,
+          currentUserId,
+        });
+        if (cancelled) return;
+        setSearchResults(result.items);
+        setSearchTotalCount(result.totalCount);
+      } catch (error) {
+        if (cancelled) return;
+        setSearchResults([]);
+        setSearchTotalCount(0);
+        setSearchError(error?.message || t("network.search.error", "Profile search failed."));
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isApiProfileSearch, query, currentUserId, searchRetry, t]);
+
+  const displayPeople = useMemo(() => {
+    if (isApiProfileSearch) {
+      return searchResults.filter((person) => !getUserRelationship(relationshipIndex, person.userId).isBlocked);
+    }
+    return filteredPeople;
+  }, [isApiProfileSearch, searchResults, filteredPeople, relationshipIndex]);
+
   const showPeopleSearchStats = normalizedPeopleQuery.length > 0;
-  const peopleSearchHeading = showPeopleSearchStats
+  const peopleSearchHeading = isApiProfileSearch
     ? t("network.searchResultsHeading", "Search results")
-    : useApi
-      ? t("network.people.headingContacts", "Your contacts")
-      : t("network.people.heading", "People in UI/UX design you may know");
-  const peopleSearchStatsText = tf(
-    "network.searchStats",
-    { visible: String(filteredPeople.length), total: String(people.length) },
-    `${filteredPeople.length} / ${people.length}`,
-  );
-  const showPeopleEmpty = filteredPeople.length === 0 && people.length > 0;
+    : showPeopleSearchStats
+      ? t("network.searchResultsHeading", "Search results")
+      : t("network.people.headingContacts", "Your contacts");
+  const peopleSearchStatsText = isApiProfileSearch
+    ? tf(
+        "network.searchStats",
+        { visible: String(displayPeople.length), total: String(searchTotalCount) },
+        `${displayPeople.length} / ${searchTotalCount}`,
+      )
+    : tf(
+        "network.searchStats",
+        { visible: String(displayPeople.length), total: String(people.length) },
+        `${displayPeople.length} / ${people.length}`,
+      );
+  const showPeopleEmpty =
+    displayPeople.length === 0 &&
+    !searchLoading &&
+    (isApiProfileSearch || people.length > 0) &&
+    normalizedPeopleQuery.length > 0;
   const showPeopleNoContacts =
-    filteredPeople.length === 0 && people.length === 0 && !isLoading && !normalizedPeopleQuery;
+    displayPeople.length === 0 &&
+    people.length === 0 &&
+    !isLoading &&
+    !searchLoading &&
+    !normalizedPeopleQuery;
 
   const messagesPreview = useMemo(
     () =>
@@ -256,17 +234,33 @@ export function NetworkPage() {
     [chats, t],
   );
 
-  const filteredEvents = useMemo(() => {
-    if (eventFilter === "all") return NETWORK_EVENTS;
-    return NETWORK_EVENTS.filter((event) => event.type === eventFilter);
-  }, [eventFilter]);
-  const activeFollowing = useMemo(
-    () => FOLLOWING.filter((person) => !unfollowedHandles.has(person.handle)),
-    [unfollowedHandles],
-  );
+  const reloadEvents = useCallback(async () => {
+    if (!useApi) {
+      setEvents([]);
+      return;
+    }
+    setEventsLoading(true);
+    setEventsError("");
+    try {
+      const result =
+        eventFilter === "attending"
+          ? await eventsApi.fetchAttendingEvents({ page: 1, pageSize: 30 })
+          : await eventsApi.discoverEvents({
+              page: 1,
+              pageSize: 30,
+              isOnline: eventFilter === "online" ? true : undefined,
+            });
+      setEvents(result.items);
+    } catch {
+      setEvents([]);
+      setEventsError(t("network.events.loadFailed", "Could not load events."));
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [useApi, eventFilter, t]);
   const activeGroup = useMemo(
-    () => GROUPS.find((group) => group.id === activeGroupId) || GROUPS[0] || null,
-    [activeGroupId],
+    () => groups.find((group) => group.id === activeGroupId) || groups[0] || null,
+    [groups, activeGroupId],
   );
 
   function tf(key, vars, fallback) {
@@ -286,113 +280,33 @@ export function NetworkPage() {
     return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed || "page")}`;
   }
 
-  function readGroupStore() {
+  async function onToggleEventAttendance(event) {
+    if (!useApi || !event?.id || eventsActionId) return;
+    setEventsActionId(event.id);
     try {
-      const raw = localStorage.getItem(GROUP_CHATS_KEY);
-      return raw ? JSON.parse(raw) : {};
+      if (event.isAttending) await eventsApi.leaveEvent(event.id);
+      else await eventsApi.joinEvent(event.id);
+      await reloadEvents();
     } catch {
-      return {};
+      setEventsError(t("network.events.actionFailed", "Could not update attendance."));
+    } finally {
+      setEventsActionId("");
     }
   }
 
-  function writeGroupStore(data) {
-    try {
-      localStorage.setItem(GROUP_CHATS_KEY, JSON.stringify(data));
-    } catch {
-      // ignore
-    }
-  }
-
-  function seedMessagesForGroup(group) {
-    return (group?.seedMessages || []).map((message, idx) => ({
-      id: message.id || `seed-${idx}`,
-      author: message.author || "",
-      authorSeed: message.authorSeed || "",
-      out: !!message.out,
-      text: t(message.textKey, message.textFallback || ""),
-      ts: Date.now() - 3600000 + idx * 60000,
-    }));
-  }
-
-  function getGroupMessages(groupId) {
-    if (!groupId) return [];
-    const store = readGroupStore();
-    if (Array.isArray(store[groupId]) && store[groupId].length > 0) return store[groupId];
-    const group = GROUPS.find((entry) => entry.id === groupId);
-    if (!group) return [];
-    const seeded = seedMessagesForGroup(group);
-    store[groupId] = seeded;
-    writeGroupStore(store);
-    return seeded;
-  }
-
-  function persistGroupMessages(groupId, messages) {
-    const store = readGroupStore();
-    store[groupId] = messages;
-    writeGroupStore(store);
-  }
-
-  const activeGroupMessages = useMemo(
-    () => getGroupMessages(activeGroup?.id),
-    [activeGroup?.id, t],
-  );
-
-  const groupList = useMemo(
-    () =>
-      GROUPS.map((group) => {
-        const messages = getGroupMessages(group.id);
-        const last = messages[messages.length - 1];
-        const preview = !last
-          ? t("network.groupNoMessages", "No messages yet")
-          : last.out
-            ? `${t("network.groupYouPrefix", "You")}: ${last.text}`
-            : `${last.author}: ${last.text}`;
-        return {
-          ...group,
-          preview: preview.length > 52 ? `${preview.slice(0, 52)}...` : preview,
-        };
-      }),
-    [t, activeGroupMessages],
-  );
-  const pagesWithFollow = useMemo(
-    () =>
-      PAGES.map((page) => ({
-        ...page,
-        following: followedPageIds.has(page.id),
-      })),
-    [followedPageIds],
-  );
-
-  function typeLabel(type) {
-    if (type === "career") return t("network.evCareer", "Job changes");
-    if (type === "birthdays") return t("network.evBirth", "Birthdays");
-    return t("network.evEdu", "Education");
-  }
-
-  function eventText(event) {
-    if (event.type === "career") {
-      return `${event.name} ${t("network.evCareerAs", "started a new role as")} ${event.role} ${t("network.evCareerAt", "at")} ${event.company}`;
-    }
-    if (event.type === "birthdays") {
-      const when = event.whenVars
-        ? t("network.evBirthdayIn", `in ${event.whenVars.days} days`).replace("{{days}}", event.whenVars.days)
-        : t(event.whenKey, event.whenFallback || "today");
-      return `${event.name} ${t("network.evBirthdayCelebrates", "celebrates a birthday")} ${when}`;
-    }
-    return `${event.name} ${t("network.evEduCompleted", "completed")} ${event.program}`;
-  }
-
-  function persistUnfollowed(nextSet) {
-    setUnfollowedHandles(nextSet);
-    try {
-      localStorage.setItem(UNFOLLOWED_KEY, JSON.stringify([...nextSet]));
-    } catch {
-      // ignore
-    }
+  function eventBadge(event) {
+    if (event.isAttending) return t("network.events.badge.attending", "Attending");
+    if (event.isOnline) return t("network.events.badge.online", "Online");
+    return t("network.events.badge.inPerson", "In person");
   }
 
   function canonicalHandle(value) {
     return String(value || "").replace(/^@+/, "").trim().toLowerCase();
+  }
+
+  async function onConnectUser(person) {
+    if (!person?.userId) return;
+    await connectWithUser(person.userId);
   }
 
   function onConnect(person) {
@@ -416,19 +330,27 @@ export function NetworkPage() {
   }
 
   function onMessageFollowing(person) {
+    const peerId = person.userId || person.handle || person.seed || person.name;
+    const byPeerId = person.userId
+      ? chats.find((chat) => String(chat.peerId || "") === String(person.userId))
+      : null;
     const handle = canonicalHandle(person.handle);
     const byHandle = chats.find((chat) => canonicalHandle(chat.peer) === handle);
     const byName = chats.find((chat) => canonicalHandle(chat.peer) === canonicalHandle(person.name));
-    const target = byHandle || byName;
+    const target = byPeerId || byHandle || byName;
     if (target) {
       setActiveChat(target.id);
     } else {
-      ensureChat({ peer: person.name, peerId: person.handle || person.seed || person.name });
+      ensureChat({ peer: person.name, peerId });
     }
     navigate("/chat");
   }
 
   function onOpenPerson(person) {
+    if (useApi && person.userId) {
+      navigate(`/profile/${person.userId}`);
+      return;
+    }
     if (useApi) {
       onMessageFollowing(person);
       return;
@@ -436,82 +358,83 @@ export function NetworkPage() {
     onConnect(person);
   }
 
-  function onUnfollow(person) {
-    const next = new Set(unfollowedHandles);
-    next.add(person.handle);
-    persistUnfollowed(next);
+  async function onUnfollow(person) {
+    if (!useApi || !person.userId) return;
+    await unfollowUser(person.userId);
   }
 
-  function persistFollowedPages(nextSet) {
-    setFollowedPageIds(nextSet);
-    try {
-      localStorage.setItem(FOLLOWED_PAGES_KEY, JSON.stringify([...nextSet]));
-    } catch {
-      // ignore
-    }
+  async function onFollowContact(person) {
+    if (!useApi || !person.userId) return;
+    await followUser(person.userId);
   }
 
-  function togglePageFollow(pageId) {
-    const next = new Set(followedPageIds);
-    if (next.has(pageId)) next.delete(pageId);
-    else next.add(pageId);
-    persistFollowedPages(next);
+  async function onBlockUser(person) {
+    if (!useApi || !person.userId) return;
+    await blockUser(person.userId);
   }
 
-  function formatTime(ts) {
-    if (!ts) return t("js.chatNow", "Now");
-    const diff = (Date.now() - ts) / 1000;
-    if (diff < 60) return t("js.chatNow", "Now");
-    if (diff < 3600) {
-      const minutes = Math.floor(diff / 60);
-      return tf("js.minAgo", { n: String(minutes) }, `${minutes} min`);
-    }
-    const hours = Math.floor(diff / 3600);
-    return tf("js.hourAgo", { n: String(hours) }, `${hours} hr`);
+  async function onUnblockUser(person) {
+    if (!useApi || !person.userId) return;
+    await unblockUser(person.userId);
   }
 
-  function appendGroupMessage(groupId, message) {
-    const next = [...getGroupMessages(groupId), message];
-    persistGroupMessages(groupId, next);
-  }
-
-  function maybeMockReply(group) {
-    if (!group?.replyPool?.length) return;
-    const pick = group.replyPool[Math.floor(Math.random() * group.replyPool.length)];
-    window.setTimeout(() => {
-      appendGroupMessage(group.id, {
-        id: `r-${Date.now()}`,
-        author: pick.author,
-        authorSeed: pick.authorSeed,
-        out: false,
-        text: t(pick.textKey, pick.textFallback || ""),
-        ts: Date.now(),
-      });
-      setActiveGroupId((prev) => prev || group.id);
-    }, 1200 + Math.random() * 800);
-  }
-
-  function onSendGroupMessage(event) {
-    event.preventDefault();
-    const text = groupInput.trim();
-    if (!text || !activeGroup) return;
-    appendGroupMessage(activeGroup.id, {
-      id: `u-${Date.now()}`,
-      author: t("network.groupYou", "You"),
-      out: true,
-      text,
-      ts: Date.now(),
-    });
-    setGroupInput("");
-    maybeMockReply(activeGroup);
-    setActiveGroupId((prev) => prev || activeGroup.id);
+  async function onTogglePageFollow(page) {
+    if (!useApi || page.isOwned) return;
+    if (page.isFollowing) await unfollowPage(page.id);
+    else await followPage(page.id);
   }
 
   useEffect(() => {
-    if (section === "groups" && !activeGroupId && GROUPS.length > 0) {
-      setActiveGroupId(GROUPS[0].id);
+    if (section === "groups" && useApi && !activeGroupId && groups.length > 0) {
+      setActiveGroupId(groups[0].id);
     }
-  }, [section, activeGroupId]);
+  }, [section, activeGroupId, useApi, groups]);
+
+  useEffect(() => {
+    if (section === "events" && useApi) reloadEvents();
+  }, [section, useApi, reloadEvents]);
+
+  useEffect(() => {
+    if (!useApi || !activeGroupId) {
+      setActiveGroupMembers([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setGroupMembersLoading(true);
+    pagesGroupsApi
+      .fetchGroupMembers(activeGroupId)
+      .then(async (members) => {
+        if (cancelled) return;
+        const userIds = members.map((member) => member.userId).filter(Boolean);
+        const profiles = await fetchProfilesByUserIds(userIds);
+        setActiveGroupMembers(
+          members.map((member) => {
+            const profile = profiles[member.userId];
+            const name =
+              profile?.fullName?.trim() ||
+              `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
+              `User ${String(member.userId).slice(0, 8)}`;
+            return {
+              id: String(member.id),
+              userId: member.userId,
+              name,
+              role: member.role || profile?.headline || "Member",
+            };
+          }),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setActiveGroupMembers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setGroupMembersLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [useApi, activeGroupId]);
 
   return (
     <section className="page network-page-legacy">
@@ -534,6 +457,11 @@ export function NetworkPage() {
                   <NetworkNavIcon type={item.icon} />
                 </span>
                 <span className="vac-sidebar__label">{t(item.labelKey, item.fallback)}</span>
+                {useApi && item.id === "connections" && pendingContactCounts.incomingCount > 0 ? (
+                  <span className="vac-sidebar__badge" aria-label={t("network.pending.incomingBadge", "Incoming invitations")}>
+                    {pendingContactCounts.incomingCount}
+                  </span>
+                ) : null}
               </button>
             ))}
           </nav>
@@ -552,46 +480,70 @@ export function NetworkPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
-              {useApi && pendingContacts.length > 0 ? (
+              {useApi && pendingContactCounts.incomingCount > 0 ? (
                 <div className="vac-people__pending">
-                  <h4 className="vac-people__pending-title">{t("network.pending.heading", "Pending invitations")}</h4>
+                  <h4 className="vac-people__pending-title">
+                    {t("network.pending.incomingHeading", "Incoming invitations")}
+                    <span className="vac-people__pending-count">{pendingContactCounts.incomingCount}</span>
+                  </h4>
                   <ul className="vac-people__pending-list">
-                    {pendingContacts.map((person) => (
+                    {incomingContacts.map((person) => (
                       <li key={person.id} className="vac-people__pending-item">
                         <span className="vac-people__pending-name">
                           {person.name}
-                          <small>
-                            {person.isIncoming
-                              ? t("network.pending.incoming", "wants to connect")
-                              : t("network.pending.outgoing", "request sent")}
-                          </small>
+                          <small>{t("network.pending.incoming", "wants to connect")}</small>
                         </span>
-                        {person.isIncoming ? (
-                          <span className="vac-people__pending-actions">
-                            <button type="button" className="vac-people__pending-accept" onClick={() => acceptContact(person.id)}>
-                              {t("network.pending.accept", "Accept")}
-                            </button>
-                            <button type="button" className="vac-people__pending-decline" onClick={() => rejectContact(person.id)}>
-                              {t("network.pending.reject", "Decline")}
-                            </button>
-                          </span>
-                        ) : null}
+                        <span className="vac-people__pending-actions">
+                          <button type="button" className="vac-people__pending-accept" onClick={() => acceptContact(person.id)}>
+                            {t("network.pending.accept", "Accept")}
+                          </button>
+                          <button type="button" className="vac-people__pending-decline" onClick={() => rejectContact(person.id)}>
+                            {t("network.pending.reject", "Decline")}
+                          </button>
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : null}
-              {loadError ? (
-                <div className="vac-people__alert" role="alert">
-                  <p className="vac-people__alert-text">
-                    {t("network.people.loadFailed", "Could not load contacts. Sign in again or try later.")}
-                  </p>
-                  <button type="button" className="vac-people__retry" onClick={() => reloadFromApi()}>
-                    {t("common.retry", "Retry")}
-                  </button>
+              {useApi && pendingContactCounts.outgoingCount > 0 ? (
+                <div className="vac-people__pending vac-people__pending--outgoing">
+                  <h4 className="vac-people__pending-title">
+                    {t("network.pending.outgoingHeading", "Sent invitations")}
+                    <span className="vac-people__pending-count">{pendingContactCounts.outgoingCount}</span>
+                  </h4>
+                  <ul className="vac-people__pending-list">
+                    {outgoingContacts.map((person) => (
+                      <li key={person.id} className="vac-people__pending-item">
+                        <span className="vac-people__pending-name">
+                          {person.name}
+                          <small>{t("network.pending.outgoing", "request sent")}</small>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
-              {isLoading ? <p className="vac-people__loading">{t("common.loading", "Loading…")}</p> : null}
+              {useApi ? (
+                <LoadStatus
+                  isLoading={isLoading}
+                  loadError={loadError}
+                  onRetry={reloadFromApi}
+                  t={t}
+                />
+              ) : (
+                <p className="vac-people__empty">
+                  {t("network.people.apiOnly", "Sign in with your account to manage contacts and search people.")}
+                </p>
+              )}
+              {isApiProfileSearch ? (
+                <LoadStatus
+                  isLoading={searchLoading}
+                  loadError={searchError}
+                  onRetry={() => setSearchRetry((count) => count + 1)}
+                  t={t}
+                />
+              ) : null}
               <h3 className="vac-people__heading" id="networkPeopleHeading">
                 {peopleSearchHeading}
               </h3>
@@ -601,48 +553,123 @@ export function NetworkPage() {
                 </p>
               ) : null}
               <div className="vac-people__grid" id="networkPeopleGrid">
-                {filteredPeople.length > 0 ? (
-                  filteredPeople.map((person) => (
-                    <button
-                      key={person.id}
-                      type="button"
-                      className="vac-person-card vac-person"
-                      data-network-person={person.id}
-                      data-keywords={`${person.name} ${person.role} ${person.handle || ""} ${person.keywords || ""}`}
-                      onClick={() => onOpenPerson(person)}
-                      aria-label={
-                        useApi
-                          ? `${person.name}, ${t("network.people.openChat", "open chat")}`
-                          : `${person.name}, ${t("network.people.tapConnect", "connect")}`
-                      }
-                    >
-                      <img
-                        className="vac-person-card__avatar"
-                        src={
-                          person.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
-                        }
-                        width="40"
-                        height="40"
-                        alt=""
-                      />
-                      <div className="vac-person-card__body">
-                        <span className="vac-person-card__name">{person.name}</span>
-                        <span className="vac-person-card__meta">
-                          {person.role}
-                          {person.mutual
-                            ? ` · ${tf("network.people.mutualShort", { count: String(person.mutual) }, `${person.mutual} mutual`)}`
-                            : ""}
-                        </span>
-                      </div>
-                      <span className="vac-person-card__chevron" aria-hidden="true">
-                        ›
-                      </span>
-                    </button>
-                  ))
+                {displayPeople.length > 0 ? (
+                  displayPeople.map((person) => {
+                    const relationship = useApi && person.userId ? getRelationship(person.userId) : null;
+                    const actionPlan = relationship
+                      ? resolvePersonCardActions(relationship, {
+                          isSearchResult: Boolean(person._searchResult || isApiProfileSearch),
+                        })
+                      : null;
+                    const statusLabels =
+                      relationship && useApi ? getRelationshipStatusLabels(relationship, t) : [];
+                    return (
+                      <article
+                        key={person.id}
+                        className="vac-person-card vac-person vac-person-card--with-actions"
+                        data-network-person={person.id}
+                        data-relationship={actionPlan?.stateKey || RELATIONSHIP_STATE.NONE}
+                        data-keywords={`${person.name} ${person.role} ${person.handle || ""} ${person.keywords || ""}`}
+                      >
+                        <button
+                          type="button"
+                          className="vac-person-card__open"
+                          onClick={() => onOpenPerson(person)}
+                          aria-label={
+                            useApi && person.userId
+                              ? `${person.name}, ${t("network.people.viewProfile", "view profile")}`
+                              : useApi
+                                ? `${person.name}, ${t("network.people.openChat", "open chat")}`
+                                : `${person.name}, ${t("network.people.tapConnect", "connect")}`
+                          }
+                        >
+                          <img
+                            className="vac-person-card__avatar"
+                            src={
+                              person.avatar ||
+                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
+                            }
+                            width="40"
+                            height="40"
+                            alt=""
+                          />
+                          <div className="vac-person-card__body">
+                            <span className="vac-person-card__name">{person.name}</span>
+                            <span className="vac-person-card__meta">
+                              {person.role}
+                              {person.mutual
+                                ? ` · ${tf("network.people.mutualShort", { count: String(person.mutual) }, `${person.mutual} mutual`)}`
+                                : ""}
+                            </span>
+                            {statusLabels.length > 0 ? (
+                              <span className="vac-person-card__status" aria-label={statusLabels.join(", ")}>
+                                {statusLabels.map((label) => (
+                                  <span key={label} className="vac-person-card__status-pill">
+                                    {label}
+                                  </span>
+                                ))}
+                              </span>
+                            ) : null}
+                          </div>
+                          <span className="vac-person-card__chevron" aria-hidden="true">
+                            ›
+                          </span>
+                        </button>
+                        {useApi && person.userId && actionPlan ? (
+                          <div className="vac-person-card__actions">
+                            {actionPlan.kind === "connect" || actionPlan.kind === "pendingOutgoing" ? (
+                              <button
+                                type="button"
+                                className="vac-person-card__follow"
+                                disabled={actionPlan.kind === "pendingOutgoing"}
+                                onClick={() => onConnectUser(person)}
+                              >
+                                {actionPlan.kind === "pendingOutgoing"
+                                  ? t("network.pending.outgoing", "request sent")
+                                  : t("network.people.connect", "Connect")}
+                              </button>
+                            ) : actionPlan.kind === "unblock" ? (
+                              <button
+                                type="button"
+                                className="vac-person-card__follow vac-person-card__follow--active"
+                                onClick={() => onUnblockUser(person)}
+                              >
+                                {t("network.unblock", "Unblock")}
+                              </button>
+                            ) : actionPlan.kind === "contact" ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className={
+                                    actionPlan.isFollowed
+                                      ? "vac-person-card__follow vac-person-card__follow--active"
+                                      : "vac-person-card__follow"
+                                  }
+                                  onClick={() =>
+                                    actionPlan.isFollowed ? onUnfollow(person) : onFollowContact(person)
+                                  }
+                                >
+                                  {actionPlan.isFollowed ? t("network.unfollow", "Unfollow") : t("network.follow", "Follow")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="vac-person-card__block"
+                                  onClick={() => onBlockUser(person)}
+                                >
+                                  {t("network.block", "Block")}
+                                </button>
+                              </>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })
                 ) : showPeopleNoContacts ? (
                   <p className="vac-people__empty" id="networkPeopleNone">
-                    {t("network.people.none", "No contacts yet. Accept a request above or connect with someone new.")}
+                    {useApi
+                      ? t("network.people.none", "No contacts yet. Accept a request above or connect with someone new.")
+                      : t("network.people.apiOnly", "Sign in with your account to manage contacts and search people.")}
                   </p>
                 ) : (
                   <p className="vac-people__empty" id="networkPeopleEmpty" hidden={!showPeopleEmpty}>
@@ -657,21 +684,44 @@ export function NetworkPage() {
             <section className="home-card vac-following">
               <h3 className="vac-following__heading">{t("network.following.heading", "People you follow")}</h3>
               <p className="vac-following__sub">{t("network.following.sub", "Updates from contacts you follow appear in your feed.")}</p>
+              {useApi ? (
+                <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reloadFromApi} t={t} />
+              ) : (
+                <p className="vac-following__sub">
+                  {t("network.following.apiOnly", "Sign in with your account to see who you follow.")}
+                </p>
+              )}
+              {useApi ? (
               <div className="vac-following-list">
-                {activeFollowing.length > 0 ? (
-                  activeFollowing.map((person) => (
+                {followingPeople.length > 0 ? (
+                  followingPeople.map((person) => {
+                    const relationship = person.userId ? getRelationship(person.userId) : null;
+                    const statusLabels = relationship ? getRelationshipStatusLabels(relationship, t) : [];
+                    return (
                     <article className="vac-following-row" key={person.id}>
                       <img
                         className="vac-following-row__avatar"
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`}
+                        src={
+                          person.avatar ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
+                        }
                         width="56"
                         height="56"
                         alt=""
                       />
                       <div className="vac-following-row__body">
-                        <h4 className="vac-following-row__name">{person.name}</h4>
+                        {useApi && person.userId ? (
+                          <h4 className="vac-following-row__name">
+                            <Link to={`/profile/${person.userId}`}>{person.name}</Link>
+                          </h4>
+                        ) : (
+                          <h4 className="vac-following-row__name">{person.name}</h4>
+                        )}
                         <p className="vac-following-row__role">{person.role}</p>
                         <p className="vac-following-row__handle">@{person.handle}</p>
+                        {statusLabels.length > 0 ? (
+                          <p className="vac-following-row__status">{statusLabels.join(" · ")}</p>
+                        ) : null}
                       </div>
                       <div className="vac-following-row__actions">
                         <button type="button" className="vac-following-row__msg" onClick={() => onMessageFollowing(person)}>
@@ -682,164 +732,398 @@ export function NetworkPage() {
                         </button>
                       </div>
                     </article>
-                  ))
-                ) : (
+                    );
+                  })
+                ) : !isLoading ? (
                   <p className="vac-following__sub">{t("network.following.empty", "You are not following anyone right now.")}</p>
-                )}
+                ) : null}
               </div>
+              ) : null}
+            </section>
+          )}
+
+          {section === "followers" && (
+            <section className="home-card vac-following vac-followers">
+              <h3 className="vac-following__heading">{t("network.followers.heading", "Your followers")}</h3>
+              <p className="vac-following__sub">
+                {t("network.followers.sub", "People who follow you on LinkUp.")}
+              </p>
+              {useApi ? (
+                <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reloadFromApi} t={t} />
+              ) : (
+                <p className="vac-following__sub">{t("network.followers.apiOnly", "Sign in with your account to see followers.")}</p>
+              )}
+              {useApi ? (
+                <div className="vac-following-list">
+                  {followerPeople.length > 0 ? (
+                    followerPeople.map((person) => {
+                      const relationship = getRelationship(person.userId);
+                      const isFollowed = relationship.isFollowed;
+                      const isContact = relationship.contactStatus === "accepted";
+                      const isPendingOutgoing =
+                        relationship.contactStatus === "pending" && relationship.contactDirection === "outgoing";
+                      return (
+                        <article className="vac-following-row" key={person.id}>
+                          <img
+                            className="vac-following-row__avatar"
+                            src={
+                              person.avatar ||
+                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
+                            }
+                            width="56"
+                            height="56"
+                            alt=""
+                          />
+                          <div className="vac-following-row__body">
+                            <h4 className="vac-following-row__name">
+                              <Link to={`/profile/${person.userId}`}>{person.name}</Link>
+                            </h4>
+                            <p className="vac-following-row__role">{person.role}</p>
+                            <p className="vac-following-row__handle">@{person.handle}</p>
+                            {getRelationshipStatusLabels(relationship, t).length > 0 ? (
+                              <p className="vac-following-row__status">
+                                {getRelationshipStatusLabels(relationship, t).join(" · ")}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="vac-following-row__actions">
+                            <button type="button" className="vac-following-row__msg" onClick={() => onMessageFollowing(person)}>
+                              {t("network.message", "Message")}
+                            </button>
+                            {isContact ? (
+                              <button
+                                type="button"
+                                className={
+                                  isFollowed
+                                    ? "vac-following-row__unfollow vac-following-row__unfollow--active"
+                                    : "vac-following-row__unfollow"
+                                }
+                                onClick={() => (isFollowed ? onUnfollow(person) : onFollowContact(person))}
+                              >
+                                {isFollowed ? t("network.followingBack", "Following") : t("network.followBack", "Follow back")}
+                              </button>
+                            ) : isPendingOutgoing ? (
+                              <span className="vac-following-row__state">{t("network.pending.outgoing", "request sent")}</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="vac-following-row__unfollow"
+                                onClick={() => onConnectUser(person)}
+                              >
+                                {t("network.people.connect", "Connect")}
+                              </button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })
+                  ) : !isLoading ? (
+                    <p className="vac-following__sub">{t("network.followers.empty", "No followers yet.")}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+          )}
+
+          {section === "blocked" && (
+            <section className="home-card vac-following vac-blocked">
+              <h3 className="vac-following__heading">{t("network.blocked.heading", "Blocked users")}</h3>
+              <p className="vac-following__sub">
+                {t("network.blocked.sub", "Blocked people cannot send you contact requests or follow you.")}
+              </p>
+              {useApi ? (
+                <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reloadFromApi} t={t} />
+              ) : (
+                <p className="vac-following__sub">{t("network.blocked.apiOnly", "Sign in with your account to manage blocked users.")}</p>
+              )}
+              {useApi ? (
+                <div className="vac-following-list">
+                  {blockedPeople.length > 0 ? (
+                    blockedPeople.map((person) => (
+                      <article className="vac-following-row vac-blocked-row" key={person.id}>
+                        <img
+                          className="vac-following-row__avatar"
+                          src={
+                            person.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
+                          }
+                          width="56"
+                          height="56"
+                          alt=""
+                        />
+                        <div className="vac-following-row__body">
+                          <h4 className="vac-following-row__name">
+                            <Link to={`/profile/${person.userId}`}>{person.name}</Link>
+                          </h4>
+                          <p className="vac-following-row__role">{person.role}</p>
+                          <p className="vac-following-row__handle">
+                            @{person.handle}
+                            {person.blockedAt
+                              ? ` · ${t("network.blocked.since", "Blocked")} ${formatBlockedDate(person.blockedAt, lang)}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className="vac-following-row__actions">
+                          <button
+                            type="button"
+                            className="vac-following-row__unfollow"
+                            onClick={() => onUnblockUser(person)}
+                          >
+                            {t("network.unblock", "Unblock")}
+                          </button>
+                        </div>
+                      </article>
+                    ))
+                  ) : !isLoading ? (
+                    <p className="vac-following__sub">{t("network.blocked.empty", "You have not blocked anyone.")}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           )}
 
           {section === "groups" && (
             <section className="home-card vac-groups">
               <h3 className="vac-groups__heading">{t("network.groups.heading", "Your groups")}</h3>
-              <p className="vac-groups__sub">{t("network.groups.sub", "Mini group chats with people from your network.")}</p>
-              <div className="vac-groups-layout">
-                <div className="vac-groups-list">
-                  {groupList.map((group) => (
-                    <button
-                      type="button"
-                      className={group.id === activeGroup?.id ? "vac-group-card vac-group-card--active" : "vac-group-card"}
-                      key={group.id}
-                      onClick={() => setActiveGroupId(group.id)}
-                    >
-                      <img className="vac-group-card__icon" src={avatarUrl(group.seed)} width="44" height="44" alt="" />
-                      <span className="vac-group-card__body">
-                        <span className="vac-group-card__name">{t(group.nameKey, group.nameFallback)}</span>
-                        <span className="vac-group-card__preview">{group.preview}</span>
-                        <span className="vac-group-card__count">
-                          {tf("network.groupMemberCount", { count: String(group.members.length) }, `${group.members.length} members`)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                {activeGroup ? (
-                  <div className="vac-group-chat">
-                    <h4 className="vac-group-chat__title">{t(activeGroup.nameKey, activeGroup.nameFallback)}</h4>
-                    <p className="vac-group-chat__meta">{t(activeGroup.descKey, activeGroup.descFallback)}</p>
-                    <div className="vac-group-chat__messages">
-                      {activeGroupMessages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={
-                            message.out
-                              ? "vac-group-chat__msg vac-group-chat__msg--out"
-                              : "vac-group-chat__msg vac-group-chat__msg--in"
-                          }
+              <p className="vac-groups__sub">{t("network.groups.subApi", "Groups you belong to on LinkUp.")}</p>
+              {useApi ? (
+                <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reloadFromApi} t={t} />
+              ) : (
+                <p className="vac-groups__sub">{t("network.groups.apiOnly", "Sign in with your account to see your groups.")}</p>
+              )}
+              {useApi ? (
+                <div className="vac-groups-layout">
+                  <div className="vac-groups-list">
+                    {groups.length > 0 ? (
+                      groups.map((group) => (
+                        <button
+                          type="button"
+                          className={group.id === activeGroup?.id ? "vac-group-card vac-group-card--active" : "vac-group-card"}
+                          key={group.id}
+                          onClick={() => setActiveGroupId(group.id)}
                         >
-                          {!message.out && (
-                            <img className="vac-group-chat__msg-avatar" src={avatarUrl(message.authorSeed)} width="28" height="28" alt="" />
-                          )}
-                          <div>
-                            {!message.out ? <div className="vac-group-chat__author">{message.author}</div> : null}
-                            <div className="vac-group-chat__bubble">{message.text}</div>
-                            <div className="vac-group-chat__time">{formatTime(message.ts)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <form className="vac-group-chat__form" onSubmit={onSendGroupMessage}>
-                      <input
-                        className="vac-group-chat__input"
-                        value={groupInput}
-                        onChange={(event) => setGroupInput(event.target.value)}
-                        placeholder={t("network.groupChatPlaceholder", "Write a message...")}
-                        maxLength={500}
-                      />
-                      <button type="submit" className="vac-group-chat__send">
-                        {t("network.groupSend", "Send")}
-                      </button>
-                    </form>
+                          <img
+                            className="vac-group-card__icon"
+                            src={group.avatarUrl || avatarUrl(group.seed)}
+                            width="44"
+                            height="44"
+                            alt=""
+                          />
+                          <span className="vac-group-card__body">
+                            <span className="vac-group-card__name">{group.name}</span>
+                            <span className="vac-group-card__preview">
+                              {group.description || t("network.groupNoDescription", "No description")}
+                            </span>
+                            <span className="vac-group-card__count">
+                              {tf(
+                                "network.groupMemberCount",
+                                { count: String(group.memberCount) },
+                                `${group.memberCount} members`,
+                              )}
+                            </span>
+                          </span>
+                        </button>
+                      ))
+                    ) : !isLoading ? (
+                      <p className="vac-groups__sub">{t("network.groups.empty", "You are not in any groups yet.")}</p>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
+                  {activeGroup ? (
+                    <div className="vac-group-chat vac-group-detail">
+                      <h4 className="vac-group-chat__title">{activeGroup.name}</h4>
+                      <p className="vac-group-chat__meta">
+                        {activeGroup.description || t("network.groupNoDescription", "No description")}
+                      </p>
+                      <h5 className="vac-group-detail__members-title">{t("network.groups.members", "Members")}</h5>
+                      {groupMembersLoading ? (
+                        <p className="vac-groups__sub">{t("common.loading", "Loading…")}</p>
+                      ) : activeGroupMembers.length > 0 ? (
+                        <ul className="vac-group-detail__members">
+                          {activeGroupMembers.map((member) => (
+                            <li key={member.id} className="vac-group-detail__member">
+                              {member.userId ? (
+                                <Link to={`/profile/${member.userId}`}>{member.name}</Link>
+                              ) : (
+                                <span>{member.name}</span>
+                              )}
+                              <small>{member.role}</small>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="vac-groups__sub">{t("network.groups.noMembers", "No members to show.")}</p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           )}
 
           {section === "pages" && (
             <section className="home-card vac-pages">
               <h3 className="vac-pages__heading">{t("network.pages.heading", "Pages you follow")}</h3>
-              <p className="vac-pages__sub">{t("network.pages.sub", "Company and organization pages from your professional network.")}</p>
-              <div className="vac-pages-list">
-                {pagesWithFollow.map((page) => (
-                  <article className="vac-page-card" key={page.id}>
-                    <img className="vac-page-card__logo" src={pageLogoUrl(page.seed)} width="56" height="56" alt="" />
-                    <div className="vac-page-card__body">
-                      <div className="vac-page-card__head">
-                        <h4 className="vac-page-card__name">{page.name}</h4>
-                        <span className="vac-page-card__followers">{t(page.followersKey, page.followersFallback)}</span>
-                      </div>
-                      <p className="vac-page-card__industry">{t(page.industryKey, page.industryFallback)}</p>
-                      <p className="vac-page-card__desc">{t(page.descKey, page.descFallback)}</p>
-                      <p className="vac-page-card__update">
-                        <span>{t("network.pageLatest", "Latest")}: </span>
-                        {t(page.updateKey, page.updateFallback)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className={page.following ? "vac-page-card__follow vac-page-card__follow--active" : "vac-page-card__follow"}
-                      onClick={() => togglePageFollow(page.id)}
-                    >
-                      {page.following ? t("network.pageFollowing", "Following") : t("network.pageFollow", "Follow")}
-                    </button>
-                  </article>
-                ))}
-              </div>
+              <p className="vac-pages__sub">{t("network.pages.subApi", "Company and organization pages you own or follow.")}</p>
+              {useApi ? (
+                <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reloadFromApi} t={t} />
+              ) : (
+                <p className="vac-pages__sub">{t("network.pages.apiOnly", "Sign in with your account to see pages.")}</p>
+              )}
+              {useApi ? (
+                <div className="vac-pages-list">
+                  {pages.length > 0 ? (
+                    pages.map((page) => (
+                      <article className="vac-page-card" key={page.id}>
+                        <img
+                          className="vac-page-card__logo"
+                          src={page.logoUrl || pageLogoUrl(page.seed)}
+                          width="56"
+                          height="56"
+                          alt=""
+                        />
+                        <div className="vac-page-card__body">
+                          <div className="vac-page-card__head">
+                            <h4 className="vac-page-card__name">{page.name}</h4>
+                            {page.isOwned ? (
+                              <span className="vac-page-card__badge">{t("network.pages.yours", "Yours")}</span>
+                            ) : null}
+                          </div>
+                          <p className="vac-page-card__desc">
+                            {page.description || t("network.pages.noDescription", "No description yet.")}
+                          </p>
+                        </div>
+                        {page.isOwned ? null : (
+                          <button
+                            type="button"
+                            className={
+                              page.isFollowing
+                                ? "vac-page-card__follow vac-page-card__follow--active"
+                                : "vac-page-card__follow"
+                            }
+                            onClick={() => onTogglePageFollow(page)}
+                          >
+                            {page.isFollowing ? t("network.pageFollowing", "Following") : t("network.pageFollow", "Follow")}
+                          </button>
+                        )}
+                      </article>
+                    ))
+                  ) : !isLoading ? (
+                    <p className="vac-pages__sub">{t("network.pages.empty", "No pages yet. Create a page or follow one from your network.")}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           )}
 
           {section === "events" && (
             <section className="home-card vac-event-card">
-              <div className="vac-event-filters">
-                <button
-                  type="button"
-                  className={eventFilter === "all" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"}
-                  onClick={() => setEventFilter("all")}
-                >
-                  {t("network.events.filter.all", "All")}
-                </button>
-                <button
-                  type="button"
-                  className={eventFilter === "career" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"}
-                  onClick={() => setEventFilter("career")}
-                >
-                  {t("network.events.filter.job", "Job changes")}
-                </button>
-                <button
-                  type="button"
-                  className={eventFilter === "birthdays" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"}
-                  onClick={() => setEventFilter("birthdays")}
-                >
-                  {t("network.events.filter.birthdays", "Birthdays")}
-                </button>
-                <button
-                  type="button"
-                  className={eventFilter === "education" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"}
-                  onClick={() => setEventFilter("education")}
-                >
-                  {t("network.events.filter.education", "Education")}
-                </button>
-              </div>
-              <div className="vac-event-list">
-                {filteredEvents.map((event) => (
-                  <article className="vac-event-item" key={event.id}>
-                    <img
-                      className="vac-event-item__avatar"
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(event.seed || event.name)}`}
-                      width="42"
-                      height="42"
-                      alt=""
-                    />
-                    <div className="vac-event-item__body">
-                      <span className="vac-event-item__badge">{typeLabel(event.type)}</span>
-                      <h4>{eventText(event)}</h4>
-                      <p>{t(event.timeKey, event.timeFallback)}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <h3 className="vac-event-card__heading">{t("network.events.heading", "Events")}</h3>
+              <p className="vac-event-card__sub">
+                {t("network.events.sub", "Discover professional events and manage your attendance.")}
+              </p>
+              {useApi ? (
+                <>
+                  <div className="vac-event-filters">
+                    <button
+                      type="button"
+                      className={
+                        eventFilter === "discover" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"
+                      }
+                      onClick={() => setEventFilter("discover")}
+                    >
+                      {t("network.events.filter.discover", "Discover")}
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        eventFilter === "attending" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"
+                      }
+                      onClick={() => setEventFilter("attending")}
+                    >
+                      {t("network.events.filter.attending", "Attending")}
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        eventFilter === "online" ? "vac-event-filter vac-event-filter--active" : "vac-event-filter"
+                      }
+                      onClick={() => setEventFilter("online")}
+                    >
+                      {t("network.events.filter.online", "Online")}
+                    </button>
+                  </div>
+                  <LoadStatus
+                    isLoading={eventsLoading}
+                    loadError={eventsError}
+                    onRetry={reloadEvents}
+                    t={t}
+                  />
+                  <div className="vac-event-list">
+                    {events.length > 0 ? (
+                      events.map((event) => (
+                        <article className="vac-event-item" key={event.id}>
+                          <img
+                            className="vac-event-item__avatar"
+                            src={
+                              event.coverImageUrl ||
+                              `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(event.seed)}`
+                            }
+                            width="42"
+                            height="42"
+                            alt=""
+                          />
+                          <div className="vac-event-item__body">
+                            <span className="vac-event-item__badge">{eventBadge(event)}</span>
+                            <h4>{event.title}</h4>
+                            {event.description ? <p className="vac-event-item__desc">{event.description}</p> : null}
+                            <p className="vac-event-item__meta">
+                              {formatEventDateTime(event.startAt, lang)}
+                              {event.location
+                                ? ` · ${event.location}`
+                                : event.isOnline
+                                  ? ` · ${t("network.events.online", "Online")}`
+                                  : ""}
+                            </p>
+                            <p className="vac-event-item__meta">
+                              {tf(
+                                "network.events.attendees",
+                                { count: String(event.attendeeCount) },
+                                `${event.attendeeCount} attending`,
+                              )}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className={
+                              event.isAttending
+                                ? "vac-event-item__join vac-event-item__join--active"
+                                : "vac-event-item__join"
+                            }
+                            onClick={() => onToggleEventAttendance(event)}
+                            disabled={eventsActionId === event.id}
+                          >
+                            {eventsActionId === event.id
+                              ? t("common.loading", "Loading…")
+                              : event.isAttending
+                                ? t("network.events.leave", "Leave")
+                                : t("network.events.join", "Join")}
+                          </button>
+                        </article>
+                      ))
+                    ) : !eventsLoading ? (
+                      <p className="vac-event-card__sub">
+                        {eventFilter === "attending"
+                          ? t("network.events.emptyAttending", "You are not attending any events yet.")
+                          : t("network.events.empty", "No events match this filter.")}
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="vac-event-card__sub">
+                  {t("network.events.apiOnly", "Sign in with your account to browse and join events.")}
+                </p>
+              )}
             </section>
           )}
         </main>

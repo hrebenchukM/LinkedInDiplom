@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUiSettings } from "../../app/providers/AppProviders";
+import * as jobsApi from "../../features/jobs/jobsApi";
 import { useNetworkStore } from "../../features/network/NetworkStore";
-import { useVacanciesStore } from "../../features/vacancies/VacanciesStore";
 import { useChatStore } from "../../features/chat/ChatStore";
 import { useProfileStore } from "../../features/profile/ProfileStore";
 import { getMessagePreview } from "../lib/callMessage";
-
+import { useBackendApi } from "../hooks/useBackendApi";
 const MIN_QUERY_LENGTH = 2;
 
 const pages = [
@@ -25,10 +25,31 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useUiSettings();
+  const useApi = useBackendApi();
   const { people } = useNetworkStore();
-  const { vacancies } = useVacanciesStore();
   const { chats, setActiveChat } = useChatStore();
   const { profile } = useProfileStore();
+  const [apiVacancies, setApiVacancies] = useState([]);
+  const vacancies = useApi ? apiVacancies : [];
+
+  useEffect(() => {
+    if (!useApi) {
+      setApiVacancies([]);
+      return;
+    }
+    let cancelled = false;
+    jobsApi
+      .fetchVacancies({ page: 1, pageSize: 50 })
+      .then((result) => {
+        if (!cancelled) setApiVacancies(result.items || []);
+      })
+      .catch(() => {
+        if (!cancelled) setApiVacancies([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [useApi]);
 
   const searchIndex = useMemo(() => {
     const pageItems = pages.map((item) => ({
@@ -44,7 +65,7 @@ export function GlobalSearch() {
       title: person.name,
       kind: t("search.kind.person", "Person"),
       subtitle: person.role,
-      to: "/network",
+      to: person.userId ? `/profile/${person.userId}` : "/network",
       keywords: [person.name, person.role, person.handle, person.keywords],
     }));
 

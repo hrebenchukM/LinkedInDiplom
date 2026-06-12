@@ -9,6 +9,8 @@ import {
 } from "../../shared/lib/authSession";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import { clearAuthTokens, getAccessToken, getRefreshToken, isLegacyMockTokenPair } from "../../shared/api/tokens";
+import { scheduleProactiveTokenRefresh } from "../../shared/api/tokenRefreshScheduler";
+import { applyTokenRolesToUser } from "../../shared/lib/jwtClaims";
 import * as authApi from "./authApi";
 import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/registeredAccount";
 import { mapAccountToUser, readProfileFallback } from "./mapAccount";
@@ -20,6 +22,11 @@ const AuthContext = createContext(null);
 
 function emptySession() {
   return { isAuthenticated: false, user: null };
+}
+
+function finalizeSessionUser(user) {
+  if (!user || USE_MOCK_AUTH || user.isGuest) return user;
+  return applyTokenRolesToUser(user, getAccessToken());
 }
 
 async function buildUserWithProfile(account, profileFallback = {}, { applyRegistration = false } = {}) {
@@ -50,10 +57,11 @@ export function AuthProvider({ children }) {
   const [isReady, setIsReady] = useState(false);
 
   const commitSession = useCallback((user) => {
-    const next = { isAuthenticated: true, user };
+    const finalized = finalizeSessionUser(user);
+    const next = { isAuthenticated: true, user: finalized };
     setSession(next);
     writeJson(AUTH_SESSION_KEY, next);
-    return user;
+    return finalized;
   }, []);
 
   const clearSession = useCallback(() => {
@@ -131,6 +139,23 @@ export function AuthProvider({ children }) {
     [completeLogin],
   );
 
+  const loginWithOAuth = useCallback(
+    async (provider, providerToken, profileFallback = {}) => {
+      clearAuthTokens();
+      const loginResponse =
+        provider === "google"
+          ? await authApi.googleLogin(providerToken)
+          : await authApi.facebookLogin(providerToken);
+
+      return completeLogin(
+        loginResponse,
+        { ...profileFallback, authProvider: provider },
+        { applyRegistration: Boolean(loginResponse.data?.isNewUser) },
+      );
+    },
+    [completeLogin],
+  );
+
   const loginAsGuest = useCallback(() => {
     const profile = persistGuestProfile({
       id: "guest",
@@ -189,8 +214,15 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      if (!USE_MOCK_AUTH) {
+        scheduleProactiveTokenRefresh();
+      }
+
       if (saved.isAuthenticated && saved.user) {
-        if (!cancelled) setSession(saved);
+        const hydrated = finalizeSessionUser(saved.user);
+        if (!cancelled) {
+          setSession({ isAuthenticated: true, user: hydrated });
+        }
       }
 
       try {
@@ -240,6 +272,7 @@ export function AuthProvider({ children }) {
       isReady,
       registerAndLogin,
       loginWithPassword,
+      loginWithOAuth,
       loginAsGuest,
       logout,
       syncUserProfile,
@@ -261,7 +294,7 @@ export function AuthProvider({ children }) {
         commitSession(user);
       },
     }),
-    [session, isReady, registerAndLogin, loginWithPassword, loginAsGuest, logout, syncUserProfile, commitSession],
+    [session, isReady, registerAndLogin, loginWithPassword, loginWithOAuth, loginAsGuest, logout, syncUserProfile, commitSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

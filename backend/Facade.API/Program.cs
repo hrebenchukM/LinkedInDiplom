@@ -39,6 +39,7 @@ using Network.DI;
 
 using Notifications.DI;
 using Facade.API;
+using Facade.API.Seeding;
 using Microsoft.AspNetCore.Mvc;
 using Facade.AI.DI;
 using Facade.AI.Controllers.Controllers;
@@ -70,6 +71,9 @@ builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
 builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddContentModule(configuration, connectionString);
+builder.Services.AddScoped<IDemoContentSeeder, DemoContentSeeder>();
+builder.Services.AddScoped<IDemoNetworkSeeder, DemoNetworkSeeder>();
+builder.Services.AddScoped<IDemoJobsSeeder, DemoJobsSeeder>();
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);

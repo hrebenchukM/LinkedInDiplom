@@ -20,6 +20,8 @@ public record GetVacanciesParameters
 
     public string? Schedule { get; init; }
 
+    public decimal? MinSalaryFrom { get; init; }
+
     public DateTime? FromCreatedAt { get; init; }
 
     public DateTime? ToCreatedAt { get; init; }

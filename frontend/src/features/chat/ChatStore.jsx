@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { initialChats } from "../../shared/constants/mockData";
 import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { loadChatsFromApi } from "../messaging/loadChats";
 import * as messagingApi from "../messaging/messagingApi";
@@ -10,6 +9,7 @@ import {
   countUnreadIncoming,
   notifyChatRead,
 } from "../../shared/lib/messageRead";
+import { withLoadState } from "../../shared/lib/asyncLoad";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
 import { buildPostShareSnapshot } from "../../shared/lib/postShare";
@@ -85,91 +85,107 @@ function markChatReadInList(chats, chatId) {
   );
 }
 
-function mergeApiAndLocalChats(apiChats, localChats) {
+/** Keep in-memory AI assistant chat when merging API results (no localStorage mock chats). */
+function mergeApiWithMemoryChats(apiChats, memoryChats) {
   const canonical = getCanonicalPeerId();
   const aiId = canonical(AI_ASSISTANT_PEER_ID);
   const apiIds = new Set(apiChats.map((c) => String(c.id)));
-  const extras = localChats.filter((chat) => {
+  const aiChat = memoryChats.find((chat) => {
     const peer = canonical(chat.peer);
     const id = canonical(chat.id);
-    return (peer === aiId || id === aiId || !chat._api) && !apiIds.has(String(chat.id));
+    return peer === aiId || id === aiId;
   });
-  return [...apiChats, ...extras];
+  if (!aiChat || apiIds.has(String(aiChat.id))) return apiChats;
+  return [...apiChats, aiChat];
 }
 
 export function ChatProvider({ children }) {
   const { session } = useAuth();
   const useApi = useBackendApi();
-  const [chats, setChats] = useState(() => readJson(CHATS_KEY, initialChats));
-  const [activeChatId, setActiveChatId] = useState(() =>
-    readJson(ACTIVE_CHAT_KEY, initialChats[0]?.id || null),
-  );
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const activeChat = chats.find((chat) => chat.id === activeChatId) || chats[0] || null;
 
   const persistChats = useCallback(
-    (next) => {
-      setChats(next);
-      if (!useApi) writeJson(CHATS_KEY, next);
+    (nextOrUpdater) => {
+      setChats((prev) => {
+        const next = typeof nextOrUpdater === "function" ? nextOrUpdater(prev) : nextOrUpdater;
+        if (!useApi) writeJson(CHATS_KEY, next);
+        return next;
+      });
     },
     [useApi],
   );
 
+  const persistActiveChatId = useCallback(
+    (chatId) => {
+      if (!useApi) writeJson(ACTIVE_CHAT_KEY, chatId);
+    },
+    [useApi],
+  );
+
+  useEffect(() => {
+    if (useApi) {
+      try {
+        localStorage.removeItem(CHATS_KEY);
+      } catch {
+        // ignore storage errors
+      }
+      return;
+    }
+    const saved = readJson(CHATS_KEY, []);
+    if (saved.length) setChats(saved);
+    const savedActive = readJson(ACTIVE_CHAT_KEY, saved[0]?.id || null);
+    if (savedActive) setActiveChatId(savedActive);
+  }, [useApi]);
+
   const reloadFromApi = useCallback(async () => {
     if (!useApi || !session.user?.id) return;
-    setIsLoading(true);
-    try {
+    await withLoadState({ setIsLoading, setLoadError }, async () => {
       const apiChats = await loadChatsFromApi(session.user.id);
-      const local = readJson(CHATS_KEY, initialChats);
-      const merged = mergeApiAndLocalChats(apiChats, local);
-      persistChats(merged);
-      if (!merged.some((c) => c.id === activeChatId)) {
-        const nextId = merged[0]?.id || null;
-        setActiveChatId(nextId);
-        writeJson(ACTIVE_CHAT_KEY, nextId);
-      }
-    } catch {
-      // keep previous chats on error
-    } finally {
-      setIsLoading(false);
-    }
-  }, [useApi, session.user?.id, activeChatId, persistChats]);
+      setChats((prev) => {
+        const merged = mergeApiWithMemoryChats(apiChats, prev);
+        if (!merged.some((c) => c.id === activeChatId)) {
+          const nextId = merged[0]?.id || null;
+          setActiveChatId(nextId);
+          persistActiveChatId(nextId);
+        }
+        return merged;
+      });
+    }, "Failed to load chats.");
+  }, [useApi, session.user?.id, activeChatId, persistActiveChatId]);
 
   useEffect(() => {
     if (useApi) reloadFromApi();
   }, [useApi, session.user?.id, reloadFromApi]);
 
-  const persistAiChats = useCallback((next) => {
-    setChats(next);
-    writeJson(CHATS_KEY, next);
-  }, []);
-
   const appendAiAssistantExchange = useCallback(
     (chatId, userText, lang, onAiAction) => {
       const userMsg = { id: crypto.randomUUID(), fromMe: true, text: userText };
-      const withUser = chats.map((chat) =>
-        chat.id === chatId ? { ...chat, messages: [...chat.messages, userMsg] } : chat,
+      persistChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, messages: [...chat.messages, userMsg] } : chat,
+        ),
       );
-      persistAiChats(withUser);
 
       window.setTimeout(() => {
         const { text: replyText, action } = resolveAiAssistantReply(userText, lang);
         const assistantMsg = { id: crypto.randomUUID(), fromMe: false, text: replyText };
-        setChats((prev) => {
-          const next = prev.map((chat) =>
+        persistChats((prev) =>
+          prev.map((chat) =>
             chat.id === chatId ? { ...chat, messages: [...chat.messages, assistantMsg] } : chat,
-          );
-          writeJson(CHATS_KEY, next);
-          return next;
-        });
+          ),
+        );
 
         if (action && typeof onAiAction === "function") {
           window.setTimeout(() => onAiAction(action), 500);
         }
       }, 650);
     },
-    [chats, persistAiChats],
+    [persistChats],
   );
 
   const sendMessage = useCallback(
@@ -247,21 +263,17 @@ export function ChatProvider({ children }) {
           return { ...chat, messages, lastReadIncomingCount: lastRead };
         });
 
-      const next = applyRemoval(chats);
-      if (isAi) {
-        persistAiChats(next);
-      } else {
-        persistChats(next);
-      }
+      persistChats(applyRemoval(chats));
       return { ok: true };
     },
-    [activeChat, chats, persistChats, persistAiChats, useApi],
+    [activeChat, chats, persistChats, useApi],
   );
 
   const value = useMemo(
     () => ({
       useApi,
       isLoading,
+      loadError,
       reloadFromApi,
       deleteMessage,
       chats,
@@ -270,7 +282,7 @@ export function ChatProvider({ children }) {
       setActiveChat(chatId) {
         if (!chatId) return;
         setActiveChatId(chatId);
-        writeJson(ACTIVE_CHAT_KEY, chatId);
+        persistActiveChatId(chatId);
 
         const target = chats.find((chat) => chat.id === chatId);
         if (!target) return;
@@ -422,7 +434,7 @@ export function ChatProvider({ children }) {
           const fallback = next.find((chat) => !chat.archived);
           const nextId = fallback?.id || null;
           setActiveChatId(nextId);
-          writeJson(ACTIVE_CHAT_KEY, nextId);
+          persistActiveChatId(nextId);
         }
       },
       clearChatMessages(chatId) {
@@ -439,7 +451,7 @@ export function ChatProvider({ children }) {
           const fallback = next.find((chat) => !chat.archived) || next[0] || null;
           const nextId = fallback?.id || null;
           setActiveChatId(nextId);
-          writeJson(ACTIVE_CHAT_KEY, nextId);
+          persistActiveChatId(nextId);
         }
         if (target && typeof window.disconnectPerson === "function") {
           window.disconnectPerson(target.id || target.peer);
@@ -466,13 +478,13 @@ export function ChatProvider({ children }) {
         const readNext = markChatReadInList(next, chatId);
         persistChats(readNext);
         setActiveChatId(chatId);
-        writeJson(ACTIVE_CHAT_KEY, chatId);
+        persistActiveChatId(chatId);
         const target = readNext.find((chat) => chat.id === chatId);
         if (target) notifyChatRead(target.id || target.peer);
         return chatId;
       },
     }),
-    [activeChat, activeChatId, chats, isLoading, persistChats, reloadFromApi, sendMessage, deleteMessage, useApi],
+    [activeChat, activeChatId, chats, isLoading, loadError, persistChats, persistActiveChatId, reloadFromApi, sendMessage, deleteMessage, useApi],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
