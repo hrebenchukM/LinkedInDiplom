@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Facade\Facade.Shared.Contracts\Facade.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Contracts\Facade.FileStorage.Contracts.csproj" />
+    <ProjectReference Include="..\Facade.EventsManagement.Contracts\Facade.EventsManagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Events\Events.Client.Contracts\Events.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Events\Events.Contracts\Events.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,61 @@
+using Facade.EventsManagement.Contracts.DTOs;
+using Facade.EventsManagement.Contracts.Requests.Event;
+using Facade.Shared.Contracts.Pagination;
+using Facade.EventsManagement.Contracts.Requests.EventSchedule;
+using Facade.EventsManagement.Contracts.Requests.EventSpeaker;
+using Facade.EventsManagement.Contracts.Requests.EventSpeakerMap;
+using Facade.EventsManagement.Contracts.Responses;
+
+namespace Facade.EventsManagement.Contracts.Services;
+
+public interface IEventsManagementService
+{
+    Task<EventResponse> CreateEventAsync(string userId, CreateEventRequest request);
+    Task<IReadOnlyCollection<EventDto>> GetMyEventsAsync(string userId, int? limit, DateTime? fromStartAt, DateTime? toStartAt);
+    Task<PagedResponse<EventDto>> DiscoverEventsAsync(
+        string? currentUserId,
+        DiscoverEventsQueryRequest request,
+        CancellationToken cancellationToken = default);
+    Task<PagedResponse<EventDto>> GetMyAttendingEventsAsync(
+        string userId,
+        AttendingEventsQueryRequest request,
+        CancellationToken cancellationToken = default);
+    Task<EventDto?> GetEventByIdAsync(Guid eventId, string? currentUserId = null);
+    Task<PagedResponse<EventSpeakerDto>> GetSpeakersAsync(
+        GetEventSpeakersQueryRequest request,
+        CancellationToken cancellationToken = default);
+    Task<EventResponse> UpdateEventAsync(string userId, Guid eventId, UpdateEventRequest request);
+    Task<EventResponse> UploadEventCoverAsync(
+        string userId,
+        Guid eventId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
+    Task<EventResponse> DeleteEventAsync(string userId, Guid eventId);
+
+    Task<EventAttendeeResponse> JoinEventAsync(string userId, Guid eventId);
+    Task<EventAttendeeResponse> LeaveEventAsync(string userId, Guid eventId);
+    Task<IReadOnlyCollection<EventAttendeeDto>> GetEventAttendeesAsync(Guid eventId, int? limit);
+
+    Task<EventScheduleResponse> CreateScheduleItemAsync(string userId, Guid eventId, CreateEventScheduleRequest request);
+    Task<IReadOnlyCollection<EventScheduleDto>> GetEventScheduleAsync(Guid eventId);
+    Task<EventScheduleResponse> UpdateScheduleItemAsync(string userId, Guid eventId, Guid scheduleId, UpdateEventScheduleRequest request);
+    Task<EventScheduleResponse> DeleteScheduleItemAsync(string userId, Guid eventId, Guid scheduleId);
+
+    Task<EventSpeakerResponse> CreateSpeakerAsync(string userId, CreateEventSpeakerRequest request);
+    Task<EventSpeakerDto?> GetSpeakerByIdAsync(string userId, Guid speakerId);
+    Task<EventSpeakerResponse> UpdateSpeakerAsync(string userId, Guid speakerId, UpdateEventSpeakerRequest request);
+    Task<EventSpeakerResponse> UploadSpeakerAvatarAsync(
+        string userId,
+        Guid speakerId,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default);
+    Task<EventSpeakerResponse> DeleteSpeakerAsync(string userId, Guid speakerId);
+
+    Task<EventSpeakerMapResponse> AttachSpeakerToEventAsync(string userId, Guid eventId, AttachSpeakerToEventRequest request);
+    Task<EventSpeakerMapResponse> DetachSpeakerFromEventAsync(string userId, Guid eventId, Guid speakerId);
+    Task<IReadOnlyCollection<EventSpeakerMapDto>> GetEventSpeakersAsync(Guid eventId);
+}

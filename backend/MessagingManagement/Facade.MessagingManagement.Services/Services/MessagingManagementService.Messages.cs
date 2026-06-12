@@ -1,0 +1,97 @@
+using Facade.MessagingManagement.Contracts.DTOs;
+using Facade.MessagingManagement.Contracts.Requests.Message;
+using Facade.MessagingManagement.Contracts.Responses;
+using Facade.Shared.Contracts.Pagination;
+using Messaging.Contracts.Parameters.Message;
+
+namespace Facade.MessagingManagement.Services.Services;
+
+public partial class MessagingManagementService
+{
+    public async Task<MessageResponse> SendMessageAsync(string userId, Guid chatId, SendMessageRequest request)
+    {
+        var result = await _messagingClient.Messages.SendAsync(new SendMessageParameters
+        {
+            UserId = userId,
+            ChatId = chatId,
+            Content = request.Content
+        });
+
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageCreatedAsync(chatId, response.Message);
+        }
+
+        return response;
+    }
+
+    public async Task<PagedResponse<MessageDto>> GetChatMessagesAsync(
+        string userId,
+        Guid chatId,
+        PagedRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (page, pageSize, skip) = Pagination.Normalize(request);
+
+        var result = await _messagingClient.Messages.GetChatMessagesAsync(new GetChatMessagesParameters
+        {
+            UserId = userId,
+            ChatId = chatId,
+            Skip = skip,
+            Take = pageSize
+        });
+
+        var items = result.Items.Select(MapMessageToFacadeDto).ToList();
+        return Pagination.Create(items, page, pageSize, result.TotalCount);
+    }
+
+    public async Task<MessageDto?> GetMessageByIdAsync(string userId, Guid messageId)
+    {
+        var message = await _messagingClient.Messages.GetByIdAsync(new GetMessageByIdParameters
+        {
+            UserId = userId,
+            MessageId = messageId
+        });
+
+        return message == null ? null : MapMessageToFacadeDto(message);
+    }
+
+    public async Task<MessageResponse> EditMessageAsync(string userId, Guid messageId, EditMessageRequest request)
+    {
+        var result = await _messagingClient.Messages.EditAsync(new EditMessageParameters
+        {
+            UserId = userId,
+            MessageId = messageId,
+            Content = request.Content
+        });
+
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageUpdatedAsync(response.Message.ChatId, response.Message);
+        }
+
+        return response;
+    }
+
+    public async Task<MessageResponse> DeleteMessageAsync(string userId, Guid messageId)
+    {
+        var result = await _messagingClient.Messages.DeleteAsync(new DeleteMessageParameters
+        {
+            UserId = userId,
+            MessageId = messageId
+        });
+
+        var response = MapMessageResult(result);
+
+        if (response.Success && response.Message is not null)
+        {
+            await _realtimeNotifier.NotifyMessageDeletedAsync(response.Message.ChatId, response.Message.Id);
+        }
+
+        return response;
+    }
+}

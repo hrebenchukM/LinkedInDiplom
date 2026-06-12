@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Events.Client.Contracts\Events.Client.Contracts.csproj" />
+    <ProjectReference Include="..\Events.Contracts\Events.Contracts.csproj" />
+    <ProjectReference Include="..\Events.Services\Events.Services.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

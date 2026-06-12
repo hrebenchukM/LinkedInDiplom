@@ -1,0 +1,151 @@
+using Facade.MessagingManagement.Contracts.DTOs;
+using Facade.MessagingManagement.Contracts.Realtime;
+using Facade.MessagingManagement.Contracts.Responses;
+using Facade.MessagingManagement.Contracts.Services;
+using Facade.FileStorage.Contracts.Services;
+using Messaging.Client.Contracts;
+using MessagingChatDto = Messaging.Contracts.DTOs.ChatDto;
+using MessagingChatMemberDto = Messaging.Contracts.DTOs.ChatMemberDto;
+using MessagingMessageDto = Messaging.Contracts.DTOs.MessageDto;
+using MessagingMessageMediaDto = Messaging.Contracts.DTOs.MessageMediaDto;
+using MessagingMessageReadDto = Messaging.Contracts.DTOs.MessageReadDto;
+using MessagingChatResult = Messaging.Contracts.Results.ChatResult;
+using MessagingChatMemberResult = Messaging.Contracts.Results.ChatMemberResult;
+using MessagingMessageResult = Messaging.Contracts.Results.MessageResult;
+using MessagingMessageReadResult = Messaging.Contracts.Results.MessageReadResult;
+using MessagingMessageMediaResult = Messaging.Contracts.Results.MessageMediaResult;
+
+namespace Facade.MessagingManagement.Services.Services;
+
+/// <summary>
+/// Facade service для Messaging.
+/// Изолирует frontend от внутренних core-типов и централизует mapping ответов.
+/// </summary>
+public partial class MessagingManagementService : IMessagingManagementService
+{
+    private readonly IMessagingClient _messagingClient;
+    private readonly IFileStorageService _fileStorageService;
+    private readonly IMessagingRealtimeNotifier _realtimeNotifier;
+
+    public MessagingManagementService(
+        IMessagingClient messagingClient,
+        IFileStorageService fileStorageService,
+        IMessagingRealtimeNotifier realtimeNotifier)
+    {
+        _messagingClient = messagingClient;
+        _fileStorageService = fileStorageService;
+        _realtimeNotifier = realtimeNotifier;
+    }
+
+
+    private static ChatResponse MapChatResult(MessagingChatResult result)
+    {
+        return new ChatResponse
+        {
+            Success = result.Succeeded,
+            Chat = result.Chat == null ? null : MapChatToFacadeDto(result.Chat),
+            Errors = result.Errors
+        };
+    }
+
+    private static ChatMemberResponse MapChatMemberResult(MessagingChatMemberResult result)
+    {
+        return new ChatMemberResponse
+        {
+            Success = result.Succeeded,
+            ChatMember = result.ChatMember == null ? null : MapChatMemberToFacadeDto(result.ChatMember),
+            Errors = result.Errors
+        };
+    }
+
+    private static MessageResponse MapMessageResult(MessagingMessageResult result)
+    {
+        return new MessageResponse
+        {
+            Success = result.Succeeded,
+            Message = result.Message == null ? null : MapMessageToFacadeDto(result.Message),
+            Errors = result.Errors
+        };
+    }
+
+    private static MessageReadResponse MapMessageReadResult(MessagingMessageReadResult result)
+    {
+        return new MessageReadResponse
+        {
+            Success = result.Succeeded,
+            MessageRead = result.MessageRead == null ? null : MapMessageReadToFacadeDto(result.MessageRead),
+            Errors = result.Errors
+        };
+    }
+
+    private static MessageMediaResponse MapMessageMediaResult(MessagingMessageMediaResult result)
+    {
+        return new MessageMediaResponse
+        {
+            Success = result.Succeeded,
+            MessageMedia = result.MessageMedia == null ? null : MapMessageMediaToFacadeDto(result.MessageMedia),
+            Errors = result.Errors
+        };
+    }
+
+    private static ChatDto MapChatToFacadeDto(MessagingChatDto dto)
+    {
+        return new ChatDto
+        {
+            Id = dto.Id,
+            CreatedBy = dto.CreatedBy,
+            CreatedAt = dto.CreatedAt,
+            Members = dto.Members?.Select(MapChatMemberToFacadeDto).ToList()
+        };
+    }
+
+    private static ChatMemberDto MapChatMemberToFacadeDto(MessagingChatMemberDto dto)
+    {
+        return new ChatMemberDto
+        {
+            Id = dto.Id,
+            ChatId = dto.ChatId,
+            UserId = dto.UserId,
+            Folder = dto.Folder,
+            JoinedAt = dto.JoinedAt,
+            LeftAt = dto.LeftAt
+        };
+    }
+
+    private static MessageDto MapMessageToFacadeDto(MessagingMessageDto dto)
+    {
+        return new MessageDto
+        {
+            Id = dto.Id,
+            ChatId = dto.ChatId,
+            SenderId = dto.SenderId,
+            Content = dto.Content,
+            CreatedAt = dto.CreatedAt,
+            EditedAt = dto.EditedAt,
+            Media = dto.Media?.Select(MapMessageMediaToFacadeDto).ToList()
+        };
+    }
+
+    private static MessageReadDto MapMessageReadToFacadeDto(MessagingMessageReadDto dto)
+    {
+        return new MessageReadDto
+        {
+            Id = dto.Id,
+            MessageId = dto.MessageId,
+            UserId = dto.UserId,
+            ReadAt = dto.ReadAt
+        };
+    }
+
+    private static MessageMediaDto MapMessageMediaToFacadeDto(MessagingMessageMediaDto dto)
+    {
+        return new MessageMediaDto
+        {
+            Id = dto.Id,
+            MessageId = dto.MessageId,
+            MediaUrl = dto.MediaUrl,
+            MediaType = dto.MediaType,
+            CreatedAt = dto.CreatedAt
+        };
+    }
+}

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Facade\Facade.Shared.Contracts\Facade.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Contracts\Facade.FileStorage.Contracts.csproj" />
+    <ProjectReference Include="..\Facade.ProfessionalManagement.Contracts\Facade.ProfessionalManagement.Contracts.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Client.Contracts\Professional.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Contracts\Professional.Contracts.csproj" />
+    <ProjectReference Include="..\..\Profile\Profile.Client.Contracts\Profile.Client.Contracts.csproj" />
+    <ProjectReference Include="..\..\Profile\Profile.Contracts\Profile.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

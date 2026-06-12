@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Network.Contracts\Network.Contracts.csproj" />
+    <ProjectReference Include="..\Network.DataAccess\Network.DataAccess.csproj" />
+    <ProjectReference Include="..\Network.Events.Contracts\Network.Events.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Identity.Events.Contracts\Identity.Events.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
