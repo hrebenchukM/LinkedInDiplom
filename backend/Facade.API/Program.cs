@@ -229,13 +229,17 @@ builder.Services.AddCors(options =>
         options.AddPolicy("DevelopmentCors", policy =>
         {
             policy.WithOrigins(
-                    "http://localhost:5173",
-                    "https://localhost:5173",
-                    "http://localhost:3000",
-                    "https://localhost:3000")
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://127.0.0.1:5173",
+                "http://172.27.176.1:5173",
+                "https://172.27.176.1:5173",
+                "http://localhost:3000",
+                "https://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
         });
     }
     else
