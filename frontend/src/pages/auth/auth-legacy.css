@@ -310,6 +310,17 @@
   gap: 10px;
 }
 
+.oauth-sdk-host {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .auth-page-legacy .social-btn {
   display: inline-flex;
   align-items: center;

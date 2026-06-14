@@ -1,12 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useChatStore } from "../../features/chat/ChatStore";
+import * as aiApi from "../../features/ai/aiApi";
 import * as jobsApi from "../../features/jobs/jobsApi";
-import { mapVacancyDtoToJob } from "../../features/jobs/mapJobs";
-import { fetchCompaniesByIds } from "../../features/professional/professionalApi";
+import {
+  buildCreateSearchQueryBody,
+  buildVacancyBrowseParams,
+  formatSearchQueryLabel,
+  mapJobToPostForm,
+  mapPostFormToCreateVacancyRequest,
+  mapVacancyDtoToJob,
+} from "../../features/jobs/mapJobs";
+import { fetchCompaniesByIds, resolveCompanyIdByName } from "../../features/professional/professionalApi";
 import { useBackendApi } from "../../shared/hooks/useBackendApi";
+import { withLoadState } from "../../shared/lib/asyncLoad";
 import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/registeredAccount";
+import { LoadStatus } from "../../shared/ui/LoadStatus";
+
+const DEMO_QUICK_CHIPS = ["react", "python", "devops", "remote"];
+const DEMO_QUERY_PILLS = [
+  "React",
+  "Frontend",
+  "Python",
+  "DevOps",
+  "TypeScript",
+  "Kubernetes",
+  "Machine learning",
+  "Go",
+  "Senior",
+  "Remote",
+];
 
 const VAC_JOBS_NAV = [
   { id: "browse", labelKey: "vac.nav.parameters", fallback: "Parameters", icon: "parameters" },
@@ -46,7 +70,7 @@ function tmpl(key, vars, fallback) {
 }
 
 function formatSalary(min, max) {
-  if (min && max) return tmpl("vac.salary.range", { min, max }, `$${min}k — $${max}k / year`);
+  if (min && max) return tmpl("vac.salary.range", { min, max }, `$${min}k â€” $${max}k / year`);
   if (min) return tmpl("vac.salary.from", { min }, `$${min}k+ / year`);
   return "";
 }
@@ -59,592 +83,22 @@ function formatPosted(days) {
   return tmpl("vac.meta.weeksAgo", { n: Math.floor(n / 7) }, `${Math.floor(n / 7)} weeks ago`);
 }
 
-const POSTED_JOBS_KEY = "vacancyPostedJobs";
+const EMPTY_POST_FORM = {
+  role: "",
+  company: "",
+  location: "",
+  type: "full-time",
+  level: "middle",
+  remote: "yes",
+  salaryMin: "",
+  salaryMax: "",
+  desc: "",
+  keywords: "",
+};
 const SAVED_JOBS_KEY = "vacancySavedJobs";
 const APPLICATIONS_KEY = "vacancyApplications";
 const MAX_RESUME_SIZE = 1_800_000;
 
-const IT_JOBS = [
-  {
-    id: "it-1",
-    role: "Frontend Developer",
-    company: "Stripe",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 140,
-    salaryMax: 185,
-    postedDays: 2,
-    seed: "Stripe",
-    keywords: "react typescript javascript frontend css html",
-    tags: ["Full-time", "Senior", "Remote", "React"],
-    desc: {
-      en: "Build payment UI components with React and TypeScript. Collaborate with design and backend teams on merchant-facing dashboards.",
-      ru: "Разработка UI платёжных компонентов на React и TypeScript. Работа с дизайном и backend над дашбордами для мерчантов.",
-      uk: "Розробка UI платіжних компонентів на React і TypeScript. Співпраця з дизайном і backend над дашбордами для мерчантів.",
-    },
-  },
-  {
-    id: "it-2",
-    role: "Backend Engineer",
-    company: "GitHub",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 150,
-    salaryMax: 195,
-    postedDays: 3,
-    seed: "GitHub",
-    keywords: "go ruby api microservices backend distributed",
-    tags: ["Full-time", "Senior", "Remote", "Go"],
-    desc: {
-      en: "Design and scale APIs powering code hosting and CI/CD. Work on distributed systems with high availability requirements.",
-      ru: "Проектирование и масштабирование API для хостинга кода и CI/CD. Работа с распределёнными системами высокой доступности.",
-      uk: "Проєктування та масштабування API для хостингу коду та CI/CD. Робота з розподіленими системами високої доступності.",
-    },
-  },
-  {
-    id: "it-3",
-    role: "Full Stack Developer",
-    company: "Vercel",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 115,
-    salaryMax: 150,
-    postedDays: 1,
-    seed: "Vercel",
-    keywords: "nextjs react node fullstack javascript typescript",
-    tags: ["Full-time", "Middle", "Remote", "Next.js"],
-    desc: {
-      en: "Ship features across Next.js apps and edge infrastructure. Own end-to-end delivery from API to polished UI.",
-      ru: "Разработка фич в Next.js и edge-инфраструктуре. Полный цикл — от API до готового интерфейса.",
-      uk: "Розробка фіч у Next.js та edge-інфраструктурі. Повний цикл — від API до готового інтерфейсу.",
-    },
-  },
-  {
-    id: "it-4",
-    role: "React Developer",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    type: "full-time",
-    level: "senior",
-    remote: "no",
-    salaryMin: 160,
-    salaryMax: 210,
-    postedDays: 5,
-    seed: "Meta",
-    keywords: "react javascript frontend performance graphql",
-    tags: ["Full-time", "Senior", "On-site", "React"],
-    desc: {
-      en: "Optimize React performance for billions of users. Build reusable component libraries and tooling for internal teams.",
-      ru: "Оптимизация React для миллиардов пользователей. Библиотеки компонентов и инструменты для внутренних команд.",
-      uk: "Оптимізація React для мільярдів користувачів. Бібліотеки компонентів та інструменти для внутрішніх команд.",
-    },
-  },
-  {
-    id: "it-5",
-    role: "Node.js Engineer",
-    company: "Netflix",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 145,
-    salaryMax: 190,
-    postedDays: 4,
-    seed: "Netflix",
-    keywords: "nodejs javascript backend streaming api",
-    tags: ["Full-time", "Senior", "Remote", "Node.js"],
-    desc: {
-      en: "Build microservices for content delivery and personalization. Focus on reliability, observability, and low latency.",
-      ru: "Микросервисы для доставки контента и персонализации. Надёжность, observability и низкая задержка.",
-      uk: "Мікросервіси для доставки контенту та персоналізації. Надійність, observability і низька затримка.",
-    },
-  },
-  {
-    id: "it-6",
-    role: "Python Developer",
-    company: "Spotify",
-    location: "Stockholm, SE",
-    type: "full-time",
-    level: "middle",
-    remote: "hybrid",
-    salaryMin: 90,
-    salaryMax: 120,
-    postedDays: 6,
-    seed: "Spotify",
-    keywords: "python django flask backend api data",
-    tags: ["Full-time", "Middle", "Hybrid", "Python"],
-    desc: {
-      en: "Develop backend services for music recommendations and playlist features. Work with data pipelines and ML teams.",
-      ru: "Backend-сервисы для рекомендаций и плейлистов. Интеграция с data pipeline и ML-командами.",
-      uk: "Backend-сервіси для рекомендацій і плейлистів. Інтеграція з data pipeline та ML-командами.",
-    },
-  },
-  {
-    id: "it-7",
-    role: "Java Developer",
-    company: "Amazon",
-    location: "Seattle, WA",
-    type: "full-time",
-    level: "senior",
-    remote: "no",
-    salaryMin: 130,
-    salaryMax: 175,
-    postedDays: 7,
-    seed: "Amazon",
-    keywords: "java spring aws backend ecommerce",
-    tags: ["Full-time", "Senior", "On-site", "Java"],
-    desc: {
-      en: "Build high-throughput services for marketplace checkout and inventory. Follow Amazon leadership principles.",
-      ru: "Высоконагруженные сервисы checkout и инвентаря маркетплейса. Работа по принципам Amazon.",
-      uk: "Високонавантажені сервіси checkout та інвентарю маркетплейсу. Робота за принципами Amazon.",
-    },
-  },
-  {
-    id: "it-8",
-    role: "DevOps Engineer",
-    company: "Google",
-    location: "Mountain View, CA",
-    type: "full-time",
-    level: "senior",
-    remote: "hybrid",
-    salaryMin: 155,
-    salaryMax: 200,
-    postedDays: 2,
-    seed: "Google",
-    keywords: "devops kubernetes terraform ci cd gcp",
-    tags: ["Full-time", "Senior", "Hybrid", "DevOps"],
-    desc: {
-      en: "Automate deployments on GKE and improve developer velocity. Own CI/CD pipelines and infrastructure as code.",
-      ru: "Автоматизация деплоев на GKE и ускорение разработки. CI/CD и infrastructure as code.",
-      uk: "Автоматизація деплоїв на GKE та прискорення розробки. CI/CD і infrastructure as code.",
-    },
-  },
-  {
-    id: "it-9",
-    role: "Site Reliability Engineer",
-    company: "Datadog",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 125,
-    salaryMax: 165,
-    postedDays: 3,
-    seed: "Datadog",
-    keywords: "sre reliability monitoring oncall kubernetes",
-    tags: ["Full-time", "Middle", "Remote", "SRE"],
-    desc: {
-      en: "Keep observability platform running at scale. On-call rotation, incident response, and capacity planning.",
-      ru: "Поддержка платформы observability в масштабе. On-call, инциденты и планирование ёмкости.",
-      uk: "Підтримка платформи observability у масштабі. On-call, інциденти та планування потужності.",
-    },
-  },
-  {
-    id: "it-10",
-    role: "Cloud Architect",
-    company: "AWS",
-    location: "Remote",
-    type: "full-time",
-    level: "lead",
-    remote: "yes",
-    salaryMin: 170,
-    salaryMax: 220,
-    postedDays: 8,
-    seed: "AWS",
-    keywords: "cloud architect aws azure infrastructure security",
-    tags: ["Full-time", "Lead", "Remote", "Cloud"],
-    desc: {
-      en: "Design multi-region architectures for enterprise customers. Lead technical workshops and migration programs.",
-      ru: "Проектирование multi-region архитектур для enterprise. Воркшопы и программы миграции.",
-      uk: "Проєктування multi-region архітектур для enterprise. Воркшопи та програми міграції.",
-    },
-  },
-  {
-    id: "it-11",
-    role: "Data Engineer",
-    company: "Snowflake",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 135,
-    salaryMax: 180,
-    postedDays: 4,
-    seed: "Snowflake",
-    keywords: "data engineer sql spark etl warehouse analytics",
-    tags: ["Full-time", "Senior", "Remote", "Data"],
-    desc: {
-      en: "Build ETL pipelines and data models for analytics products. Optimize query performance on Snowflake.",
-      ru: "ETL-пайплайны и модели данных для аналитики. Оптимизация запросов в Snowflake.",
-      uk: "ETL-пайплайни та моделі даних для аналітики. Оптимізація запитів у Snowflake.",
-    },
-  },
-  {
-    id: "it-12",
-    role: "Machine Learning Engineer",
-    company: "OpenAI",
-    location: "San Francisco, CA",
-    type: "full-time",
-    level: "senior",
-    remote: "hybrid",
-    salaryMin: 180,
-    salaryMax: 250,
-    postedDays: 1,
-    seed: "OpenAI",
-    keywords: "machine learning ai python pytorch llm nlp",
-    tags: ["Full-time", "Senior", "Hybrid", "ML/AI"],
-    desc: {
-      en: "Train and deploy large language models. Improve inference latency and safety guardrails in production.",
-      ru: "Обучение и деплой LLM. Оптимизация inference и safety guardrails в проде.",
-      uk: "Навчання та деплой LLM. Оптимізація inference і safety guardrails у проді.",
-    },
-  },
-  {
-    id: "it-13",
-    role: "iOS Developer",
-    company: "Apple",
-    location: "Cupertino, CA",
-    type: "full-time",
-    level: "middle",
-    remote: "no",
-    salaryMin: 120,
-    salaryMax: 160,
-    postedDays: 9,
-    seed: "Apple",
-    keywords: "ios swift mobile uikit swiftui apple",
-    tags: ["Full-time", "Middle", "On-site", "iOS"],
-    desc: {
-      en: "Develop native iOS features for system apps. Work with SwiftUI, performance profiling, and accessibility.",
-      ru: "Нативные iOS-фичи для системных приложений. SwiftUI, профилирование и accessibility.",
-      uk: "Нативні iOS-фічі для системних застосунків. SwiftUI, профілювання та accessibility.",
-    },
-  },
-  {
-    id: "it-14",
-    role: "Android Developer",
-    company: "Google",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 125,
-    salaryMax: 165,
-    postedDays: 5,
-    seed: "GoogleAndroid",
-    keywords: "android kotlin mobile jetpack compose",
-    tags: ["Full-time", "Middle", "Remote", "Android"],
-    desc: {
-      en: "Ship Android SDK features used by millions of apps. Kotlin, Jetpack Compose, and Play Store compliance.",
-      ru: "Фичи Android SDK для миллионов приложений. Kotlin, Jetpack Compose, требования Play Store.",
-      uk: "Фічі Android SDK для мільйонів застосунків. Kotlin, Jetpack Compose, вимоги Play Store.",
-    },
-  },
-  {
-    id: "it-15",
-    role: "QA Automation Engineer",
-    company: "Microsoft",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 95,
-    salaryMax: 130,
-    postedDays: 6,
-    seed: "Microsoft",
-    keywords: "qa automation testing selenium cypress playwright",
-    tags: ["Full-time", "Middle", "Remote", "QA"],
-    desc: {
-      en: "Build automated test suites for cloud products. Integrate tests into Azure DevOps pipelines.",
-      ru: "Автотесты для облачных продуктов. Интеграция в Azure DevOps pipelines.",
-      uk: "Автотести для хмарних продуктів. Інтеграція в Azure DevOps pipelines.",
-    },
-  },
-  {
-    id: "it-16",
-    role: "Security Engineer",
-    company: "Cloudflare",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 140,
-    salaryMax: 185,
-    postedDays: 3,
-    seed: "Cloudflare",
-    keywords: "security engineer appsec pentest owasp zero trust",
-    tags: ["Full-time", "Senior", "Remote", "Security"],
-    desc: {
-      en: "Harden edge network services and respond to security incidents. Threat modeling and secure code reviews.",
-      ru: "Защита edge-сервисов и реагирование на инциденты. Threat modeling и secure code review.",
-      uk: "Захист edge-сервісів і реагування на інциденти. Threat modeling і secure code review.",
-    },
-  },
-  {
-    id: "it-17",
-    role: "Product Manager",
-    company: "Atlassian",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 130,
-    salaryMax: 170,
-    postedDays: 10,
-    seed: "Atlassian",
-    keywords: "product manager roadmap agile jira confluence",
-    tags: ["Full-time", "Senior", "Remote", "Product"],
-    desc: {
-      en: "Own roadmap for collaboration tools used by engineering teams. Define metrics, run betas, and ship iteratively.",
-      ru: "Roadmap инструментов для инженерных команд. Метрики, беты и итеративные релизы.",
-      uk: "Roadmap інструментів для інженерних команд. Метрики, бета та ітеративні релізи.",
-    },
-  },
-  {
-    id: "it-18",
-    role: "UX/UI Designer",
-    company: "Figma",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 100,
-    salaryMax: 140,
-    postedDays: 7,
-    seed: "Figma",
-    keywords: "ux ui designer figma design system prototyping",
-    tags: ["Full-time", "Middle", "Remote", "Design"],
-    desc: {
-      en: "Design editor experiences and design-system components. Partner with research and engineering on usability.",
-      ru: "Дизайн редактора и компонентов design system. Исследования и инженерия для usability.",
-      uk: "Дизайн редактора та компонентів design system. Дослідження та інженерія для usability.",
-    },
-  },
-  {
-    id: "it-19",
-    role: "Technical Writer",
-    company: "GitLab",
-    location: "Remote",
-    type: "full-time",
-    level: "entry",
-    remote: "yes",
-    salaryMin: 70,
-    salaryMax: 95,
-    postedDays: 12,
-    seed: "GitLab",
-    keywords: "technical writer documentation api docs developer",
-    tags: ["Full-time", "Junior", "Remote", "Docs"],
-    desc: {
-      en: "Write developer documentation for CI/CD and DevSecOps features. Maintain API references and tutorials.",
-      ru: "Документация для CI/CD и DevSecOps. API-справочники и обучающие материалы.",
-      uk: "Документація для CI/CD і DevSecOps. API-довідники та навчальні матеріали.",
-    },
-  },
-  {
-    id: "it-20",
-    role: "Scrum Master",
-    company: "IBM",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 85,
-    salaryMax: 115,
-    postedDays: 14,
-    seed: "IBM",
-    keywords: "scrum master agile kanban facilitator",
-    tags: ["Full-time", "Middle", "Remote", "Agile"],
-    desc: {
-      en: "Facilitate agile ceremonies for distributed engineering squads. Remove blockers and improve delivery predictability.",
-      ru: "Agile-церемонии для распределённых команд. Снятие блокеров и предсказуемость поставки.",
-      uk: "Agile-церемонії для розподілених команд. Зняття блокерів і передбачуваність поставки.",
-    },
-  },
-  {
-    id: "it-21",
-    role: "Blockchain Developer",
-    company: "Coinbase",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 150,
-    salaryMax: 200,
-    postedDays: 4,
-    seed: "Coinbase",
-    keywords: "blockchain solidity web3 smart contracts crypto",
-    tags: ["Full-time", "Senior", "Remote", "Web3"],
-    desc: {
-      en: "Build secure wallet and trading infrastructure on Ethereum L2. Smart contract audits and key management.",
-      ru: "Кошельки и торговая инфраструктура на Ethereum L2. Аудит смарт-контрактов и key management.",
-      uk: "Гаманці та торгова інфраструктура на Ethereum L2. Аудит смарт-контрактів і key management.",
-    },
-  },
-  {
-    id: "it-22",
-    role: "Golang Developer",
-    company: "Uber",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 140,
-    salaryMax: 185,
-    postedDays: 2,
-    seed: "Uber",
-    keywords: "golang go backend microservices distributed",
-    tags: ["Full-time", "Senior", "Remote", "Go"],
-    desc: {
-      en: "Develop real-time dispatch and mapping services in Go. Focus on concurrency, geo queries, and low latency.",
-      ru: "Real-time dispatch и карты на Go. Concurrency, geo-запросы и низкая задержка.",
-      uk: "Real-time dispatch і карти на Go. Concurrency, geo-запити та низька затримка.",
-    },
-  },
-  {
-    id: "it-23",
-    role: ".NET Developer",
-    company: "Microsoft",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 110,
-    salaryMax: 145,
-    postedDays: 5,
-    seed: "MicrosoftNet",
-    keywords: "csharp dotnet aspnet backend azure",
-    tags: ["Full-time", "Middle", "Remote", "C# / .NET"],
-    desc: {
-      en: "Build enterprise APIs with ASP.NET Core and Azure. Entity Framework, authentication, and cloud-native patterns.",
-      ru: "Enterprise API на ASP.NET Core и Azure. Entity Framework, auth и cloud-native паттерны.",
-      uk: "Enterprise API на ASP.NET Core і Azure. Entity Framework, auth і cloud-native патерни.",
-    },
-  },
-  {
-    id: "it-24",
-    role: "Embedded Software Engineer",
-    company: "Tesla",
-    location: "Austin, TX",
-    type: "full-time",
-    level: "senior",
-    remote: "no",
-    salaryMin: 125,
-    salaryMax: 165,
-    postedDays: 11,
-    seed: "Tesla",
-    keywords: "embedded c cpp firmware automotive rtos",
-    tags: ["Full-time", "Senior", "On-site", "Embedded"],
-    desc: {
-      en: "Develop firmware for vehicle control systems. C/C++, RTOS, and hardware-in-the-loop testing.",
-      ru: "Firmware для систем управления автомобилем. C/C++, RTOS и hardware-in-the-loop тесты.",
-      uk: "Firmware для систем керування автомобілем. C/C++, RTOS і hardware-in-the-loop тести.",
-    },
-  },
-  {
-    id: "it-25",
-    role: "IT Support Specialist",
-    company: "Dell",
-    location: "Remote",
-    type: "full-time",
-    level: "entry",
-    remote: "yes",
-    salaryMin: 45,
-    salaryMax: 60,
-    postedDays: 8,
-    seed: "Dell",
-    keywords: "it support helpdesk troubleshooting windows mac",
-    tags: ["Full-time", "Junior", "Remote", "IT Support"],
-    desc: {
-      en: "Resolve hardware and software issues for remote employees. Ticketing, onboarding, and asset management.",
-      ru: "Поддержка удалённых сотрудников: железо и софт. Тикеты, onboarding и учёт активов.",
-      uk: "Підтримка віддалених співробітників: залізо та софт. Тікети, onboarding і облік активів.",
-    },
-  },
-  {
-    id: "it-26",
-    role: "Product Analyst",
-    company: "Airtable",
-    location: "Remote",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: 85,
-    salaryMax: 110,
-    postedDays: 7,
-    seed: "Airtable",
-    keywords: "product analyst sql bi metrics analytics dashboard",
-    tags: ["Full-time", "Middle", "Remote", "SQL + BI"],
-    desc: {
-      en: "Analyze product metrics, build dashboards, and find growth opportunities in the funnel. Partner with PM, Design, and Engineering.",
-      ru: "Анализ продуктовых метрик, дашборды и точки роста в воронке. Работа с PM, Design и Engineering.",
-      uk: "Аналіз продуктових метрик, дашборди та точки росту у воронці. Співпраця з PM, Design і Engineering.",
-    },
-  },
-  {
-    id: "it-27",
-    role: "TypeScript Engineer",
-    company: "Linear",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 130,
-    salaryMax: 175,
-    postedDays: 1,
-    seed: "Linear",
-    keywords: "typescript react graphql frontend performance",
-    tags: ["Full-time", "Senior", "Remote", "TypeScript"],
-    desc: {
-      en: "Craft fast, keyboard-driven UI for issue tracking. Deep TypeScript, React, and real-time sync.",
-      ru: "Быстрый keyboard-driven UI для трекера задач. TypeScript, React и real-time sync.",
-      uk: "Швидкий keyboard-driven UI для трекера задач. TypeScript, React і real-time sync.",
-    },
-  },
-  {
-    id: "it-28",
-    role: "Platform Engineer",
-    company: "HashiCorp",
-    location: "Remote",
-    type: "full-time",
-    level: "senior",
-    remote: "yes",
-    salaryMin: 145,
-    salaryMax: 190,
-    postedDays: 3,
-    seed: "HashiCorp",
-    keywords: "platform engineer terraform vault consul kubernetes",
-    tags: ["Full-time", "Senior", "Remote", "Platform"],
-    desc: {
-      en: "Build internal developer platform with Terraform and Vault. Enable self-service infra for product teams.",
-      ru: "Internal developer platform на Terraform и Vault. Self-service инфра для продуктовых команд.",
-      uk: "Internal developer platform на Terraform і Vault. Self-service інфра для продуктових команд.",
-    },
-  },
-];
-
-function readPostedJobs() {
-  try {
-    const raw = localStorage.getItem(POSTED_JOBS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writePostedJobs(jobs) {
-  try {
-    localStorage.setItem(POSTED_JOBS_KEY, JSON.stringify(jobs));
-  } catch {
-    // ignore
-  }
-}
 
 function readSavedJobs() {
   try {
@@ -713,7 +167,7 @@ function snapshotJob(job) {
 
 function formatDate(iso) {
   const ms = Date.parse(String(iso || ""));
-  if (!Number.isFinite(ms)) return "—";
+  if (!Number.isFinite(ms)) return "â€”";
   const lang = typeof window.getUiLang === "function" && window.getUiLang() === "en" ? "en-US" : "ru-RU";
   return new Date(ms).toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" });
 }
@@ -747,9 +201,18 @@ export function VacanciesPage() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [activeJobForApply, setActiveJobForApply] = useState(null);
   const [apiJobs, setApiJobs] = useState([]);
+  const [apiTotalCount, setApiTotalCount] = useState(0);
+  const [recommendedQueries, setRecommendedQueries] = useState([]);
+  const [aiRecommendedJobs, setAiRecommendedJobs] = useState([]);
+  const [savedSearchQueries, setSavedSearchQueries] = useState([]);
+  const [saveSearchLoading, setSaveSearchLoading] = useState(false);
+  const [myPostedApiJobs, setMyPostedApiJobs] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState(() => new Set());
-  const [jobsLoading, setJobsLoading] = useState(false);
-  const [postedJobs, setPostedJobs] = useState(() => readPostedJobs());
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [postSubmitting, setPostSubmitting] = useState(false);
+  const [postError, setPostError] = useState("");
+  const [editingJob, setEditingJob] = useState(null);
   const [savedJobsMap, setSavedJobsMap] = useState(() => readSavedJobs());
   const [applicationsMap, setApplicationsMap] = useState(() => readApplications());
   const [, forceLangRerender] = useState(0);
@@ -757,36 +220,53 @@ export function VacanciesPage() {
   const [applyError, setApplyError] = useState("");
   const [selectedResumeName, setSelectedResumeName] = useState("");
   const [selectedResumeData, setSelectedResumeData] = useState("");
-  const [postForm, setPostForm] = useState({
-    role: "",
-    company: "",
-    location: "",
-    type: "full-time",
-    level: "middle",
-    remote: "yes",
-    salaryMin: "",
-    salaryMax: "",
-    desc: "",
-    keywords: "",
-  });
+  const [postForm, setPostForm] = useState(EMPTY_POST_FORM);
+
+  const currentUserId = session.user?.id ?? null;
+
+  const mapVacancyList = useCallback(
+    async (dtos, { markPosted = false } = {}) => {
+      const companyIds = dtos.map((dto) => dto.companyId).filter(Boolean);
+      const companies = await fetchCompaniesByIds(companyIds);
+      return dtos
+        .map((dto) => {
+          const job = mapVacancyDtoToJob(dto, companies[dto.companyId]?.name || "", currentUserId);
+          if (!job) return null;
+          if (markPosted) return { ...job, userPosted: true };
+          return job;
+        })
+        .filter(Boolean);
+    },
+    [currentUserId],
+  );
 
   const reloadVacancies = useCallback(async () => {
     if (!useApi) return;
-    setJobsLoading(true);
-    try {
-      const [dtos, favorites, apps] = await Promise.all([
-        jobsApi.fetchVacancies({
-          query: query.trim() || undefined,
-          location: location.trim() || undefined,
-        }),
+    await withLoadState({ setIsLoading, setLoadError }, async () => {
+      const browseParams = buildVacancyBrowseParams({
+        query,
+        location,
+        jobType,
+        jobLevel,
+        remoteOnly,
+        salaryMin,
+        sortBy,
+      });
+      const [browsePaged, favorites, apps, myPostedPaged] = await Promise.all([
+        jobsApi.fetchVacancies(browseParams),
         jobsApi.fetchMyFavorites(),
         jobsApi.fetchMyApplications(),
+        currentUserId
+          ? jobsApi.fetchVacancies({ postedByUserId: currentUserId, pageSize: 100 })
+          : Promise.resolve({ items: [], totalCount: 0 }),
       ]);
-      const companyIds = dtos.map((d) => d.companyId).filter(Boolean);
-      const companies = await fetchCompaniesByIds(companyIds);
-      setApiJobs(
-        dtos.map((dto) => mapVacancyDtoToJob(dto, companies[dto.companyId]?.name || "")),
-      );
+      const [jobs, myPosted] = await Promise.all([
+        mapVacancyList(browsePaged.items),
+        mapVacancyList(myPostedPaged.items, { markPosted: true }),
+      ]);
+      setApiJobs(jobs);
+      setApiTotalCount(browsePaged.totalCount);
+      setMyPostedApiJobs(myPosted);
       setFavoriteIds(new Set((favorites || []).map((f) => String(f.vacancyId)).filter(Boolean)));
       const map = {};
       apps.forEach((app) => {
@@ -795,23 +275,150 @@ export function VacanciesPage() {
       });
       setApplicationsMap(map);
       writeApplications(map);
-    } catch {
-      setApiJobs([]);
-    } finally {
-      setJobsLoading(false);
-    }
-  }, [useApi, query, location]);
+    }, "Failed to load vacancies.");
+  }, [useApi, query, location, jobType, jobLevel, remoteOnly, salaryMin, sortBy, currentUserId, mapVacancyList]);
 
   useEffect(() => {
-    if (useApi) reloadVacancies();
+    if (!useApi) return;
+    try {
+      localStorage.removeItem("vacancyPostedJobs");
+    } catch {
+      // ignore storage errors
+    }
+    reloadVacancies();
   }, [useApi, reloadVacancies]);
 
-  const allJobs = useMemo(() => {
-    if (useApi) return [...postedJobs, ...apiJobs];
-    return [...postedJobs, ...IT_JOBS];
-  }, [postedJobs, apiJobs, useApi]);
+  const reloadSavedSearchQueries = useCallback(async () => {
+    if (!useApi) {
+      setSavedSearchQueries([]);
+      return;
+    }
+    try {
+      const items = await jobsApi.fetchMySearchQueries();
+      setSavedSearchQueries(items);
+    } catch {
+      setSavedSearchQueries([]);
+    }
+  }, [useApi]);
+
+  useEffect(() => {
+    if (!useApi) {
+      setRecommendedQueries([]);
+      return undefined;
+    }
+    let cancelled = false;
+    jobsApi
+      .fetchRecommendedQueries()
+      .then((items) => {
+        if (!cancelled) setRecommendedQueries(items);
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendedQueries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [useApi]);
+
+  useEffect(() => {
+    if (!useApi) {
+      setAiRecommendedJobs([]);
+      return undefined;
+    }
+    let cancelled = false;
+    aiApi
+      .fetchRecommendedJobs()
+      .then((items) => {
+        if (!cancelled) setAiRecommendedJobs(items);
+      })
+      .catch(() => {
+        if (!cancelled) setAiRecommendedJobs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [useApi]);
+
+  useEffect(() => {
+    reloadSavedSearchQueries();
+  }, [reloadSavedSearchQueries]);
+
+  const quickChips = useMemo(() => {
+    if (useApi && recommendedQueries.length > 0) {
+      return recommendedQueries.slice(0, 4).map((item) => ({ id: item.id, label: item.query }));
+    }
+    return DEMO_QUICK_CHIPS.map((chip) => ({ id: chip, label: chip }));
+  }, [useApi, recommendedQueries]);
+
+  const queryPills = useMemo(() => {
+    if (useApi && recommendedQueries.length > 0) {
+      return recommendedQueries.map((item) => ({ id: item.id, label: item.query }));
+    }
+    return DEMO_QUERY_PILLS.map((chip) => ({ id: chip, label: chip }));
+  }, [useApi, recommendedQueries]);
+
+  function applyRecommendedQuery(text) {
+    const value = String(text || "").trim();
+    if (!value) return;
+    if (value.toLowerCase() === "remote") {
+      setRemoteOnly(true);
+      return;
+    }
+    setQuery(value);
+  }
+
+  function applyDemoQueryPill(chip) {
+    if (chip.toLowerCase() === "senior") setJobLevel("senior");
+    else if (chip.toLowerCase() === "remote") setRemoteOnly(true);
+    else setQuery(chip.toLowerCase());
+  }
+
+  function applySavedSearch(item) {
+    setQuery(item.query || "");
+    setLocation(item.location || "");
+    setActivityTab("searches");
+    focusJobSearch();
+  }
+
+  async function handleSaveCurrentSearch() {
+    const body = buildCreateSearchQueryBody({ query, location });
+    if (!body.query && !body.location) {
+      notify(t("vac.saveSearchNeedFilters", "Enter keywords or location to save a search."));
+      return;
+    }
+    setSaveSearchLoading(true);
+    try {
+      await jobsApi.createSearchQuery(body);
+      await reloadSavedSearchQueries();
+      setActivityTab("searches");
+      notify(t("vac.saveSearchDone", "Search saved."));
+    } catch (error) {
+      notify(error?.message || t("vac.saveSearchFailed", "Could not save search."));
+    } finally {
+      setSaveSearchLoading(false);
+    }
+  }
+
+  async function handleDeleteSavedSearch(searchId) {
+    try {
+      await jobsApi.deleteSearchQuery(searchId);
+      await reloadSavedSearchQueries();
+      notify(t("vac.saveSearchRemoved", "Saved search removed."));
+    } catch {
+      notify(t("vac.saveSearchRemoveFailed", "Could not remove saved search."));
+    }
+  }
+
+  const allJobs = useMemo(() => (useApi ? apiJobs : []), [apiJobs, useApi]);
 
   const filtered = useMemo(() => {
+    if (useApi) {
+      const list = [...allJobs];
+      if (sortBy === "salary_desc") list.sort((a, b) => Number(b.salaryMin || 0) - Number(a.salaryMin || 0));
+      if (sortBy === "salary_asc") list.sort((a, b) => Number(a.salaryMin || 0) - Number(b.salaryMin || 0));
+      return list;
+    }
+
     const q = query.trim().toLowerCase();
     const l = location.trim().toLowerCase();
     const min = Number(salaryMin) || 0;
@@ -832,10 +439,12 @@ export function VacanciesPage() {
     if (sortBy === "salary_asc") list.sort((a, b) => Number(a.salaryMin || 0) - Number(b.salaryMin || 0));
     if (sortBy === "newest") list.sort((a, b) => Number(a.postedDays || 9999) - Number(b.postedDays || 9999));
     return list;
-  }, [allJobs, jobLevel, jobType, location, query, remoteOnly, salaryMin, sortBy]);
+  }, [allJobs, jobLevel, jobType, location, query, remoteOnly, salaryMin, sortBy, useApi]);
 
-  const topJobs = useMemo(() => filtered.slice(0, 5), [filtered]);
-  const itJobs = useMemo(() => filtered.slice(5), [filtered]);
+  const browseTotal = useApi ? apiTotalCount : allJobs.length;
+
+  const topJobs = useMemo(() => (useApi ? aiRecommendedJobs : []), [useApi, aiRecommendedJobs]);
+  const topJobsFromAi = useApi && aiRecommendedJobs.length > 0;
 
   const focusJobSearch = ({ clearFilters = false, searchQuery } = {}) => {
     setMode("browse");
@@ -853,7 +462,7 @@ export function VacanciesPage() {
       document.getElementById("vacAdvancedSearch")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
-  const myJobs = useMemo(() => postedJobs, [postedJobs]);
+  const myJobs = useMemo(() => (useApi ? myPostedApiJobs : []), [useApi, myPostedApiJobs]);
   const savedJobIds = useMemo(() => new Set(Object.keys(savedJobsMap)), [savedJobsMap]);
   const appliedJobIds = useMemo(() => new Set(Object.keys(applicationsMap)), [applicationsMap]);
   const appliedJobs = useMemo(
@@ -877,7 +486,7 @@ export function VacanciesPage() {
     function onKeyDown(event) {
       if (event.key !== "Escape") return;
       if (applyModalOpen) setApplyModalOpen(false);
-      if (postModalOpen) setPostModalOpen(false);
+      if (postModalOpen) closePostModal();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -894,39 +503,9 @@ export function VacanciesPage() {
 
   useEffect(() => {
     document.dispatchEvent(new CustomEvent("vacjobsrendered"));
-  }, [topJobs, itJobs, myJobs]);
+  }, [topJobs, filtered, myJobs]);
 
   useEffect(() => {
-    window.VAC_IT_JOBS = IT_JOBS;
-    window.getPostedVacancyJobs = readPostedJobs;
-    window.savePostedVacancyJob = (job) => {
-      if (!job || typeof job !== "object") return;
-      const normalized = {
-        id: String(job.id || `my-${Date.now()}`),
-        role: String(job.role || job.title || "Custom Role"),
-        company: String(job.company || "Custom Company"),
-        location: String(job.location || job.city || "Remote"),
-        type: String(job.type || "full-time"),
-        level: String(job.level || "middle"),
-        remote: String(job.remote || "yes"),
-        salaryMin: Number(job.salaryMin) || 0,
-        salaryMax: Number(job.salaryMax) || 0,
-        postedDays: Number(job.postedDays) || 0,
-        seed: String(job.seed || job.company || "CustomCompany"),
-        keywords: String(job.keywords || ""),
-        tags: Array.isArray(job.tags) ? job.tags : [],
-        desc:
-          typeof job.desc === "string"
-            ? { en: job.desc, ru: job.desc, uk: job.desc }
-            : job.desc || { en: "Custom job description", ru: "Custom job description", uk: "Custom job description" },
-        userPosted: true,
-      };
-      setPostedJobs((prev) => {
-        const next = [normalized, ...prev];
-        writePostedJobs(next);
-        return next;
-      });
-    };
     window.renderVacancyJobs = () => {
       forceLangRerender((v) => v + 1);
     };
@@ -943,10 +522,7 @@ export function VacanciesPage() {
       setMode(view === "mine" ? "mine" : "browse");
     };
     return () => {
-      delete window.savePostedVacancyJob;
-      delete window.VAC_IT_JOBS;
       delete window.renderVacancyJobs;
-      delete window.getPostedVacancyJobs;
       delete window.renderVacancyJobsForList;
       delete window.renderMyPostedJobs;
       delete window.refreshVacancySearch;
@@ -1052,56 +628,104 @@ export function VacanciesPage() {
     setActivityTab("saved");
   }
 
-  function handlePostSubmit(event) {
-    event.preventDefault();
-    const item = {
-      id: `my-${Date.now()}`,
-      role: postForm.role,
-      company: postForm.company,
-      location: postForm.location,
-      type: postForm.type,
-      level: postForm.level,
-      remote: postForm.remote,
-      salaryMin: Number(postForm.salaryMin) || 0,
-      salaryMax: Number(postForm.salaryMax) || 0,
-      postedDays: 0,
-      seed: postForm.company || "CustomCompany",
-      keywords: postForm.keywords,
-      tags: [
-        postForm.type === "full-time" ? "Full-time" : postForm.type,
-        postForm.level,
-        postForm.remote === "yes" ? "Remote" : postForm.remote === "hybrid" ? "Hybrid" : "On-site",
-      ],
-      desc: {
-        en: postForm.desc || "Custom job description",
-        ru: postForm.desc || "Custom job description",
-        uk: postForm.desc || "Custom job description",
-      },
-      userPosted: true,
-    };
-    setPostedJobs((prev) => {
-      const next = [item, ...prev];
-      writePostedJobs(next);
-      return next;
-    });
-    setPostForm({
-      role: "",
-      company: "",
-      location: "",
-      type: "full-time",
-      level: "middle",
-      remote: "yes",
-      salaryMin: "",
-      salaryMax: "",
-      desc: "",
-      keywords: "",
-    });
-    setPostModalOpen(false);
-    setMode("mine");
-    notify(`${t("vac.postDone", "Job published")}: ${item.role} — ${item.company}`);
+  function openCreateJobModal() {
+    if (!useApi) {
+      notify(t("vac.apiOnly", "Sign in with your account to post and browse jobs."));
+      return;
+    }
+    setEditingJob(null);
+    setPostError("");
+    setPostForm(EMPTY_POST_FORM);
+    setPostModalOpen(true);
   }
 
-  function JobList({ jobs }) {
+  function openEditJobModal(job) {
+    setEditingJob(job);
+    setPostError("");
+    setPostForm(mapJobToPostForm(job));
+    setPostModalOpen(true);
+  }
+
+  function closePostModal() {
+    setPostModalOpen(false);
+    setEditingJob(null);
+    setPostError("");
+  }
+
+  async function removePostedJob(job) {
+    const id = String(job.id);
+    if (useApi && job._api && job.userPosted) {
+      try {
+        await jobsApi.deleteVacancy(id);
+        await reloadVacancies();
+        notify(t("vac.postRemoved", "Job listing removed"));
+      } catch {
+        notify(t("vac.postRemoveFailed", "Could not remove job listing."));
+      }
+      return;
+    }
+  }
+
+  async function handleDeletePostedJob(job) {
+    if (!window.confirm(t("vac.deleteConfirm", "Delete this job listing?"))) return;
+    await removePostedJob(job);
+  }
+
+  async function resolveVacancyCompanyId(job, companyName) {
+    const trimmed = String(companyName || "").trim();
+    if (job?.companyId && trimmed.toLowerCase() === String(job.company || "").trim().toLowerCase()) {
+      return job.companyId;
+    }
+    return resolveCompanyIdByName(trimmed, { location: postForm.location });
+  }
+
+  async function handlePostSubmit(event) {
+    event.preventDefault();
+    const isEdit = Boolean(editingJob);
+    const publishedCompany = String(postForm.company || "").trim();
+
+    if (useApi && isEdit && editingJob._api) {
+      setPostSubmitting(true);
+      setPostError("");
+      try {
+        const companyId = await resolveVacancyCompanyId(editingJob, publishedCompany);
+        const body = mapPostFormToCreateVacancyRequest(postForm, companyId);
+        await jobsApi.updateVacancy(editingJob.id, body);
+        closePostModal();
+        setMode("mine");
+        await reloadVacancies();
+        notify(`${t("vac.postUpdated", "Job updated")}: ${body.title} â€” ${publishedCompany}`);
+      } catch (error) {
+        setPostError(error?.message || t("vac.postUpdateFailed", "Could not update job."));
+      } finally {
+        setPostSubmitting(false);
+      }
+      return;
+    }
+
+    if (useApi && !isEdit) {
+      setPostSubmitting(true);
+      setPostError("");
+      try {
+        const companyId = await resolveCompanyIdByName(publishedCompany, { location: postForm.location });
+        const body = mapPostFormToCreateVacancyRequest(postForm, companyId);
+        await jobsApi.createVacancy(body);
+        closePostModal();
+        setMode("mine");
+        await reloadVacancies();
+        notify(`${t("vac.postDone", "Job published")}: ${body.title} â€” ${publishedCompany}`);
+      } catch (error) {
+        setPostError(error?.message || t("vac.postFailed", "Could not publish job."));
+      } finally {
+        setPostSubmitting(false);
+      }
+      return;
+    }
+
+    notify(t("vac.apiOnly", "Sign in with your account to post and browse jobs."));
+  }
+
+  function JobList({ jobs, variant = "browse" }) {
     return (
       <ul className="vac-job-list">
         {jobs.map((job) => {
@@ -1109,8 +733,11 @@ export function VacanciesPage() {
           const rowId = getRowJobId(job);
           const role = job.role || job.title;
           const city = job.location || job.city || t("vac.location.remote", "Remote");
+          const isAiRecommendation = Boolean(job.aiRecommendation);
           const isSaved = useApi && job._api ? favoriteIds.has(id) : savedJobIds.has(rowId);
           const isApplied = useApi && job._api ? appliedJobIds.has(id) : appliedJobIds.has(rowId);
+          const isMine = variant === "mine";
+          const salaryLine = formatSalary(job.salaryMin, job.salaryMax);
           return (
             <li key={id} className="vac-job-row" data-role={role} data-company={job.company} data-location={city}>
               <img
@@ -1121,9 +748,17 @@ export function VacanciesPage() {
                 alt=""
               />
               <div className="vac-job-row__main">
-                <p className="vac-job-row__title">{`${role} — ${job.company} — ${city}`}</p>
-                <p className="vac-job-row__salary">{formatSalary(job.salaryMin, job.salaryMax)}</p>
-                <p className="vac-job-row__meta">{formatPosted(job.postedDays)}</p>
+                <p className="vac-job-row__title">
+                  {isAiRecommendation
+                    ? role
+                    : `${role} â€” ${job.company} â€” ${city}`}
+                </p>
+                {salaryLine ? <p className="vac-job-row__salary">{salaryLine}</p> : null}
+                <p className="vac-job-row__meta">
+                  {isAiRecommendation
+                    ? t("vac.aiMatch", "{score}% profile match", { score: job.matchScore || 0 })
+                    : formatPosted(job.postedDays)}
+                </p>
                 <p className="vac-job-row__desc">{jobDesc(job)}</p>
                 <div className="vac-job-row__tags">
                   {(job.tags || []).map((tag) => (
@@ -1132,43 +767,59 @@ export function VacanciesPage() {
                     </span>
                   ))}
                 </div>
-                <div className="vac-job-row__actions">
-                  <button
-                    type="button"
-                    className="vac-job-row__cta"
-                    disabled={isApplied}
-                    aria-disabled={isApplied ? "true" : "false"}
-                    onClick={() => {
-                      if (!isApplied) openApplyModalFor(job);
-                    }}
-                  >
-                    {isApplied ? t("vac.applied", "Applied") : t("vac.apply", "Apply")}
-                  </button>
-                  <button
-                    type="button"
-                    className={isSaved ? "vac-job-row__save vac-job-row__save--active" : "vac-job-row__save"}
-                    aria-pressed={isSaved ? "true" : "false"}
-                    onClick={() => handleSave(job)}
-                  >
-                    {isSaved ? t("vac.saved", "Saved") : t("vac.save", "Save")}
-                  </button>
-                </div>
+                {isAiRecommendation ? (
+                  <div className="vac-job-row__actions">
+                    <button
+                      type="button"
+                      className="vac-job-row__cta"
+                      onClick={() => focusJobSearch({ searchQuery: role })}
+                    >
+                      {t("vac.searchRole", "Search roles")}
+                    </button>
+                  </div>
+                ) : isMine ? (
+                  <div className="vac-job-row__actions vac-job-row__actions--mine">
+                    <button type="button" className="vac-job-row__edit" onClick={() => openEditJobModal(job)}>
+                      {t("vac.editJob", "Edit")}
+                    </button>
+                    <button type="button" className="vac-job-row__delete" onClick={() => handleDeletePostedJob(job)}>
+                      {t("vac.deleteJob", "Delete")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="vac-job-row__actions">
+                    <button
+                      type="button"
+                      className="vac-job-row__cta"
+                      disabled={isApplied}
+                      aria-disabled={isApplied ? "true" : "false"}
+                      onClick={() => {
+                        if (!isApplied) openApplyModalFor(job);
+                      }}
+                    >
+                      {isApplied ? t("vac.applied", "Applied") : t("vac.apply", "Apply")}
+                    </button>
+                    <button
+                      type="button"
+                      className={isSaved ? "vac-job-row__save vac-job-row__save--active" : "vac-job-row__save"}
+                      aria-pressed={isSaved ? "true" : "false"}
+                      onClick={() => handleSave(job)}
+                    >
+                      {isSaved ? t("vac.saved", "Saved") : t("vac.save", "Save")}
+                    </button>
+                  </div>
+                )}
               </div>
-              <button
-                type="button"
-                className="vac-job-row__dismiss"
-                onClick={() => {
-                  if (job.userPosted) {
-                    setPostedJobs((prev) => {
-                      const next = prev.filter((entry) => String(entry.id) !== id);
-                      writePostedJobs(next);
-                      return next;
-                    });
-                  }
-                }}
-              >
-                ×
-              </button>
+              {!isMine && job.userPosted ? (
+                <button
+                  type="button"
+                  className="vac-job-row__dismiss"
+                  aria-label={t("vac.deleteJob", "Delete")}
+                  onClick={() => handleDeletePostedJob(job)}
+                >
+                  Ã—
+                </button>
+              ) : null}
             </li>
           );
         })}
@@ -1206,7 +857,11 @@ export function VacanciesPage() {
               );
             })}
           </nav>
-          <button type="button" className="vac-jobs-post" onClick={() => setPostModalOpen(true)}>
+          <button
+            type="button"
+            className="vac-jobs-post"
+            onClick={openCreateJobModal}
+          >
             <span className="vac-jobs-post__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
@@ -1217,6 +872,18 @@ export function VacanciesPage() {
         </aside>
 
         <main className="home-col-feed vac-jobs-feed">
+          {useApi ? (
+            <LoadStatus
+              isLoading={isLoading}
+              loadError={loadError}
+              onRetry={reloadVacancies}
+              t={t}
+            />
+          ) : (
+            <p className="vac-advanced-search__subtitle">
+              {t("vac.apiOnly", "Sign in with your account to post and browse jobs.")}
+            </p>
+          )}
           {mode === "browse" && (
             <>
               <section className="home-card vac-advanced-search" id="vacAdvancedSearch">
@@ -1225,11 +892,17 @@ export function VacanciesPage() {
                     <div className="vac-advanced-search__head-text">
                       <h2 className="vac-advanced-search__title">{t("vac.search.title", "Advanced job search")}</h2>
                       <p className="vac-advanced-search__subtitle">
-                        {t("vac.search.subtitle", "Filter by role, location, work type, seniority, and salary — like LinkedIn.")}
+                        {t("vac.search.subtitle", "Filter by role, location, work type, seniority, and salary â€” like LinkedIn.")}
                       </p>
                     </div>
                   </div>
-                  <p className="vac-advanced-search__stats-bar">{tmpl("vac.search.found", { found: filtered.length, total: allJobs.length }, `Found: ${filtered.length} of ${allJobs.length} jobs`)}</p>
+                  <p className="vac-advanced-search__stats-bar">
+                    {tmpl(
+                      "vac.search.found",
+                      { found: String(filtered.length), total: String(browseTotal) },
+                      `Found: ${filtered.length} of ${browseTotal} jobs`,
+                    )}
+                  </p>
                 </header>
                 <div className="vac-advanced-search__body">
                   <div className="vac-advanced-search__body-inner">
@@ -1290,8 +963,8 @@ export function VacanciesPage() {
                         <span>{t("vac.field.sortBy", "Sort by")}</span>
                         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                           <option value="relevance">{t("vac.sort.relevance", "Relevance")}</option>
-                          <option value="salary_desc">{t("vac.sort.salaryDesc", "Salary ↓")}</option>
-                          <option value="salary_asc">{t("vac.sort.salaryAsc", "Salary ↑")}</option>
+                          <option value="salary_desc">{t("vac.sort.salaryDesc", "Salary â†“")}</option>
+                          <option value="salary_asc">{t("vac.sort.salaryAsc", "Salary â†‘")}</option>
                           <option value="newest">{t("vac.sort.newest", "Newest first")}</option>
                         </select>
                       </label>
@@ -1305,9 +978,25 @@ export function VacanciesPage() {
                           <span>{t("vac.remoteOnly", "Remote only")}</span>
                         </label>
                         <div className="vac-advanced-search__actions">
-                          <button type="button" className="vac-advanced-search__btn vac-advanced-search__btn--primary">
+                          <button
+                            type="button"
+                            className="vac-advanced-search__btn vac-advanced-search__btn--primary"
+                            onClick={() => reloadVacancies()}
+                          >
                             {t("vac.applyFilters", "Apply filters")}
                           </button>
+                          {useApi ? (
+                            <button
+                              type="button"
+                              className="vac-advanced-search__btn"
+                              disabled={saveSearchLoading}
+                              onClick={handleSaveCurrentSearch}
+                            >
+                              {saveSearchLoading
+                                ? t("vac.saveSearchSaving", "Saving...")
+                                : t("vac.saveSearch", "Save search")}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="vac-advanced-search__btn"
@@ -1327,17 +1016,20 @@ export function VacanciesPage() {
                       </div>
                     </form>
                     <div className="vac-advanced-search__quick">
-                      {["react", "python", "devops", "remote"].map((chip) => (
+                      {quickChips.map((chip) => (
                         <button
-                          key={chip}
+                          key={chip.id}
                           type="button"
                           className="vac-quick-chip"
-                          onClick={() => {
-                            if (chip === "remote") setRemoteOnly(true);
-                            else setQuery(chip);
-                          }}
+                          onClick={() =>
+                            useApi && recommendedQueries.length > 0
+                              ? applyRecommendedQuery(chip.label)
+                              : chip.label === "remote"
+                                ? setRemoteOnly(true)
+                                : setQuery(chip.label)
+                          }
                         >
-                          {chip}
+                          {chip.label}
                         </button>
                       ))}
                     </div>
@@ -1346,59 +1038,70 @@ export function VacanciesPage() {
               </section>
 
               <section className="home-card vac-job-card vac-job-card--queries">
-                <h2 className="vac-job-card__title vac-job-card__title--sm">{t("vac.quickFilters", "Quick filters")}</h2>
+                <h2 className="vac-job-card__title vac-job-card__title--sm">
+                  {useApi && recommendedQueries.length > 0
+                    ? t("vac.recommendedQueries", "Recommended searches")
+                    : t("vac.quickFilters", "Quick filters")}
+                </h2>
                 <p className="vac-job-card__subtitle vac-job-card__subtitle--sm">
-                  {t("vac.quickFiltersSub", "Tap a tag to instantly filter job listings.")}
+                  {useApi && recommendedQueries.length > 0
+                    ? t("vac.recommendedQueriesSub", "Suggested job searches from LinkUp.")
+                    : t("vac.quickFiltersSub", "Tap a tag to instantly filter job listings.")}
                 </p>
                 <div className="vac-query-pills">
-                  {["React", "Frontend", "Python", "DevOps", "TypeScript", "Kubernetes", "Machine learning", "Go", "Senior", "Remote"].map((chip) => (
+                  {queryPills.map((chip) => (
                     <button
-                      key={chip}
+                      key={chip.id}
                       type="button"
                       className="vac-query-pill"
-                      onClick={() => {
-                        if (chip.toLowerCase() === "senior") setJobLevel("senior");
-                        else if (chip.toLowerCase() === "remote") setRemoteOnly(true);
-                        else setQuery(chip.toLowerCase());
-                      }}
+                      onClick={() =>
+                        useApi && recommendedQueries.length > 0
+                          ? applyRecommendedQuery(chip.label)
+                          : applyDemoQueryPill(chip.label)
+                      }
                     >
-                      {chip}
+                      {chip.label}
                     </button>
                   ))}
                 </div>
               </section>
 
-              <section className="home-card vac-job-card">
-                <header className="vac-job-card__header">
-                  <h2 className="vac-job-card__title">{t("vac.topPicks", "Top job picks")}</h2>
-                  <p className="vac-job-card__subtitle">{t("vac.topPicksSub", "Based on your profile, settings, and activity.")}</p>
-                </header>
-                <JobList jobs={topJobs} />
-                <button
-                  type="button"
-                  className="vac-job-card__footer-link"
-                  onClick={() => focusJobSearch({ clearFilters: true })}
-                >
-                  <span>{t("vac.showAll", "Show all")}</span> <span aria-hidden="true">→</span>
-                </button>
-              </section>
+              {topJobs.length > 0 && (
+                <section className="home-card vac-job-card">
+                  <header className="vac-job-card__header">
+                    <h2 className="vac-job-card__title">
+                      {topJobsFromAi
+                        ? t("vac.aiTopPicks", "AI recommended jobs")
+                        : t("vac.topPicks", "Top job picks")}
+                    </h2>
+                    <p className="vac-job-card__subtitle">
+                      {topJobsFromAi
+                        ? t("vac.aiTopPicksSub", "Personalised roles based on your skills and experience.")
+                        : t("vac.topPicksSub", "Based on your profile, settings, and activity.")}
+                    </p>
+                  </header>
+                  <JobList jobs={topJobs} />
+                  <button
+                    type="button"
+                    className="vac-job-card__footer-link"
+                    onClick={() => focusJobSearch({ clearFilters: true })}
+                  >
+                    <span>{t("vac.showAll", "Show all")}</span> <span aria-hidden="true">â†’</span>
+                  </button>
+                </section>
+              )}
 
-              <section className="home-card vac-job-card">
-                <header className="vac-job-card__header">
-                  <h2 className="vac-job-card__title">{t("vac.itTech", "IT & Tech jobs")}</h2>
-                  <p className="vac-job-card__subtitle">
-                    {t("vac.itTechSub", "Software engineering, data, cloud, security, and product roles.")}
-                  </p>
-                </header>
-                <JobList jobs={itJobs} />
-                <button
-                  type="button"
-                  className="vac-job-card__footer-link"
-                  onClick={() => focusJobSearch({ searchQuery: "developer" })}
-                >
-                  <span>{t("vac.showAll", "Show all")}</span> <span aria-hidden="true">→</span>
-                </button>
-              </section>
+              {useApi && filtered.length > 0 && (
+                <section className="home-card vac-job-card">
+                  <header className="vac-job-card__header">
+                    <h2 className="vac-job-card__title">{t("vac.searchResults", "Search results")}</h2>
+                    <p className="vac-job-card__subtitle">
+                      {t("vac.searchResultsSub", "Vacancies matching your filters from LinkUp.")}
+                    </p>
+                  </header>
+                  <JobList jobs={filtered} />
+                </section>
+              )}
 
               <section className="home-card vac-user-hub" id="vacUserHub">
                 <header className="vac-user-hub__head">
@@ -1418,18 +1121,64 @@ export function VacanciesPage() {
                     >
                       {t("vac.mySaved", "Saved")}
                     </button>
+                    {useApi ? (
+                      <button
+                        type="button"
+                        className={
+                          activityTab === "searches"
+                            ? "vac-user-hub__tab vac-user-hub__tab--active"
+                            : "vac-user-hub__tab"
+                        }
+                        onClick={() => setActivityTab("searches")}
+                      >
+                        {t("vac.mySavedSearches", "Saved searches")}
+                      </button>
+                    ) : null}
                   </div>
                 </header>
-                {activityTab === "applied" ? (
+                {activityTab === "searches" && useApi ? (
+                  savedSearchQueries.length > 0 ? (
+                    <ul className="vac-user-hub__list">
+                      {savedSearchQueries.map((item) => (
+                        <li key={`search-${item.id}`} className="vac-user-hub__item">
+                          <strong>
+                            {formatSearchQueryLabel(item, t("vac.savedSearchUntitled", "Saved search"))}
+                          </strong>
+                          <span>
+                            {item.query ? `${t("vac.field.keywords", "Keywords")}: ${item.query}` : ""}
+                            {item.query && item.location ? " Â· " : ""}
+                            {item.location ? `${t("vac.field.location", "Location")}: ${item.location}` : ""}
+                          </span>
+                          <div className="vac-user-hub__item-actions">
+                            <button type="button" className="vac-user-hub__btn" onClick={() => applySavedSearch(item)}>
+                              {t("vac.runSearch", "Run search")}
+                            </button>
+                            <button
+                              type="button"
+                              className="vac-user-hub__btn"
+                              onClick={() => handleDeleteSavedSearch(item.id)}
+                            >
+                              {t("vac.removeSavedSearch", "Remove")}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="vac-user-hub__empty">
+                      {t("vac.emptySavedSearches", "No saved searches yet. Use Save search in the filter form.")}
+                    </p>
+                  )
+                ) : activityTab === "applied" ? (
                   appliedJobs.length ? (
                     <ul className="vac-user-hub__list">
                       {appliedJobs.map((item) => (
                         <li key={`applied-${item.id}`} className="vac-user-hub__item">
-                          <strong>{`${item.role || "Role"} — ${item.company || "Company"}`}</strong>
+                          <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
                           <span>
-                            {`${item.location || ""} · ${t("vac.appliedOn", "Applied on")}: ${formatDate(item.submittedAt)}`}
+                            {`${item.location || ""} Â· ${t("vac.appliedOn", "Applied on")}: ${formatDate(item.submittedAt)}`}
                           </span>
-                          <span>{`${t("vac.resume", "Resume")}: ${item.resumeName || "—"}`}</span>
+                          <span>{`${t("vac.resume", "Resume")}: ${item.resumeName || "â€”"}`}</span>
                           <div className="vac-user-hub__item-actions">
                             <button type="button" className="vac-user-hub__btn" onClick={() => handleWithdrawApplication(item.id)}>
                               {t("vac.withdraw", "Withdraw")}
@@ -1445,8 +1194,8 @@ export function VacanciesPage() {
                   <ul className="vac-user-hub__list">
                     {savedJobs.map((item) => (
                       <li key={`saved-${item.id}`} className="vac-user-hub__item">
-                        <strong>{`${item.role || "Role"} — ${item.company || "Company"}`}</strong>
-                        <span>{`${item.location || ""} · ${item.salary || "—"}`}</span>
+                        <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
+                        <span>{`${item.location || ""} Â· ${item.salary || "â€”"}`}</span>
                         <span>{item.meta || ""}</span>
                         <div className="vac-user-hub__item-actions">
                           <button type="button" className="vac-user-hub__btn" onClick={() => handleRemoveSaved(item.id)}>
@@ -1470,11 +1219,11 @@ export function VacanciesPage() {
                 <p className="vac-job-card__subtitle">{t("vac.myPostedSub", "Vacancies you created with Post a job.")}</p>
               </header>
               {myJobs.length > 0 ? (
-                <JobList jobs={myJobs} />
+                <JobList jobs={myJobs} variant="mine" />
               ) : (
                 <div className="vac-my-jobs-empty">
                   <p>{t("vac.emptyPosted", "You haven't posted any jobs yet. Create your first listing.")}</p>
-                  <button type="button" className="vac-jobs-post vac-jobs-post--inline" onClick={() => setPostModalOpen(true)}>
+                  <button type="button" className="vac-jobs-post vac-jobs-post--inline" onClick={openCreateJobModal}>
                     <span>{t("vac.postJob", "Post a job")}</span>
                   </button>
                 </div>
@@ -1492,8 +1241,8 @@ export function VacanciesPage() {
                 <ul className="vac-user-hub__list">
                   {savedJobs.map((item) => (
                     <li key={`saved-mode-${item.id}`} className="vac-user-hub__item">
-                      <strong>{`${item.role || "Role"} — ${item.company || "Company"}`}</strong>
-                      <span>{`${item.location || ""} · ${item.salary || "—"}`}</span>
+                      <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
+                      <span>{`${item.location || ""} Â· ${item.salary || "â€”"}`}</span>
                       <span>{item.meta || ""}</span>
                       <div className="vac-user-hub__item-actions">
                         <button type="button" className="vac-user-hub__btn" onClick={() => handleRemoveSaved(item.id)}>
@@ -1542,15 +1291,19 @@ export function VacanciesPage() {
 
       {postModalOpen && (
         <div className="vac-apply-modal">
-          <div className="vac-apply-modal__backdrop" onClick={() => setPostModalOpen(false)} />
+          <div className="vac-apply-modal__backdrop" onClick={closePostModal} />
           <section className="vac-apply-modal__dialog vac-apply-modal__dialog--wide">
-            <button type="button" className="vac-apply-modal__close" onClick={() => setPostModalOpen(false)}>
-              ×
+            <button type="button" className="vac-apply-modal__close" onClick={closePostModal}>
+              Ã—
             </button>
             <header className="vac-apply-modal__head">
-              <h3 className="vac-apply-modal__title">{t("vac.postJob", "Post a job")}</h3>
+              <h3 className="vac-apply-modal__title">
+                {editingJob ? t("vac.editJob", "Edit job") : t("vac.postJob", "Post a job")}
+              </h3>
               <p className="vac-apply-modal__subtitle">
-                {t("vac.postJobSub", "Create a new listing — it appears in job picks right away.")}
+                {editingJob
+                  ? t("vac.editJobSub", "Update your listing â€” changes appear in job picks right away.")
+                  : t("vac.postJobSub", "Create a new listing â€” it appears in job picks right away.")}
               </p>
             </header>
             <form
@@ -1582,7 +1335,7 @@ export function VacanciesPage() {
                 <input
                   type="text"
                   required
-                  placeholder={t("vac.placeholder.postLocation", "Remote, Kyiv, Berlin…")}
+                  placeholder={t("vac.placeholder.postLocation", "Remote, Kyiv, Berlinâ€¦")}
                   value={postForm.location}
                   onChange={(event) => setPostForm((prev) => ({ ...prev, location: event.target.value }))}
                 />
@@ -1639,7 +1392,7 @@ export function VacanciesPage() {
                 <span>{t("vac.field.jobDescription", "Job description")}</span>
                 <textarea
                   rows={4}
-                  placeholder={t("vac.placeholder.jobDescription", "Describe responsibilities, stack, and requirements…")}
+                  placeholder={t("vac.placeholder.jobDescription", "Describe responsibilities, stack, and requirementsâ€¦")}
                   value={postForm.desc}
                   onChange={(event) => setPostForm((prev) => ({ ...prev, desc: event.target.value }))}
                 />
@@ -1653,12 +1406,28 @@ export function VacanciesPage() {
                   onChange={(event) => setPostForm((prev) => ({ ...prev, keywords: event.target.value }))}
                 />
               </label>
+              {postError ? <p className="vac-apply-modal__error">{postError}</p> : null}
               <div className="vac-apply-modal__actions">
-                <button type="button" className="vac-apply-modal__btn vac-apply-modal__btn--ghost" onClick={() => setPostModalOpen(false)}>
+                <button
+                  type="button"
+                  className="vac-apply-modal__btn vac-apply-modal__btn--ghost"
+                  disabled={postSubmitting}
+                  onClick={closePostModal}
+                >
                   {t("vac.cancel", "Cancel")}
                 </button>
-                <button type="submit" className="vac-apply-modal__btn vac-apply-modal__btn--primary">
-                  {t("vac.publishJob", "Publish job")}
+                <button
+                  type="submit"
+                  className="vac-apply-modal__btn vac-apply-modal__btn--primary"
+                  disabled={postSubmitting}
+                >
+                  {postSubmitting
+                    ? editingJob
+                      ? t("vac.postSaving", "Saving...")
+                      : t("vac.postPublishing", "Publishing...")
+                    : editingJob
+                      ? t("vac.saveChanges", "Save changes")
+                      : t("vac.publishJob", "Publish job")}
                 </button>
               </div>
             </form>
@@ -1671,17 +1440,17 @@ export function VacanciesPage() {
           <div className="vac-apply-modal__backdrop" onClick={() => setApplyModalOpen(false)} />
           <section className="vac-apply-modal__dialog">
             <button type="button" className="vac-apply-modal__close" onClick={() => setApplyModalOpen(false)}>
-              ×
+              Ã—
             </button>
             <header className="vac-apply-modal__head">
               <h3 className="vac-apply-modal__title">{t("vac.quickApply", "Quick apply")}</h3>
               <p className="vac-apply-modal__subtitle">
                 {activeJobForApply
-                  ? `${activeJobForApply.role || activeJobForApply.title} · ${activeJobForApply.company} · ${formatSalary(
+                  ? `${activeJobForApply.role || activeJobForApply.title} Â· ${activeJobForApply.company} Â· ${formatSalary(
                       activeJobForApply.salaryMin,
                       activeJobForApply.salaryMax,
                     )}`
-                  : "—"}
+                  : "â€”"}
               </p>
             </header>
             <form

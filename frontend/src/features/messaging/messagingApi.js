@@ -1,17 +1,18 @@
 import { apiClient } from "../../shared/api/client";
 import { MESSAGING } from "../../shared/api/paths";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { unwrapPagedItems } from "../../shared/lib/pagedResponse";
 
 export async function fetchMyChats() {
   if (USE_MOCK_AUTH) return [];
   const data = await apiClient.get(MESSAGING.myChats);
-  return Array.isArray(data) ? data : [];
+  return unwrapPagedItems(data, (item) => item);
 }
 
 export async function fetchChatMessages(chatId) {
   if (USE_MOCK_AUTH) return [];
   const data = await apiClient.get(MESSAGING.chatMessages(chatId));
-  return Array.isArray(data) ? data : [];
+  return unwrapPagedItems(data, (item) => item);
 }
 
 export async function sendChatMessage(chatId, content) {

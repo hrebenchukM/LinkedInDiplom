@@ -1,6 +1,7 @@
 import { apiClient } from "../../shared/api/client";
 import { NOTIFICATIONS } from "../../shared/api/paths";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { unwrapPagedItems } from "../../shared/lib/pagedResponse";
 
 export async function fetchMyNotifications({ isRead, limit } = {}) {
   if (USE_MOCK_AUTH) return [];
@@ -10,7 +11,7 @@ export async function fetchMyNotifications({ isRead, limit } = {}) {
   const qs = params.toString();
   const path = qs ? `${NOTIFICATIONS.me}?${qs}` : NOTIFICATIONS.me;
   const data = await apiClient.get(path);
-  return Array.isArray(data) ? data : [];
+  return unwrapPagedItems(data, (item) => item);
 }
 
 export async function markNotificationRead(notificationId) {

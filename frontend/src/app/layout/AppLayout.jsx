@@ -3,21 +3,20 @@ import { PageTransitionOutlet } from "./PageTransitionOutlet";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../features/auth/AuthContext";
 import { useChatStore } from "../../features/chat/ChatStore";
+import { useNetworkStore } from "../../features/network/NetworkStore";
 import * as notificationsApi from "../../features/notifications/notificationsApi";
 import { mapNotificationDtoToUi } from "../../features/notifications/mapNotifications";
 import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { useUiSettings } from "../providers/AppProviders";
 import { GlobalSearch } from "../../shared/ui/GlobalSearch";
 import { AiWelcomeToast } from "../../shared/ui/AiWelcomeToast";
-import { countUnreadIncoming, isInboxPeerRead, markInboxPeerRead } from "../../shared/lib/messageRead";
+import { countUnreadIncoming, markInboxPeerRead } from "../../shared/lib/messageRead";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import {
   getAiWelcomeUserKey,
   markAiWelcomeDelivered,
   shouldShowAiWelcome,
 } from "../../shared/lib/aiWelcomeNotification";
-import { INBOX_TEMPLATE } from "../../pages/home/HomePage";
-
 const READ_NOTIFICATIONS_KEY = "readNotificationIds";
 
 function hydrateNotifications() {
@@ -127,7 +126,9 @@ function BellMonoIcon() {
 export function AppLayout() {
   const { session, logout } = useAuth();
   const { chats, markChatAsReadByPeer, openAiAssistantChat, ensureAiAssistantWelcomeChat, totalUnreadCount } = useChatStore();
+  const { pendingContactCounts } = useNetworkStore();
   const useApi = useBackendApi();
+  const pendingIncomingCount = useApi ? pendingContactCounts.incomingCount : 0;
   const { theme, lang, setLang, supportedLangs, t, toggleTheme } = useUiSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -270,11 +271,7 @@ export function AppLayout() {
           return chatPeer === slug || chatId === slug;
         });
         const chatUnread = chat ? countUnreadIncoming(chat) : 0;
-        const staticItem = INBOX_TEMPLATE.find(
-          (entry) => canonicalPeerId(entry.peer) === slug,
-        );
-        const inboxStillUnread = Boolean(staticItem?.unread && !isInboxPeerRead(slug));
-        const shouldMarkRead = chatUnread === 0 && !inboxStillUnread;
+        const shouldMarkRead = chatUnread === 0;
 
         if (!shouldMarkRead) return item;
 
@@ -402,6 +399,9 @@ export function AppLayout() {
                 <span>{t(item.labelKey, item.labelKey)}</span>
                 {item.to === "/chat" && totalUnreadCount > 0 ? (
                   <span className="header-nav-link__badge">{totalUnreadCount}</span>
+                ) : null}
+                {item.to === "/network" && pendingIncomingCount > 0 ? (
+                  <span className="header-nav-link__badge">{pendingIncomingCount}</span>
                 ) : null}
               </NavLink>
             ))}

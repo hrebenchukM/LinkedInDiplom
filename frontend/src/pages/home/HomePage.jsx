@@ -3,189 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import * as contentApi from "../../features/content/contentApi";
 import { loadFeedPostsFromApi } from "../../features/content/loadFeedPosts";
-import { mapMockTemplateToFeedPost, mapPostDtoToFeedPost } from "../../features/content/mapContent";
-import { buildDisplayFeed } from "./buildDisplayFeed";
+import { loadRepostsForFeed, loadSavedPostsForFeed } from "../../features/content/loadLibraryPosts";
+import { FeedPostCard } from "../../features/content/FeedPostCard";
+import { postAvatarUrl, resolvePostImage } from "../../features/content/postDisplay";
+import { buildDisplayFeed, shuffleFeedPosts } from "./buildDisplayFeed";
+import { HashtagsFollowingPanel } from "./HashtagsFollowingPanel";
 import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { useChatStore } from "../../features/chat/ChatStore";
+import { useNetworkStore } from "../../features/network/NetworkStore";
 import { useUiSettings } from "../../app/providers/AppProviders";
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
 import { MESSAGING_CONTACTS } from "../../shared/constants/messagingContacts";
 import { getContactAvatarUrl, getContactProfile } from "../../shared/constants/contactProfiles";
 import { getMessagePreview } from "../../shared/lib/callMessage";
+import { countUnreadIncoming, markInboxPeerRead } from "../../shared/lib/messageRead";
 import { readRegisteredAccount } from "../../shared/lib/registeredAccount";
+import { showApiFeedback } from "../../shared/lib/apiFeedback";
 import "./home-legacy.css";
 
-const USER_POSTS_KEY = "homeUserPosts";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
 const FEED_ROTATE_MS = 60000;
+const FEED_PAGE_SIZE = 20;
 const FEED_EMOJIS = ["😀", "😂", "😍", "🥳", "👍", "👏", "🔥", "💜", "🎉", "😎", "🤔", "💡", "🚀", "✨"];
-
-const FEED_MOCK_TEMPLATE = [
-  { id: "m1", author: "Sarah Chen", seed: "SarahChen", role: "Product Designer", text: "Clean handoff with design tokens is half of frontend success.", likes: 23, image: "https://picsum.photos/seed/linkup-m1/960/520" },
-  { id: "m2", author: "Marcus Dias", seed: "MarcusDias", role: "Frontend Developer", text: "Migrated another route to SPA, no full reload now.", likes: 18, image: "https://picsum.photos/seed/linkup-m2/960/520" },
-  { id: "m3", author: "Elena Volkov", seed: "ElenaVolkov", role: "QA Engineer", text: "Regression tests are green after UI migration.", likes: 12, image: "https://picsum.photos/seed/linkup-m3/960/520" },
-  { id: "m4", author: "Priya Patel", seed: "PriyaPatel", role: "DevOps Engineer", text: "Frontend build time is stable after splitting modules.", likes: 31, image: "https://picsum.photos/seed/linkup-m4/960/520" },
-  { id: "m5", author: "James Lee", seed: "JamesLee", role: "UI Engineer", text: "Header alignment stays static across pages now.", likes: 27, image: "https://picsum.photos/seed/linkup-m5/960/520" },
-  { id: "m6", author: "Duncan Callahan", seed: "DuncanCallahan", role: "UX Researcher", text: "Single search field in header feels much cleaner.", likes: 16, image: "https://picsum.photos/seed/linkup-m6/960/520" },
-  { id: "m7", author: "Nina Petrova", seed: "NinaPetrova", role: "Product Manager", text: "Please keep interactions smooth on mobile too.", likes: 14, image: "https://picsum.photos/seed/linkup-m7/960/520" },
-  { id: "m8", author: "Abram Lee", seed: "AbramLee", role: "Backend Engineer", text: "Unified API client will simplify integration.", likes: 29, image: "https://picsum.photos/seed/linkup-m8/960/520" },
-  { id: "m9", author: "Olivia Grant", seed: "OliviaGrant", role: "Data Analyst", text: "Dashboard metrics finally match the API contract.", likes: 19, image: "https://picsum.photos/seed/linkup-m9/960/520" },
-  { id: "m10", author: "Kenji Sato", seed: "KenjiSato", role: "Mobile Developer", text: "Shared feed components cut duplicate UI work in half.", likes: 22, image: "https://picsum.photos/seed/linkup-m10/960/520" },
-];
-
-export const INBOX_TEMPLATE = [
-  {
-    id: "msg-sarah",
-    peer: "sarahchen",
-    name: "Sarah Chen",
-    seed: "SarahChen",
-    previewKey: "home.msgPreview1",
-    previewFallback: "Could you review my branch?",
-    timeKey: "home.msgTime1",
-    timeFallback: "13m",
-    tab: "sorted",
-    unread: true,
-  },
-  {
-    id: "msg-marcus",
-    peer: "marcus",
-    name: "Marcus Dias",
-    seed: "MarcusDias",
-    previewKey: "home.msgPreview2",
-    previewFallback: "Header is stable now, thanks!",
-    timeKey: "home.msgTime2",
-    timeFallback: "28m",
-    tab: "sorted",
-  },
-  {
-    id: "msg-elena",
-    peer: "elenavolkov",
-    name: "Elena Volkov",
-    seed: "ElenaVolkov",
-    previewKey: "home.msgPreview3",
-    previewFallback: "Smoke check passed on my side.",
-    timeKey: "home.msgTime3",
-    timeFallback: "1h",
-    tab: "sorted",
-    unread: true,
-  },
-  {
-    id: "msg-duncan",
-    peer: "duncanux",
-    name: "Duncan Callahan",
-    seed: "DuncanCallahan",
-    previewKey: "home.msgPreview4",
-    previewFallback: "Need one more polish on cards.",
-    timeKey: "home.msgTime4",
-    timeFallback: "2h",
-    tab: "other",
-  },
-  {
-    id: "msg-james",
-    peer: "jamesleedev",
-    name: "James Lee",
-    seed: "JamesLee",
-    previewKey: "home.msgPreview5",
-    previewFallback: "Can we sync on profile page?",
-    timeKey: "home.msgTime5",
-    timeFallback: "4h",
-    tab: "sorted",
-  },
-  {
-    id: "msg-nina",
-    peer: "ninapetrova",
-    name: "Nina Petrova",
-    seed: "NinaPetrova",
-    previewKey: "home.msgPreview6",
-    previewFallback: "Please update PR summary.",
-    timeKey: "home.msgTime6",
-    timeFallback: "1d",
-    tab: "other",
-    unread: true,
-  },
-  {
-    id: "msg-timur",
-    peer: "timuryamchuk",
-    name: "Timur Yamchuk",
-    seed: "TimurYamchuk",
-    avatar: "/auth/assets/timur-yamchuk-avatar.png",
-    previewKey: "home.msgPreview7",
-    previewFallback: "Can we sync backend contracts?",
-    timeKey: "home.msgTime7",
-    timeFallback: "1d",
-    tab: "other",
-  },
-  {
-    id: "msg-priya",
-    peer: "priyadevops",
-    name: "Priya Patel",
-    seed: "PriyaPatel",
-    previewKey: "home.msgPreview8",
-    previewFallback: "Deployed successfully, all checks green.",
-    timeKey: "home.msgTime8",
-    timeFallback: "2d",
-    tab: "sorted",
-  },
-];
-
-function shuffleList(items) {
-  const arr = items.slice();
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-import {
-  countUnreadIncoming,
-  isInboxPeerRead,
-  markInboxPeerRead,
-} from "../../shared/lib/messageRead";
-
-function loadUserPosts() {
-  try {
-    const raw = localStorage.getItem(USER_POSTS_KEY);
-    const data = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(data)) return [];
-    return data
-      .filter((item) => item && typeof item === "object")
-      .map((item, index) => ({
-        id: String(item.id || `legacy-${index}`),
-        isOwn: true,
-        author: typeof item.author === "string" && item.author ? item.author : "You",
-        seed: typeof item.seed === "string" && item.seed ? item.seed : "You",
-        role: typeof item.role === "string" && item.role ? item.role : "You",
-        text: typeof item.text === "string" ? item.text : "",
-        image: typeof item.image === "string" ? item.image : "",
-        video: typeof item.video === "string" ? item.video : "",
-        likes: Number.isFinite(Number(item.likes)) ? Number(item.likes) : 0,
-        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
-        avatar: typeof item.avatar === "string" ? item.avatar : "",
-        comments: Array.isArray(item.comments)
-          ? item.comments
-              .filter((comment) => comment && typeof comment === "object")
-              .map((comment, commentIndex) => ({
-                id: String(comment.id || `${item.id}-c-${commentIndex}`),
-                author: typeof comment.author === "string" ? comment.author : "User",
-                seed: typeof comment.seed === "string" ? comment.seed : "User",
-                text: typeof comment.text === "string" ? comment.text : "",
-              }))
-          : [],
-      }));
-  } catch {
-    return [];
-  }
-}
-
-function saveUserPosts(posts) {
-  try {
-    localStorage.setItem(USER_POSTS_KEY, JSON.stringify(posts));
-  } catch {
-    // ignore storage errors
-  }
-}
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -197,69 +36,7 @@ function readFileAsDataUrl(file) {
 }
 
 function avatarUrl(seed) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || "user")}`;
-}
-
-function resolvePostAvatar(post, userAvatar) {
-  if (typeof post?.avatar === "string" && post.avatar.trim()) return post.avatar;
-  if (post?.isOwn && userAvatar) return userAvatar;
-  return avatarUrl(post?.seed || post?.author);
-}
-
-function buildCelebrationComments(postId, t) {
-  return [
-    { id: `${postId}-c1`, author: "Sarah Chen", seed: "SarahChen", text: t("home.post.commentBravo", "Well done!") },
-    { id: `${postId}-c2`, author: "Marcus Dias", seed: "MarcusDias", text: t("home.post.commentCool", "Cool!") },
-    { id: `${postId}-c3`, author: "Elena Volkov", seed: "ElenaVolkov", text: "🔥✨" },
-    { id: `${postId}-c4`, author: "James Lee", seed: "JamesLee", text: "🎉🎊🎉" },
-    { id: `${postId}-c5`, author: "Nina Petrova", seed: "NinaPetrova", text: "👏💜" },
-  ];
-}
-
-function getPostComments(post, t) {
-  if (Array.isArray(post.comments) && post.comments.length > 0) {
-    return post.comments.filter((item) => item && typeof item === "object");
-  }
-  if (post.isOwn) return buildCelebrationComments(post.id, t);
-  return [
-    { id: `${post.id}-c1`, author: "Sarah Chen", seed: "SarahChen", text: "Nice update!" },
-    { id: `${post.id}-c2`, author: "Marcus Dias", seed: "MarcusDias", text: "Looks solid." },
-  ];
-}
-
-function resolvePostImage(post) {
-  if (!post || typeof post !== "object") return "";
-  if (typeof post.image === "string" && post.image.trim()) return post.image;
-  if (!post.isOwn) return `https://picsum.photos/seed/linkup-fallback-${encodeURIComponent(String(post.id || "post"))}/960/520`;
-  return "";
-}
-
-function PostActionIcon({ variant }) {
-  if (variant === "like") {
-    return (
-      <span className="post-action__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      </span>
-    );
-  }
-  if (variant === "comment") {
-    return (
-      <span className="post-action__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h3v3.5c0 .8.9 1.3 1.6.8L14 18h6c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H13.2l-4.2 3v-3H4V4h16v12z" />
-        </svg>
-      </span>
-    );
-  }
-  return (
-    <span className="post-action__icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
-        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 11.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-5.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 5.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-      </svg>
-    </span>
-  );
+  return postAvatarUrl(seed);
 }
 
 function buildShareContacts() {
@@ -301,240 +78,46 @@ function buildShareContacts() {
   return contacts;
 }
 
-function PostEngagement({ post, onHint, t, shareContacts, onSharePost, useApi, currentUserId }) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(() => Number(post.likes || 0));
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentDraft, setCommentDraft] = useState("");
-  const [comments, setComments] = useState(() => (post._api ? [] : getPostComments(post, t)));
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
-  const [sharedTo, setSharedTo] = useState(() => new Set());
-  const shareWrapRef = useRef(null);
-
-  useEffect(() => {
-    if (!shareMenuOpen) return undefined;
-    const onDocClick = (event) => {
-      if (!shareWrapRef.current || shareWrapRef.current.contains(event.target)) return;
-      setShareMenuOpen(false);
-    };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, [shareMenuOpen]);
-
-  useEffect(() => {
-    if (!useApi || !post._api) return;
-    contentApi.fetchMyReactionForPost(post.id).then((reaction) => {
-      if (reaction?.reactionType) setLiked(true);
-    });
-  }, [useApi, post._api, post.id]);
-
-  useEffect(() => {
-    if (!commentsOpen || !useApi || !post._api) return;
-    setCommentsLoading(true);
-    contentApi
-      .fetchPostComments(post.id)
-      .then((list) => {
-        setComments(
-          list.map((c) => ({
-            id: String(c.id),
-            author: String(c.userId || "").slice(0, 8) || "User",
-            seed: c.userId,
-            text: c.content,
-            _api: true,
-          })),
-        );
-      })
-      .catch(() => onHint(t("home.hint.commentsFailed", "Could not load comments.")))
-      .finally(() => setCommentsLoading(false));
-  }, [commentsOpen, useApi, post._api, post.id, onHint, t]);
-
-  const handleShareToContact = (contact) => {
-    onSharePost(post, contact);
-    setSharedTo((prev) => new Set(prev).add(contact.peerId));
-  };
-
-  return (
-    <>
-      <div className={`post-stats${liked ? " post-stats--liked" : ""}`}>
-        <span className="post-stats__likes">
-          <span className={`post-stats__heart${liked ? " post-stats__heart--on" : ""}`}>♥</span>
-          {likeCount}
-        </span>
-        <button type="button" className="post-stats__comments-btn" onClick={() => setCommentsOpen((v) => !v)}>
-          {comments.length} {t("home.post.comments", "comments")}
-        </button>
-      </div>
-
-      <div className="post-actions">
-        <div className="post-actions__bar">
-          <button
-            type="button"
-            className={`post-action post-action--like${liked ? " post-action--liked" : ""}`}
-            onClick={async () => {
-              if (useApi && post._api) {
-                try {
-                  if (liked) {
-                    await contentApi.removePostReaction(post.id);
-                    setLiked(false);
-                    setLikeCount((v) => Math.max(0, v - 1));
-                  } else {
-                    await contentApi.upsertPostReaction(post.id, "Like");
-                    setLiked(true);
-                    setLikeCount((v) => v + 1);
-                  }
-                } catch {
-                  onHint(t("home.hint.reactionFailed", "Could not update reaction."));
-                }
-                return;
-              }
-              setLiked((v) => !v);
-              setLikeCount((v) => Math.max(0, v + (liked ? -1 : 1)));
-            }}
-          >
-            <PostActionIcon variant="like" />
-            <span className="post-action__label">{liked ? t("home.post.liked", "Liked") : t("home.post.like", "Like")}</span>
-          </button>
-          <button type="button" className={`post-action post-action--comment${commentsOpen ? " post-action--active" : ""}`} onClick={() => setCommentsOpen((v) => !v)}>
-            <PostActionIcon variant="comment" />
-            <span className="post-action__label">{t("home.post.comment", "Comment")}</span>
-          </button>
-          <div className="post-action-wrap--share" ref={shareWrapRef}>
-            <button
-              type="button"
-              className={`post-action post-action--share${shareMenuOpen ? " post-action--active" : ""}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                setShareMenuOpen((open) => !open);
-              }}
-            >
-              <PostActionIcon variant="share" />
-              <span className="post-action__label">{t("home.post.share", "Share")}</span>
-            </button>
-            {shareMenuOpen ? (
-              <div className="post-share-menu" role="menu" aria-label={t("home.post.shareWith", "Share with")}>
-                <p className="post-share-menu__title">{t("home.post.shareWith", "Share with")}</p>
-                <ul className="post-share-menu__list">
-                  {shareContacts.map((contact, index) => {
-                    const done = sharedTo.has(contact.peerId);
-                    return (
-                      <li key={contact.peerId}>
-                        <button
-                          type="button"
-                          className={done ? "post-share-menu__item post-share-menu__item--done" : "post-share-menu__item"}
-                          style={{ animationDelay: `${index * 0.04}s` }}
-                          role="menuitem"
-                          onClick={() => handleShareToContact(contact)}
-                        >
-                          <img className="post-share-menu__avatar" src={contact.avatar} width="32" height="32" alt="" />
-                          <span className="post-share-menu__name">{contact.name}</span>
-                          {done ? <span className="post-share-menu__check" aria-hidden="true">✓</span> : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <button
-                  type="button"
-                  className="post-share-menu__copy"
-                  onClick={() => {
-                    onHint(t("home.hint.linkCopied", "Link copied"));
-                    navigator.clipboard?.writeText(window.location.href);
-                  }}
-                >
-                  {t("home.post.copyLink", "Copy link")}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className={`post-comments${commentsOpen ? " post-comments--open" : ""}`}>
-        <div className="post-comments__inner">
-          <div className="post-comments__body">
-            <h5 className="post-comments__title">{t("home.post.comments", "Comments")}</h5>
-            <ul className="post-comments__list">
-              {commentsLoading ? (
-                <li className="post-comment">
-                  <p>{t("common.loading", "Loading…")}</p>
-                </li>
-              ) : null}
-              {comments.map((comment) => (
-                <li key={comment.id} className="post-comment">
-                  <img className="post-comment__avatar" src={avatarUrl(comment.seed)} width="32" height="32" alt="" />
-                  <div className="post-comment__bubble">
-                    <strong>{comment.author}</strong>
-                    <p>{comment.text}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <form
-              className="post-comments__form"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                const text = commentDraft.trim();
-                if (!text) return;
-                if (useApi && post._api) {
-                  try {
-                    const created = await contentApi.createPostComment(post.id, text);
-                    setComments((prev) => [
-                      ...prev,
-                      {
-                        id: String(created?.id || Date.now()),
-                        author: "You",
-                        seed: "You",
-                        text: created?.content || text,
-                      },
-                    ]);
-                    setCommentDraft("");
-                  } catch {
-                    onHint(t("home.hint.commentFailed", "Could not post comment."));
-                  }
-                  return;
-                }
-                setComments((prev) => [...prev, { id: `${post.id}-${Date.now()}`, author: "You", seed: "You", text }]);
-                setCommentDraft("");
-              }}
-            >
-              <input
-                type="text"
-                className="post-comments__input"
-                value={commentDraft}
-                onChange={(event) => setCommentDraft(event.target.value)}
-                placeholder={t("home.post.writeComment", "Write a comment...")}
-              />
-              <button type="submit" className="post-comments__submit" disabled={!commentDraft.trim()}>
-                {t("home.post.submitComment", "Post")}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
 export function HomePage() {
   const navigate = useNavigate();
   const { session, isReady } = useAuth();
   const { t } = useUiSettings();
   const { chats, setActiveChat, markChatAsReadByPeer, sharePostToContact } = useChatStore();
+  const { people } = useNetworkStore();
   const useApi = useBackendApi();
 
-  const [userPosts, setUserPosts] = useState(() => (useApi ? [] : loadUserPosts()));
+  const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState("");
   const [postVideo, setPostVideo] = useState("");
+  const [postMediaFile, setPostMediaFile] = useState(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [feedView, setFeedView] = useState("feed");
+  const [libraryPosts, setLibraryPosts] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [savedPostIds, setSavedPostIds] = useState(() => new Set());
+  const [repostedPostIds, setRepostedPostIds] = useState(() => new Set());
+  const [composerHashtags, setComposerHashtags] = useState([]);
+  const [composerMentions, setComposerMentions] = useState([]);
+  const [entityPicker, setEntityPicker] = useState(null);
+  const [entitySearch, setEntitySearch] = useState("");
+  const [hashtagSuggestions, setHashtagSuggestions] = useState([]);
+  const [hashtagFocusSearch, setHashtagFocusSearch] = useState("");
+  const [feedPage, setFeedPage] = useState(1);
+  const [feedHasNextPage, setFeedHasNextPage] = useState(false);
+  const [feedTotalCount, setFeedTotalCount] = useState(0);
+  const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
-  const [actionHint, setActionHint] = useState("");
   const [feedUpdating, setFeedUpdating] = useState(false);
   const [feedRevision, setFeedRevision] = useState(0);
-  const [feedPosts, setFeedPosts] = useState(() => buildDisplayFeed([], 0, FEED_MOCK_TEMPLATE));
-  const [messageOrder] = useState(() => shuffleList(INBOX_TEMPLATE));
+  const [feedPosts, setFeedPosts] = useState(() => buildDisplayFeed([], { shuffle: true }));
+  const [feedShuffleSeed, setFeedShuffleSeed] = useState(() => Date.now());
+  const feedLoadModeRef = useRef("replace");
   const [messagesRefreshTick, forceMessagesRerender] = useState(0);
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -551,19 +134,128 @@ export function HomePage() {
     return avatarUrl(displayName);
   }, [displayName, session.user?.avatarDataUrl]);
 
-  const syncFeedPosts = useCallback(
-    (apiPosts, revision) => {
-      setFeedPosts(buildDisplayFeed(apiPosts, revision, FEED_MOCK_TEMPLATE));
+  useEffect(() => {
+    if (!isReady) return;
+
+    if (feedLoadModeRef.current === "append") {
+      setFeedPosts((prev) => {
+        const seen = new Set(prev.map((post) => String(post.id)));
+        const fresh = userPosts.filter((post) => !seen.has(String(post.id)));
+        if (!fresh.length) return prev;
+        return [...prev, ...shuffleFeedPosts(fresh, feedShuffleSeed + fresh.length)];
+      });
+      feedLoadModeRef.current = "replace";
+      return;
+    }
+
+    setFeedPosts(buildDisplayFeed(userPosts, { shuffle: true, seed: feedShuffleSeed }));
+  }, [isReady, userPosts, feedShuffleSeed]);
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem("homeUserPosts");
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const posts = feedView === "feed" ? feedPosts : feedView === "tags" ? [] : libraryPosts;
+
+  const showHint = useCallback((text, { variant = "info" } = {}) => {
+    showApiFeedback(text, { variant });
+  }, []);
+
+  const reloadEngagementIds = useCallback(async () => {
+    if (!useApi) {
+      setSavedPostIds(new Set());
+      setRepostedPostIds(new Set());
+      return;
+    }
+    try {
+      const [saved, reposted] = await Promise.all([
+        contentApi.fetchMySavedPostIds(),
+        contentApi.fetchMyRepostedPostIds(),
+      ]);
+      setSavedPostIds(saved);
+      setRepostedPostIds(reposted);
+    } catch {
+      setSavedPostIds(new Set());
+      setRepostedPostIds(new Set());
+    }
+  }, [useApi]);
+
+  const reloadLibraryPosts = useCallback(
+    async (view = feedView) => {
+      if (!useApi || view === "feed") return;
+      setLibraryLoading(true);
+      try {
+        const loader = view === "saved" ? loadSavedPostsForFeed : loadRepostsForFeed;
+        setLibraryPosts(await loader(session.user?.id, displayName, userAvatar));
+      } catch {
+        setLibraryPosts([]);
+        showHint(t("home.hint.libraryFailed", "Could not load saved posts."), { variant: "error" });
+      } finally {
+        setLibraryLoading(false);
+      }
     },
-    [],
+    [useApi, feedView, session.user?.id, displayName, userAvatar, t, showHint],
   );
 
   useEffect(() => {
     if (!isReady) return;
-    syncFeedPosts(userPosts, feedRevision);
-  }, [isReady, userPosts, feedRevision, syncFeedPosts]);
+    reloadEngagementIds();
+  }, [isReady, reloadEngagementIds, session.user?.id]);
 
-  const posts = feedPosts;
+  useEffect(() => {
+    if (feedView === "feed") return;
+    reloadLibraryPosts(feedView);
+  }, [feedView, reloadLibraryPosts]);
+
+  const handleToggleSave = async (postId) => {
+    const id = String(postId);
+    const isSaved = savedPostIds.has(id);
+    try {
+      if (isSaved) {
+        await contentApi.unsavePost(id);
+        setSavedPostIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        showHint(t("home.hint.unsavedPost", "Removed from saved posts."));
+      } else {
+        await contentApi.savePost(id);
+        setSavedPostIds((prev) => new Set(prev).add(id));
+        showHint(t("home.hint.savedPost", "Post saved."));
+      }
+      if (feedView === "saved") await reloadLibraryPosts("saved");
+    } catch {
+      // apiClient shows mutation errors via ApiFeedbackBanner
+    }
+  };
+
+  const handleToggleRepost = async (postId) => {
+    const id = String(postId);
+    const isReposted = repostedPostIds.has(id);
+    try {
+      if (isReposted) {
+        await contentApi.unrepostPost(id);
+        setRepostedPostIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        showHint(t("home.hint.unreposted", "Repost removed."));
+      } else {
+        await contentApi.repostPost(id);
+        setRepostedPostIds((prev) => new Set(prev).add(id));
+        showHint(t("home.hint.reposted", "Post reposted."));
+      }
+      if (feedView === "reposts") await reloadLibraryPosts("reposts");
+    } catch {
+      // apiClient shows mutation errors via ApiFeedbackBanner
+    }
+  };
 
   const inboxMessages = useMemo(() => {
     const query = messageSearch.trim().toLowerCase();
@@ -638,49 +330,85 @@ export function HomePage() {
       });
     });
 
-    const connectedPeers = new Set(connectedDedup.map((item) => canonicalPeerId(item.peer)));
-    const staticFiltered = messageOrder
-      .filter((item) => !connectedPeers.has(canonicalPeerId(item.peer)))
-      .map((item) => ({
-        ...item,
-        preview: t(item.previewKey, item.previewFallback || ""),
-        time: t(item.timeKey, item.timeFallback || ""),
-        unread: Boolean(item.unread) && !isInboxPeerRead(canonicalPeerId(item.peer)),
-      }));
-    const all = [...connectedDedup, ...staticFiltered].sort((a, b) => {
+    const all = connectedDedup.sort((a, b) => {
       if (Boolean(a.unread) !== Boolean(b.unread)) return Number(Boolean(b.unread)) - Number(Boolean(a.unread));
       return (b.unreadCount || 0) - (a.unreadCount || 0);
     });
     if (!query) return all;
     return all.filter((item) => item.name.toLowerCase().includes(query) || String(item.preview || "").toLowerCase().includes(query));
-  }, [chats, messageOrder, messageSearch, t, messagesRefreshTick]);
+  }, [chats, messageSearch, t, messagesRefreshTick]);
 
   const shareContacts = useMemo(() => buildShareContacts(), [chats, messagesRefreshTick]);
 
-  const showHint = (text) => {
-    setActionHint(text);
-    window.setTimeout(() => setActionHint(""), 2200);
-  };
+  const applyFeedResult = useCallback((result, { append = false } = {}) => {
+    feedLoadModeRef.current = append ? "append" : "replace";
+    setUserPosts((prev) => {
+      if (!append) return result.posts;
+      const seen = new Set(prev.map((post) => String(post.id)));
+      const merged = [...prev];
+      result.posts.forEach((post) => {
+        const id = String(post.id);
+        if (!seen.has(id)) {
+          seen.add(id);
+          merged.push(post);
+        }
+      });
+      return merged;
+    });
+    setFeedPage(result.page);
+    setFeedHasNextPage(result.hasNextPage);
+    setFeedTotalCount(result.totalCount);
+  }, []);
 
   const reloadPostsFromApi = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false, page = 1, append = false } = {}) => {
       if (!useApi || !session.isAuthenticated || session.user?.isGuest) return true;
       if (!silent) setPostsLoading(true);
       try {
-        const loaded = await loadFeedPostsFromApi(session.user.id, displayName, userAvatar);
-        setUserPosts(loaded);
+        const result = await loadFeedPostsFromApi(session.user.id, displayName, userAvatar, {
+          page,
+          pageSize: FEED_PAGE_SIZE,
+          cacheBust: page === 1,
+        });
+        applyFeedResult(result, { append });
         return true;
       } catch {
         if (!silent) {
-          showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."));
+          showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."), {
+            variant: "error",
+          });
         }
         return false;
       } finally {
         if (!silent) setPostsLoading(false);
       }
     },
-    [useApi, session.isAuthenticated, session.user?.isGuest, session.user?.id, displayName, userAvatar, t],
+    [
+      useApi,
+      session.isAuthenticated,
+      session.user?.isGuest,
+      session.user?.id,
+      displayName,
+      userAvatar,
+      t,
+      showHint,
+      applyFeedResult,
+    ],
   );
+
+  const loadMoreFeed = useCallback(async () => {
+    if (!feedHasNextPage || feedLoadingMore || postsLoading) return;
+    setFeedLoadingMore(true);
+    try {
+      await reloadPostsFromApi({ silent: true, page: feedPage + 1, append: true });
+    } catch {
+      showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."), {
+        variant: "error",
+      });
+    } finally {
+      setFeedLoadingMore(false);
+    }
+  }, [feedHasNextPage, feedLoadingMore, postsLoading, feedPage, reloadPostsFromApi, showHint, t]);
 
   const handleSharePost = (post, contact) => {
     sharePostToContact({
@@ -694,104 +422,219 @@ export function HomePage() {
     showHint(t("home.hint.postShared", "Post shared with {name}").replace("{name}", contact.name));
   };
 
+  const mentionCandidates = useMemo(() => {
+    const seen = new Set();
+    return people
+      .filter((person) => person.userId)
+      .filter((person) => {
+        const key = String(person.userId);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((person) => ({
+        userId: String(person.userId),
+        name: person.name,
+        role: person.role || "",
+      }));
+  }, [people]);
+
+  useEffect(() => {
+    if (!useApi || entityPicker !== "hashtag") {
+      setHashtagSuggestions([]);
+      return undefined;
+    }
+    let cancelled = false;
+    contentApi
+      .searchHashtags(entitySearch, 10)
+      .then((items) => {
+        if (!cancelled) setHashtagSuggestions(items);
+      })
+      .catch(() => {
+        if (!cancelled) setHashtagSuggestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [useApi, entityPicker, entitySearch]);
+
+  const filteredMentionCandidates = useMemo(() => {
+    const query = entitySearch.trim().toLowerCase();
+    if (!query) return mentionCandidates.slice(0, 8);
+    return mentionCandidates
+      .filter(
+        (person) =>
+          person.name.toLowerCase().includes(query) || String(person.userId).toLowerCase().includes(query),
+      )
+      .slice(0, 8);
+  }, [mentionCandidates, entitySearch]);
+
+  function clearComposerEntities() {
+    setComposerHashtags([]);
+    setComposerMentions([]);
+    setEntityPicker(null);
+    setEntitySearch("");
+  }
+
+  function addComposerHashtag(tag) {
+    if (!tag?.id) return;
+    setComposerHashtags((prev) => {
+      if (prev.some((item) => String(item.id) === String(tag.id))) return prev;
+      return [...prev, { id: String(tag.id), name: tag.name }];
+    });
+    const token = `#${tag.name}`;
+    setPostText((prev) => (prev.includes(token) ? prev : `${prev.trim() ? `${prev.trim()} ` : ""}${token}`));
+    setEntityPicker(null);
+    setEntitySearch("");
+  }
+
+  function addComposerMention(person) {
+    if (!person?.userId) return;
+    setComposerMentions((prev) => {
+      if (prev.some((item) => item.userId === person.userId)) return prev;
+      return [...prev, { userId: person.userId, name: person.name }];
+    });
+    const token = `@${person.userId}`;
+    setPostText((prev) => (prev.includes(token) ? prev : `${prev.trim() ? `${prev.trim()} ` : ""}${token}`));
+    setEntityPicker(null);
+    setEntitySearch("");
+  }
+
+  function handleHashtagClick(name) {
+    setHashtagFocusSearch(String(name || "").replace(/^#/, ""));
+    setFeedView("tags");
+  }
+
   const canPublish = postText.trim() || postImage || postVideo;
-  const hasPosts = posts.length > 0;
+  const hasPosts = feedView === "tags" ? false : posts.length > 0;
+  const feedLoading = feedView === "feed" ? postsLoading : feedView === "tags" ? false : libraryLoading;
+  const postViewSource = feedView === "saved" ? "saved" : feedView === "reposts" ? "reposts" : "feed";
+  const canRecordPostViews = useApi && session.isAuthenticated && !session.user?.isGuest;
+
+  const clearPostAttachment = () => {
+    setPostImage("");
+    setPostVideo("");
+    setPostMediaFile(null);
+  };
 
   const handlePhotoPick = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) return showHint(t("home.hint.onlyImages", "Only image files are allowed"));
-    if (file.size > MAX_IMAGE_BYTES) return showHint(t("home.hint.imageLarge", "Image is too large"));
+    if (!file.type.startsWith("image/"))
+      return showHint(t("home.hint.onlyImages", "Only image files are allowed"), { variant: "error" });
+    if (file.size > MAX_IMAGE_BYTES)
+      return showHint(t("home.hint.imageLarge", "Image is too large"), { variant: "error" });
     try {
       const url = await readFileAsDataUrl(file);
       setPostImage(url);
       setPostVideo("");
+      setPostMediaFile(file);
     } catch {
-      showHint(t("home.hint.attachFail", "Failed to attach file"));
+      showHint(t("home.hint.attachFail", "Failed to attach file"), { variant: "error" });
     }
   };
 
-  const handleVideoPick = async (event) => {
-    const file = event.target.files?.[0];
+  const handleVideoPick = (event) => {
     event.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("video/")) return showHint(t("home.hint.onlyVideos", "Only video files are allowed"));
-    if (file.size > MAX_VIDEO_BYTES) return showHint(t("home.hint.videoLarge", "Video is too large"));
-    try {
-      const url = await readFileAsDataUrl(file);
-      setPostImage("");
-      setPostVideo(url);
-    } catch {
-      showHint(t("home.hint.attachFail", "Failed to attach file"));
-    }
+    showHint(t("home.hint.apiImageOnly", "API posts support images only (no video upload yet)."), {
+      variant: "error",
+    });
   };
 
   const publishPost = async () => {
     const text = postText.trim();
-    if (!text && !postImage && !postVideo) return showHint(t("home.hint.emptyPost", "Post cannot be empty"));
+    if (!text && !postImage && !postVideo)
+      return showHint(t("home.hint.emptyPost", "Post cannot be empty"), { variant: "error" });
 
-    if (useApi) {
-      if (!text) return showHint(t("home.hint.apiTextOnly", "API posts support text only for now."));
-      try {
-        await contentApi.createPost({ content: text, visibility: "public" });
-        await reloadPostsFromApi();
-        setPostText("");
-        setPostImage("");
-        setPostVideo("");
-        setShowEmojiPicker(false);
-        showHint(t("home.hint.postPublished", "Post published"));
-      } catch {
-        showHint(t("home.hint.publishFailed", "Failed to publish post."));
+    if (!useApi) {
+      return showHint(t("profile.apiRequired", "Sign in with a real account to sync this section."), {
+        variant: "error",
+      });
+    }
+    if (!text && !postMediaFile) {
+      return showHint(t("home.hint.apiNeedsTextOrImage", "Add text or a photo to publish."), { variant: "error" });
+    }
+    setIsPublishing(true);
+    try {
+      const content = text || t("home.imagePost", "Photo");
+      const created = await contentApi.createPostWithMedia({
+        content,
+        visibility: "public",
+        file: postMediaFile || null,
+      });
+      if (created?.id) {
+        await contentApi.syncPostEntities(created.id, {
+          text: content,
+          hashtagIds: composerHashtags.map((item) => item.id),
+          mentionedUserIds: composerMentions.map((item) => item.userId),
+        });
       }
+      await reloadPostsFromApi();
+      setPostText("");
+      clearPostAttachment();
+      clearComposerEntities();
+      setShowEmojiPicker(false);
+      showHint(t("home.hint.postPublished", "Post published"));
+    } catch {
+      // apiClient shows mutation errors via ApiFeedbackBanner
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const startEditPost = (post) => {
+    if (!useApi || !post?._api || !post.isOwn) return;
+    setEditingPostId(post.id);
+    setEditDraft(String(post.text || ""));
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditDraft("");
+  };
+
+  const saveEditPost = async (post) => {
+    if (!useApi || !post?._api || !post.isOwn) return;
+    const text = editDraft.trim();
+    if (!text) {
+      showHint(t("home.hint.emptyPost", "Post cannot be empty"), { variant: "error" });
       return;
     }
-
-    const postId = `own-${Date.now()}`;
-    const newPost = {
-      id: postId,
-      isOwn: true,
-      author: displayName,
-      seed: displayName,
-      avatar: userAvatar,
-      role: t("home.you", "You"),
-      text,
-      image: postImage || "",
-      video: postVideo || "",
-      likes: 5,
-      comments: buildCelebrationComments(postId, t),
-      createdAt: Date.now(),
-    };
-    setUserPosts((prev) => {
-      const next = [newPost, ...prev];
-      saveUserPosts(next);
-      return next;
-    });
-    setPostText("");
-    setPostImage("");
-    setPostVideo("");
-    setShowEmojiPicker(false);
-    showHint(t("home.hint.postPublished", "Post published"));
+    setIsSavingEdit(true);
+    try {
+      await contentApi.updatePost(post.id, {
+        content: text,
+        visibility: post.visibility || "public",
+      });
+      await contentApi.syncPostEntities(post.id, { text });
+      setUserPosts((prev) =>
+        prev.map((item) => (String(item.id) === String(post.id) ? { ...item, text } : item)),
+      );
+      cancelEditPost();
+      showHint(t("home.hint.postUpdated", "Post updated"));
+    } catch {
+      // apiClient shows mutation errors via ApiFeedbackBanner
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const deletePost = async (postId) => {
-    const target = userPosts.find((p) => p.id === postId);
-    if (useApi && target?._api) {
-      try {
-        await contentApi.deletePost(postId);
-        setUserPosts((prev) => prev.filter((post) => post.id !== postId));
-        showHint(t("home.hint.postDeleted", "Post deleted"));
-      } catch {
-        showHint(t("home.hint.deleteFailed", "Failed to delete post."));
-      }
+    if (!useApi) {
+      showHint(t("profile.apiRequired", "Sign in with a real account to sync this section."), { variant: "error" });
       return;
     }
-    setUserPosts((prev) => {
-      const next = prev.filter((post) => post.id !== postId);
-      saveUserPosts(next);
-      return next;
-    });
-    showHint(t("home.hint.postDeleted", "Post deleted"));
+    const target = userPosts.find((p) => p.id === postId);
+    if (!target?._api) return;
+    if (editingPostId === postId) cancelEditPost();
+    try {
+      await contentApi.deletePost(postId);
+      setUserPosts((prev) => prev.filter((post) => post.id !== postId));
+      showHint(t("home.hint.postDeleted", "Post deleted"));
+    } catch {
+      // apiClient shows mutation errors via ApiFeedbackBanner
+    }
   };
 
   const rotateFeedVisuals = useCallback(() => {
@@ -802,6 +645,7 @@ export function HomePage() {
     if (feedUpdating) return;
     setFeedUpdating(true);
     rotateFeedVisuals();
+    setFeedShuffleSeed(Date.now());
     try {
       let apiOk = true;
       if (useApi && session.isAuthenticated && !session.user?.isGuest) {
@@ -811,7 +655,9 @@ export function HomePage() {
         showHint(t("home.hint.feedUpdated", "Feed updated"));
       }
     } catch {
-      showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."));
+      showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."), {
+        variant: "error",
+      });
     } finally {
       window.setTimeout(() => setFeedUpdating(false), 650);
     }
@@ -826,20 +672,14 @@ export function HomePage() {
   ]);
 
   useEffect(() => {
-    if (!isReady) return undefined;
-
-    if (useApi) {
-      rotateFeedVisuals();
-      reloadPostsFromApi({ silent: true });
-      const timerId = window.setInterval(() => {
-        rotateFeedVisuals();
-        reloadPostsFromApi({ silent: true });
-      }, FEED_ROTATE_MS);
-      return () => window.clearInterval(timerId);
-    }
+    if (!isReady || !useApi) return undefined;
 
     rotateFeedVisuals();
-    const timerId = window.setInterval(rotateFeedVisuals, FEED_ROTATE_MS);
+    reloadPostsFromApi({ silent: true });
+    const timerId = window.setInterval(() => {
+      rotateFeedVisuals();
+      reloadPostsFromApi({ silent: true });
+    }, FEED_ROTATE_MS);
     return () => window.clearInterval(timerId);
   }, [isReady, useApi, reloadPostsFromApi, rotateFeedVisuals]);
 
@@ -868,8 +708,6 @@ export function HomePage() {
 
   return (
     <main className="page-home-legacy">
-      {actionHint ? <div className="action-hint">{actionHint}</div> : null}
-
       <section className="home-layout">
         <aside className="left-card">
           <div className="left-card__main">
@@ -885,8 +723,14 @@ export function HomePage() {
               <span>{t("home.metric.viewed", "Who viewed profile")}</span>
               <strong>420</strong>
             </div>
-            <button className="ghost-main" onClick={() => navigate("/profile")}>
+            <button
+              type="button"
+              className={feedView === "saved" ? "ghost-main ghost-main--active" : "ghost-main"}
+              onClick={() => setFeedView((view) => (view === "saved" ? "feed" : "saved"))}
+              disabled={!useApi}
+            >
               {t("home.saved", "Saved elements")}
+              {useApi && savedPostIds.size > 0 ? ` (${savedPostIds.size})` : ""}
             </button>
           </div>
           <div className="left-card__extras">
@@ -910,7 +754,46 @@ export function HomePage() {
         </aside>
 
         <section className="feed">
-          <article className="composer" ref={composerRef}>
+          {useApi ? (
+            <nav className="feed-view-tabs" aria-label={t("home.feedViews", "Feed views")}>
+              <button
+                type="button"
+                className={feedView === "feed" ? "feed-view-tabs__btn feed-view-tabs__btn--active" : "feed-view-tabs__btn"}
+                onClick={() => setFeedView("feed")}
+              >
+                {t("home.feedTab.all", "All posts")}
+              </button>
+              <button
+                type="button"
+                className={feedView === "saved" ? "feed-view-tabs__btn feed-view-tabs__btn--active" : "feed-view-tabs__btn"}
+                onClick={() => setFeedView("saved")}
+              >
+                {t("home.feedTab.saved", "Saved")}
+                {savedPostIds.size > 0 ? ` (${savedPostIds.size})` : ""}
+              </button>
+              <button
+                type="button"
+                className={feedView === "reposts" ? "feed-view-tabs__btn feed-view-tabs__btn--active" : "feed-view-tabs__btn"}
+                onClick={() => setFeedView("reposts")}
+              >
+                {t("home.feedTab.reposts", "Reposts")}
+                {repostedPostIds.size > 0 ? ` (${repostedPostIds.size})` : ""}
+              </button>
+              <button
+                type="button"
+                className={feedView === "tags" ? "feed-view-tabs__btn feed-view-tabs__btn--active" : "feed-view-tabs__btn"}
+                onClick={() => setFeedView("tags")}
+              >
+                {t("home.feedTab.hashtags", "Hashtags")}
+              </button>
+            </nav>
+          ) : null}
+          {!useApi ? (
+            <p className="muted composer-api-hint">
+              {t("profile.apiRequired", "Sign in with a real account to sync this section.")}
+            </p>
+          ) : null}
+          <article className={`composer${useApi ? "" : " composer--disabled"}`} ref={composerRef}>
             <div className="composer-top">
               <img className="avatar avatar-img small" src={userAvatar} alt="" />
               <textarea
@@ -919,14 +802,88 @@ export function HomePage() {
                 value={postText}
                 onChange={(event) => setPostText(event.target.value)}
                 placeholder={t("home.startPost", "Start a post...")}
+                disabled={!useApi}
               />
             </div>
 
             {postImage || postVideo ? (
               <div className="composer-preview">
                 {postImage ? <img src={postImage} alt={t("home.preview", "Post preview")} /> : <video src={postVideo} controls className="composer-preview__video" />}
-                <button type="button" className="composer-preview__remove" onClick={() => { setPostImage(""); setPostVideo(""); }}>
+                <button type="button" className="composer-preview__remove" onClick={clearPostAttachment}>
                   {t("home.remove", "Remove")}
+                </button>
+              </div>
+            ) : null}
+
+            {useApi && (composerHashtags.length > 0 || composerMentions.length > 0) ? (
+              <div className="composer-entities">
+                {composerHashtags.map((tag) => (
+                  <span key={tag.id} className="composer-entity composer-entity--hashtag">
+                    #{tag.name}
+                    <button
+                      type="button"
+                      aria-label={t("home.remove", "Remove")}
+                      onClick={() => {
+                        setComposerHashtags((prev) => prev.filter((item) => item.id !== tag.id));
+                        setPostText((prev) => prev.replace(new RegExp(`#${tag.name}\\b`, "i"), "").trim());
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                {composerMentions.map((person) => (
+                  <span key={person.userId} className="composer-entity composer-entity--mention">
+                    @{person.name}
+                    <button
+                      type="button"
+                      aria-label={t("home.remove", "Remove")}
+                      onClick={() => {
+                        setComposerMentions((prev) => prev.filter((item) => item.userId !== person.userId));
+                        setPostText((prev) => prev.replace(`@${person.userId}`, "").trim());
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            {useApi && entityPicker ? (
+              <div className="composer-entity-picker">
+                <input
+                  className="composer-entity-picker__search"
+                  type="search"
+                  value={entitySearch}
+                  onChange={(event) => setEntitySearch(event.target.value)}
+                  placeholder={
+                    entityPicker === "hashtag"
+                      ? t("home.hashtags.search", "Search hashtags to follow…")
+                      : t("home.mentions.search", "Search contacts to mention…")
+                  }
+                  autoFocus
+                />
+                <ul className="composer-entity-picker__list">
+                  {entityPicker === "hashtag"
+                    ? hashtagSuggestions.map((tag) => (
+                        <li key={tag.id}>
+                          <button type="button" onClick={() => addComposerHashtag(tag)}>
+                            #{tag.name}
+                          </button>
+                        </li>
+                      ))
+                    : filteredMentionCandidates.map((person) => (
+                        <li key={person.userId}>
+                          <button type="button" onClick={() => addComposerMention(person)}>
+                            {person.name}
+                            <small>{person.role}</small>
+                          </button>
+                        </li>
+                      ))}
+                </ul>
+                <button type="button" className="composer-entity-picker__close" onClick={() => setEntityPicker(null)}>
+                  {t("home.close", "Close")}
                 </button>
               </div>
             ) : null}
@@ -938,6 +895,28 @@ export function HomePage() {
               <div className="composer-actions__left">
                 <button type="button" onClick={() => photoInputRef.current?.click()}>{t("home.photo", "Photo")}</button>
                 <button type="button" onClick={() => videoInputRef.current?.click()}>{t("home.video", "Video")}</button>
+                {useApi ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEntityPicker("hashtag");
+                        setEntitySearch("");
+                      }}
+                    >
+                      {t("home.hashtag", "Hashtag")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEntityPicker("mention");
+                        setEntitySearch("");
+                      }}
+                    >
+                      {t("home.mention", "Mention")}
+                    </button>
+                  </>
+                ) : null}
                 <div className="composer-emoji-wrap">
                   <button type="button" className={showEmojiPicker ? "composer-emoji-btn active" : "composer-emoji-btn"} onClick={(event) => { event.stopPropagation(); setShowEmojiPicker((open) => !open); }}>
                     <span aria-hidden="true">😊</span>
@@ -954,7 +933,9 @@ export function HomePage() {
                   ) : null}
                 </div>
               </div>
-              <button className="primary-mini" onClick={publishPost} disabled={!canPublish}>{t("home.publish", "Publish")}</button>
+              <button className="primary-mini" onClick={publishPost} disabled={!useApi || !canPublish || isPublishing}>
+                {isPublishing ? t("home.publishing", "Publishing…") : t("home.publish", "Publish")}
+              </button>
             </div>
           </article>
 
@@ -969,53 +950,75 @@ export function HomePage() {
             <span className="feed-toolbar__line" aria-hidden="true" />
           </div>
 
+          {feedView === "tags" && useApi ? (
+            <HashtagsFollowingPanel t={t} onHint={showHint} focusSearch={hashtagFocusSearch} />
+          ) : null}
+
           {hasPosts ? (
+            <>
             <div className="feed-posts feed-posts--refresh" key={`feed-${feedRevision}`}>
             {posts.map((post, index) => (
-              <article
+              <FeedPostCard
                 key={`${post.id}-${feedRevision}-${index}`}
-                className={`post-card${post.isOwn ? "" : " post-card--enter"}${post.isFresh ? " post-card--fresh" : ""}`}
-                style={post.isOwn ? undefined : { animationDelay: `${Math.min(index, 5) * 0.07}s` }}
-              >
-                <div className="post-head">
-                  <img className="avatar avatar-img small" src={resolvePostAvatar(post, userAvatar)} alt="" />
-                  <div className="post-head__meta">
-                    <strong>{post.author}</strong>
-                    {post.role ? <p className="post-head__role">{post.role}</p> : null}
-                  </div>
-                  {post.isOwn ? (
-                    <button type="button" className="post-delete" onClick={() => deletePost(post.id)} aria-label={t("home.deletePost", "Delete post")} title={t("home.delete", "Delete")}>
-                      ×
-                    </button>
-                  ) : null}
-                </div>
-                <div className="post-body">
-                  {post.text ? <p className="post-text post-text--multiline">{post.text}</p> : null}
-                  {post.video ? <video className="post-media post-media--video" src={post.video} controls playsInline /> : null}
-                  {!post.video && resolvePostImage(post) ? (
-                    <img className="post-media post-media--photo" src={resolvePostImage(post)} alt={t("home.postMedia", "Post media")} loading="lazy" />
-                  ) : null}
-                </div>
-                <PostEngagement
-                  post={post}
-                  onHint={showHint}
-                  t={t}
-                  shareContacts={shareContacts}
-                  onSharePost={handleSharePost}
-                  useApi={useApi}
-                  currentUserId={session.user?.id}
-                />
-              </article>
+                post={post}
+                index={index}
+                feedRevision={feedRevision}
+                userAvatar={userAvatar}
+                useApi={useApi}
+                t={t}
+                showHint={showHint}
+                savedPostIds={savedPostIds}
+                repostedPostIds={repostedPostIds}
+                onToggleSave={handleToggleSave}
+                onToggleRepost={handleToggleRepost}
+                shareContacts={shareContacts}
+                onSharePost={handleSharePost}
+                onHashtagClick={handleHashtagClick}
+                canRecordPostViews={canRecordPostViews}
+                postViewSource={postViewSource}
+                editingPostId={editingPostId}
+                editDraft={editDraft}
+                isSavingEdit={isSavingEdit}
+                onEditDraftChange={setEditDraft}
+                onStartEdit={startEditPost}
+                onCancelEdit={cancelEditPost}
+                onSaveEdit={saveEditPost}
+                onDeletePost={deletePost}
+              />
             ))}
             </div>
-          ) : (
+            {useApi && feedView === "feed" && feedTotalCount > 0 ? (
+              <p className="feed-page-stats">
+                {t("home.feed.pageStats", "{shown} of {total} posts")
+                  .replace("{shown}", String(posts.length))
+                  .replace("{total}", String(feedTotalCount))}
+              </p>
+            ) : null}
+            {useApi && feedView === "feed" && feedHasNextPage ? (
+              <div className="feed-load-more-wrap">
+                <button
+                  type="button"
+                  className="feed-load-more"
+                  onClick={loadMoreFeed}
+                  disabled={feedLoadingMore || postsLoading}
+                >
+                  {feedLoadingMore ? t("common.loading", "Loading…") : t("home.feed.loadMore", "Load more")}
+                </button>
+              </div>
+            ) : null}
+            </>
+          ) : feedView === "tags" ? null : (
             <article className="post-card">
               <p className="muted">
-                {postsLoading
+                {feedLoading
                   ? t("common.loading", "Loading…")
-                  : useApi
-                    ? t("home.emptyApiFeed", "No posts yet. Create your first post above — it will be saved to the database.")
-                    : t("home.postsUnavailable", "Posts are temporarily unavailable.")}
+                  : feedView === "saved"
+                    ? t("home.emptySavedPosts", "No saved posts yet. Use Save on a post in your feed.")
+                    : feedView === "reposts"
+                      ? t("home.emptyReposts", "No reposts yet. Use Repost on a post in your feed.")
+                      : useApi
+                        ? t("home.emptyApiFeed", "No posts yet. Create your first post above — it will be saved to the database.")
+                        : t("home.postsUnavailable", "Posts are temporarily unavailable.")}
               </p>
               {useApi ? null : (
                 <button type="button" className="ghost-main" onClick={refreshFeed}>
