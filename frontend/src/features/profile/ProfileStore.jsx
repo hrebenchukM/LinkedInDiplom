@@ -146,22 +146,22 @@ export function ProfileProvider({ children }) {
 
         return { ok: true, profile: result.profile };
       },
-      async uploadAvatar(file) {
+      async uploadAvatar(file, options = {}) {
         if (session.user?.isGuest || USE_MOCK_AUTH) {
           throw new Error("Avatar upload requires a signed-in API account.");
         }
-        const result = await profileApi.uploadMyAvatar(file);
+        const result = await profileApi.uploadMyAvatar(file, options);
         if (!result.success || !result.profile) {
           throw new Error("Avatar upload failed.");
         }
         applyProfileDto(result.profile);
         return result.profile;
       },
-      async uploadHeader(file) {
+      async uploadHeader(file, options = {}) {
         if (session.user?.isGuest || USE_MOCK_AUTH) {
           throw new Error("Header upload requires a signed-in API account.");
         }
-        const result = await profileApi.uploadMyHeader(file);
+        const result = await profileApi.uploadMyHeader(file, options);
         if (!result.success || !result.profile) {
           throw new Error("Header upload failed.");
         }

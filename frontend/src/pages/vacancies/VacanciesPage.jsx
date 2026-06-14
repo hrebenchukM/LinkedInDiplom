@@ -8,6 +8,7 @@ import {
   buildCreateSearchQueryBody,
   buildVacancyBrowseParams,
   formatSearchQueryLabel,
+  mapApplicationDtoToAppliedView,
   mapJobToPostForm,
   mapPostFormToCreateVacancyRequest,
   mapVacancyDtoToJob,
@@ -70,7 +71,7 @@ function tmpl(key, vars, fallback) {
 }
 
 function formatSalary(min, max) {
-  if (min && max) return tmpl("vac.salary.range", { min, max }, `$${min}k â€” $${max}k / year`);
+  if (min && max) return tmpl("vac.salary.range", { min, max }, `$${min}k — $${max}k / year`);
   if (min) return tmpl("vac.salary.from", { min }, `$${min}k+ / year`);
   return "";
 }
@@ -167,7 +168,7 @@ function snapshotJob(job) {
 
 function formatDate(iso) {
   const ms = Date.parse(String(iso || ""));
-  if (!Number.isFinite(ms)) return "â€”";
+  if (!Number.isFinite(ms)) return "—";
   const lang = typeof window.getUiLang === "function" && window.getUiLang() === "en" ? "en-US" : "ru-RU";
   return new Date(ms).toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" });
 }
@@ -208,10 +209,12 @@ export function VacanciesPage() {
   const [saveSearchLoading, setSaveSearchLoading] = useState(false);
   const [myPostedApiJobs, setMyPostedApiJobs] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState(() => new Set());
+  const [favoriteJobs, setFavoriteJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [postSubmitting, setPostSubmitting] = useState(false);
   const [postError, setPostError] = useState("");
+  const [applySubmitting, setApplySubmitting] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [savedJobsMap, setSavedJobsMap] = useState(() => readSavedJobs());
   const [applicationsMap, setApplicationsMap] = useState(() => readApplications());
@@ -267,11 +270,38 @@ export function VacanciesPage() {
       setApiJobs(jobs);
       setApiTotalCount(browsePaged.totalCount);
       setMyPostedApiJobs(myPosted);
-      setFavoriteIds(new Set((favorites || []).map((f) => String(f.vacancyId)).filter(Boolean)));
+      setFavoriteIds(new Set((favorites || []).map((f) => String(f.vacancyId ?? f.VacancyId)).filter(Boolean)));
+
+      const favoriteDtos = [];
+      const missingFavoriteIds = [];
+      (favorites || []).forEach((fav) => {
+        const dto = fav.vacancy ?? fav.Vacancy;
+        const vacancyId = String(fav.vacancyId ?? fav.VacancyId ?? "");
+        if (dto) favoriteDtos.push(dto);
+        else if (vacancyId) missingFavoriteIds.push(vacancyId);
+      });
+      const mappedFavoriteJobs = await mapVacancyList(favoriteDtos);
+      if (missingFavoriteIds.length) {
+        const fetched = await Promise.all(
+          missingFavoriteIds.map((id) => jobsApi.fetchVacancyById(id)),
+        );
+        mappedFavoriteJobs.push(...(await mapVacancyList(fetched.filter(Boolean))));
+      }
+      setFavoriteJobs(mappedFavoriteJobs);
+
       const map = {};
-      apps.forEach((app) => {
+      const appVacancyDtos = (apps || []).map((app) => app?.vacancy ?? app?.Vacancy).filter(Boolean);
+      const appCompanyIds = appVacancyDtos.map((dto) => dto.companyId ?? dto.CompanyId).filter(Boolean);
+      const appCompanies = await fetchCompaniesByIds([...new Set(appCompanyIds)]);
+
+      (apps || []).forEach((app) => {
         const vacancyId = app?.vacancyId || app?.VacancyId;
-        if (vacancyId) map[String(vacancyId)] = app;
+        if (!vacancyId) return;
+        const vacancyDto = app?.vacancy ?? app?.Vacancy;
+        const companyId = vacancyDto?.companyId ?? vacancyDto?.CompanyId;
+        const companyName = companyId ? appCompanies[String(companyId)]?.name || "" : "";
+        const view = mapApplicationDtoToAppliedView(app, { companyName, currentUserId });
+        if (view) map[String(vacancyId)] = view;
       });
       setApplicationsMap(map);
       writeApplications(map);
@@ -282,6 +312,7 @@ export function VacanciesPage() {
     if (!useApi) return;
     try {
       localStorage.removeItem("vacancyPostedJobs");
+      localStorage.removeItem(SAVED_JOBS_KEY);
     } catch {
       // ignore storage errors
     }
@@ -472,7 +503,10 @@ export function VacanciesPage() {
       ),
     [applicationsMap],
   );
-  const savedJobs = useMemo(() => Object.values(savedJobsMap), [savedJobsMap]);
+  const savedJobs = useMemo(
+    () => (useApi ? favoriteJobs : Object.values(savedJobsMap)),
+    [useApi, favoriteJobs, savedJobsMap],
+  );
 
   useEffect(() => {
     function onUiLangChange() {
@@ -557,9 +591,11 @@ export function VacanciesPage() {
             next.delete(vacancyId);
             return next;
           });
+          setFavoriteJobs((prev) => prev.filter((item) => String(item.id) !== vacancyId));
         } else {
           await jobsApi.addFavorite(vacancyId);
           setFavoriteIds((prev) => new Set(prev).add(vacancyId));
+          setFavoriteJobs((prev) => (prev.some((item) => String(item.id) === vacancyId) ? prev : [...prev, job]));
         }
       } catch {
         notify(t("vac.favoriteFailed", "Could not update saved vacancies."));
@@ -576,7 +612,24 @@ export function VacanciesPage() {
     });
   }
 
-  function handleWithdrawApplication(id) {
+  async function handleWithdrawApplication(id) {
+    if (useApi) {
+      const applicationId = String(id || "");
+      if (!applicationId) return;
+      try {
+        await jobsApi.withdrawApplication(applicationId);
+        await reloadVacancies();
+        if (typeof window.pushUiNotification === "function") {
+          window.pushUiNotification(t("vac.withdrawDone", "Application withdrawn"));
+        } else {
+          notify(t("vac.withdrawDone", "Application withdrawn"));
+        }
+      } catch {
+        notify(t("vac.withdrawFailed", "Could not withdraw application."));
+      }
+      return;
+    }
+
     setApplicationsMap((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -587,7 +640,22 @@ export function VacanciesPage() {
     else notify(t("vac.withdrawDone", "Application withdrawn"));
   }
 
-  function handleRemoveSaved(id) {
+  async function handleRemoveSaved(id) {
+    if (useApi) {
+      try {
+        await jobsApi.removeFavorite(String(id));
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          next.delete(String(id));
+          return next;
+        });
+        setFavoriteJobs((prev) => prev.filter((item) => String(item.id) !== String(id)));
+        notify(t("vac.unsaved", "Removed from saved jobs"));
+      } catch {
+        notify(t("vac.favoriteFailed", "Could not update saved vacancies."));
+      }
+      return;
+    }
     setSavedJobsMap((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -694,7 +762,7 @@ export function VacanciesPage() {
         closePostModal();
         setMode("mine");
         await reloadVacancies();
-        notify(`${t("vac.postUpdated", "Job updated")}: ${body.title} â€” ${publishedCompany}`);
+        notify(`${t("vac.postUpdated", "Job updated")}: ${body.title} — ${publishedCompany}`);
       } catch (error) {
         setPostError(error?.message || t("vac.postUpdateFailed", "Could not update job."));
       } finally {
@@ -713,7 +781,7 @@ export function VacanciesPage() {
         closePostModal();
         setMode("mine");
         await reloadVacancies();
-        notify(`${t("vac.postDone", "Job published")}: ${body.title} â€” ${publishedCompany}`);
+        notify(`${t("vac.postDone", "Job published")}: ${body.title} — ${publishedCompany}`);
       } catch (error) {
         setPostError(error?.message || t("vac.postFailed", "Could not publish job."));
       } finally {
@@ -751,7 +819,7 @@ export function VacanciesPage() {
                 <p className="vac-job-row__title">
                   {isAiRecommendation
                     ? role
-                    : `${role} â€” ${job.company} â€” ${city}`}
+                    : `${role} — ${job.company} — ${city}`}
                 </p>
                 {salaryLine ? <p className="vac-job-row__salary">{salaryLine}</p> : null}
                 <p className="vac-job-row__meta">
@@ -817,7 +885,7 @@ export function VacanciesPage() {
                   aria-label={t("vac.deleteJob", "Delete")}
                   onClick={() => handleDeletePostedJob(job)}
                 >
-                  Ã—
+                  ×
                 </button>
               ) : null}
             </li>
@@ -892,7 +960,7 @@ export function VacanciesPage() {
                     <div className="vac-advanced-search__head-text">
                       <h2 className="vac-advanced-search__title">{t("vac.search.title", "Advanced job search")}</h2>
                       <p className="vac-advanced-search__subtitle">
-                        {t("vac.search.subtitle", "Filter by role, location, work type, seniority, and salary â€” like LinkedIn.")}
+                        {t("vac.search.subtitle", "Filter by role, location, work type, seniority, and salary — like LinkedIn.")}
                       </p>
                     </div>
                   </div>
@@ -963,8 +1031,8 @@ export function VacanciesPage() {
                         <span>{t("vac.field.sortBy", "Sort by")}</span>
                         <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                           <option value="relevance">{t("vac.sort.relevance", "Relevance")}</option>
-                          <option value="salary_desc">{t("vac.sort.salaryDesc", "Salary â†“")}</option>
-                          <option value="salary_asc">{t("vac.sort.salaryAsc", "Salary â†‘")}</option>
+                          <option value="salary_desc">{t("vac.sort.salaryDesc", "Salary ↓")}</option>
+                          <option value="salary_asc">{t("vac.sort.salaryAsc", "Salary ↑")}</option>
                           <option value="newest">{t("vac.sort.newest", "Newest first")}</option>
                         </select>
                       </label>
@@ -1086,7 +1154,7 @@ export function VacanciesPage() {
                     className="vac-job-card__footer-link"
                     onClick={() => focusJobSearch({ clearFilters: true })}
                   >
-                    <span>{t("vac.showAll", "Show all")}</span> <span aria-hidden="true">â†’</span>
+                    <span>{t("vac.showAll", "Show all")}</span> <span aria-hidden="true">→</span>
                   </button>
                 </section>
               )}
@@ -1146,7 +1214,7 @@ export function VacanciesPage() {
                           </strong>
                           <span>
                             {item.query ? `${t("vac.field.keywords", "Keywords")}: ${item.query}` : ""}
-                            {item.query && item.location ? " Â· " : ""}
+                            {item.query && item.location ? " · " : ""}
                             {item.location ? `${t("vac.field.location", "Location")}: ${item.location}` : ""}
                           </span>
                           <div className="vac-user-hub__item-actions">
@@ -1174,13 +1242,13 @@ export function VacanciesPage() {
                     <ul className="vac-user-hub__list">
                       {appliedJobs.map((item) => (
                         <li key={`applied-${item.id}`} className="vac-user-hub__item">
-                          <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
+                          <strong>{`${item.role || item.title || "Role"} — ${item.company || "Company"}`}</strong>
                           <span>
-                            {`${item.location || ""} Â· ${t("vac.appliedOn", "Applied on")}: ${formatDate(item.submittedAt)}`}
+                            {`${item.location || ""} · ${t("vac.appliedOn", "Applied on")}: ${formatDate(item.submittedAt)}`}
                           </span>
-                          <span>{`${t("vac.resume", "Resume")}: ${item.resumeName || "â€”"}`}</span>
+                          <span>{`${t("vac.resume", "Resume")}: ${item.resumeName || "—"}`}</span>
                           <div className="vac-user-hub__item-actions">
-                            <button type="button" className="vac-user-hub__btn" onClick={() => handleWithdrawApplication(item.id)}>
+                            <button type="button" className="vac-user-hub__btn" onClick={() => handleWithdrawApplication(item.applicationId || item.id)}>
                               {t("vac.withdraw", "Withdraw")}
                             </button>
                           </div>
@@ -1194,8 +1262,8 @@ export function VacanciesPage() {
                   <ul className="vac-user-hub__list">
                     {savedJobs.map((item) => (
                       <li key={`saved-${item.id}`} className="vac-user-hub__item">
-                        <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
-                        <span>{`${item.location || ""} Â· ${item.salary || "â€”"}`}</span>
+                        <strong>{`${item.role || item.title || "Role"} — ${item.company || "Company"}`}</strong>
+                        <span>{`${item.location || ""} · ${item.salary || "—"}`}</span>
                         <span>{item.meta || ""}</span>
                         <div className="vac-user-hub__item-actions">
                           <button type="button" className="vac-user-hub__btn" onClick={() => handleRemoveSaved(item.id)}>
@@ -1241,8 +1309,8 @@ export function VacanciesPage() {
                 <ul className="vac-user-hub__list">
                   {savedJobs.map((item) => (
                     <li key={`saved-mode-${item.id}`} className="vac-user-hub__item">
-                      <strong>{`${item.role || "Role"} â€” ${item.company || "Company"}`}</strong>
-                      <span>{`${item.location || ""} Â· ${item.salary || "â€”"}`}</span>
+                      <strong>{`${item.role || "Role"} — ${item.company || "Company"}`}</strong>
+                      <span>{`${item.location || ""} · ${item.salary || "—"}`}</span>
                       <span>{item.meta || ""}</span>
                       <div className="vac-user-hub__item-actions">
                         <button type="button" className="vac-user-hub__btn" onClick={() => handleRemoveSaved(item.id)}>
@@ -1294,7 +1362,7 @@ export function VacanciesPage() {
           <div className="vac-apply-modal__backdrop" onClick={closePostModal} />
           <section className="vac-apply-modal__dialog vac-apply-modal__dialog--wide">
             <button type="button" className="vac-apply-modal__close" onClick={closePostModal}>
-              Ã—
+              ×
             </button>
             <header className="vac-apply-modal__head">
               <h3 className="vac-apply-modal__title">
@@ -1302,8 +1370,8 @@ export function VacanciesPage() {
               </h3>
               <p className="vac-apply-modal__subtitle">
                 {editingJob
-                  ? t("vac.editJobSub", "Update your listing â€” changes appear in job picks right away.")
-                  : t("vac.postJobSub", "Create a new listing â€” it appears in job picks right away.")}
+                  ? t("vac.editJobSub", "Update your listing — changes appear in job picks right away.")
+                  : t("vac.postJobSub", "Create a new listing — it appears in job picks right away.")}
               </p>
             </header>
             <form
@@ -1335,7 +1403,7 @@ export function VacanciesPage() {
                 <input
                   type="text"
                   required
-                  placeholder={t("vac.placeholder.postLocation", "Remote, Kyiv, Berlinâ€¦")}
+                  placeholder={t("vac.placeholder.postLocation", "Remote, Kyiv, Berlin…")}
                   value={postForm.location}
                   onChange={(event) => setPostForm((prev) => ({ ...prev, location: event.target.value }))}
                 />
@@ -1392,7 +1460,7 @@ export function VacanciesPage() {
                 <span>{t("vac.field.jobDescription", "Job description")}</span>
                 <textarea
                   rows={4}
-                  placeholder={t("vac.placeholder.jobDescription", "Describe responsibilities, stack, and requirementsâ€¦")}
+                  placeholder={t("vac.placeholder.jobDescription", "Describe responsibilities, stack, and requirements…")}
                   value={postForm.desc}
                   onChange={(event) => setPostForm((prev) => ({ ...prev, desc: event.target.value }))}
                 />
@@ -1440,17 +1508,17 @@ export function VacanciesPage() {
           <div className="vac-apply-modal__backdrop" onClick={() => setApplyModalOpen(false)} />
           <section className="vac-apply-modal__dialog">
             <button type="button" className="vac-apply-modal__close" onClick={() => setApplyModalOpen(false)}>
-              Ã—
+              ×
             </button>
             <header className="vac-apply-modal__head">
               <h3 className="vac-apply-modal__title">{t("vac.quickApply", "Quick apply")}</h3>
               <p className="vac-apply-modal__subtitle">
                 {activeJobForApply
-                  ? `${activeJobForApply.role || activeJobForApply.title} Â· ${activeJobForApply.company} Â· ${formatSalary(
+                  ? `${activeJobForApply.role || activeJobForApply.title} · ${activeJobForApply.company} · ${formatSalary(
                       activeJobForApply.salaryMin,
                       activeJobForApply.salaryMax,
                     )}`
-                  : "â€”"}
+                  : "—"}
               </p>
             </header>
             <form
@@ -1493,6 +1561,7 @@ export function VacanciesPage() {
                 };
 
                 if (useApi && activeJobForApply._api) {
+                  setApplySubmitting(true);
                   jobsApi
                     .applyToVacancy(String(activeJobForApply.id))
                     .then(() => reloadVacancies())
@@ -1501,7 +1570,8 @@ export function VacanciesPage() {
                       setApplyModalOpen(false);
                       notify(`${t("vac.applyDone", "Application sent")}: ${activeJobForApply.role || activeJobForApply.title}`);
                     })
-                    .catch(() => setApplyError(t("vac.applyFailed", "Failed to submit application.")));
+                    .catch(() => setApplyError(t("vac.applyFailed", "Failed to submit application.")))
+                    .finally(() => setApplySubmitting(false));
                   return;
                 }
                 submitLocal();
@@ -1597,8 +1667,12 @@ export function VacanciesPage() {
                 <button type="button" className="vac-apply-modal__btn vac-apply-modal__btn--ghost" onClick={() => setApplyModalOpen(false)}>
                   {t("vac.cancel", "Cancel")}
                 </button>
-                <button type="submit" className="vac-apply-modal__btn vac-apply-modal__btn--primary">
-                  {t("vac.submitApply", "Submit application")}
+                <button
+                  type="submit"
+                  className="vac-apply-modal__btn vac-apply-modal__btn--primary"
+                  disabled={applySubmitting}
+                >
+                  {applySubmitting ? t("common.loading", "Loading…") : t("vac.submitApply", "Submit application")}
                 </button>
               </div>
             </form>

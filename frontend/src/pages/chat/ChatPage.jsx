@@ -4,6 +4,8 @@ import { useChatStore } from "../../features/chat/ChatStore";
 import { countUnreadIncoming } from "../../shared/lib/messageRead";
 import { getCallMessageText, getMessagePreview, isCallMessage } from "../../shared/lib/callMessage";
 import { isPostShareMessage } from "../../shared/lib/postShare";
+import { resolveChatAvatar, resolveChatContactProfile } from "../../features/chat/resolveChatContact";
+import { resolveChatDisplayName, shouldShowChatInList } from "../../features/messaging/mapMessaging";
 import { getContactAvatarUrl, getContactProfile } from "../../shared/constants/contactProfiles";
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
 import { getAiCommandChips, getAiQuickPrompts, isAiAssistantChat } from "../../features/chat/aiAssistantReplies";
@@ -24,9 +26,13 @@ export function ChatPage() {
     addCallMessage,
     deleteMessage: removeMessage,
     useApi,
+    hubOnline,
     isLoading,
     loadError,
     reloadFromApi,
+    reconnectHub,
+    joinChatById,
+    ensureApiChatForPeer,
   } = useChatStore();
   const { t, lang } = useUiSettings();
   const navigate = useNavigate();
@@ -43,8 +49,10 @@ export function ChatPage() {
   const profileRef = useRef(null);
   const threadScrollRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const mediaInputRef = useRef(null);
 
   const filteredChats = chats.filter((chat) => {
+    if (!shouldShowChatInList(chat)) return false;
     const isArchived = Boolean(chat.archived);
     if (tab === "archive" ? !isArchived : isArchived) return false;
     const query = search.trim().toLowerCase();
@@ -52,9 +60,8 @@ export function ChatPage() {
     const lastMessage = chat.messages?.[chat.messages.length - 1] || null;
     const last = getMessagePreview(lastMessage, t);
     return (
-      String(chat.peer || "")
-        .toLowerCase()
-        .includes(query) || String(last).toLowerCase().includes(query)
+      resolveChatDisplayName(chat).toLowerCase().includes(query) ||
+      String(last).toLowerCase().includes(query)
     );
   });
 
@@ -77,8 +84,8 @@ export function ChatPage() {
   );
 
   const sendToAssistant = useCallback(
-    (messageText) => {
-      sendMessage(messageText, { lang, onAiAction: handleAiAction });
+    (messageText, options = {}) => {
+      sendMessage(messageText, { lang, onAiAction: handleAiAction, ...options });
     },
     [sendMessage, lang, handleAiAction],
   );
@@ -126,19 +133,19 @@ export function ChatPage() {
   }
 
   const activeProfile = useMemo(
-    () =>
-      getContactProfile(activeChat?.peer || activeChat?.id, {
-        name: activeIsAiAssistant ? t("notify.aiAssistantName", "AI Assistant") : activeChat?.peer,
-      }),
-    [activeChat?.id, activeChat?.peer, activeIsAiAssistant, t],
+    () => resolveChatContactProfile(activeChat, t),
+    [activeChat, t],
   );
   const activeAvatar = useMemo(
-    () => getContactAvatarUrl(activeProfile, activeChat?.peer || "user"),
-    [activeProfile, activeChat?.peer],
+    () => resolveChatAvatar(activeChat, t),
+    [activeChat, t],
   );
   const callProfile = useMemo(
-    () => getContactProfile(callOverlay?.peer, { name: callOverlay?.peer }),
-    [callOverlay?.peer],
+    () =>
+      callOverlay?.chat
+        ? resolveChatContactProfile(callOverlay.chat, t)
+        : getContactProfile(callOverlay?.peer, { name: callOverlay?.peer }),
+    [callOverlay?.chat, callOverlay?.peer, t],
   );
 
   const threadQuery = threadSearch.trim().toLowerCase();
@@ -185,6 +192,7 @@ export function ChatPage() {
     }
     setCallOverlay({
       peer: activeChat.peer,
+      chat: activeChat,
       status: "calling",
       exiting: false,
       muted: false,
@@ -277,6 +285,11 @@ export function ChatPage() {
 
   useEffect(() => {
     const withPeer = searchParams.get("with");
+    const chatIdParam = searchParams.get("chatId");
+    if (chatIdParam && useApi) {
+      joinChatById(chatIdParam);
+      return;
+    }
     if (!withPeer) return;
 
     const canonicalPeerId =
@@ -287,10 +300,37 @@ export function ChatPage() {
     const target = chats.find((chat) => {
       const chatPeer = canonicalPeerId(chat.peer);
       const chatId = canonicalPeerId(chat.id);
-      return chatPeer === slug || chatId === slug;
+      const chatUserId = chat.peerUserId ? canonicalPeerId(chat.peerUserId) : "";
+      return chatPeer === slug || chatId === slug || chatUserId === slug;
     });
-    if (target) setActiveChat(target.id);
-  }, [searchParams, chats, setActiveChat]);
+    if (target) {
+      setActiveChat(target.id);
+      return;
+    }
+
+    if (useApi && ensureApiChatForPeer) {
+      ensureApiChatForPeer({ peer: withPeer, peerId: withPeer }).then((chat) => {
+        if (chat?.id) setActiveChat(chat.id);
+      });
+    }
+  }, [searchParams, chats, setActiveChat, useApi, joinChatById, ensureApiChatForPeer]);
+
+  useEffect(() => {
+    if (!useApi) return undefined;
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        reconnectHub();
+      }
+    }
+
+    window.addEventListener("focus", reconnectHub);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", reconnectHub);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [useApi, reconnectHub]);
 
   useEffect(() => {
     setThreadSearchOpen(false);
@@ -385,8 +425,7 @@ export function ChatPage() {
                     : (value) => String(value || "").trim().toLowerCase();
                 const isAiAssistant =
                   canonicalPeerId(chat.id || chat.peer) === canonicalPeerId(AI_ASSISTANT_PEER_ID);
-                const chatProfile = getContactProfile(chat.peer || chat.id, { name: chat.peer });
-                const chatAvatar = getContactAvatarUrl(chatProfile, chat.peer);
+                const chatAvatar = resolveChatAvatar(chat, t);
                 const messages = Array.isArray(chat.messages) ? chat.messages : [];
                 const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
                 const last = lastMessage
@@ -422,7 +461,9 @@ export function ChatPage() {
                       <span className="chat-list__item-body">
                         <span className="chat-list__item-name">
                           <span className="chat-list__item-name-text">
-                            {isAiAssistant ? t("notify.aiAssistantName", "AI Assistant") : chat.peer}
+                            {isAiAssistant
+                              ? t("notify.aiAssistantName", "AI Assistant")
+                              : resolveChatDisplayName(chat)}
                           </span>
                           {!active && unreadCount > 0 ? (
                             <span className="chat-list__badge">{unreadCount}</span>
@@ -466,7 +507,7 @@ export function ChatPage() {
                   {activeChat
                     ? activeIsAiAssistant
                       ? t("notify.aiAssistantName", "AI Assistant")
-                      : activeChat.peer
+                      : resolveChatDisplayName(activeChat)
                     : t("chat.selectChat", "Select chat")}
                 </h1>
                 <div className="chat-thread__status">
@@ -474,9 +515,13 @@ export function ChatPage() {
                   <span>
                     {activeChat?.muted
                       ? t("chat.mutedShort", "Muted")
-                      : activeChat?.online
-                        ? t("chat.online", "Online")
-                        : t("chat.lastSeen", "Last seen recently")}
+                      : useApi && activeChat?._api && !activeIsAiAssistant
+                        ? hubOnline
+                          ? t("chat.online", "Online")
+                          : t("chat.reconnecting", "Reconnecting…")
+                        : activeChat?.online
+                          ? t("chat.online", "Online")
+                          : t("chat.lastSeen", "Last seen recently")}
                   </span>
                 </div>
               </div>
@@ -654,7 +699,33 @@ export function ChatPage() {
                     )}
                     <div className="chat-msg__content">
                       <div className="chat-msg__row">
-                        <div className="chat-msg__bubble chat-msg__bubble--pre">{message.text}</div>
+                        <div className="chat-msg__bubble chat-msg__bubble--pre">
+                          {message.text ? <div>{message.text}</div> : null}
+                          {Array.isArray(message.media) && message.media.length > 0
+                            ? message.media.map((item) =>
+                                String(item.type || "").startsWith("image") ||
+                                /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(String(item.url || "")) ? (
+                                  <img
+                                    key={item.id || item.url}
+                                    className="chat-msg__media"
+                                    src={item.url}
+                                    alt={t("chat.attachment", "Attachment")}
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <a
+                                    key={item.id || item.url}
+                                    className="chat-msg__media-link"
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {t("chat.openAttachment", "Open attachment")}
+                                  </a>
+                                ),
+                              )
+                            : null}
+                        </div>
                         {renderDeleteButton(message)}
                       </div>
                       <div className="chat-msg__time">{message.fromMe ? "now" : "2 min ago"}</div>
@@ -723,10 +794,29 @@ export function ChatPage() {
               disabled={!activeChat}
             />
             <div className="chat-compose__tools">
-              <button type="button" className="chat-compose__tool" aria-label="Emoji">
+              <button type="button" className="chat-compose__tool" aria-label={t("chat.emoji", "Emoji")}>
                 😊
               </button>
-              <button type="button" className="chat-compose__tool" aria-label="Attach">
+              <input
+                ref={mediaInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file || !activeChat || activeIsAiAssistant) return;
+                  sendToAssistant(text || "📎", { file });
+                  setText("");
+                }}
+              />
+              <button
+                type="button"
+                className="chat-compose__tool"
+                aria-label={t("chat.attach", "Attach")}
+                disabled={!activeChat || activeIsAiAssistant}
+                onClick={() => mediaInputRef.current?.click()}
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
                 </svg>
@@ -748,7 +838,7 @@ export function ChatPage() {
               {activeChat
                 ? activeIsAiAssistant
                   ? t("notify.aiAssistantName", "AI Assistant")
-                  : activeChat.peer
+                  : resolveChatDisplayName(activeChat)
                 : t("chat.profile.none", "No contact selected")}
             </h2>
             <div className="chat-profile__block">
@@ -798,7 +888,7 @@ export function ChatPage() {
               <span className="chat-call-overlay__pulse chat-call-overlay__pulse--3" aria-hidden="true" />
               <img
                 className="chat-call-overlay__avatar"
-                src={getContactAvatarUrl(callProfile, callOverlay.peer)}
+                src={callOverlay.chat ? resolveChatAvatar(callOverlay.chat, t) : getContactAvatarUrl(callProfile, callOverlay.peer)}
                 width="120"
                 height="120"
                 alt=""

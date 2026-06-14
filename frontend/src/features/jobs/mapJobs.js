@@ -103,6 +103,38 @@ export function mapVacancyDtoToJob(dto, companyName = "", currentUserId) {
   };
 }
 
+/** Normalize a job application DTO for the vacancies activity hub. */
+export function mapApplicationDtoToAppliedView(app, { companyName = "", currentUserId } = {}) {
+  if (!app || typeof app !== "object") return null;
+
+  const applicationId = String(app.id ?? app.Id ?? "");
+  const vacancyId = String(app.vacancyId ?? app.VacancyId ?? "");
+  if (!applicationId && !vacancyId) return null;
+
+  const vacancyDto = app.vacancy ?? app.Vacancy ?? null;
+  const job = vacancyDto ? mapVacancyDtoToJob(vacancyDto, companyName, currentUserId) : null;
+
+  return {
+    id: applicationId || vacancyId,
+    applicationId: applicationId || vacancyId,
+    vacancyId,
+    role: job?.role || job?.title || "Role",
+    title: job?.title || job?.role || "Role",
+    company: job?.company || "Company",
+    location: job?.location || "",
+    salary: job ? formatAppliedSalary(job.salaryMin, job.salaryMax) : "",
+    submittedAt: app.appliedAt ?? app.AppliedAt ?? app.submittedAt ?? null,
+    resumeName: app.resumeName || "",
+    _api: true,
+  };
+}
+
+function formatAppliedSalary(min, max) {
+  if (min && max) return `$${min}k — $${max}k / year`;
+  if (min) return `$${min}k+ / year`;
+  return "";
+}
+
 export function mapJobToPostForm(job = {}) {
   const description =
     typeof job.desc === "string" ? job.desc : String(job.desc?.en || job.desc?.uk || job.desc?.ru || "");

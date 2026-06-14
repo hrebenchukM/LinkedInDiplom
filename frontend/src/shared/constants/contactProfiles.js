@@ -243,7 +243,8 @@ export function resolveContactKey(value) {
   }
   const slug = slugPeerId(value);
   if (!slug) return "";
-  return PEER_ALIASES[slug] || slug;
+  const compact = slug.replace(/-/g, "");
+  return PEER_ALIASES[slug] || PEER_ALIASES[compact] || slug;
 }
 
 function hashString(value) {

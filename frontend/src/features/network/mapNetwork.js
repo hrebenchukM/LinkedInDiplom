@@ -1,4 +1,4 @@
-import { resolveMediaUrl } from "../profile/mapProfile";
+import { resolveAvatarSeed, resolveMediaUrl, resolvePersonAvatar } from "../profile/mapProfile";
 
 export const CONTACT_STATUS = Object.freeze({
   PENDING: "pending",
@@ -178,7 +178,8 @@ function mapFollowUserToPerson(follow, profile, userId) {
     profile?.fullName?.trim() ||
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
     `User ${String(userId).slice(0, 8)}`;
-  const avatar = profile?.avatarUrl ? resolveMediaUrl(profile.avatarUrl) : "";
+  const avatarSeed = resolveAvatarSeed({ profile, userId, name });
+  const avatar = resolvePersonAvatar({ profile, userId, name });
 
   return {
     id: String(follow.id),
@@ -186,7 +187,7 @@ function mapFollowUserToPerson(follow, profile, userId) {
     name,
     role: profile?.headline || profile?.profileTitle || "Member",
     handle: String(userId).slice(0, 12),
-    seed: userId,
+    seed: avatarSeed,
     avatar,
     keywords: `${name} ${profile?.headline || ""}`.toLowerCase(),
     status: "followed",
@@ -301,7 +302,8 @@ export function mapBlockedUserToPerson(block, profile) {
     profile?.fullName?.trim() ||
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
     `User ${String(userId).slice(0, 8)}`;
-  const avatar = profile?.avatarUrl ? resolveMediaUrl(profile.avatarUrl) : "";
+  const avatarSeed = resolveAvatarSeed({ profile, userId, name });
+  const avatar = resolvePersonAvatar({ profile, userId, name });
 
   return {
     id: String(block.id),
@@ -309,7 +311,7 @@ export function mapBlockedUserToPerson(block, profile) {
     name,
     role: profile?.headline || profile?.profileTitle || "Member",
     handle: String(userId).slice(0, 12),
-    seed: userId,
+    seed: avatarSeed,
     avatar,
     blockedAt: block.blockedAt,
     status: "blocked",
@@ -349,7 +351,8 @@ export function mapContactDtoToPerson(contact, profile, currentUserId) {
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
     `User ${String(otherUserId).slice(0, 8)}`;
 
-  const avatar = profile?.avatarUrl ? resolveMediaUrl(profile.avatarUrl) : "";
+  const avatarSeed = resolveAvatarSeed({ profile, userId: otherUserId, name });
+  const avatar = resolvePersonAvatar({ profile, userId: otherUserId, name });
 
   return {
     id: String(contact.id),
@@ -357,7 +360,7 @@ export function mapContactDtoToPerson(contact, profile, currentUserId) {
     name,
     role: profile?.headline || profile?.profileTitle || "Member",
     handle: String(otherUserId).slice(0, 12),
-    seed: otherUserId,
+    seed: avatarSeed,
     avatar,
     keywords: `${name} ${profile?.headline || ""}`.toLowerCase(),
     mutual: 0,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { formatBlockedDate } from "../../features/network/blockedUsersApi";
 import {
   getRelationshipStatusLabels,
@@ -114,8 +114,22 @@ export function NetworkPage() {
   } = useNetworkStore();
   const { chats, setActiveChat, ensureChat } = useChatStore();
   const [section, setSection] = useState("connections");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [eventFilter, setEventFilter] = useState("discover");
+  const [eventSearch, setEventSearch] = useState("");
+  const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [createEventSubmitting, setCreateEventSubmitting] = useState(false);
+  const [createEventError, setCreateEventError] = useState("");
+  const [createEventCover, setCreateEventCover] = useState(null);
+  const [createEventForm, setCreateEventForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+    isOnline: false,
+    startAt: "",
+    endAt: "",
+  });
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState("");
@@ -128,6 +142,31 @@ export function NetworkPage() {
   const [searchError, setSearchError] = useState("");
   const [searchTotalCount, setSearchTotalCount] = useState(0);
   const [searchRetry, setSearchRetry] = useState(0);
+
+  const validSections = useMemo(() => new Set(NETWORK_SECTIONS.map((item) => item.id)), []);
+
+  const selectSection = useCallback(
+    (nextSection) => {
+      setSection(nextSection);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (nextSection === "connections") next.delete("section");
+          else next.set("section", nextSection);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("section");
+    if (fromUrl && validSections.has(fromUrl) && fromUrl !== section) {
+      setSection(fromUrl);
+    }
+  }, [searchParams, validSections, section]);
 
   const normalizedPeopleQuery = query.trim().toLowerCase();
   const isApiProfileSearch = useApi && normalizedPeopleQuery.length >= PROFILE_SEARCH_MIN_LENGTH;
@@ -224,15 +263,23 @@ export function NetworkPage() {
     !searchLoading &&
     !normalizedPeopleQuery;
 
-  const messagesPreview = useMemo(
-    () =>
-      chats.map((chat) => ({
+  const messagesPreview = useMemo(() => {
+    const peopleByUserId = new Map(
+      people.filter((person) => person.userId).map((person) => [String(person.userId), person]),
+    );
+
+    return chats.map((chat) => {
+      const contact = chat.peerUserId ? peopleByUserId.get(String(chat.peerUserId)) : null;
+      return {
         id: chat.id,
         name: chat.peer,
-        preview: chat.messages?.[chat.messages.length - 1]?.text || t("network.messages.noneYet", "No messages yet"),
-      })),
-    [chats, t],
-  );
+        avatar: chat.avatar || contact?.avatar || "",
+        preview:
+          chat.messages?.[chat.messages.length - 1]?.text ||
+          t("network.messages.noneYet", "No messages yet"),
+      };
+    });
+  }, [chats, people, t]);
 
   const reloadEvents = useCallback(async () => {
     if (!useApi) {
@@ -249,6 +296,7 @@ export function NetworkPage() {
               page: 1,
               pageSize: 30,
               isOnline: eventFilter === "online" ? true : undefined,
+              query: eventSearch.trim() || undefined,
             });
       setEvents(result.items);
     } catch {
@@ -257,7 +305,7 @@ export function NetworkPage() {
     } finally {
       setEventsLoading(false);
     }
-  }, [useApi, eventFilter, t]);
+  }, [useApi, eventFilter, eventSearch, t]);
   const activeGroup = useMemo(
     () => groups.find((group) => group.id === activeGroupId) || groups[0] || null,
     [groups, activeGroupId],
@@ -294,6 +342,56 @@ export function NetworkPage() {
     }
   }
 
+  async function submitCreateEvent(event) {
+    event.preventDefault();
+    if (!useApi || createEventSubmitting) return;
+    const title = createEventForm.title.trim();
+    const startAt = createEventForm.startAt ? new Date(createEventForm.startAt) : null;
+    if (!title || !startAt || Number.isNaN(startAt.getTime())) {
+      setCreateEventError(t("network.events.createRequired", "Title and start date are required."));
+      return;
+    }
+    const endAt = createEventForm.endAt ? new Date(createEventForm.endAt) : null;
+    if (endAt && endAt <= startAt) {
+      setCreateEventError(t("network.events.endAfterStart", "End time must be after start time."));
+      return;
+    }
+
+    setCreateEventSubmitting(true);
+    setCreateEventError("");
+    try {
+      const created = await eventsApi.createEvent({
+        organizerType: "user",
+        title,
+        description: createEventForm.description.trim() || undefined,
+        location: createEventForm.location.trim() || undefined,
+        isOnline: createEventForm.isOnline,
+        visibility: "public",
+        startAt: startAt.toISOString(),
+        endAt: endAt ? endAt.toISOString() : undefined,
+      });
+      if (created?.id && createEventCover) {
+        await eventsApi.uploadEventCover(created.id, createEventCover);
+      }
+      setCreateEventOpen(false);
+      setCreateEventCover(null);
+      setCreateEventForm({
+        title: "",
+        description: "",
+        location: "",
+        isOnline: false,
+        startAt: "",
+        endAt: "",
+      });
+      setEventFilter("discover");
+      await reloadEvents();
+    } catch {
+      setCreateEventError(t("network.events.createFailed", "Could not create event."));
+    } finally {
+      setCreateEventSubmitting(false);
+    }
+  }
+
   function eventBadge(event) {
     if (event.isAttending) return t("network.events.badge.attending", "Attending");
     if (event.isOnline) return t("network.events.badge.online", "Online");
@@ -312,10 +410,8 @@ export function NetworkPage() {
   function onConnect(person) {
     connect(person.id);
 
-    const peerId = person.handle || person.seed || person.name;
-    const avatar =
-      person.avatar ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`;
+    const peerId = person.userId || person.handle || person.seed || person.name;
+    const avatar = person.avatar || avatarUrl(person.seed || person.name);
 
     if (typeof window.connectPerson === "function") {
       window.connectPerson({
@@ -326,13 +422,18 @@ export function NetworkPage() {
       });
     }
 
-    ensureChat({ peer: person.name, peerId });
+    ensureChat({
+      peer: person.name,
+      peerId,
+      avatar: person.avatar,
+      avatarSeed: person.seed,
+    });
   }
 
   function onMessageFollowing(person) {
     const peerId = person.userId || person.handle || person.seed || person.name;
     const byPeerId = person.userId
-      ? chats.find((chat) => String(chat.peerId || "") === String(person.userId))
+      ? chats.find((chat) => String(chat.peerUserId || chat.peerId || "") === String(person.userId))
       : null;
     const handle = canonicalHandle(person.handle);
     const byHandle = chats.find((chat) => canonicalHandle(chat.peer) === handle);
@@ -341,7 +442,12 @@ export function NetworkPage() {
     if (target) {
       setActiveChat(target.id);
     } else {
-      ensureChat({ peer: person.name, peerId });
+      ensureChat({
+        peer: person.name,
+        peerId,
+        avatar: person.avatar,
+        avatarSeed: person.seed,
+      });
     }
     navigate("/chat");
   }
@@ -451,7 +557,7 @@ export function NetworkPage() {
                     ? `vac-sidebar__link vac-sidebar__link--active vac-sidebar__link--${item.icon}`
                     : `vac-sidebar__link vac-sidebar__link--${item.icon}`
                 }
-                onClick={() => setSection(item.id)}
+                onClick={() => selectSection(item.id)}
               >
                 <span className={`vac-sidebar__icon vac-sidebar__icon--${item.icon}`} aria-hidden="true">
                   <NetworkNavIcon type={item.icon} />
@@ -585,10 +691,7 @@ export function NetworkPage() {
                         >
                           <img
                             className="vac-person-card__avatar"
-                            src={
-                              person.avatar ||
-                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
-                            }
+                            src={person.avatar || avatarUrl(person.seed || person.name)}
                             width="40"
                             height="40"
                             alt=""
@@ -701,10 +804,7 @@ export function NetworkPage() {
                     <article className="vac-following-row" key={person.id}>
                       <img
                         className="vac-following-row__avatar"
-                        src={
-                          person.avatar ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
-                        }
+                        src={person.avatar || avatarUrl(person.seed || person.name)}
                         width="56"
                         height="56"
                         alt=""
@@ -766,10 +866,7 @@ export function NetworkPage() {
                         <article className="vac-following-row" key={person.id}>
                           <img
                             className="vac-following-row__avatar"
-                            src={
-                              person.avatar ||
-                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
-                            }
+                            src={person.avatar || avatarUrl(person.seed || person.name)}
                             width="56"
                             height="56"
                             alt=""
@@ -843,10 +940,7 @@ export function NetworkPage() {
                       <article className="vac-following-row vac-blocked-row" key={person.id}>
                         <img
                           className="vac-following-row__avatar"
-                          src={
-                            person.avatar ||
-                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(person.seed || person.name)}`
-                          }
+                          src={person.avatar || avatarUrl(person.seed || person.name)}
                           width="56"
                           height="56"
                           alt=""
@@ -1023,6 +1117,27 @@ export function NetworkPage() {
               </p>
               {useApi ? (
                 <>
+                  <div className="vac-event-toolbar">
+                    <button
+                      type="button"
+                      className="vac-event-create-btn"
+                      onClick={() => {
+                        setCreateEventError("");
+                        setCreateEventOpen(true);
+                      }}
+                    >
+                      {t("network.events.create", "Create event")}
+                    </button>
+                  </div>
+                  <div className="vac-event-search">
+                    <input
+                      type="search"
+                      value={eventSearch}
+                      onChange={(event) => setEventSearch(event.target.value)}
+                      placeholder={t("network.events.search", "Search events by title or location")}
+                      aria-label={t("network.events.search", "Search events by title or location")}
+                    />
+                  </div>
                   <div className="vac-event-filters">
                     <button
                       type="button"
@@ -1128,6 +1243,94 @@ export function NetworkPage() {
           )}
         </main>
 
+        {createEventOpen ? (
+          <div className="vac-event-modal-backdrop" role="presentation" onClick={() => !createEventSubmitting && setCreateEventOpen(false)}>
+            <section
+              className="vac-event-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-event-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header className="vac-event-modal__head">
+                <h3 id="create-event-title">{t("network.events.createTitle", "Create event")}</h3>
+                <button type="button" className="vac-event-modal__close" onClick={() => setCreateEventOpen(false)} disabled={createEventSubmitting}>
+                  ×
+                </button>
+              </header>
+              <form className="vac-event-modal__form" onSubmit={submitCreateEvent}>
+                <label>
+                  <span>{t("network.events.field.title", "Title")}</span>
+                  <input
+                    type="text"
+                    required
+                    value={createEventForm.title}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, title: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  <span>{t("network.events.field.description", "Description")}</span>
+                  <textarea
+                    rows={3}
+                    value={createEventForm.description}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, description: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  <span>{t("network.events.field.location", "Location")}</span>
+                  <input
+                    type="text"
+                    value={createEventForm.location}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, location: event.target.value }))}
+                  />
+                </label>
+                <label className="vac-event-modal__check">
+                  <input
+                    type="checkbox"
+                    checked={createEventForm.isOnline}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, isOnline: event.target.checked }))}
+                  />
+                  <span>{t("network.events.field.online", "Online event")}</span>
+                </label>
+                <label>
+                  <span>{t("network.events.field.start", "Start")}</span>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={createEventForm.startAt}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, startAt: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  <span>{t("network.events.field.end", "End")}</span>
+                  <input
+                    type="datetime-local"
+                    value={createEventForm.endAt}
+                    onChange={(event) => setCreateEventForm((prev) => ({ ...prev, endAt: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  <span>{t("network.events.field.cover", "Cover image")}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setCreateEventCover(event.target.files?.[0] || null)}
+                  />
+                </label>
+                {createEventError ? <p className="vac-event-modal__error">{createEventError}</p> : null}
+                <div className="vac-event-modal__actions">
+                  <button type="button" className="vac-event-modal__btn" onClick={() => setCreateEventOpen(false)} disabled={createEventSubmitting}>
+                    {t("common.cancel", "Cancel")}
+                  </button>
+                  <button type="submit" className="vac-event-modal__btn vac-event-modal__btn--primary" disabled={createEventSubmitting}>
+                    {createEventSubmitting ? t("common.loading", "Loading…") : t("network.events.createSubmit", "Create")}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        ) : null}
+
         <aside className="home-col-right home-card home-messages">
           <div className="home-messages__head">
             <h2 className="home-messages__title">{t("network.messages.title", "Messages")}</h2>
@@ -1137,7 +1340,7 @@ export function NetworkPage() {
             {messagesPreview.length > 0 ? (
               messagesPreview.map((msg) => (
                 <button key={msg.id} type="button" className="home-messages__item" onClick={() => navigate("/chat")}>
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(msg.name)}`} width="34" height="34" alt="" />
+                  <img src={msg.avatar || avatarUrl(msg.name)} width="34" height="34" alt="" />
                   <span>
                     <strong>{msg.name}</strong>
                     <small>{msg.preview}</small>

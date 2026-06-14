@@ -194,6 +194,7 @@ export function ProfilePage() {
   const [skillInputFocused, setSkillInputFocused] = useState(false);
   const [saveHint, setSaveHint] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [pendingAvatar, setPendingAvatar] = useState(form.avatarDataUrl);
   const [apiSkills, setApiSkills] = useState([]);
@@ -643,7 +644,10 @@ export function ProfilePage() {
     try {
       if (usesApiProfile) {
         setIsSaving(true);
-        const dto = await uploadHeader(file);
+        setUploadProgress(0);
+        const dto = await uploadHeader(file, {
+          onProgress: (value) => setUploadProgress(value),
+        });
         const resolved = resolveMediaUrl(dto?.headerUrl) || form.headerDataUrl;
         const next = { ...form, headerDataUrl: resolved };
         setForm(next);
@@ -661,6 +665,7 @@ export function ProfilePage() {
       setSaveHint(error?.message || t("profile.hint.headerFail", "Failed to upload cover photo."));
     } finally {
       setIsSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -684,7 +689,10 @@ export function ProfilePage() {
     try {
       if (usesApiProfile) {
         setIsSaving(true);
-        const dto = await uploadAvatar(file);
+        setUploadProgress(0);
+        const dto = await uploadAvatar(file, {
+          onProgress: (value) => setUploadProgress(value),
+        });
         const resolved = resolveMediaUrl(dto?.avatarUrl) || form.avatarDataUrl;
         const next = { ...form, avatarDataUrl: resolved };
         setPendingAvatar(resolved);
@@ -707,6 +715,7 @@ export function ProfilePage() {
       setSaveHint(error?.message || t("profile.hint.avatarFail", "Failed to upload photo."));
     } finally {
       setIsSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -1360,6 +1369,12 @@ export function ProfilePage() {
             <div className="lk-head__row">
               <div className="lk-avatar-wrap">
                 <img className="lk-avatar" src={avatarSrc} alt="" />
+                {uploadProgress != null ? (
+                  <div className="lk-upload-progress" role="status" aria-live="polite">
+                    <div className="lk-upload-progress__bar" style={{ width: `${uploadProgress}%` }} />
+                    <span>{uploadProgress}%</span>
+                  </div>
+                ) : null}
                 <div className="lk-avatar-actions">
                   <button type="button" className="lk-avatar-edit" onClick={() => setAvatarPickerOpen((prev) => !prev)}>
                     {form.avatarDataUrl ? t("profile.avatar.change", "Change avatar") : t("profile.avatar.add", "Add avatar")}
@@ -1634,7 +1649,7 @@ export function ProfilePage() {
               <div className="progress-fill" style={{ width: `${completion}%` }} />
             </div>
             <p className="lk-muted">{t("profile.progressHint", "The more details you add, the better your profile looks.")}</p>
-            <section className="lk-settings" aria-label="Profile settings">
+            <section className="lk-settings" aria-label={t("profile.settings.aria", "Profile settings")}>
               <h4>{t("profile.settingsMini", "Mini account settings")}</h4>
               <label>
                 {t("profile.lang", "Interface language")}
@@ -1832,31 +1847,33 @@ export function ProfilePage() {
                 <p className="lk-muted lk-skills-api-hint">
                   {t("profile.portfolio.hint", "Portfolio link is saved to your Profile API record.")}
                 </p>
-                <label>
-                  {t("profile.portfolio.url", "Portfolio URL")}
-                  <input
-                    value={form.portfolioUrl || ""}
-                    onChange={(e) => patchForm({ portfolioUrl: e.target.value })}
-                    placeholder="https://github.com/you"
-                  />
-                </label>
-                <div className="lk-head-actions">
-                  <button
-                    type="button"
-                    className="lk-head-chip lk-head-chip--primary"
-                    onClick={savePortfolioUrl}
-                    disabled={isSaving}
-                  >
-                    {t("profile.portfolio.save", "Save portfolio link")}
-                  </button>
+                <div className="lk-field-block">
+                  <label className="lk-field lk-field--full">
+                    {t("profile.portfolio.url", "Portfolio URL")}
+                    <input
+                      value={form.portfolioUrl || ""}
+                      onChange={(e) => patchForm({ portfolioUrl: e.target.value })}
+                      placeholder="https://github.com/you"
+                    />
+                  </label>
+                  <div className="lk-field-actions">
+                    <button
+                      type="button"
+                      className="skills-add-btn"
+                      onClick={savePortfolioUrl}
+                      disabled={isSaving}
+                    >
+                      {t("profile.portfolio.save", "Save portfolio link")}
+                    </button>
+                  </div>
+                  {form.portfolioUrl ? (
+                    <a className="lk-line lk-line--link" href={form.portfolioUrl} target="_blank" rel="noreferrer">
+                      {form.portfolioUrl}
+                    </a>
+                  ) : (
+                    <p className="skills-empty">{t("profile.portfolio.empty", "No portfolio link yet.")}</p>
+                  )}
                 </div>
-                {form.portfolioUrl ? (
-                  <a className="lk-line lk-line--link" href={form.portfolioUrl} target="_blank" rel="noreferrer">
-                    {form.portfolioUrl}
-                  </a>
-                ) : (
-                  <p className="lk-line lk-muted">{t("profile.portfolio.empty", "No portfolio link yet.")}</p>
-                )}
               </>
             ) : (
               <p className="lk-muted lk-skills-api-hint">{t("profile.apiRequired", "Sign in with a real account to sync this section.")}</p>
@@ -1875,6 +1892,7 @@ export function ProfilePage() {
                 )}
               </p>
             ) : null}
+            <div className="lk-field-block">
             <div className="skills-editor">
               <div className="skills-row">
                 <input
@@ -1942,14 +1960,15 @@ export function ProfilePage() {
                 <p className="skills-empty">{t("profile.academies.empty", "No academies yet.")}</p>
               )}
             </div>
+            </div>
           </article>
 
           <article className="lk-card lk-row-card">
             <div className="lk-row-head">
               <h3 className="lk-row-title">{t("profile.section.certificates", "Certificates")}</h3>
             </div>
-            <div className="lk-inline">
-              <label>
+            <div className="lk-field-block">
+              <label className="lk-field">
                 {t("profile.certificates.name", "Certificate name")}
                 <input
                   value={certForm.name}
@@ -1957,27 +1976,29 @@ export function ProfilePage() {
                   placeholder={t("profile.certificates.namePh", "AWS Solutions Architect")}
                 />
               </label>
-              <label>
-                {t("profile.certificates.issueDate", "Issue date")}
-                <input
-                  value={certForm.issueDate}
-                  onChange={(e) => setCertForm((prev) => ({ ...prev, issueDate: e.target.value }))}
-                  placeholder="2024-06-01"
-                />
-              </label>
-              <label>
-                {t("profile.certificates.expiryDate", "Expiry date")}
-                <input
-                  value={certForm.expiryDate}
-                  onChange={(e) => setCertForm((prev) => ({ ...prev, expiryDate: e.target.value }))}
-                  placeholder="2027-06-01"
-                />
-              </label>
-            </div>
-            <div className="lk-head-actions">
-              <button type="button" className="lk-head-chip lk-head-chip--primary" onClick={addCertificate}>
-                {t("profile.certificates.add", "Add certificate")}
-              </button>
+              <div className="lk-inline lk-inline--2">
+                <label className="lk-field">
+                  {t("profile.certificates.issueDate", "Issue date")}
+                  <input
+                    type="date"
+                    value={certForm.issueDate}
+                    onChange={(e) => setCertForm((prev) => ({ ...prev, issueDate: e.target.value }))}
+                  />
+                </label>
+                <label className="lk-field">
+                  {t("profile.certificates.expiryDate", "Expiry date")}
+                  <input
+                    type="date"
+                    value={certForm.expiryDate}
+                    onChange={(e) => setCertForm((prev) => ({ ...prev, expiryDate: e.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="lk-field-actions">
+                <button type="button" className="skills-add-btn" onClick={addCertificate}>
+                  {t("profile.certificates.add", "Add certificate")}
+                </button>
+              </div>
             </div>
             <div className="lk-history">
               {displayedCertificates.length ? (
@@ -1993,7 +2014,7 @@ export function ProfilePage() {
                   </div>
                 ))
               ) : (
-                <p className="lk-line">{t("profile.certificates.empty", "No certificates yet.")}</p>
+                <p className="skills-empty">{t("profile.certificates.empty", "No certificates yet.")}</p>
               )}
             </div>
           </article>
@@ -2002,6 +2023,7 @@ export function ProfilePage() {
             <div className="lk-row-head">
               <h3 className="lk-row-title">{t("profile.section.languages", "Languages")}</h3>
             </div>
+            <div className="lk-field-block">
             <div className="skills-editor">
               <div className="skills-row">
                 <input
@@ -2079,6 +2101,7 @@ export function ProfilePage() {
                 <p className="skills-empty">{t("profile.languages.empty", "No languages yet.")}</p>
               )}
             </div>
+            </div>
           </article>
 
           <article className="lk-card lk-row-card">
@@ -2106,16 +2129,16 @@ export function ProfilePage() {
             </div>
 
             <h4 className="lk-sub">{t("profile.recommendations.write", "Write a recommendation")}</h4>
-            {usesApiProfile ? (
-              <p className="lk-muted lk-skills-api-hint">
-                {t(
-                  "profile.recommendations.apiHint",
-                  "Choose a network contact and write a short endorsement.",
-                )}
-              </p>
-            ) : null}
-            <div className="lk-inline">
-              <label>
+            <div className="lk-field-block lk-recommend-form">
+              {usesApiProfile ? (
+                <p className="lk-muted lk-skills-api-hint">
+                  {t(
+                    "profile.recommendations.apiHint",
+                    "Choose a network contact and write a short endorsement.",
+                  )}
+                </p>
+              ) : null}
+              <label className="lk-field">
                 {t("profile.recommendations.recipient", "Recipient")}
                 <select
                   value={recommendationRecipientId}
@@ -2130,34 +2153,30 @@ export function ProfilePage() {
                   ))}
                 </select>
               </label>
-            </div>
-            <label>
-              {t("profile.recommendations.text", "Text")}
-              <textarea
-                rows={4}
-                value={recommendationText}
-                onChange={(e) => setRecommendationText(e.target.value)}
-                placeholder={t(
-                  "profile.recommendations.textPh",
-                  "Describe your experience working with this person…",
-                )}
-              />
-            </label>
-            <div className="lk-head-actions">
-              <button
-                type="button"
-                className="lk-head-chip lk-head-chip--primary"
-                onClick={submitRecommendation}
-              >
-                {editingRecommendationId
-                  ? t("profile.recommendations.update", "Update recommendation")
-                  : t("profile.recommendations.send", "Send recommendation")}
-              </button>
-              {editingRecommendationId ? (
-                <button type="button" className="lk-head-chip" onClick={resetRecommendationForm}>
-                  {t("profile.recommendations.cancelEdit", "Cancel edit")}
+              <label className="lk-field">
+                {t("profile.recommendations.text", "Text")}
+                <textarea
+                  rows={4}
+                  value={recommendationText}
+                  onChange={(e) => setRecommendationText(e.target.value)}
+                  placeholder={t(
+                    "profile.recommendations.textPh",
+                    "Describe your experience working with this person…",
+                  )}
+                />
+              </label>
+              <div className="lk-field-actions">
+                <button type="button" className="skills-add-btn" onClick={submitRecommendation}>
+                  {editingRecommendationId
+                    ? t("profile.recommendations.update", "Update recommendation")
+                    : t("profile.recommendations.send", "Send recommendation")}
                 </button>
-              ) : null}
+                {editingRecommendationId ? (
+                  <button type="button" className="lk-head-chip" onClick={resetRecommendationForm}>
+                    {t("profile.recommendations.cancelEdit", "Cancel edit")}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <h4 className="lk-sub">{t("profile.recommendations.given", "Written by you")}</h4>

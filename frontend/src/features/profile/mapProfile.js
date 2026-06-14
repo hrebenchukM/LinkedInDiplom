@@ -1,5 +1,15 @@
 import { getApiBaseUrl } from "../../shared/api/config";
 
+const DICEBEAR_AVATAR_BASE = "https://api.dicebear.com/7.x/avataaars/svg";
+
+function isGuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+}
+
+const GENERIC_PEER_LABELS = new Set(["chat", "user", "contact", "member"]);
+
 /** Relative `/uploads/...` paths work via Vite proxy when API base is empty. */
 export function resolveMediaUrl(url) {
   const value = String(url || "").trim();
@@ -11,6 +21,60 @@ export function resolveMediaUrl(url) {
   if (!base) return value.startsWith("/") ? value : `/${value}`;
   const path = value.startsWith("/") ? value : `/${value}`;
   return `${base}${path}`;
+}
+
+/** Stable Dicebear seed — GUID user/chat id first so avatars never collide across people. */
+export function resolveAvatarSeed({ profile, userId, name, avatarUrl } = {}) {
+  const sources = [
+    String(avatarUrl || profile?.avatarUrl || "").trim(),
+    String(profile?.avatarUrl || "").trim(),
+  ];
+
+  for (const source of sources) {
+    const match = source.match(/[?&]seed=([^&]+)/i);
+    if (match?.[1]) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch {
+        return match[1];
+      }
+    }
+  }
+
+  const uid = String(userId || profile?.userId || "").trim();
+  if (isGuid(uid)) {
+    return uid.toLowerCase();
+  }
+
+  const email = String(profile?.email || "").trim();
+  if (email.includes("@")) {
+    return email.split("@")[0];
+  }
+
+  const displayName = String(
+    profile?.fullName ||
+      `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
+      name ||
+      "",
+  ).trim();
+  const normalizedName = displayName.replace(/\s+/g, "");
+  if (normalizedName && !GENERIC_PEER_LABELS.has(normalizedName.toLowerCase())) {
+    return normalizedName;
+  }
+
+  return uid || normalizedName || "user";
+}
+
+/** Profile URL when available; otherwise a deterministic Dicebear avatar. */
+export function resolvePersonAvatar({ profile, userId, name, avatarUrl } = {}) {
+  const explicit = String(avatarUrl || profile?.avatarUrl || "").trim();
+  if (explicit) {
+    const resolved = resolveMediaUrl(explicit);
+    if (resolved) return resolved;
+  }
+
+  const seed = resolveAvatarSeed({ profile, userId, name, avatarUrl: explicit });
+  return `${DICEBEAR_AVATAR_BASE}?seed=${encodeURIComponent(seed)}`;
 }
 
 export function mapProfileDtoToRegisteredPatch(dto = {}) {
@@ -118,7 +182,13 @@ export function mapProfileSearchToPerson(dto, currentUserId) {
     `${normalized.firstName} ${normalized.lastName}`.trim() ||
     `User ${normalized.userId.slice(0, 8)}`;
   const role = normalized.headline || normalized.location || "Member";
-  const avatar = normalized.avatarUrl ? resolveMediaUrl(normalized.avatarUrl) : "";
+  const profile = {
+    firstName: normalized.firstName,
+    lastName: normalized.lastName,
+    avatarUrl: normalized.avatarUrl,
+  };
+  const avatarSeed = resolveAvatarSeed({ profile, userId: normalized.userId, name });
+  const avatar = resolvePersonAvatar({ profile, userId: normalized.userId, name });
 
   return {
     id: `search-${normalized.userId}`,
@@ -126,7 +196,7 @@ export function mapProfileSearchToPerson(dto, currentUserId) {
     name,
     role,
     handle: normalized.userId.slice(0, 12),
-    seed: normalized.userId,
+    seed: avatarSeed,
     avatar,
     keywords: `${name} ${normalized.headline} ${normalized.location}`.toLowerCase(),
     _api: true,

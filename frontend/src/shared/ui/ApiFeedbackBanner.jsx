@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useUiSettings } from "../../app/providers/AppProviders";
 import { API_FEEDBACK_EVENT } from "../lib/apiFeedback";
 
 /**
@@ -6,6 +7,7 @@ import { API_FEEDBACK_EVENT } from "../lib/apiFeedback";
  * Listen: `showApiFeedback()` / `api:feedback` event; `auth:expired` shows session message.
  */
 export function ApiFeedbackBanner({ sessionExpiredMessage = "Session expired. Please sign in again." }) {
+  const { t } = useUiSettings();
   const [message, setMessage] = useState("");
   const [variant, setVariant] = useState("error");
   const hideTimerRef = useRef(null);
@@ -61,7 +63,7 @@ export function ApiFeedbackBanner({ sessionExpiredMessage = "Session expired. Pl
       aria-live="assertive"
     >
       <p className="api-feedback-banner__text">{message}</p>
-      <button type="button" className="api-feedback-banner__close" onClick={dismiss} aria-label="Dismiss">
+      <button type="button" className="api-feedback-banner__close" onClick={dismiss} aria-label={t("common.dismiss", "Dismiss")}>
         ×
       </button>
     </div>

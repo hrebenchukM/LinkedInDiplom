@@ -143,6 +143,13 @@ export async function deleteVacancy(vacancyId) {
   return unwrapVacancyResponse(data);
 }
 
+/** `GET /api/jobs/vacancies/{vacancyId}` */
+export async function fetchVacancyById(vacancyId) {
+  if (USE_MOCK_AUTH || !vacancyId) return null;
+  const data = await apiClient.get(JOBS.vacancy(vacancyId));
+  return normalizeVacancyDto(unwrapVacancyResponse(data));
+}
+
 export async function applyToVacancy(vacancyId) {
   if (USE_MOCK_AUTH) return { success: true };
   return apiClient.post(JOBS.apply(vacancyId));
@@ -152,6 +159,12 @@ export async function fetchMyApplications() {
   if (USE_MOCK_AUTH) return [];
   const data = await apiClient.get(JOBS.myApplications);
   return unwrapPagedItems(data, (item) => item);
+}
+
+/** `DELETE /api/jobs/me/applications/{applicationId}` */
+export async function withdrawApplication(applicationId) {
+  if (USE_MOCK_AUTH || !applicationId) return null;
+  return apiClient.delete(JOBS.myApplication(applicationId));
 }
 
 export async function fetchMyFavorites() {

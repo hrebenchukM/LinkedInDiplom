@@ -229,6 +229,8 @@ export function UserProfilePosts({ userId, session, t }) {
               post={post}
               index={index}
               userAvatar={userAvatar}
+              currentUserId={session.user?.id}
+              displayName={displayName}
               useApi={useApi}
               t={t}
               showHint={showHint}

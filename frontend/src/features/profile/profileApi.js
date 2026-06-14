@@ -51,9 +51,9 @@ export async function patchMyProfile(body) {
   return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data), errors: data?.errors };
 }
 
-export async function uploadMyAvatar(file) {
+export async function uploadMyAvatar(file, { onProgress } = {}) {
   if (USE_MOCK_AUTH) return { success: false, profile: null };
-  const { ok, data } = await apiUpload("POST", PROFILE.avatar, file);
+  const { ok, data } = await apiUpload("POST", PROFILE.avatar, file, "file", { onProgress });
   if (!ok) {
     const message =
       (Array.isArray(data?.errors) && data.errors[0]) ||
@@ -65,9 +65,9 @@ export async function uploadMyAvatar(file) {
   return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
 }
 
-export async function uploadMyHeader(file) {
+export async function uploadMyHeader(file, { onProgress } = {}) {
   if (USE_MOCK_AUTH) return { success: false, profile: null };
-  const { ok, data } = await apiUpload("POST", PROFILE.header, file);
+  const { ok, data } = await apiUpload("POST", PROFILE.header, file, "file", { onProgress });
   if (!ok) {
     const message =
       (Array.isArray(data?.errors) && data.errors[0]) ||

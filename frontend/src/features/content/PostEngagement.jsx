@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as contentApi from "./contentApi";
-import { postAvatarUrl } from "./postDisplay";
+import { mapCommentsWithAuthors } from "./mapCommentsWithAuthors";
 
 function PostActionIcon({ variant }) {
   const common = { viewBox: "0 0 24 24", fill: "currentColor", focusable: "false" };
@@ -60,6 +60,9 @@ export function PostEngagement({
   repostedPostIds,
   onToggleSave,
   onToggleRepost,
+  currentUserId,
+  displayName,
+  userAvatar,
 }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(() => Number(post.likes || 0));
@@ -95,23 +98,29 @@ export function PostEngagement({
 
   useEffect(() => {
     if (!commentsOpen || !useApi || !post._api) return;
+    let cancelled = false;
     setCommentsLoading(true);
     contentApi
       .fetchPostComments(post.id)
-      .then((list) => {
-        const mapped = list.map((c) => ({
-          id: String(c.id),
-          author: String(c.userId || "").slice(0, 8) || "User",
-          seed: c.userId,
-          text: c.content,
-          _api: true,
-        }));
+      .then(async (list) => {
+        if (cancelled) return;
+        const mapped = await mapCommentsWithAuthors(list, {
+          currentUserId,
+          displayName,
+          userAvatar,
+          memberLabel: t("profile.views.member", "Member"),
+        });
         setComments(mapped);
         setCommentCount(mapped.length);
       })
       .catch(() => onHint(t("home.hint.commentsFailed", "Could not load comments.")))
-      .finally(() => setCommentsLoading(false));
-  }, [commentsOpen, useApi, post._api, post.id, onHint, t]);
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [commentsOpen, useApi, post._api, post.id, onHint, t, currentUserId, displayName, userAvatar]);
 
   const handleShareToContact = (contact) => {
     onSharePost?.(post, contact);
@@ -122,6 +131,11 @@ export function PostEngagement({
   const isReposted = repostedPostIds?.has(String(post.id));
   const canUseLibraryActions = useApi && post._api;
   const canEngage = useApi && post._api;
+  const likeLabel = liked ? t("home.post.liked", "Liked") : t("home.post.like", "Like");
+  const commentLabel = t("home.post.comment", "Comment");
+  const shareLabel = t("home.post.share", "Share");
+  const saveLabel = isSaved ? t("home.post.saved", "Saved") : t("home.post.save", "Save");
+  const repostLabel = isReposted ? t("home.post.reposted", "Reposted") : t("home.post.repost", "Repost");
 
   return (
     <>
@@ -141,6 +155,8 @@ export function PostEngagement({
             type="button"
             className={`post-action post-action--like${liked ? " post-action--liked" : ""}`}
             disabled={!canEngage}
+            aria-label={likeLabel}
+            title={likeLabel}
             onClick={async () => {
               if (!canEngage) return;
               try {
@@ -159,27 +175,31 @@ export function PostEngagement({
             }}
           >
             <PostActionIcon variant="like" />
-            <span className="post-action__label">{liked ? t("home.post.liked", "Liked") : t("home.post.like", "Like")}</span>
+            <span className="post-action__label">{likeLabel}</span>
           </button>
           <button
             type="button"
             className={`post-action post-action--comment${commentsOpen ? " post-action--active" : ""}`}
+            aria-label={commentLabel}
+            title={commentLabel}
             onClick={() => setCommentsOpen((v) => !v)}
           >
             <PostActionIcon variant="comment" />
-            <span className="post-action__label">{t("home.post.comment", "Comment")}</span>
+            <span className="post-action__label">{commentLabel}</span>
           </button>
           <div className="post-action-wrap--share" ref={shareWrapRef}>
             <button
               type="button"
               className={`post-action post-action--share${shareMenuOpen ? " post-action--active" : ""}`}
+              aria-label={shareLabel}
+              title={shareLabel}
               onClick={(event) => {
                 event.stopPropagation();
                 setShareMenuOpen((open) => !open);
               }}
             >
               <PostActionIcon variant="share" />
-              <span className="post-action__label">{t("home.post.share", "Share")}</span>
+              <span className="post-action__label">{shareLabel}</span>
             </button>
             {shareMenuOpen ? (
               <div className="post-share-menu" role="menu" aria-label={t("home.post.shareWith", "Share with")}>
@@ -222,22 +242,22 @@ export function PostEngagement({
               <button
                 type="button"
                 className={`post-action post-action--save${isSaved ? " post-action--saved" : ""}`}
+                aria-label={saveLabel}
+                title={saveLabel}
                 onClick={() => onToggleSave?.(post.id)}
               >
                 <PostActionIcon variant="save" />
-                <span className="post-action__label">
-                  {isSaved ? t("home.post.saved", "Saved") : t("home.post.save", "Save")}
-                </span>
+                <span className="post-action__label">{saveLabel}</span>
               </button>
               <button
                 type="button"
                 className={`post-action post-action--repost${isReposted ? " post-action--reposted" : ""}`}
+                aria-label={repostLabel}
+                title={repostLabel}
                 onClick={() => onToggleRepost?.(post.id)}
               >
                 <PostActionIcon variant="repost" />
-                <span className="post-action__label">
-                  {isReposted ? t("home.post.reposted", "Reposted") : t("home.post.repost", "Repost")}
-                </span>
+                <span className="post-action__label">{repostLabel}</span>
               </button>
             </>
           ) : null}
@@ -256,7 +276,7 @@ export function PostEngagement({
               ) : null}
               {comments.map((comment) => (
                 <li key={comment.id} className="post-comment">
-                  <img className="post-comment__avatar" src={postAvatarUrl(comment.seed)} width="32" height="32" alt="" />
+                  <img className="post-comment__avatar" src={comment.avatar} width="32" height="32" alt="" />
                   <div className="post-comment__bubble">
                     <strong>{comment.author}</strong>
                     <p>{comment.text}</p>
@@ -272,12 +292,19 @@ export function PostEngagement({
                 if (!text || !canEngage) return;
                 try {
                   const created = await contentApi.createPostComment(post.id, text);
+                  const [mapped] = await mapCommentsWithAuthors([created || { content: text, userId: currentUserId }], {
+                    currentUserId,
+                    displayName,
+                    userAvatar,
+                    memberLabel: t("profile.views.member", "Member"),
+                  });
                   setComments((prev) => [
                     ...prev,
-                    {
+                    mapped || {
                       id: String(created?.id || Date.now()),
-                      author: "You",
-                      seed: "You",
+                      author: displayName || t("common.guest", "Guest"),
+                      avatar: userAvatar,
+                      seed: currentUserId || displayName,
                       text: created?.content || text,
                       _api: true,
                     },

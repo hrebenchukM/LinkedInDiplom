@@ -10,11 +10,14 @@ import { buildDisplayFeed, shuffleFeedPosts } from "./buildDisplayFeed";
 import { HashtagsFollowingPanel } from "./HashtagsFollowingPanel";
 import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { useChatStore } from "../../features/chat/ChatStore";
+import { NewMessagePicker } from "../../features/chat/NewMessagePicker";
+import { startChatWithPerson } from "../../features/chat/startChatWithPerson";
 import { useNetworkStore } from "../../features/network/NetworkStore";
 import { useUiSettings } from "../../app/providers/AppProviders";
 import { AI_ASSISTANT_PEER_ID } from "../../shared/constants/aiAssistant";
 import { MESSAGING_CONTACTS } from "../../shared/constants/messagingContacts";
-import { getContactAvatarUrl, getContactProfile } from "../../shared/constants/contactProfiles";
+import { resolveChatAvatar } from "../../features/chat/resolveChatContact";
+import { resolveChatDisplayName, shouldShowChatInList } from "../../features/messaging/mapMessaging";
 import { getMessagePreview } from "../../shared/lib/callMessage";
 import { countUnreadIncoming, markInboxPeerRead } from "../../shared/lib/messageRead";
 import { readRegisteredAccount } from "../../shared/lib/registeredAccount";
@@ -82,12 +85,20 @@ export function HomePage() {
   const navigate = useNavigate();
   const { session, isReady } = useAuth();
   const { t } = useUiSettings();
-  const { chats, setActiveChat, markChatAsReadByPeer, sharePostToContact } = useChatStore();
+  const {
+    chats,
+    setActiveChat,
+    markChatAsReadByPeer,
+    sharePostToContact,
+    ensureChat,
+    ensureApiChatForPeer,
+  } = useChatStore();
   const { people } = useNetworkStore();
   const useApi = useBackendApi();
 
   const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [feedLoadError, setFeedLoadError] = useState("");
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState("");
   const [postVideo, setPostVideo] = useState("");
@@ -113,6 +124,8 @@ export function HomePage() {
   const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
   const [feedUpdating, setFeedUpdating] = useState(false);
   const [feedRevision, setFeedRevision] = useState(0);
   const [feedPosts, setFeedPosts] = useState(() => buildDisplayFeed([], { shuffle: true }));
@@ -263,41 +276,45 @@ export function HomePage() {
       typeof window.canonicalPeerId === "function"
         ? window.canonicalPeerId
         : (value) => String(value || "").trim().toLowerCase();
-    const loadHomeChats = typeof window.loadHomeChats === "function" ? window.loadHomeChats : () => [];
-    const storeChatByPeer = new Map();
-    chats.forEach((chat) => {
-      const peer = canonicalPeerId(chat.id || chat.peer);
-      if (peer) storeChatByPeer.set(peer, chat);
-    });
 
     const connectedDedup = [];
     const seenConnected = new Set();
 
-    loadHomeChats().forEach((chat) => {
-      const peer = canonicalPeerId(chat.id);
-      if (!peer || seenConnected.has(peer)) return;
-      seenConnected.add(peer);
-
-      const storeChat = storeChatByPeer.get(peer);
-      const messages = Array.isArray(storeChat?.messages) ? storeChat.messages : [];
-      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-
-      connectedDedup.push({
-        id: `msg-connected-${peer}`,
-        peer,
-        name: String(chat.name || peer).trim() || peer,
-        preview:
-          (lastMessage && getMessagePreview(lastMessage, t)) ||
-          String(chat.preview || t("network.newChatPreview", "Start the conversation...")).trim(),
-        time: String(chat.time || t("js.chatNow", "Now")).trim(),
-        tab: "connected",
-        unread: countUnreadIncoming(storeChat || { messages }),
-        avatar: chat.avatar || "",
-        seed: chat.seed || chat.name || peer,
+    if (!useApi) {
+      const loadHomeChats = typeof window.loadHomeChats === "function" ? window.loadHomeChats : () => [];
+      const storeChatByPeer = new Map();
+      chats.forEach((chat) => {
+        const peer = canonicalPeerId(chat.id || chat.peer);
+        if (peer) storeChatByPeer.set(peer, chat);
       });
-    });
+
+      loadHomeChats().forEach((chat) => {
+        const peer = canonicalPeerId(chat.id);
+        if (!peer || seenConnected.has(peer)) return;
+        seenConnected.add(peer);
+
+        const storeChat = storeChatByPeer.get(peer);
+        const messages = Array.isArray(storeChat?.messages) ? storeChat.messages : [];
+        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+        connectedDedup.push({
+          id: `msg-connected-${peer}`,
+          peer,
+          name: String(chat.name || peer).trim() || peer,
+          preview:
+            (lastMessage && getMessagePreview(lastMessage, t)) ||
+            String(chat.preview || t("network.newChatPreview", "Start the conversation...")).trim(),
+          time: String(chat.time || t("js.chatNow", "Now")).trim(),
+          tab: "connected",
+          unread: countUnreadIncoming(storeChat || { messages }),
+          avatar: chat.avatar || "",
+          seed: chat.seed || chat.name || peer,
+        });
+      });
+    }
 
     chats.forEach((chat) => {
+      if (!shouldShowChatInList(chat)) return;
       const peer = canonicalPeerId(chat.id || chat.peer);
       if (!peer || seenConnected.has(peer)) return;
       seenConnected.add(peer);
@@ -305,13 +322,18 @@ export function HomePage() {
       const messages = Array.isArray(chat.messages) ? chat.messages : [];
       const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
       const isAiAssistant = peer === canonicalPeerId(AI_ASSISTANT_PEER_ID);
+      const displayName = isAiAssistant
+        ? t("notify.aiAssistantName", "AI Assistant")
+        : resolveChatDisplayName(chat);
+      if (!displayName) return;
 
       const unreadCount = countUnreadIncoming(chat);
 
       connectedDedup.push({
         id: `msg-store-${peer || chat.id}`,
         peer: peer || String(chat.id),
-        name: isAiAssistant ? t("notify.aiAssistantName", "AI Assistant") : chat.peer,
+        chatId: chat.id,
+        name: displayName,
         preview:
           (lastMessage && getMessagePreview(lastMessage, t)) ||
           t("home.messages.noneYet", "No messages yet"),
@@ -320,12 +342,12 @@ export function HomePage() {
         unread: unreadCount > 0,
         unreadCount,
         avatar: isAiAssistant
-          ? getContactAvatarUrl(
-              getContactProfile(AI_ASSISTANT_PEER_ID, { name: t("notify.aiAssistantName", "AI Assistant") }),
-              AI_ASSISTANT_PEER_ID,
+          ? resolveChatAvatar(
+              { id: AI_ASSISTANT_PEER_ID, peer: t("notify.aiAssistantName", "AI Assistant") },
+              t,
             )
-          : avatarUrl(chat.peer),
-        seed: chat.peer,
+          : resolveChatAvatar(chat, t),
+        seed: chat.avatarSeed || chat.peer,
         isAi: isAiAssistant,
       });
     });
@@ -336,9 +358,40 @@ export function HomePage() {
     });
     if (!query) return all;
     return all.filter((item) => item.name.toLowerCase().includes(query) || String(item.preview || "").toLowerCase().includes(query));
-  }, [chats, messageSearch, t, messagesRefreshTick]);
+  }, [chats, messageSearch, t, messagesRefreshTick, useApi]);
+
+  const inboxEmptyMessage = useMemo(() => {
+    const query = messageSearch.trim();
+    const hasChats = chats.length > 0 || (!useApi && typeof window.loadHomeChats === "function" && window.loadHomeChats().length > 0);
+    if (!query && !hasChats) {
+      return t("home.messages.empty", "No conversations yet. Find someone to chat with.");
+    }
+    return t("home.messages.noMatch", "No messages match your search.");
+  }, [messageSearch, chats.length, useApi, t]);
 
   const shareContacts = useMemo(() => buildShareContacts(), [chats, messagesRefreshTick]);
+
+  async function handleStartChat(person) {
+    if (!person || startingChat) return;
+    setStartingChat(true);
+    try {
+      await startChatWithPerson({
+        person,
+        chats,
+        useApi,
+        ensureChat,
+        ensureApiChatForPeer,
+        setActiveChat,
+        navigate,
+      });
+      setNewMessageOpen(false);
+      forceMessagesRerender((value) => value + 1);
+    } catch {
+      // apiClient surfaces errors via ApiFeedbackBanner
+    } finally {
+      setStartingChat(false);
+    }
+  }
 
   const applyFeedResult = useCallback((result, { append = false } = {}) => {
     feedLoadModeRef.current = append ? "append" : "replace";
@@ -364,6 +417,7 @@ export function HomePage() {
     async ({ silent = false, page = 1, append = false } = {}) => {
       if (!useApi || !session.isAuthenticated || session.user?.isGuest) return true;
       if (!silent) setPostsLoading(true);
+      setFeedLoadError("");
       try {
         const result = await loadFeedPostsFromApi(session.user.id, displayName, userAvatar, {
           page,
@@ -373,10 +427,10 @@ export function HomePage() {
         applyFeedResult(result, { append });
         return true;
       } catch {
+        const message = t("home.hint.loadFailed", "Could not load posts. Check that you are signed in.");
+        setFeedLoadError(message);
         if (!silent) {
-          showHint(t("home.hint.loadFailed", "Could not load posts. Check that you are signed in."), {
-            variant: "error",
-          });
+          showHint(message, { variant: "error" });
         }
         return false;
       } finally {
@@ -851,7 +905,17 @@ export function HomePage() {
             ) : null}
 
             {useApi && entityPicker ? (
-              <div className="composer-entity-picker">
+              <div className="composer-entity-picker" role="dialog" aria-label={entityPicker === "hashtag" ? t("home.hashtag", "Hashtag") : t("home.mention", "Mention")}>
+                <div className="composer-entity-picker__head">
+                  <h4 className="composer-entity-picker__title">
+                    {entityPicker === "hashtag"
+                      ? t("home.composer.pickHashtag", "Add hashtag")
+                      : t("home.composer.pickMention", "Mention someone")}
+                  </h4>
+                  <button type="button" className="composer-entity-picker__close" onClick={() => setEntityPicker(null)}>
+                    {t("home.close", "Close")}
+                  </button>
+                </div>
                 <input
                   className="composer-entity-picker__search"
                   type="search"
@@ -859,32 +923,45 @@ export function HomePage() {
                   onChange={(event) => setEntitySearch(event.target.value)}
                   placeholder={
                     entityPicker === "hashtag"
-                      ? t("home.hashtags.search", "Search hashtags to follow…")
+                      ? t("home.composer.searchHashtag", "Search hashtags to add…")
                       : t("home.mentions.search", "Search contacts to mention…")
                   }
                   autoFocus
                 />
                 <ul className="composer-entity-picker__list">
                   {entityPicker === "hashtag"
-                    ? hashtagSuggestions.map((tag) => (
-                        <li key={tag.id}>
-                          <button type="button" onClick={() => addComposerHashtag(tag)}>
-                            #{tag.name}
-                          </button>
-                        </li>
-                      ))
-                    : filteredMentionCandidates.map((person) => (
-                        <li key={person.userId}>
-                          <button type="button" onClick={() => addComposerMention(person)}>
-                            {person.name}
-                            <small>{person.role}</small>
-                          </button>
-                        </li>
-                      ))}
+                    ? hashtagSuggestions.length > 0
+                      ? hashtagSuggestions.map((tag) => (
+                          <li key={tag.id}>
+                            <button type="button" onClick={() => addComposerHashtag(tag)}>
+                              #{tag.name}
+                            </button>
+                          </li>
+                        ))
+                      : (
+                          <li>
+                            <p className="composer-entity-picker__empty">
+                              {t("home.hashtags.noResults", "No hashtags match your search.")}
+                            </p>
+                          </li>
+                        )
+                    : filteredMentionCandidates.length > 0
+                      ? filteredMentionCandidates.map((person) => (
+                          <li key={person.userId}>
+                            <button type="button" onClick={() => addComposerMention(person)}>
+                              {person.name}
+                              {person.role ? <small>{person.role}</small> : null}
+                            </button>
+                          </li>
+                        ))
+                      : (
+                          <li>
+                            <p className="composer-entity-picker__empty">
+                              {t("home.composer.noMentions", "No contacts match your search.")}
+                            </p>
+                          </li>
+                        )}
                 </ul>
-                <button type="button" className="composer-entity-picker__close" onClick={() => setEntityPicker(null)}>
-                  {t("home.close", "Close")}
-                </button>
               </div>
             ) : null}
 
@@ -893,32 +970,52 @@ export function HomePage() {
 
             <div className="composer-actions">
               <div className="composer-actions__left">
-                <button type="button" onClick={() => photoInputRef.current?.click()}>{t("home.photo", "Photo")}</button>
-                <button type="button" onClick={() => videoInputRef.current?.click()}>{t("home.video", "Video")}</button>
+                <button type="button" className="composer-tool-btn" onClick={() => photoInputRef.current?.click()}>
+                  <span className="composer-tool-btn__icon" aria-hidden="true">🖼</span>
+                  {t("home.photo", "Photo")}
+                </button>
+                <button type="button" className="composer-tool-btn" onClick={() => videoInputRef.current?.click()}>
+                  <span className="composer-tool-btn__icon" aria-hidden="true">🎬</span>
+                  {t("home.video", "Video")}
+                </button>
                 {useApi ? (
                   <>
                     <button
                       type="button"
+                      className={entityPicker === "hashtag" ? "composer-tool-btn is-active" : "composer-tool-btn"}
                       onClick={() => {
-                        setEntityPicker("hashtag");
+                        setEntityPicker((prev) => (prev === "hashtag" ? null : "hashtag"));
                         setEntitySearch("");
+                        setShowEmojiPicker(false);
                       }}
                     >
+                      <span className="composer-tool-btn__icon" aria-hidden="true">#</span>
                       {t("home.hashtag", "Hashtag")}
                     </button>
                     <button
                       type="button"
+                      className={entityPicker === "mention" ? "composer-tool-btn is-active" : "composer-tool-btn"}
                       onClick={() => {
-                        setEntityPicker("mention");
+                        setEntityPicker((prev) => (prev === "mention" ? null : "mention"));
                         setEntitySearch("");
+                        setShowEmojiPicker(false);
                       }}
                     >
+                      <span className="composer-tool-btn__icon" aria-hidden="true">@</span>
                       {t("home.mention", "Mention")}
                     </button>
                   </>
                 ) : null}
                 <div className="composer-emoji-wrap">
-                  <button type="button" className={showEmojiPicker ? "composer-emoji-btn active" : "composer-emoji-btn"} onClick={(event) => { event.stopPropagation(); setShowEmojiPicker((open) => !open); }}>
+                  <button
+                    type="button"
+                    className={showEmojiPicker ? "composer-tool-btn composer-emoji-btn active" : "composer-tool-btn composer-emoji-btn"}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setShowEmojiPicker((open) => !open);
+                      setEntityPicker(null);
+                    }}
+                  >
                     <span aria-hidden="true">😊</span>
                     <span>{t("home.emoji", "Emoji")}</span>
                   </button>
@@ -964,6 +1061,8 @@ export function HomePage() {
                 index={index}
                 feedRevision={feedRevision}
                 userAvatar={userAvatar}
+                currentUserId={session.user?.id}
+                displayName={displayName}
                 useApi={useApi}
                 t={t}
                 showHint={showHint}
@@ -987,6 +1086,11 @@ export function HomePage() {
               />
             ))}
             </div>
+            {feedLoadError ? (
+              <p className="feed-load-error" role="alert">
+                {feedLoadError}
+              </p>
+            ) : null}
             {useApi && feedView === "feed" && feedTotalCount > 0 ? (
               <p className="feed-page-stats">
                 {t("home.feed.pageStats", "{shown} of {total} posts")
@@ -1032,12 +1136,33 @@ export function HomePage() {
         <aside className="right-card" id="homeMessagesWidgetBody">
           <div className="right-top">
             <h4>{t("home.messages.title", "Messages")}</h4>
+            <button
+              type="button"
+              className="msg-new-btn"
+              onClick={() => setNewMessageOpen(true)}
+              aria-label={t("home.messages.new", "New message")}
+              title={t("home.messages.new", "New message")}
+            >
+              +
+            </button>
           </div>
+          {newMessageOpen ? (
+            <NewMessagePicker
+              open={newMessageOpen}
+              onClose={() => setNewMessageOpen(false)}
+              onSelect={handleStartChat}
+              useApi={useApi}
+              currentUserId={session.user?.id}
+              localPeople={people}
+              starting={startingChat}
+            />
+          ) : (
+            <>
           <input className="search small-input" placeholder={t("home.messages.search", "Search messages...")} value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} />
           <div className="msg-list msg-list--live" id="homeMessagesWidgetList">
             {inboxMessages.length === 0 ? (
               <p className="muted" id="homeMessagesWidgetListEmpty">
-                {t("home.messages.noMatch", "No messages match your search.")}
+                {inboxEmptyMessage}
               </p>
             ) : (
               inboxMessages.map((item, index) => (
@@ -1054,6 +1179,7 @@ export function HomePage() {
                     markChatAsReadByPeer(canonical);
                     const target =
                       chats.find((chat) => {
+                        if (item.chatId && String(chat.id) === String(item.chatId)) return true;
                         const byId =
                           typeof window.canonicalPeerId === "function"
                             ? window.canonicalPeerId(chat.id || chat.peer)
@@ -1062,11 +1188,14 @@ export function HomePage() {
                           typeof window.canonicalPeerId === "function"
                             ? window.canonicalPeerId(chat.peer)
                             : String(chat.peer || "").toLowerCase();
-                        return byId === canonical || byPeer === canonical;
+                        const byUserId = chat.peerUserId
+                          ? String(chat.peerUserId).toLowerCase() === canonical
+                          : false;
+                        return byId === canonical || byPeer === canonical || byUserId;
                       }) || null;
                     if (target) setActiveChat(target.id);
                     forceMessagesRerender((value) => value + 1);
-                    navigate("/chat");
+                    navigate(item.chatId && useApi ? `/chat?chatId=${encodeURIComponent(item.chatId)}` : "/chat");
                   }}
                   aria-label={`${item.name} — ${item.preview}`}
                 >
@@ -1083,7 +1212,11 @@ export function HomePage() {
               ))
             )}
           </div>
-          <button type="button" className="ghost-main" onClick={() => navigate("/chat")}>{t("home.messages.send", "Send message")}</button>
+          <button type="button" className="ghost-main" onClick={() => setNewMessageOpen(true)}>
+            {t("home.messages.new", "New message")}
+          </button>
+            </>
+          )}
         </aside>
       </section>
 

@@ -32,6 +32,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/hubs": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
       },
     },
   };

@@ -30,6 +30,12 @@ npm run build
 
 Output: `dist/` (do not commit).
 
+## Stage 8 — polish & E2E
+
+- **E2E checklist:** [`../docs/E2E_CHECKLIST.md`](../docs/E2E_CHECKLIST.md)
+- **Demo social login:** [`../docs/DEMO_SOCIAL_AUTH.md`](../docs/DEMO_SOCIAL_AUTH.md)
+- **Production config:** startup logs from `validateDeploymentConfig()` in browser console
+
 ## Demo mode (no backend)
 
 ```env

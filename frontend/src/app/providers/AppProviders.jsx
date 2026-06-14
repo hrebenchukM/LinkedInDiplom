@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { AuthProvider } from "../../features/auth/AuthContext";
+import { mergeDict, resolveT } from "../i18n/mergeDict";
 import { ApiFeedbackBanner } from "../../shared/ui/ApiFeedbackBanner";
 import { ChatProvider } from "../../features/chat/ChatStore";
 import { NetworkProvider } from "../../features/network/NetworkStore";
@@ -13,7 +14,7 @@ const APP_LANG_STORAGE_KEY = "appLang";
 const SUPPORTED_LANGS = ["en", "uk", "es", "de"];
 const FALLBACK_LANG = "en";
 
-const DICT = {
+const BASE_DICT = {
   en: {
     "nav.home": "Home",
     "nav.network": "Network",
@@ -736,7 +737,7 @@ const DICT = {
     "home.post.comments": "коментарів",
     "home.post.liked": "Сподобалось",
     "home.post.like": "Подобається",
-    "home.post.comment": "Коментар",
+    "home.post.comment": "Коментувати",
     "home.post.share": "Поділитися",
     "home.post.shareWith": "Поділитися з",
     "home.post.sharedPost": "Спільна публікація",
@@ -897,11 +898,19 @@ const DICT = {
     "profile.section.analytics": "Аналітика",
     "profile.section.experience": "Досвід",
     "profile.experience.added": "Досвід додано.",
+    "profile.experience.updated": "Досвід оновлено.",
     "profile.experience.removed": "Досвід видалено.",
     "profile.experience.cleared": "Досвід очищено.",
     "profile.experience.addFailed": "Не вдалося додати досвід.",
+    "profile.experience.updateFailed": "Не вдалося оновити досвід.",
     "profile.experience.removeFailed": "Не вдалося видалити досвід.",
     "profile.experience.positionRequired": "Спочатку вкажіть посаду або спеціальність.",
+    "profile.experience.edit": "Редагувати",
+    "profile.experience.editing": "Редагування досвіду — оновіть поля та натисніть + для збереження.",
+    "profile.experience.editingHint": "Редагується запис про досвід.",
+    "profile.experience.cancelEdit": "Скасувати редагування",
+    "profile.experience.saveEdit": "Зберегти зміни",
+    "profile.experience.add": "Додати досвід",
     "profile.education.added": "Освіту додано.",
     "profile.education.removed": "Освіту видалено.",
     "profile.education.addFailed": "Не вдалося додати освіту.",
@@ -1438,11 +1447,19 @@ const DICT = {
     "profile.section.analytics": "Analítica",
     "profile.section.experience": "Experiencia",
     "profile.experience.added": "Experiencia añadida.",
+    "profile.experience.updated": "Experiencia actualizada.",
     "profile.experience.removed": "Experiencia eliminada.",
     "profile.experience.cleared": "Experiencia borrada.",
     "profile.experience.addFailed": "No se pudo añadir la experiencia.",
+    "profile.experience.updateFailed": "No se pudo actualizar la experiencia.",
     "profile.experience.removeFailed": "No se pudo eliminar la experiencia.",
     "profile.experience.positionRequired": "Introduce primero un puesto o especialidad.",
+    "profile.experience.edit": "Editar",
+    "profile.experience.editing": "Editando experiencia — actualiza los campos y pulsa + para guardar.",
+    "profile.experience.editingHint": "Editando una entrada de experiencia.",
+    "profile.experience.cancelEdit": "Cancelar edición",
+    "profile.experience.saveEdit": "Guardar cambios",
+    "profile.experience.add": "Añadir experiencia",
     "profile.education.added": "Educación añadida.",
     "profile.education.removed": "Educación eliminada.",
     "profile.education.addFailed": "No se pudo añadir la educación.",
@@ -1979,11 +1996,19 @@ const DICT = {
     "profile.section.analytics": "Analytik",
     "profile.section.experience": "Erfahrung",
     "profile.experience.added": "Erfahrung hinzugefügt.",
+    "profile.experience.updated": "Erfahrung aktualisiert.",
     "profile.experience.removed": "Erfahrung entfernt.",
     "profile.experience.cleared": "Erfahrung gelöscht.",
     "profile.experience.addFailed": "Erfahrung konnte nicht hinzugefügt werden.",
+    "profile.experience.updateFailed": "Erfahrung konnte nicht aktualisiert werden.",
     "profile.experience.removeFailed": "Erfahrung konnte nicht entfernt werden.",
     "profile.experience.positionRequired": "Gib zuerst eine Position oder Spezialisierung ein.",
+    "profile.experience.edit": "Bearbeiten",
+    "profile.experience.editing": "Erfahrung bearbeiten — Felder aktualisieren und + drücken zum Speichern.",
+    "profile.experience.editingHint": "Erfahrungseintrag wird bearbeitet.",
+    "profile.experience.cancelEdit": "Bearbeitung abbrechen",
+    "profile.experience.saveEdit": "Änderungen speichern",
+    "profile.experience.add": "Erfahrung hinzufügen",
     "profile.education.added": "Ausbildung hinzugefügt.",
     "profile.education.removed": "Ausbildung entfernt.",
     "profile.education.addFailed": "Ausbildung konnte nicht hinzugefügt werden.",
@@ -2206,6 +2231,9 @@ const DICT = {
   },
 };
 
+const DICT = mergeDict(BASE_DICT);
+const EN_PACK = DICT[FALLBACK_LANG];
+
 function normalizeLang(value) {
   return SUPPORTED_LANGS.includes(value) ? value : FALLBACK_LANG;
 }
@@ -2231,6 +2259,7 @@ function ThemeLanguageBootstrap({ children }) {
   useEffect(() => {
     const nextTheme = theme === "dark" ? "dark" : "light";
     const useLight = nextTheme === "dark";
+    const pack = DICT[normalizeLang(lang)] || EN_PACK;
     document.documentElement.setAttribute("data-theme", nextTheme);
     document.documentElement.style.colorScheme = nextTheme;
     try {
@@ -2241,10 +2270,13 @@ function ThemeLanguageBootstrap({ children }) {
     }
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       button.setAttribute("aria-pressed", nextTheme === "dark" ? "true" : "false");
-      button.setAttribute("aria-label", useLight ? "Switch to light theme" : "Switch to dark theme");
-      button.setAttribute("title", useLight ? "Light theme" : "Dark theme");
+      button.setAttribute(
+        "aria-label",
+        useLight ? pack["theme.switchLight"] : pack["theme.switchDark"],
+      );
+      button.setAttribute("title", useLight ? pack["theme.light"] : pack["theme.dark"]);
     });
-  }, [theme]);
+  }, [theme, lang]);
 
   useEffect(() => {
     const nextLang = normalizeLang(lang);
@@ -2253,13 +2285,13 @@ function ThemeLanguageBootstrap({ children }) {
     window.localStorage.setItem(LANG_STORAGE_KEY, nextLang);
     window.getUiLang = () => nextLang;
     window.uiT = (key, fallback) => {
-      const pack = DICT[nextLang] || DICT[FALLBACK_LANG];
-      return pack?.[key] ?? fallback ?? key;
+      const pack = DICT[nextLang] || EN_PACK;
+      return resolveT(pack, EN_PACK, key, fallback);
     };
     window.uiTForLang = (key, targetLang) => {
       const safe = normalizeLang(targetLang);
-      const pack = DICT[safe] || DICT[FALLBACK_LANG];
-      return pack?.[key] ?? key;
+      const pack = DICT[safe] || EN_PACK;
+      return resolveT(pack, EN_PACK, key);
     };
     window.uiTmpl = (key, vars = {}, fallback) => {
       let out = window.uiT(key, fallback ?? key);
@@ -2525,8 +2557,8 @@ function ThemeLanguageBootstrap({ children }) {
       lang,
       supportedLangs: SUPPORTED_LANGS,
       t: (key, fallback) => {
-        const pack = DICT[normalizeLang(lang)] || DICT[FALLBACK_LANG];
-        return pack?.[key] ?? fallback ?? key;
+        const pack = DICT[normalizeLang(lang)] || EN_PACK;
+        return resolveT(pack, EN_PACK, key, fallback);
       },
       toggleTheme: () => setTheme((prev) => (prev === "dark" ? "light" : "dark")),
       toggleLang: () =>

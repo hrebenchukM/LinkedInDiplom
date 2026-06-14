@@ -78,7 +78,39 @@ export const MESSAGING = {
   myChats: "/api/messaging/me/chats",
   chat: (chatId) => `/api/messaging/me/chats/${chatId}`,
   chatMessages: (chatId) => `/api/messaging/me/chats/${chatId}/messages`,
+  chatJoin: (chatId) => `/api/messaging/me/chats/${chatId}/join`,
+  chatMembers: (chatId) => `/api/messaging/me/chats/${chatId}/members`,
+  chatMembership: (chatId) => `/api/messaging/me/chats/${chatId}/membership`,
   message: (messageId) => `/api/messaging/me/messages/${messageId}`,
+  messageRead: (messageId) => `/api/messaging/me/messages/${messageId}/read`,
+  messageMediaUpload: (messageId) => `/api/messaging/me/messages/${messageId}/media/upload`,
+};
+
+export const ADMIN = {
+  roles: "/api/admin/roles",
+  users: "/api/admin/users",
+  user: (userId) => `/api/admin/users/${encodeURIComponent(userId)}`,
+  userRoles: (userId) => `/api/admin/users/${encodeURIComponent(userId)}/roles`,
+  userRole: (userId, roleName) =>
+    `/api/admin/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(roleName)}`,
+  lockUser: (userId) => `/api/admin/users/${encodeURIComponent(userId)}/lock`,
+  unlockUser: (userId) => `/api/admin/users/${encodeURIComponent(userId)}/unlock`,
+  restoreUser: (userId) => `/api/admin/users/${encodeURIComponent(userId)}/restore`,
+  statsOverview: "/api/admin/stats/overview",
+  posts: "/api/admin/content/posts",
+  post: (postId) => `/api/admin/content/posts/${postId}`,
+  restorePost: (postId) => `/api/admin/content/posts/${postId}/restore`,
+  comments: "/api/admin/content/comments",
+  comment: (commentId) => `/api/admin/content/comments/${commentId}`,
+  restoreComment: (commentId) => `/api/admin/content/comments/${commentId}/restore`,
+  events: "/api/admin/events",
+  event: (eventId) => `/api/admin/events/${eventId}`,
+  restoreEvent: (eventId) => `/api/admin/events/${eventId}/restore`,
+  vacancies: "/api/admin/jobs/vacancies",
+  vacancy: (vacancyId) => `/api/admin/jobs/vacancies/${vacancyId}`,
+  restoreVacancy: (vacancyId) => `/api/admin/jobs/vacancies/${vacancyId}/restore`,
+  recommendedQueries: "/api/admin/jobs/recommended-queries",
+  recommendedQuery: (id) => `/api/admin/jobs/recommended-queries/${id}`,
 };
 
 export const AI = {
@@ -93,6 +125,7 @@ export const JOBS = {
   myVacancy: (vacancyId) => `/api/jobs/me/vacancies/${encodeURIComponent(vacancyId)}`,
   apply: (vacancyId) => `/api/jobs/me/vacancies/${vacancyId}/apply`,
   myApplications: "/api/jobs/me/applications",
+  myApplication: (applicationId) => `/api/jobs/me/applications/${encodeURIComponent(applicationId)}`,
   myFavorites: "/api/jobs/me/favorites",
   favorite: (vacancyId) => `/api/jobs/me/favorites/${vacancyId}`,
   recommendedQueries: "/api/jobs/recommended-queries",
@@ -105,6 +138,10 @@ export const JOBS = {
 export const EVENTS = {
   discover: "/api/events",
   attending: "/api/events/me/attending",
+  my: "/api/events/me",
+  create: "/api/events/me",
+  item: (eventId) => `/api/events/${encodeURIComponent(eventId)}`,
+  cover: (eventId) => `/api/events/me/${encodeURIComponent(eventId)}/cover`,
   join: (eventId) => `/api/events/me/${encodeURIComponent(eventId)}/join`,
   leave: (eventId) => `/api/events/me/${encodeURIComponent(eventId)}/attendance`,
 };

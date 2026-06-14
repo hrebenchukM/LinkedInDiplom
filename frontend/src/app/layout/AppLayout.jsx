@@ -19,29 +19,8 @@ import {
 } from "../../shared/lib/aiWelcomeNotification";
 const READ_NOTIFICATIONS_KEY = "readNotificationIds";
 
-function hydrateNotifications() {
-  const readIds = new Set(readJson(READ_NOTIFICATIONS_KEY, []));
-  return initialNotifications.map((item) => ({
-    ...item,
-    unread: readIds.has(item.id) ? false : item.unread,
-  }));
-}
-
-function persistNotificationRead(notificationId) {
-  const readIds = new Set(readJson(READ_NOTIFICATIONS_KEY, []));
-  readIds.add(notificationId);
-  writeJson(READ_NOTIFICATIONS_KEY, [...readIds]);
-}
-
-const navItems = [
-  { to: "/home", labelKey: "nav.home", icon: "home" },
-  { to: "/network", labelKey: "nav.network", icon: "network" },
-  { to: "/vacancies", labelKey: "nav.vacancies", icon: "jobs" },
-  { to: "/chat", labelKey: "nav.messages", icon: "messages" },
-  { to: "/profile", labelKey: "nav.profile", icon: "profile" },
-];
-
-const initialNotifications = [
+/** Demo-only notifications when mock auth / no API session. */
+const DEMO_NOTIFICATIONS = [
   {
     id: "n-1",
     unread: true,
@@ -70,6 +49,28 @@ const initialNotifications = [
     timeFallback: "1h",
     to: "/profile",
   },
+];
+
+function hydrateDemoNotifications() {
+  const readIds = new Set(readJson(READ_NOTIFICATIONS_KEY, []));
+  return DEMO_NOTIFICATIONS.map((item) => ({
+    ...item,
+    unread: readIds.has(item.id) ? false : item.unread,
+  }));
+}
+
+function persistDemoNotificationRead(notificationId) {
+  const readIds = new Set(readJson(READ_NOTIFICATIONS_KEY, []));
+  readIds.add(notificationId);
+  writeJson(READ_NOTIFICATIONS_KEY, [...readIds]);
+}
+
+const navItems = [
+  { to: "/home", labelKey: "nav.home", icon: "home" },
+  { to: "/network", labelKey: "nav.network", icon: "network" },
+  { to: "/vacancies", labelKey: "nav.vacancies", icon: "jobs" },
+  { to: "/chat", labelKey: "nav.messages", icon: "messages" },
+  { to: "/profile", labelKey: "nav.profile", icon: "profile" },
 ];
 
 function NavMonoIcon({ icon }) {
@@ -134,7 +135,9 @@ export function AppLayout() {
   const location = useLocation();
   const [transitionActive, setTransitionActive] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
-  const [notifications, setNotifications] = useState(hydrateNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
   const [messageReadTick, setMessageReadTick] = useState(0);
   const [aiToastVisible, setAiToastVisible] = useState(false);
   const lastScrollY = useRef(0);
@@ -155,32 +158,58 @@ export function AppLayout() {
     const slug = canonicalPeerId(peer);
     if (!slug) return;
     markInboxPeerRead(slug);
-    setNotifications((prev) =>
-      prev.map((item) => {
-        if (!item.peerId || canonicalPeerId(item.peerId) !== slug || !item.unread) {
-          return item;
-        }
-        persistNotificationRead(item.id);
-        return { ...item, unread: false };
-      }),
-    );
+    setNotifications((prev) => {
+      const toMark = prev.filter(
+        (item) => item.peerId && canonicalPeerId(item.peerId) === slug && item.unread,
+      );
+      if (!toMark.length) return prev;
+
+      if (useApi) {
+        toMark.forEach((item) => {
+          notificationsApi.markNotificationRead(item.id).catch(() => {});
+        });
+      } else {
+        toMark.forEach((item) => persistDemoNotificationRead(item.id));
+      }
+
+      const ids = new Set(toMark.map((item) => item.id));
+      return prev.map((item) => (ids.has(item.id) ? { ...item, unread: false } : item));
+    });
   }
 
   async function markNotificationRead(notificationId) {
-    const target = notifications.find((item) => item.id === notificationId);
-    if (useApi && target?._api) {
+    if (useApi) {
       try {
         await notificationsApi.markNotificationRead(notificationId);
       } catch {
-        // still update UI locally
+        // still update UI optimistically
       }
+    } else {
+      persistDemoNotificationRead(notificationId);
     }
-    persistNotificationRead(notificationId);
     setNotifications((prev) =>
       prev.map((item) =>
         item.id === notificationId && item.unread ? { ...item, unread: false } : item,
       ),
     );
+  }
+
+  async function markAllNotificationsRead() {
+    if (useApi) {
+      try {
+        await notificationsApi.markAllNotificationsRead();
+      } catch {
+        // still clear unread in UI
+      }
+    }
+    setNotifications((prev) => {
+      if (!useApi) {
+        prev.forEach((item) => {
+          if (item.unread) persistDemoNotificationRead(item.id);
+        });
+      }
+      return prev.map((item) => (item.unread ? { ...item, unread: false } : item));
+    });
   }
 
   function openNotification(notificationId, to) {
@@ -252,6 +281,7 @@ export function AppLayout() {
   }, []);
 
   useEffect(() => {
+    if (useApi) return;
     const readIds = new Set(readJson(READ_NOTIFICATIONS_KEY, []));
 
     setNotifications((prev) => {
@@ -276,49 +306,67 @@ export function AppLayout() {
         if (!shouldMarkRead) return item;
 
         changed = true;
-        persistNotificationRead(item.id);
+        persistDemoNotificationRead(item.id);
         return { ...item, unread: false };
       });
 
       return changed ? next : prev;
     });
-  }, [chats, messageReadTick, canonicalPeerId]);
+  }, [useApi, chats, messageReadTick, canonicalPeerId]);
 
   useEffect(() => {
-    if (!useApi) return;
+    if (!useApi) {
+      setNotifications(hydrateDemoNotifications());
+      setNotificationsError("");
+      setNotificationsLoading(false);
+      return undefined;
+    }
+
     let cancelled = false;
+    setNotifications([]);
+    setNotificationsLoading(true);
+    setNotificationsError("");
+
     notificationsApi
       .fetchMyNotifications({ limit: 30 })
       .then((items) => {
         if (cancelled) return;
-        const mapped = items.map(mapNotificationDtoToUi);
-        setNotifications(mapped.length ? mapped : hydrateNotifications());
+        setNotifications(items.map(mapNotificationDtoToUi));
       })
       .catch(() => {
-        if (!cancelled) setNotifications(hydrateNotifications());
+        if (!cancelled) {
+          setNotifications([]);
+          setNotificationsError(t("notify.loadFailed", "Could not load notifications."));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setNotificationsLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [useApi, session.user?.id]);
+  }, [useApi, session.user?.id, t]);
 
   useEffect(() => {
-    const routeReadMap = {
-      "/vacancies": "n-2",
-      "/profile": "n-3",
-    };
-    const notificationId = routeReadMap[location.pathname];
-    if (!notificationId) return;
+    if (!location.pathname) return;
 
     setNotifications((prev) => {
-      const target = prev.find((item) => item.id === notificationId);
-      if (!target?.unread) return prev;
-      persistNotificationRead(notificationId);
-      return prev.map((item) =>
-        item.id === notificationId ? { ...item, unread: false } : item,
-      );
+      const toMark = prev.filter((item) => item.unread && item.to === location.pathname);
+      if (!toMark.length) return prev;
+
+      if (useApi) {
+        toMark.forEach((item) => {
+          notificationsApi.markNotificationRead(item.id).catch(() => {});
+        });
+      } else {
+        toMark.forEach((item) => persistDemoNotificationRead(item.id));
+      }
+
+      const ids = new Set(toMark.map((item) => item.id));
+      return prev.map((item) => (ids.has(item.id) ? { ...item, unread: false } : item));
     });
-  }, [location.pathname]);
+  }, [location.pathname, useApi]);
 
   const handleTransitionStart = useCallback(() => {
     setTransitionActive(true);
@@ -384,7 +432,7 @@ export function AppLayout() {
             </div>
           </div>
 
-          <nav className="app-header__nav" aria-label="Main navigation">
+          <nav className="app-header__nav" aria-label={t("nav.mainNav", "Main navigation")}>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -405,6 +453,22 @@ export function AppLayout() {
                 ) : null}
               </NavLink>
             ))}
+            {session.user?.isAdmin ? (
+              <NavLink
+                to="/admin/dashboard"
+                className={({ isActive }) =>
+                  isActive ? "header-nav-link header-nav-link--active" : "header-nav-link"
+                }
+              >
+                <span className="header-nav-link__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+                    <path d="M12 3 4 8v13h16V8l-8-5Z" />
+                    <path d="M9 21v-6h6v6" />
+                  </svg>
+                </span>
+                <span>{t("nav.admin", "Admin")}</span>
+              </NavLink>
+            ) : null}
           </nav>
 
           <div className="app-header__right">
@@ -456,27 +520,44 @@ export function AppLayout() {
               <div className="header-notify__head">
                 <strong>{t("notify.title", "Notifications")}</strong>
                 <span>{t("notify.unread", "Unread")}: {unreadCount}</span>
+                {unreadCount > 0 ? (
+                  <button
+                    type="button"
+                    className="header-notify__mark-all"
+                    onClick={() => markAllNotificationsRead()}
+                  >
+                    {t("notify.markAllRead", "Mark all read")}
+                  </button>
+                ) : null}
               </div>
               <div className="header-notify__list">
-                {notifications.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={
-                      item.unread
-                        ? "header-notify__item header-notify__item--unread"
-                        : "header-notify__item"
-                    }
-                    onClick={() => openNotification(item.id, item.to)}
-                  >
-                    <span className="header-notify__text">
-                      {item._api ? item.text : t(item.textKey, item.fallback)}
-                    </span>
-                    <span className="header-notify__time">
-                      {item._api ? item.time : t(item.timeKey, item.timeFallback || item.time)}
-                    </span>
-                  </button>
-                ))}
+                {notificationsLoading ? (
+                  <p className="header-notify__empty">{t("common.loading", "Loading…")}</p>
+                ) : notificationsError ? (
+                  <p className="header-notify__empty">{notificationsError}</p>
+                ) : notifications.length === 0 ? (
+                  <p className="header-notify__empty">{t("notify.empty", "No notifications yet.")}</p>
+                ) : (
+                  notifications.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={
+                        item.unread
+                          ? "header-notify__item header-notify__item--unread"
+                          : "header-notify__item"
+                      }
+                      onClick={() => openNotification(item.id, item.to)}
+                    >
+                      <span className="header-notify__text">
+                        {item._api ? item.text : t(item.textKey, item.fallback)}
+                      </span>
+                      <span className="header-notify__time">
+                        {item._api ? item.time : t(item.timeKey, item.timeFallback || item.time)}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -485,8 +566,8 @@ export function AppLayout() {
             className="small-btn"
             value={lang}
             onChange={(event) => setLang(event.target.value)}
-            aria-label="Language"
-            title="Language"
+            aria-label={t("nav.language", "Language")}
+            title={t("nav.language", "Language")}
           >
             {supportedLangs.map((code) => (
               <option key={code} value={code}>

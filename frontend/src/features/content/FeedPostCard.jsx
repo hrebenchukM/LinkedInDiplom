@@ -10,6 +10,8 @@ export function FeedPostCard({
   index = 0,
   feedRevision = 0,
   userAvatar,
+  currentUserId,
+  displayName,
   useApi,
   t,
   showHint,
@@ -138,6 +140,9 @@ export function FeedPostCard({
         repostedPostIds={repostedPostIds}
         onToggleSave={onToggleSave}
         onToggleRepost={onToggleRepost}
+        currentUserId={currentUserId}
+        displayName={displayName}
+        userAvatar={userAvatar}
       />
     </article>
   );

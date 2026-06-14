@@ -116,28 +116,70 @@ export async function apiFetch(method, path, body, options = {}) {
 
 /** Multipart upload (avatar, header). Field name must match ASP.NET `IFormFile file`. */
 export async function apiUpload(method, path, file, fieldName = "file", options = {}) {
-  let response = await fetch(buildApiUrl(path), {
-    method,
-    headers: withAuthHeaders(),
-    body: (() => {
-      const formData = new FormData();
-      formData.append(fieldName, file);
-      return formData;
-    })(),
-  });
-  let data = await parseJsonSafe(response);
+  const uploadOnce = async (retried = false) => {
+    const { onProgress } = options;
 
-  if (response.status === 401 && !options._authRetried) {
-    if (getRefreshToken()) {
-      const refreshed = await tryRefreshAccessToken();
-      if (refreshed) {
-        return apiUpload(method, path, file, fieldName, { ...options, _authRetried: true });
-      }
-    } else if (getAccessToken()) {
-      clearAuthTokens();
-      notifyAuthExpired();
+    if (typeof onProgress === "function" && typeof XMLHttpRequest !== "undefined") {
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, buildApiUrl(path));
+        const headers = withAuthHeaders();
+        Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            onProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        });
+        xhr.addEventListener("load", async () => {
+          let data = {};
+          try {
+            data = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+          } catch {
+            data = { message: xhr.responseText || "" };
+          }
+          if (xhr.status === 401 && !retried && getRefreshToken()) {
+            const refreshed = await tryRefreshAccessToken();
+            if (refreshed) {
+              resolve(await uploadOnce(true));
+              return;
+            }
+          }
+          resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
+        });
+        xhr.addEventListener("error", () => {
+          resolve({ ok: false, status: 0, data: { message: "Upload failed." } });
+        });
+        const formData = new FormData();
+        formData.append(fieldName, file);
+        xhr.send(formData);
+      });
     }
-  }
 
-  return { ok: response.ok, status: response.status, data };
+    let response = await fetch(buildApiUrl(path), {
+      method,
+      headers: withAuthHeaders(),
+      body: (() => {
+        const formData = new FormData();
+        formData.append(fieldName, file);
+        return formData;
+      })(),
+    });
+    let data = await parseJsonSafe(response);
+
+    if (response.status === 401 && !retried) {
+      if (getRefreshToken()) {
+        const refreshed = await tryRefreshAccessToken();
+        if (refreshed) {
+          return uploadOnce(true);
+        }
+      } else if (getAccessToken()) {
+        clearAuthTokens();
+        notifyAuthExpired();
+      }
+    }
+
+    return { ok: response.ok, status: response.status, data };
+  };
+
+  return uploadOnce(false);
 }
