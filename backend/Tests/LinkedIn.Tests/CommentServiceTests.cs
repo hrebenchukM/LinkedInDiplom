@@ -21,7 +21,7 @@ public class CommentServiceTests : IDisposable
 
         _dbContext = new ContentDbContext(options);
         _postService = new PostService(_dbContext);
-        _commentService = new CommentService(_dbContext);
+        _commentService = new CommentService(_dbContext, new NoOpDomainEventPublisher());
     }
 
     private async Task<Guid> CreatePublicPostAsync()
@@ -159,10 +159,11 @@ public class CommentServiceTests : IDisposable
 
         var comments = await _commentService.GetByPostIdAsync(new GetCommentsByPostParameters
         {
-            PostId = postId, ViewerUserId = _userId
+            PostId = postId, ViewerUserId = _userId, Take = 100
         });
 
-        Assert.Equal(2, comments.Count);
+        Assert.Equal(2, comments.Items.Count);
+        Assert.Equal(2, comments.TotalCount);
     }
 
     [Fact]

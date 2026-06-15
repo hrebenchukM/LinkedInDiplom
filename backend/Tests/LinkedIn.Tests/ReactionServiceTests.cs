@@ -21,7 +21,7 @@ public class ReactionServiceTests : IDisposable
 
         _dbContext = new ContentDbContext(options);
         _postService = new PostService(_dbContext);
-        _reactionService = new ReactionService(_dbContext);
+        _reactionService = new ReactionService(_dbContext, new NoOpDomainEventPublisher());
     }
 
     private async Task<Guid> CreatePublicPostAsync()

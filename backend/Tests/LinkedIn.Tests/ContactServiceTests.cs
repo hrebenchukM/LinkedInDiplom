@@ -20,7 +20,7 @@ public class ContactServiceTests : IDisposable
             .Options;
 
         _dbContext = new NetworkDbContext(options);
-        _contactService = new ContactService(_dbContext);
+        _contactService = new ContactService(_dbContext, new NoOpDomainEventPublisher());
     }
 
     [Fact]
@@ -248,16 +248,18 @@ public class ContactServiceTests : IDisposable
 
         var accepted = await _contactService.GetMyContactsAsync(new GetMyContactsParameters
         {
-            UserId = _userId, Status = "accepted"
+            UserId = _userId, Status = "accepted", Take = 100
         });
 
         var pending = await _contactService.GetMyContactsAsync(new GetMyContactsParameters
         {
-            UserId = _userId, Status = "pending"
+            UserId = _userId, Status = "pending", Take = 100
         });
 
-        Assert.Single(accepted);
-        Assert.Empty(pending);
+        Assert.Single(accepted.Items);
+        Assert.Equal(1, accepted.TotalCount);
+        Assert.Empty(pending.Items);
+        Assert.Equal(0, pending.TotalCount);
     }
 
     public void Dispose() => _dbContext.Dispose();
