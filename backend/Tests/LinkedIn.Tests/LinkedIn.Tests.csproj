@@ -27,6 +27,12 @@
     <ProjectReference Include="..\..\Profile\Profile.Services\Profile.Services.csproj" />
     <ProjectReference Include="..\..\Profile\Profile.Contracts\Profile.Contracts.csproj" />
     <ProjectReference Include="..\..\Profile\Profile.DataAccess\Profile.DataAccess.csproj" />
+    <ProjectReference Include="..\..\Network\Network.Services\Network.Services.csproj" />
+    <ProjectReference Include="..\..\Network\Network.Contracts\Network.Contracts.csproj" />
+    <ProjectReference Include="..\..\Network\Network.DataAccess\Network.DataAccess.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Services\Professional.Services.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.Contracts\Professional.Contracts.csproj" />
+    <ProjectReference Include="..\..\Professional\Professional.DataAccess\Professional.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>
