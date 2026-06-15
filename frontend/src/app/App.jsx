@@ -1,8 +1,26 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import AppContext from '../features/appContext/AppContext';
-import Base64 from '../shared/base64/Base64';
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAuthTokens,
+  clearAuthTokens,
+  isAccessTokenExpiredOrNearExpiry,
+} from '../shared/api/tokens.js';
+import { TOKEN_REFRESH_MARGIN_MS } from '../shared/api/config.js';
+import {
+  getCurrentAccount,
+  logout as authLogout,
+  refreshToken as authRefreshToken,
+} from '../features/auth/authApi.js';
+import {
+  buildUserFromAccount,
+  mapCurrentAccount,
+  mapRefreshResponse,
+} from '../features/auth/mapAccount.js';
+import { getMyProfile } from '../features/profile/profileApi.js';
 
 // public
 import SplashPage from '../pages/splash/Splash';
@@ -21,90 +39,123 @@ import PortfolioPage from '../pages/portfolio/PortfolioPage';
 import GroupPage from '../pages/group/GroupPage';
 import EventPage from '../pages/event/EventPage';
 import CompanyPage from '../pages/company/CompanyPage';
-import ChatMain from '../features/ChatMain/ChatMain';
+
+import ProtectedRoute from './router/ProtectedRoute';
+import AdminLayout from '../pages/admin/AdminLayout';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminUsersPage from '../pages/admin/AdminUsersPage';
+import AdminRolesPage from '../pages/admin/AdminRolesPage';
+import AdminContentPage from '../pages/admin/AdminContentPage';
+import AdminCommentsPage from '../pages/admin/AdminCommentsPage';
+import AdminJobsPage from '../pages/admin/AdminJobsPage';
+import AdminEventsPage from '../pages/admin/AdminEventsPage';
+import AdminForbiddenPage from '../pages/admin/AdminForbiddenPage';
 
 export default function App() {
-
-  
-  // ================= STATE =================
   const [token, setToken] = useState(null);
   const [tokenReady, setTokenReady] = useState(false);
+  const [user, setUser] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [profile, setProfile] = useState(null);
 
-  const [user, setUser] = useState(null);        // из JWT
-  const [profile, setProfile] = useState(null);  // из БД
-const logout = () => {
-  // 1️⃣ React state
-  setToken(null);
-  setUser(null);
-  setProfile(null);
+  const applyAuthSession = useCallback(({ account: nextAccount, tokens }) => {
+    if (tokens?.accessToken) {
+      setAuthTokens(tokens);
+      setToken(tokens.accessToken);
+    }
 
-  // 2️⃣ localStorage
-  localStorage.removeItem('token');
+    if (nextAccount) {
+      setAccount(nextAccount);
+      setUser(buildUserFromAccount(nextAccount));
+    }
+  }, []);
 
-  // 3️⃣ cookie (ВАЖНО: тот же Path!)
-  document.cookie =
-    'token=; Path=/JavaWeb222; Max-Age=0; SameSite=Lax';
+  const logout = useCallback(async () => {
+    const refreshToken = getRefreshToken();
 
-  // 4️⃣ редирект
-  window.location.href = '/landing';
-};
+    try {
+      if (refreshToken) {
+        await authLogout(refreshToken);
+      }
+    } catch {
+      // Always clear local session even if backend logout fails.
+    } finally {
+      clearAuthTokens();
+      setToken(null);
+      setUser(null);
+      setAccount(null);
+      setProfile(null);
+      window.location.href = '/auth';
+    }
+  }, []);
 
+  useEffect(() => {
+    let cancelled = false;
 
-  // ================= REQUEST =================
-  const request = (url, conf = {}, isFull = false) =>
-    new Promise((resolve, reject) => {
+    async function bootstrapAuthSession() {
+      const storedAccessToken = getAccessToken();
+      const storedRefreshToken = getRefreshToken();
 
-      if (!token) {
-        reject("NO_TOKEN");
+      if (!storedAccessToken && !storedRefreshToken) {
+        if (!cancelled) setTokenReady(true);
         return;
       }
 
-      const backUrl = 'http://localhost:8080/JavaWeb222/';
-      url = url.replace('api://', backUrl);
+      try {
+        let activeAccessToken = storedAccessToken;
 
-      conf.headers ??= {};
-      conf.headers.Authorization ??= 'Bearer ' + token;
+        if (
+          storedRefreshToken &&
+          (!activeAccessToken ||
+            isAccessTokenExpiredOrNearExpiry(TOKEN_REFRESH_MARGIN_MS))
+        ) {
+          const refreshResponse = await authRefreshToken(storedRefreshToken);
+          const refreshedTokens = mapRefreshResponse(refreshResponse);
 
-      fetch(url, conf)
-        .then(r => r.json())
-        .then(j => {
-          if (j.status?.isOk) resolve(isFull ? j : j.data);
-          else reject(j);
-        })
-        .catch(reject);
-    });
+          if (refreshedTokens?.accessToken) {
+            setAuthTokens(refreshedTokens);
+            activeAccessToken = refreshedTokens.accessToken;
+          } else {
+            throw new Error('Refresh token response did not include access token.');
+          }
+        } else if (activeAccessToken) {
+          setToken(activeAccessToken);
+        }
 
-  // ================= TOKEN RESTORE =================
-useEffect(() => {
-  const savedToken = localStorage.getItem('token');
-  if (savedToken) {
-    setToken(savedToken);
-    document.cookie =
-      `token=${encodeURIComponent(savedToken)}; Path=/JavaWeb222; SameSite=Lax`;
-  }
-  setTokenReady(true);
-}, []);
+        const currentAccessToken = getAccessToken() || activeAccessToken;
 
+        if (currentAccessToken) {
+          const accountDto = await getCurrentAccount();
+          const mapped = mapCurrentAccount(accountDto, currentAccessToken);
 
-  // ================= USER FROM JWT =================
-  useEffect(() => {
-    if (typeof token === 'string' && token.split('.').length === 3) {
-      const payload = Base64.jwtDecodePayload(token);
-      setUser({
-        id: payload.sub,
-        aud: payload.aud,
-        email: payload.email,
-        name: payload.name,
-        dob: payload.dob ?? null,
-      });
-            console.log(token);
-    } else {
-      setUser(null);
-      setProfile(null);
+          if (!cancelled) {
+            setToken(currentAccessToken);
+            setAccount(mapped.account);
+            setUser(mapped.user);
+          }
+        }
+      } catch (error) {
+        console.error('Auth bootstrap error:', error);
+        clearAuthTokens();
+
+        if (!cancelled) {
+          setToken(null);
+          setUser(null);
+          setAccount(null);
+          setProfile(null);
+        }
+      } finally {
+        if (!cancelled) setTokenReady(true);
+      }
     }
-  }, [token]);
 
-  // ================= PROFILE BOOTSTRAP =================
+    bootstrapAuthSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!token) return;
 
@@ -112,12 +163,12 @@ useEffect(() => {
 
     (async () => {
       try {
-        const profile = await request("api://user/profile");
+        const profileData = await getMyProfile();
         if (!cancelled) {
-          setProfile(profile);
+          setProfile(profileData);
         }
       } catch (err) {
-        console.error("Profile bootstrap error:", err);
+        console.error('Profile bootstrap error:', err);
         if (!cancelled) setProfile(null);
       }
     })();
@@ -127,47 +178,41 @@ useEffect(() => {
     };
   }, [token]);
 
-  // ================= GUARD =================
   if (!tokenReady) {
-    return null; // splash / loader
+    return null;
   }
 
-  // ================= RENDER =================
   return (
     <AppContext.Provider
       value={{
         token,
         setToken,
         user,
+        account,
         profile,
         setProfile,
-        request,
-        logout
+        logout,
+        applyAuthSession,
       }}
     >
       <BrowserRouter>
         <Routes>
-
           <Route path="/" element={<SplashPage />} />
 
-          {/* PUBLIC */}
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
 
-          {/* PROTECTED APP */}
           <Route
             path="/app"
-            element={token ? <Layout /> : <Navigate to="/landing" />}
+            element={token ? <Layout /> : <Navigate to="/auth" replace />}
           >
             <Route index element={<HomePage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="network" element={<NetworkPage />} />
             <Route path="vacancies" element={<VacanciesPage />} />
 
-            <Route path="messages" element={<MessagesPage />}>
-              </Route>
-              <Route path="messages/:chatId" element={<MessagesPage />} />
-           
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="messages/:chatId" element={<MessagesPage />} />
 
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="profile/:username" element={<ProfilePage />} />
@@ -175,11 +220,23 @@ useEffect(() => {
             <Route path="groups/:id" element={<GroupPage />} />
             <Route path="event/:id" element={<EventPage />} />
             <Route path="company/:id" element={<CompanyPage />} />
+
+            <Route path="admin/forbidden" element={<AdminForbiddenPage />} />
+            <Route path="admin" element={<ProtectedRoute requireAdmin />}>
+              <Route element={<AdminLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboardPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="roles" element={<AdminRolesPage />} />
+                <Route path="content" element={<AdminContentPage />} />
+                <Route path="comments" element={<AdminCommentsPage />} />
+                <Route path="jobs" element={<AdminJobsPage />} />
+                <Route path="events" element={<AdminEventsPage />} />
+              </Route>
+            </Route>
           </Route>
 
-          {/* FALLBACK */}
-          <Route path="*" element={<Navigate to="/" />} />
-
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AppContext.Provider>

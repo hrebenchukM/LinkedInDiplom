@@ -360,3 +360,14 @@
     justify-content: center;
   }
 }
+
+.event-action-error {
+  margin: 0 0 12px;
+  color: #DC2626;
+  font-size: 14px;
+}
+
+.event-section-empty {
+  color: #6B7280;
+  margin: 0;
+}

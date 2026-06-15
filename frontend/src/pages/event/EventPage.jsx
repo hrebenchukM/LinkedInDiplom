@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Calendar,
   Clock,
@@ -7,68 +7,118 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 import './EventPage.css';
 import SimpleProfileCard from '../../features/SimpleProfileCard/SimpleProfileCard';
 import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
-import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
-
-import { useParams } from 'react-router-dom';
+import { getErrorMessage } from '../../shared/lib/apiError';
+import {
+  getEventById,
+  getEventSchedule,
+  getEventSpeakers,
+  joinEvent,
+  leaveEvent,
+} from '../../features/events/eventsApi';
+import { enrichEventWithOrganizer } from '../../features/events/enrichEventsWithOrganizers';
 
 const EventPage = ({ onNavigate }) => {
   const { id: eventId } = useParams();
 
-
-  const { request } = useContext(AppContext);
-
-  const [data, setData] = useState(null);
+  const [event, setEvent] = useState(null);
+  const [organizer, setOrganizer] = useState(null);
+  const [schedule, setSchedule] = useState([]);
+  const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [isAttending, setIsAttending] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadEvent = useCallback(async () => {
+    if (!eventId) return;
 
     setLoading(true);
+    setError('');
 
-    request(`api://events/${eventId}`)
-      .then(res => {
-        if (!cancelled) {
-          setData(res);
-        }
-      })
-      .catch(console.error)
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    try {
+      const [eventDto, speakersList, scheduleList] = await Promise.all([
+        getEventById(eventId),
+        getEventSpeakers(eventId),
+        getEventSchedule(eventId),
+      ]);
+
+      if (!eventDto) {
+        setEvent(null);
+        return;
+      }
+
+      const enriched = await enrichEventWithOrganizer({
+        ...eventDto,
+        speakers: speakersList,
+        schedule: scheduleList,
       });
 
-    return () => (cancelled = true);
+      setEvent(enriched);
+      setOrganizer(enriched.organizer);
+      setSpeakers(speakersList);
+      setSchedule(scheduleList);
+      setIsAttending(Boolean(enriched.isAttending));
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setEvent(null);
+    } finally {
+      setLoading(false);
+    }
   }, [eventId]);
+
+  useEffect(() => {
+    loadEvent();
+  }, [loadEvent]);
+
+  const handleAttendanceToggle = async () => {
+    if (!eventId || attendanceLoading) return;
+
+    setActionError('');
+    setAttendanceLoading(true);
+
+    const previous = isAttending;
+    const next = !previous;
+    setIsAttending(next);
+    setEvent((prev) => (prev ? { ...prev, isAttending: next } : prev));
+
+    try {
+      if (next) {
+        await joinEvent(eventId);
+      } else {
+        await leaveEvent(eventId);
+      }
+    } catch (err) {
+      setIsAttending(previous);
+      setEvent((prev) => (prev ? { ...prev, isAttending: previous } : prev));
+      setActionError(getErrorMessage(err));
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
 
   if (loading) {
     return <main className="main-content">Loading...</main>;
   }
 
-  if (!data) {
-    return <main className="main-content">Event not found</main>;
+  if (error || !event) {
+    return (
+      <main className="main-content">
+        {error || 'Event not found'}
+      </main>
+    );
   }
 
- const { event, organizer, attendeesCount, schedule, speakers } = data;
-
-  const startDate = new Date(event.startAt);
-  const endDate = event.endAt ? new Date(event.endAt) : null;
-
-  const dateLabel = startDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-
-  const timeLabel = endDate
-    ? `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    : startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dateLabel = event.date || 'Date TBD';
+  const timeLabel = event.time || 'Time TBD';
+  const attendeesCount = event.attendeesCount ?? 0;
 
   return (
     <main className="main-content">
@@ -77,11 +127,10 @@ const EventPage = ({ onNavigate }) => {
           <div className="event-content-grid">
             <div className="event-main">
 
-              {/* ================= HEADER ================= */}
               <div className="event-header-card">
                 <div className="event-image">
                   <img
-                    src={event.coverImageUrl ? fileUrl(event.coverImageUrl) : '/assets/event-cover.jpg'}
+                    src={event.coverImageUrl || event.coverUrl || '/assets/event-cover.jpg'}
                     alt={event.title}
                   />
                   <span
@@ -95,34 +144,31 @@ const EventPage = ({ onNavigate }) => {
                   <h1 className="event-title">{event.title}</h1>
 
                   <div className="event-organizer">
-                  <img
-                    src={
-                      organizer?.avatarUrl
-                        ? fileUrl(organizer.avatarUrl)
-                        : '/assets/avatar-placeholder.png'
-                    }
-                    alt={`${organizer?.firstName} ${organizer?.secondName}`}
-                  />
-                  <div>
-                    <div className="organizer-name">
-                      <span>
-                        {organizer
-                          ? `${organizer.firstName} ${organizer.secondName}`
-                          : 'Organizer'}
+                    <img
+                      src={
+                        organizer?.avatar
+                          || organizer?.avatarUrl
+                          || '/assets/avatar-placeholder.png'
+                      }
+                      alt={organizer?.name || 'Organizer'}
+                    />
+                    <div>
+                      <div className="organizer-name">
+                        <span>
+                          {organizer
+                            ? `${organizer.firstName} ${organizer.secondName}`.trim()
+                              || organizer.name
+                            : 'Organizer'}
+                        </span>
+                        {!organizer?.isCompany && (
+                          <CheckCircle size={16} fill="#0ea5e9" color="white" />
+                        )}
+                      </div>
+                      <span className="organizer-label">
+                        {organizer?.profileTitle || 'Organizer'}
                       </span>
-
-                      {/* пользователь верифицирован условно */}
-                      {!organizer?.isCompany && (
-                        <CheckCircle size={16} fill="#0ea5e9" color="white" />
-                      )}
                     </div>
-
-                    <span className="organizer-label">
-                      {organizer?.profileTitle || 'Organizer'}
-                    </span>
                   </div>
-                </div>
-
 
                   <div className="event-details">
                     <div className="event-detail">
@@ -135,7 +181,7 @@ const EventPage = ({ onNavigate }) => {
                     </div>
                     <div className="event-detail">
                       <MapPin size={20} />
-                      <span>{event.location}</span>
+                      <span>{event.location || 'Location TBD'}</span>
                     </div>
                     <div className="event-detail">
                       <Users size={20} />
@@ -143,70 +189,81 @@ const EventPage = ({ onNavigate }) => {
                     </div>
                   </div>
 
+                  {actionError && (
+                    <p className="event-action-error">{actionError}</p>
+                  )}
+
                   <div className="event-actions">
                     <button
+                      type="button"
                       className={`btn-primary ${isAttending ? 'attending' : ''}`}
-                      onClick={() => setIsAttending(!isAttending)}
+                      onClick={handleAttendanceToggle}
+                      disabled={attendanceLoading}
                     >
                       {isAttending ? (
                         <>
                           <CheckCircle size={18} />
-                          Attending
+                          {attendanceLoading ? 'Updating...' : 'Attending'}
                         </>
                       ) : (
-                        'Register'
+                        attendanceLoading ? 'Registering...' : 'Register'
                       )}
                     </button>
-                    <button className="btn-secondary">
+                    <button type="button" className="btn-secondary">
                       <Share2 size={18} />
                       Share
                     </button>
-                    <button className="btn-secondary">
+                    <button type="button" className="btn-secondary">
                       <Bookmark size={18} />
                     </button>
-                    <button className="btn-secondary">
+                    <button type="button" className="btn-secondary">
                       <MoreHorizontal size={18} />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* ================= ABOUT ================= */}
               <div className="event-section-card">
                 <h2>About this event</h2>
-                <p>{event.description}</p>
+                <p>{event.description || 'No description provided.'}</p>
               </div>
 
-              {/* ================= SCHEDULE ================= */}
               <div className="event-section-card">
                 <h2>Schedule</h2>
                 <div className="event-schedule">
-                  {schedule.map(item => (
-                    <div key={item.id} className="schedule-item">
-                      <div className="schedule-time">{item.timeLabel}</div>
-                      <div className="schedule-content">
-                        <h4>{item.title}</h4>
-                        {item.speakerName && <p>{item.speakerName}</p>}
+                  {schedule.length === 0 ? (
+                    <p className="event-section-empty">No schedule items yet.</p>
+                  ) : (
+                    schedule.map((item) => (
+                      <div key={item.id} className="schedule-item">
+                        <div className="schedule-time">{item.timeLabel}</div>
+                        <div className="schedule-content">
+                          <h4>{item.title}</h4>
+                          {item.speakerName && <p>{item.speakerName}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
-              {/* ================= SPEAKERS ================= */}
               <div className="event-section-card">
                 <h2>Speakers</h2>
                 <div className="speakers-grid">
-                  {speakers.map(s => (
-                    <div key={s.id} className="speaker-card">
-                      <img
-                        src={s.avatarUrl ? fileUrl(s.avatarUrl) : '/assets/avatar-placeholder.png'}
-                        alt={s.name}
-                      />
-                      <h4>{s.name}</h4>
-                      <p>{s.title}</p>
-                    </div>
-                  ))}
+                  {speakers.length === 0 ? (
+                    <p className="event-section-empty">No speakers listed yet.</p>
+                  ) : (
+                    speakers.map((speaker) => (
+                      <div key={speaker.id} className="speaker-card">
+                        <img
+                          src={speaker.avatarUrl || '/assets/avatar-placeholder.png'}
+                          alt={speaker.name}
+                        />
+                        <h4>{speaker.name}</h4>
+                        <p>{speaker.title}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

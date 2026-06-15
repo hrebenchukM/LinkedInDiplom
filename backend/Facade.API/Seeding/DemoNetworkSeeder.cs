@@ -11,7 +11,7 @@ namespace Facade.API.Seeding;
 
 public sealed class DemoNetworkSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
+    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
     private const string TestUserOneEmail = "test@example.com";
     private const string TestUserTwoEmail = "test2@example.com";
     private const string StatusAccepted = "accepted";
@@ -44,7 +44,7 @@ public sealed class DemoNetworkSeeder
         var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
         var testOne = _userLookup.TryGet(users, TestUserOneEmail);
         var testTwo = _userLookup.TryGet(users, TestUserTwoEmail);
-        var admin = _userLookup.TryGet(users, AdminEmail);
+        var primaryDemoUser = _userLookup.TryGet(users, PrimaryDemoUserEmail);
 
         if (testOne is null || testTwo is null)
         {
@@ -57,15 +57,15 @@ public sealed class DemoNetworkSeeder
 
         await EnsureAcceptedContactAsync(testOne, testTwo, cancellationToken);
 
-        if (admin is null)
+        if (primaryDemoUser is null)
         {
             _logger.LogWarning(
-                "Demo network seed: follow skipped because admin user {Email} was not found.",
-                AdminEmail);
+                "Demo network seed: follow skipped because primary demo user {Email} was not found.",
+                PrimaryDemoUserEmail);
         }
         else
         {
-            await EnsureFollowAsync(admin, testOne, cancellationToken);
+            await EnsureFollowAsync(primaryDemoUser, testOne, cancellationToken);
         }
 
         await EnsureFollowAsync(testOne, testTwo, cancellationToken);

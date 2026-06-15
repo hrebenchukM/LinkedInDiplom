@@ -1,10 +1,10 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import Modal from '../../app/ui/Modal';
-import AppContext from '../../features/appContext/AppContext';
+import { createExperience } from '../professional/professionalApi.js';
+import { mapExperienceToRequest } from '../professional/mapProfessional.js';
+import { getErrorMessage } from '../../shared/lib/apiError.js';
 
 const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
-  const { request } = useContext(AppContext);
-
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -14,62 +14,51 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
     endMonth: '',
     endYear: '',
     current: false,
-    description: ''
+    description: '',
   });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
   const years = Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i);
 
- const handleSubmit = (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-  const fd = new FormData();
+    if (!formData.startMonth || !formData.startYear) {
+      setError('Start date is required.');
+      return;
+    }
 
-  fd.append("position", formData.title);
-  fd.append("companyName", formData.company);
-  fd.append("location", formData.location);
-  fd.append("employmentType", "Full-time");
-  fd.append("workLocationType", "Office");
-  fd.append("description", formData.description);
+    setSubmitting(true);
 
-  if (formData.startMonth && formData.startYear) {
-    fd.append(
-      "startDate",
-      `${formData.startYear}-${String(months.indexOf(formData.startMonth) + 1).padStart(2, "0")}-01`
-    );
-  }
+    try {
+      const payload = mapExperienceToRequest({
+        ...formData,
+        title: formData.title,
+        position: formData.title,
+      });
 
-  if (!formData.current && formData.endMonth && formData.endYear) {
-    fd.append(
-      "endDate",
-      `${formData.endYear}-${String(months.indexOf(formData.endMonth) + 1).padStart(2, "0")}-01`
-    );
-  }
-
-  request("api://user/experience", {
-    method: "POST",
-    body: fd
-  })
-  .then(() => {
-    onAdded?.();
-    onClose();
-  })
-  .catch(err => {
-  console.error(err);
-  alert(
-    typeof err === "string"
-      ? err
-      : err?.data || "Operation failed"
-  );
-});
-
-};
+      await createExperience(payload);
+      onAdded?.();
+      onClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Adding work experience">
       <form onSubmit={handleSubmit}>
         <div className="form-hint">Mandatory field</div>
+
+        {error ? <div className="auth-field-error">{error}</div> : null}
 
         <div className="form-group">
           <label className="form-label required">Title</label>
@@ -115,7 +104,9 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
               onChange={(e) => setFormData({ ...formData, startMonth: e.target.value })}
             >
               <option value="">Month</option>
-              {months.map(month => <option key={month} value={month}>{month}</option>)}
+              {months.map((month) => (
+                <option key={month} value={month}>{month}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -126,7 +117,9 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
               onChange={(e) => setFormData({ ...formData, startYear: e.target.value })}
             >
               <option value="">Year</option>
-              {years.map(year => <option key={year} value={year}>{year}</option>)}
+              {years.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -141,7 +134,9 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
               disabled={formData.current}
             >
               <option value="">Month</option>
-              {months.map(month => <option key={month} value={month}>{month}</option>)}
+              {months.map((month) => (
+                <option key={month} value={month}>{month}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -153,7 +148,9 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
               disabled={formData.current}
             >
               <option value="">Year</option>
-              {years.map(year => <option key={year} value={year}>{year}</option>)}
+              {years.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -180,8 +177,12 @@ const AddExperienceModal = ({ isOpen, onClose, onAdded }) => {
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary">Save</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Saving...' : 'Save'}
+          </button>
         </div>
       </form>
     </Modal>

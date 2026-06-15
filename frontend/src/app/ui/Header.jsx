@@ -1,9 +1,11 @@
 import React, { useContext, useMemo } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
 import { Home, Users, Briefcase, MessageCircle, Bell } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppContext from '../../features/appContext/AppContext';
 import { fileUrl } from '../../shared/api/files';
+import { getAccessToken } from '../../shared/api/tokens.js';
+import { isAdminToken } from '../../shared/lib/jwtClaims.js';
 
 import './Header.css';
 import logoImg from '../../shared/assets/illustrations/linkedin_icon.png';
@@ -12,14 +14,18 @@ import logoImg from '../../shared/assets/illustrations/linkedin_icon.png';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-const { cart, user, profile, setToken,logout  } = useContext(AppContext);
+const { user, profile, logout, account, token } = useContext(AppContext);
+
+  const isAdmin = useMemo(() => {
+    const accessToken = token || getAccessToken();
+    return Boolean(
+      user?.isAdmin ||
+      account?.isAdmin ||
+      (accessToken && isAdminToken(accessToken)),
+    );
+  }, [user, account, token]);
 
   const isActive = (path) => location.pathname === path;
-
-  const totalItems = useMemo(() => {
-    if (!cart?.cartItems) return 0;
-    return cart.cartItems.reduce((s, ci) => s + (ci.quantity || 0), 0);
-  }, [cart]);
 
   const profileTitle = useMemo(() => {
     if (!user) return '';
@@ -98,6 +104,16 @@ const { cart, user, profile, setToken,logout  } = useContext(AppContext);
                 <Bell size={20} />
                 <span>Notifications</span>
               </button>
+
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/app/admin')}
+                  className={`nav-item ${location.pathname.startsWith('/app/admin') ? 'active' : ''}`}
+                >
+                  <Shield size={20} />
+                  <span>Admin</span>
+                </button>
+              )}
 
               {!user ? (
                 <button

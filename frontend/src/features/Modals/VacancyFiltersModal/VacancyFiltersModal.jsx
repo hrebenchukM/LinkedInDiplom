@@ -7,7 +7,9 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
     location: [],
     jobType: [],
     experienceLevel: [],
-    salaryRange: [0, 300000]
+    salaryRange: [0, 300000],
+    sortBy: 'newest',
+    sortDirection: 'desc',
   });
 
   const locations = ['Remote', 'On-site', 'Hybrid'];
@@ -15,16 +17,20 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
   const experienceLevels = ['Entry level', 'Mid-level', 'Senior', 'Lead'];
 
   const toggleArrayValue = (key, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [key]: prev[key].includes(value)
-        ? prev[key].filter(v => v !== value)
-        : [...prev[key], value]
+        ? prev[key].filter((item) => item !== value)
+        : [...prev[key], value],
     }));
   };
 
   const handleApply = () => {
-    onApplyFilters({ ...filters }); // 👉 передаём фильтры наверх
+    onApplyFilters?.({
+      ...filters,
+      employmentType: filters.jobType,
+      schedule: filters.location,
+    });
     onClose();
   };
 
@@ -33,10 +39,12 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
       location: [],
       jobType: [],
       experienceLevel: [],
-      salaryRange: [0, 300000]
+      salaryRange: [0, 300000],
+      sortBy: 'newest',
+      sortDirection: 'desc',
     };
     setFilters(emptyFilters);
-    onApplyFilters(null); // 👉 полный сброс фильтра
+    onApplyFilters?.(null);
     onClose();
   };
 
@@ -44,72 +52,86 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Filter Vacancies">
       <div className="vacancy-filters-modal">
 
-        {/* ===== LOCATION ===== */}
         <div className="filter-section">
-          <h3>Location</h3>
+          <h3>Sort by</h3>
+          <select
+            className="form-select"
+            value={filters.sortBy}
+            onChange={(event) =>
+              setFilters((prev) => ({ ...prev, sortBy: event.target.value }))
+            }
+          >
+            <option value="newest">Newest</option>
+            <option value="title">Title</option>
+            <option value="location">Location</option>
+            <option value="updated">Recently updated</option>
+          </select>
+        </div>
+
+        <div className="filter-section">
+          <h3>Workplace type</h3>
           <div className="filter-options">
-            {locations.map(l => (
-              <label key={l} className="filter-checkbox">
+            {locations.map((location) => (
+              <label key={location} className="filter-checkbox">
                 <input
                   type="checkbox"
-                  checked={filters.location.includes(l)}
-                  onChange={() => toggleArrayValue('location', l)}
+                  checked={filters.location.includes(location)}
+                  onChange={() => toggleArrayValue('location', location)}
                 />
-                <span>{l}</span>
+                <span>{location}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* ===== JOB TYPE ===== */}
         <div className="filter-section">
           <h3>Job Type</h3>
           <div className="filter-options">
-            {jobTypes.map(t => (
-              <label key={t} className="filter-checkbox">
+            {jobTypes.map((jobType) => (
+              <label key={jobType} className="filter-checkbox">
                 <input
                   type="checkbox"
-                  checked={filters.jobType.includes(t)}
-                  onChange={() => toggleArrayValue('jobType', t)}
+                  checked={filters.jobType.includes(jobType)}
+                  onChange={() => toggleArrayValue('jobType', jobType)}
                 />
-                <span>{t}</span>
+                <span>{jobType}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* ===== EXPERIENCE LEVEL ===== */}
         <div className="filter-section">
           <h3>Experience Level</h3>
+          <p className="filter-hint">Applied on the current page only</p>
           <div className="filter-options">
-            {experienceLevels.map(e => (
-              <label key={e} className="filter-checkbox">
+            {experienceLevels.map((level) => (
+              <label key={level} className="filter-checkbox">
                 <input
                   type="checkbox"
-                  checked={filters.experienceLevel.includes(e)}
-                  onChange={() => toggleArrayValue('experienceLevel', e)}
+                  checked={filters.experienceLevel.includes(level)}
+                  onChange={() => toggleArrayValue('experienceLevel', level)}
                 />
-                <span>{e}</span>
+                <span>{level}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* ===== SALARY ===== */}
         <div className="filter-section">
           <h3>Salary Range</h3>
+          <p className="filter-hint">Applied on the current page only</p>
           <div className="salary-range">
             <input
               type="number"
               placeholder="Min"
               value={filters.salaryRange[0]}
-              onChange={e =>
-                setFilters(prev => ({
+              onChange={(event) =>
+                setFilters((prev) => ({
                   ...prev,
                   salaryRange: [
-                    Number(e.target.value) || 0,
-                    prev.salaryRange[1]
-                  ]
+                    Number(event.target.value) || 0,
+                    prev.salaryRange[1],
+                  ],
                 }))
               }
             />
@@ -118,20 +140,19 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
               type="number"
               placeholder="Max"
               value={filters.salaryRange[1]}
-              onChange={e =>
-                setFilters(prev => ({
+              onChange={(event) =>
+                setFilters((prev) => ({
                   ...prev,
                   salaryRange: [
                     prev.salaryRange[0],
-                    Number(e.target.value) || 300000
-                  ]
+                    Number(event.target.value) || 300000,
+                  ],
                 }))
               }
             />
           </div>
         </div>
 
-        {/* ===== ACTIONS ===== */}
         <div className="filter-actions">
           <button
             type="button"

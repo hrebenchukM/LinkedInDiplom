@@ -1,17 +1,32 @@
 import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
 import VacanciesSidebar from '../../features/VacanciesSidebar/VacanciesSidebar';
 import VacancyCard from '../../features/VacancyCard/VacancyCard';
-import { useContext, useEffect, useState } from "react";
-import AppContext from "../../features/appContext/AppContext";
-import { fileUrl } from '../../shared/api/files';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import AppContext from '../../features/appContext/AppContext';
+import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
+import { getErrorMessage, getUserFriendlyErrorMessage, isValidationError } from '../../shared/lib/apiError';
+import {
+  addVacancyToFavorites,
+  applyToVacancy,
+  getMyFavoriteVacancies,
+  getVacancies,
+  loadVacancyMeta,
+  removeVacancyFromFavorites,
+} from '../../features/jobs/jobsApi';
+import { enrichVacanciesWithCompanies } from '../../features/jobs/enrichJobsWithCompanies';
+import {
+  applyClientSideVacancyFilters,
+  mapFiltersToVacancyQuery,
+} from '../../features/jobs/mapJobs';
 
 import './VacanciesPage.css';
 
-// ===================== helpers =====================
 function formatPosted(dateStr) {
   if (!dateStr) return '';
 
   const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '';
+
   const diffMs = Date.now() - date.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -23,69 +38,23 @@ function formatPosted(dateStr) {
   return date.toLocaleDateString();
 }
 
-// ===================== FILTER =====================
-function applyVacancyFilters(vacancies, filters) {
-  if (!filters) return vacancies;
-
-  return vacancies.filter(v => {
-
-    // ===== LOCATION =====
-    if (filters.location.length > 0 && v.location) {
-      const loc = v.location.toLowerCase();
-
-      const matches = filters.location.some(f => {
-        if (f === 'Remote') return loc.includes('remote');
-        if (f === 'On-site') return !loc.includes('remote');
-        if (f === 'Hybrid') return loc.includes('hybrid');
-        return false;
-      });
-
-      if (!matches) return false;
-    }
-
-    // ===== JOB TYPE (мягко) =====
-    if (filters.jobType.length > 0 && v.jobType) {
-      if (!filters.jobType.includes(v.jobType)) return false;
-    }
-
-    // ===== EXPERIENCE (мягко) =====
-    if (filters.experienceLevel.length > 0 && v.experienceLevel) {
-      if (!filters.experienceLevel.includes(v.experienceLevel)) return false;
-    }
-
-    // ===== SALARY =====
-    const [min, max] = filters.salaryRange;
-    if (v.salaryFrom != null && v.salaryTo != null) {
-      if (v.salaryTo < min || v.salaryFrom > max) return false;
-    }
-
-    return true;
-  });
-}
-
-// ===================== component =====================
 const VacanciesPage = ({ onNavigate }) => {
- const { request, profile } = useContext(AppContext);
+  const { profile } = useContext(AppContext);
+
   const [vacancies, setVacancies] = useState([]);
   const [filters, setFilters] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(() => new Set());
+  const [appliedIds, setAppliedIds] = useState(() => new Set());
+  const [actionErrors, setActionErrors] = useState({});
+  const [viewMode, setViewMode] = useState('all');
+  const [initialized, setInitialized] = useState(false);
 
-  const reloadVacancies = () => {
-    setLoading(true);
-    request("api://vacancy")
-      .then(data => setVacancies(Array.isArray(data) ? data : []))
-      .catch(alert)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    reloadVacancies();
-  }, []);
-
-  const visibleVacancies = applyVacancyFilters(vacancies, filters);
-
-
-  // ---------- profile title ----------
   const profileTitle =
     profile?.user?.profileTitle ||
     profile?.user?.headline ||
@@ -93,115 +62,313 @@ const VacanciesPage = ({ onNavigate }) => {
 
   const normalizedTitle = profileTitle.toLowerCase();
 
-  // ---------- recommended vacancies by profile ----------
-  const recommendedVacancies = profileTitle
-    ? vacancies.filter(v =>
-        v.title?.toLowerCase().includes(normalizedTitle)
-      )
-    : [];
+  const loadVacancies = useCallback(async ({
+    pageToLoad = 1,
+    append = false,
+    nextSearch = searchQuery,
+    nextFilters = filters,
+    nextFavoriteIds = favoriteIds,
+    nextAppliedIds = appliedIds,
+    mode = viewMode,
+  } = {}) => {
+    if (pageToLoad === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    setError('');
 
-  const finalRecommended =
-    recommendedVacancies.length > 0
-      ? recommendedVacancies
-      : vacancies.slice(0, 5);
+    try {
+      if (mode === 'saved') {
+        const favorites = await getMyFavoriteVacancies();
+        const favoriteItems = favorites
+          .map((item) => item.vacancy)
+          .filter(Boolean)
+          .map((vacancy) => ({
+            ...vacancy,
+            isFavorite: true,
+            hasApplied: nextAppliedIds.has(vacancy.id),
+          }));
 
-  // ---------- job search queries ----------
-  const jobSearchQueries = Array.from(
-    new Set(vacancies.map(v => v.title).filter(Boolean))
-  ).slice(0, 6);
+        const enriched = await enrichVacanciesWithCompanies(favoriteItems);
+        setVacancies(enriched);
+        setPage(1);
+        setHasNextPage(false);
+        return;
+      }
 
- 
-  // ===================== render =====================
+      const backendFilters = mapFiltersToVacancyQuery(nextFilters ?? {}, nextSearch);
+      const response = await getVacancies({
+        page: pageToLoad,
+        pageSize: DEFAULT_PAGE_SIZE,
+        ...backendFilters,
+        favoriteIds: nextFavoriteIds,
+        appliedIds: nextAppliedIds,
+      });
+
+      const enriched = await enrichVacanciesWithCompanies(response.items);
+
+      setVacancies((prev) => (append ? [...prev, ...enriched] : enriched));
+      setPage(response.page);
+      setHasNextPage(response.hasNextPage);
+    } catch (err) {
+      console.warn('Vacancies load error:', err);
+      setError(getUserFriendlyErrorMessage(err));
+
+      if (isValidationError(err) && (nextFilters || nextSearch)) {
+        try {
+          const response = await getVacancies({
+            page: pageToLoad,
+            pageSize: DEFAULT_PAGE_SIZE,
+            favoriteIds: nextFavoriteIds,
+            appliedIds: nextAppliedIds,
+          });
+          const enriched = await enrichVacanciesWithCompanies(response.items);
+          setVacancies((prev) => (append ? [...prev, ...enriched] : enriched));
+          setPage(response.page);
+          setHasNextPage(response.hasNextPage);
+          setError('');
+          return;
+        } catch (retryError) {
+          console.warn('Vacancies retry without filters failed:', retryError);
+        }
+      }
+
+      if (!append) {
+        setVacancies([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [appliedIds, favoriteIds, filters, searchQuery, viewMode]);
+
+  const reloadVacancies = useCallback(async () => {
+    const meta = await loadVacancyMeta();
+    setFavoriteIds(meta.favoriteIds);
+    setAppliedIds(meta.appliedIds);
+    await loadVacancies({
+      pageToLoad: 1,
+      append: false,
+      nextFavoriteIds: meta.favoriteIds,
+      nextAppliedIds: meta.appliedIds,
+    });
+  }, [loadVacancies]);
+
+  useEffect(() => {
+    reloadVacancies().finally(() => setInitialized(true));
+  }, []);
+
+  useEffect(() => {
+    if (!initialized) return undefined;
+
+    const timeout = setTimeout(() => {
+      loadVacancies({
+        pageToLoad: 1,
+        append: false,
+        nextSearch: searchQuery,
+        nextFilters: filters,
+        mode: viewMode,
+      });
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, filters, initialized, viewMode]);
+
+  const handleViewChange = (mode) => {
+    setViewMode(mode);
+    setPage(1);
+  };
+
+  const visibleVacancies = useMemo(
+    () => applyClientSideVacancyFilters(vacancies, filters),
+    [vacancies, filters],
+  );
+
+  const recommendedVacancies = useMemo(() => {
+    if (!profileTitle) {
+      return vacancies.slice(0, 5);
+    }
+
+    const matched = vacancies.filter((vacancy) =>
+      vacancy.title?.toLowerCase().includes(normalizedTitle),
+    );
+
+    return matched.length > 0 ? matched : vacancies.slice(0, 5);
+  }, [vacancies, profileTitle, normalizedTitle]);
+
+  const handleApplyFilters = (nextFilters) => {
+    setFilters(nextFilters);
+    setPage(1);
+  };
+
+  const handleSearchQuery = (query) => {
+    setSearchQuery(query ?? '');
+    setPage(1);
+  };
+
+  const handleLoadMore = () => {
+    if (!hasNextPage || loadingMore) return;
+    loadVacancies({ pageToLoad: page + 1, append: true });
+  };
+
+  const handleApply = async (vacancyId) => {
+    setActionErrors((prev) => ({ ...prev, [vacancyId]: '' }));
+
+    const previousApplied = appliedIds.has(vacancyId);
+    const nextAppliedIds = new Set(appliedIds);
+    nextAppliedIds.add(vacancyId);
+    setAppliedIds(nextAppliedIds);
+    setVacancies((prev) =>
+      prev.map((vacancy) =>
+        vacancy.id === vacancyId ? { ...vacancy, hasApplied: true } : vacancy,
+      ),
+    );
+
+    try {
+      await applyToVacancy(vacancyId);
+    } catch (err) {
+      const nextRollback = new Set(appliedIds);
+      if (!previousApplied) {
+        nextRollback.delete(vacancyId);
+      }
+      setAppliedIds(nextRollback);
+      setVacancies((prev) =>
+        prev.map((vacancy) =>
+          vacancy.id === vacancyId ? { ...vacancy, hasApplied: previousApplied } : vacancy,
+        ),
+      );
+      setActionErrors((prev) => ({
+        ...prev,
+        [vacancyId]: getErrorMessage(err),
+      }));
+    }
+  };
+
+  const handleToggleFavorite = async (vacancyId, isFavorite) => {
+    setActionErrors((prev) => ({ ...prev, [`fav-${vacancyId}`]: '' }));
+
+    const nextFavoriteIds = new Set(favoriteIds);
+    if (isFavorite) {
+      nextFavoriteIds.delete(vacancyId);
+    } else {
+      nextFavoriteIds.add(vacancyId);
+    }
+    setFavoriteIds(nextFavoriteIds);
+    setVacancies((prev) =>
+      prev.map((vacancy) =>
+        vacancy.id === vacancyId ? { ...vacancy, isFavorite: !isFavorite } : vacancy,
+      ),
+    );
+
+    try {
+      if (isFavorite) {
+        await removeVacancyFromFavorites(vacancyId);
+        if (viewMode === 'saved') {
+          setVacancies((prev) => prev.filter((vacancy) => vacancy.id !== vacancyId));
+        }
+      } else {
+        await addVacancyToFavorites(vacancyId);
+      }
+    } catch (err) {
+      setFavoriteIds(favoriteIds);
+      setVacancies((prev) =>
+        prev.map((vacancy) =>
+          vacancy.id === vacancyId ? { ...vacancy, isFavorite } : vacancy,
+        ),
+      );
+      setActionErrors((prev) => ({
+        ...prev,
+        [`fav-${vacancyId}`]: getErrorMessage(err),
+      }));
+    }
+  };
+
+  const clientSideLimitations = filters && (
+    (Array.isArray(filters.location) && filters.location.length > 1)
+    || (Array.isArray(filters.jobType) && filters.jobType.length > 1)
+    || (Array.isArray(filters.experienceLevel) && filters.experienceLevel.length > 0)
+    || (Array.isArray(filters.salaryRange)
+      && (filters.salaryRange[0] > 0 || filters.salaryRange[1] < 300000))
+  );
+
   return (
     <main className="main-content">
       <div className="container">
         <div className="vacancies-grid">
 
-          {/* ===== SIDEBAR ===== */}
           <aside className="vacancies-sidebar">
             <VacanciesSidebar
-              onApplyFilters={setFilters}
+              onApplyFilters={handleApplyFilters}
               onPosted={reloadVacancies}
+              onSearchQuery={handleSearchQuery}
+              onViewChange={handleViewChange}
+              activeView={viewMode}
             />
           </aside>
 
-          {/* ===== MAIN ===== */}
           <section className="vacancies-main">
 
-            {/* ===== BEST VACANCIES ===== */}
             <div className="vacancies-section">
               <div className="section-header">
                 <h2 className="section-title">
-                  Selection of the best vacancies
+                  {viewMode === 'saved' ? 'My saved vacancies' : 'Selection of the best vacancies'}
                 </h2>
                 <p className="section-subtitle">
-                  Based on your profile and activity
+                  {viewMode === 'saved'
+                    ? 'Vacancies you saved for later'
+                    : 'Based on your profile and activity'}
                 </p>
+                <div className="vacancies-search-bar">
+                  <input
+                    type="search"
+                    className="vacancies-search-input"
+                    placeholder="Search vacancies..."
+                    value={searchQuery}
+                    onChange={(event) => handleSearchQuery(event.target.value)}
+                  />
+                </div>
+                {clientSideLimitations && (
+                  <p className="section-subtitle vacancies-limitation-note">
+                    Some filters are applied on the current page only (salary, experience, multi-select).
+                  </p>
+                )}
               </div>
 
+              {error && <div className="vacancies-error">{error}</div>}
+
               <div className="vacancies-list">
-                {loading && <div>Loading...</div>}
+                {loading && <div className="vacancies-loading">Loading...</div>}
 
                 {!loading && visibleVacancies.length === 0 && (
-                  <div>No vacancies yet</div>
+                  <div className="vacancies-empty">No vacancies yet</div>
                 )}
 
-              {visibleVacancies.map(v => (
+                {!loading && visibleVacancies.map((vacancy) => (
                   <VacancyCard
-                    key={v.id}
-                    company={v.company?.name}
-                    logo={
-                      v.company?.logoUrl
-                        ? fileUrl(v.company.logoUrl)
-                        : '/img/company-placeholder.png'
-                    }
-                    position={v.title}
-                    location={v.location}
-                    salary={
-                      v.salaryFrom && v.salaryTo
-                        ? `${v.salaryFrom} – ${v.salaryTo}`
-                        : 'Salary not specified'
-                    }
-                    posted={formatPosted(v.postedAt)}
-                    status="Be among the candidates"
+                    key={vacancy.id}
+                    vacancy={vacancy}
+                    posted={formatPosted(vacancy.postedAt ?? vacancy.createdAt)}
+                    onApply={handleApply}
+                    onToggleFavorite={handleToggleFavorite}
+                    actionError={actionErrors[vacancy.id]}
+                    favoriteError={actionErrors[`fav-${vacancy.id}`]}
                   />
                 ))}
               </div>
+
+              {!loading && hasNextPage && viewMode !== 'saved' && (
+                <button
+                  type="button"
+                  className="show-all-btn"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              )}
             </div>
 
-            {/* ===== RECOMMENDED SEARCH QUERIES ===== */}
-            <div className="vacancies-section">
-              <div className="section-header-inline">
-                <h3 className="section-title-small">
-                  Recommended job search queries
-                </h3>
-              </div>
-
-              <div className="search-queries">
-                {jobSearchQueries.map((query, index) => (
-                  <button key={index} className="query-chip">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle
-                        cx="6.5"
-                        cy="6.5"
-                        r="5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      />
-                      <path
-                        d="M10 10l3.5 3.5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    {query}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ===== RECOMMENDED BY PROFILE TITLE ===== */}
             <div className="vacancies-section">
               <div className="section-header">
                 <h3 className="section-title-job">
@@ -215,24 +382,27 @@ const VacanciesPage = ({ onNavigate }) => {
               </div>
 
               <div className="job-list">
-                {finalRecommended.map(v => (
-                  <div key={v.id} className="job-item">
+                {recommendedVacancies.map((vacancy) => (
+                  <div key={vacancy.id} className="job-item">
                     <div className="job-info">
                       <img
-                        src={
-                          v.company?.logoUrl
-                            ? fileUrl(v.company.logoUrl)
-                            : '/img/company-placeholder.png'
-                        }
-                        alt={v.company?.name}
+                        src={vacancy.companyLogo || '/img/company-placeholder.png'}
+                        alt={vacancy.companyName}
                         className="job-logo"
                       />
                       <div className="job-details">
-                        <h4 className="job-company">{v.company?.name}</h4>
-                        <p className="job-location">{v.location}</p>
+                        <h4 className="job-company">{vacancy.companyName}</h4>
+                        <p className="job-location">{vacancy.location}</p>
                       </div>
                     </div>
-                    <button className="dismiss-btn">×</button>
+                    <button
+                      type="button"
+                      className="dismiss-btn"
+                      onClick={() => handleSearchQuery(vacancy.title)}
+                      aria-label={`Search ${vacancy.title}`}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -240,7 +410,6 @@ const VacanciesPage = ({ onNavigate }) => {
 
           </section>
 
-          {/* ===== MESSAGES ===== */}
           <aside className="vacancies-messages">
             <MessagesPanel onNavigate={onNavigate} />
           </aside>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Link, useParams } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import {
   Users,
@@ -9,28 +9,47 @@ import {
   FileText,
   CheckCircle,
   MapPin,
-  Clock
+  Clock,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 import './ManageNetworkModal.css';
 import Modal from '../../../app/ui/Modal';
-import AppContext from '../../../features/appContext/AppContext';
 import { fileUrl } from '../../../shared/api/files';
+import {
+  getMyContacts,
+  getFollowing,
+  getMyGroups,
+  getMyPages,
+  unfollowUser,
+  removeContact,
+} from '../../network/networkApi.js';
+import {
+  enrichContactsWithProfiles,
+  enrichUsersWithProfiles,
+} from '../../network/enrichNetworkProfiles.js';
+import { getMyAttendingEvents, leaveEvent } from '../../events/eventsApi.js';
+import { enrichEventsWithOrganizers } from '../../events/enrichEventsWithOrganizers.js';
+import { DEFAULT_PAGE_SIZE } from '../../../shared/api/config.js';
+import { getErrorMessage, getUserFriendlyErrorMessage } from '../../../shared/lib/apiError.js';
 
-const ManageNetworkModal = ({ isOpen, onClose, initialTab }) => {
+const ManageNetworkModal = ({
+  isOpen,
+  onClose,
+  initialTab,
+  onNavigate,
+  currentUserId,
+}) => {
   const navigate = useNavigate();
-  const { request } = useContext(AppContext);
 
   const [activeSection, setActiveSection] = useState(initialTab || 'contacts');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [contactsData, setContactsData] = useState([]);
   const [followingData, setFollowingData] = useState([]);
   const [groupsData, setGroupsData] = useState([]);
-const [eventsData, setEventsData] = useState([]);
-
   const [pagesData, setPagesData] = useState([]);
+  const [eventsData, setEventsData] = useState([]);
 
   useEffect(() => {
     if (initialTab) {
@@ -38,41 +57,95 @@ const [eventsData, setEventsData] = useState([]);
     }
   }, [initialTab]);
 
-  // ================= LOAD DATA =================
+  const loadSection = async (section) => {
+    setLoading(true);
+    setError('');
+
+    const pageParams = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+
+    try {
+      switch (section) {
+        case 'contacts': {
+          const result = await getMyContacts(pageParams);
+          const enriched = await enrichContactsWithProfiles(
+            result.items,
+            currentUserId,
+          );
+          setContactsData(enriched);
+          break;
+        }
+        case 'following': {
+          const follows = await getFollowing();
+          const enriched = await enrichUsersWithProfiles(
+            follows,
+            (item) => item.followingId ?? item.userId,
+          );
+          setFollowingData(enriched);
+          break;
+        }
+        case 'groups': {
+          setGroupsData(await getMyGroups());
+          break;
+        }
+        case 'pages': {
+          setPagesData(await getMyPages());
+          break;
+        }
+        case 'events': {
+          const result = await getMyAttendingEvents(pageParams);
+          const enriched = await enrichEventsWithOrganizers(result.items);
+          setEventsData(enriched);
+          break;
+        }
+        default:
+          break;
+      }
+    } catch (err) {
+      console.warn('MANAGE NETWORK ERROR:', err);
+      setError(getUserFriendlyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) return;
+    loadSection(activeSection);
+  }, [activeSection, isOpen, currentUserId]);
 
-    setLoading(true);
+  const handleUnfollow = async (userId) => {
+    try {
+      await unfollowUser(userId);
+      await loadSection('following');
+    } catch (err) {
+      setError(getUserFriendlyErrorMessage(err));
+    }
+  };
 
-    const loaders = {
-      contacts: () =>
-        request('api://contacts').then(setContactsData),
+  const handleRemoveContact = async (contactId) => {
+    try {
+      await removeContact(contactId);
+      await loadSection('contacts');
+    } catch (err) {
+      setError(getUserFriendlyErrorMessage(err));
+    }
+  };
 
-      following: () =>
-        request('api://contacts/following').then(setFollowingData),
-
-      groups: () =>
-        request('api://groups/my').then(setGroupsData),
-
-      pages: () =>
-        request('api://pages/my').then(setPagesData),
-
-      events: () =>
-        request('api://events/my').then(setEventsData),
-    };
-
-    loaders[activeSection]?.()
-      .catch(err => console.error('MANAGE NETWORK ERROR:', err))
-      .finally(() => setLoading(false));
-
-  }, [activeSection, isOpen, request]);
+  const handleLeaveEvent = async (eventId) => {
+    try {
+      await leaveEvent(eventId);
+      await loadSection('events');
+    } catch (err) {
+      setError(getUserFriendlyErrorMessage(err));
+    }
+  };
 
   const sections = [
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'following', label: 'People you follow', icon: UserPlus },
     { id: 'groups', label: 'Groups', icon: UsersRound },
     { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'pages', label: 'Pages', icon: FileText }
+    { id: 'pages', label: 'Pages', icon: FileText },
   ];
 
   const renderContent = () => {
@@ -80,59 +153,79 @@ const [eventsData, setEventsData] = useState([]);
       return <div className="network-loading">Loading...</div>;
     }
 
-    switch (activeSection) {
+    if (error) {
+      return <div className="auth-error">{error}</div>;
+    }
 
-      // ================= CONTACTS =================
+    switch (activeSection) {
       case 'contacts':
         return (
           <div className="network-content">
-            {contactsData.map(u => (
-              <div key={u.id} className="network-item">
-                <img
-                  src={fileUrl(u.avatarUrl)}
-                  alt={u.firstName}
-                  className="network-item-avatar"
-                />
-                <div className="network-item-info">
-                  <h4>{u.firstName} {u.secondName}</h4>
-                  <p>{u.profileTitle}</p>
+            {contactsData.length === 0 ? (
+              <div className="network-empty">No contacts yet</div>
+            ) : (
+              contactsData.map((u) => (
+                <div key={u.contactId ?? u.userId} className="network-item">
+                  <img
+                    src={u.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
+                    alt={u.name}
+                    className="network-item-avatar"
+                  />
+                  <div className="network-item-info">
+                    <h4>{u.name}</h4>
+                    <p>{u.title ?? u.headline}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="network-item-action network-item-action-secondary"
+                    onClick={() => handleRemoveContact(u.contactId)}
+                  >
+                    Remove
+                  </button>
                 </div>
-                <button className="network-item-action">Message</button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         );
 
-      // ================= FOLLOWING =================
       case 'following':
         return (
           <div className="network-content">
-            {followingData.map(u => (
-              <div key={u.id} className="network-item">
+            {followingData.length === 0 ? (
+              <div className="network-empty">Not following anyone yet</div>
+            ) : null}
+            {followingData.map((u) => (
+              <div key={u.id ?? u.userId} className="network-item">
                 <img
-                  src={fileUrl(u.avatarUrl)}
-                  alt={u.firstName}
+                  src={u.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
+                  alt={u.name}
                   className="network-item-avatar"
                 />
                 <div className="network-item-info">
-                  <h4>{u.firstName} {u.secondName}</h4>
-                  <p>{u.profileTitle}</p>
+                  <h4>{u.name}</h4>
+                  <p>{u.headline ?? u.profileTitle}</p>
                 </div>
-                <button className="network-item-action network-item-action-secondary">
-                  Following
+                <button
+                  type="button"
+                  className="network-item-action network-item-action-secondary"
+                  onClick={() => handleUnfollow(u.followingId ?? u.userId)}
+                >
+                  Unfollow
                 </button>
               </div>
             ))}
           </div>
         );
 
-      // ================= GROUPS =================
       case 'groups':
         return (
           <div className="network-content">
-            {groupsData.map(g => (
-              <div key={g.groupId} className="network-item">
-                 <img
+            {groupsData.length === 0 ? (
+              <div className="network-empty">No groups yet</div>
+            ) : null}
+            {groupsData.map((g) => (
+              <div key={g.groupId ?? g.id} className="network-item">
+                <img
                   src={
                     g.avatarUrl
                       ? fileUrl(g.avatarUrl)
@@ -142,91 +235,89 @@ const [eventsData, setEventsData] = useState([]);
                   className="network-item-avatar"
                 />
                 <div className="network-item-info">
-                <Link to={`/app/groups/${g.groupId}`}>
-                  {g.name}
-                </Link>
+                  <Link to={`/app/groups/${g.groupId ?? g.id}`}>{g.name}</Link>
                   <p className="network-group-category">{g.description}</p>
                   <div className="network-group-stats">
-                    <span>{g.membersCount} members</span>
+                    <span>{g.membersCount ?? 0} members</span>
                   </div>
                 </div>
-            <button
-              className="network-item-action"
-              onClick={() => {
-                onClose();
-                navigate(`/app/groups/${g.groupId}`);
-              }}
-            >
-              View Group
-            </button>
+                <button
+                  type="button"
+                  className="network-item-action"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/app/groups/${g.groupId ?? g.id}`);
+                  }}
+                >
+                  View Group
+                </button>
               </div>
             ))}
           </div>
         );
 
-      // ================= EVENTS =================
       case 'events':
         return (
           <div className="network-content">
-            {eventsData.map(e => (
-              <div key={e.event.id} className="network-event-item">
+            {eventsData.length === 0 ? (
+              <div className="network-empty">You are not attending any events yet</div>
+            ) : null}
+            {eventsData.map((eventItem) => (
+              <div key={eventItem.id} className="network-event-item">
                 <img
-                src={
-                  e.event.coverImageUrl
-                    ? fileUrl(e.event.coverImageUrl)
-                    : '/assets/event-placeholder.jpg'
-                }
-                alt={e.event.title}
-                className="network-event-image"
-              />
+                  src={
+                    eventItem.coverUrl
+                      || eventItem.coverImageUrl
+                      || '/assets/event-cover.jpg'
+                  }
+                  alt={eventItem.title}
+                  className="network-event-image"
+                />
                 <div className="network-event-content">
-                <div className="network-event-header">
-                  <h4>{e.event.title}</h4>
-
-                  <span
-                    className={`network-event-type ${
-                      e.event.isOnline || e.event.is_online ? 'virtual' : 'in-person'
-                    }`}
-                  >
-                    {e.event.isOnline || e.event.is_online ? 'Online' : 'In person'}
-                  </span>
-                </div>
-
+                  <div className="network-event-header">
+                    <h4>{eventItem.title}</h4>
+                    <span
+                      className={`network-event-type ${eventItem.isOnline ? 'virtual' : 'in-person'}`}
+                    >
+                      {eventItem.isOnline ? 'Virtual' : 'In-person'}
+                    </span>
+                  </div>
                   <div className="network-event-details">
                     <div className="network-event-detail">
                       <Calendar size={14} />
-                      <span>
-                        {new Date(e.event.startAt).toLocaleDateString()}
-                      </span>
+                      <span>{eventItem.date || 'Date TBD'}</span>
                     </div>
                     <div className="network-event-detail">
                       <Clock size={14} />
-                      <span>
-                        {new Date(e.event.startAt).toLocaleTimeString()}
-                      </span>
+                      <span>{eventItem.time || 'Time TBD'}</span>
                     </div>
-                    <div className="network-event-detail">
-                      <MapPin size={14} />
-                     <span>
-                      {e.event.is_online ? 'Online' : e.event.location}
-                    </span>
-
-
-                    </div>
+                    {eventItem.location && (
+                      <div className="network-event-detail">
+                        <MapPin size={14} />
+                        <span>{eventItem.location}</span>
+                      </div>
+                    )}
                   </div>
-
                   <div className="network-event-footer">
                     <span className="network-event-attendees">
-                      {e.attendeesCount} attendees
+                      {eventItem.attendeesCount ?? 0} attendees
                     </span>
                     <button
-                      className="network-item-action"
+                      type="button"
+                      className="network-item-action network-item-action-secondary"
                       onClick={() => {
                         onClose();
-                        navigate(`/app/event/${e.event.id}`);
+                        navigate(`/app/event/${eventItem.id}`);
                       }}
                     >
-                      View Event
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="network-item-action network-item-action-secondary"
+                      onClick={() => handleLeaveEvent(eventItem.id)}
+                    >
+                      Leave
                     </button>
                   </div>
                 </div>
@@ -235,14 +326,16 @@ const [eventsData, setEventsData] = useState([]);
           </div>
         );
 
-      // ================= PAGES =================
       case 'pages':
         return (
           <div className="network-content">
-            {pagesData.map(p => (
-              <div key={p.pageId} className="network-item">
+            {pagesData.length === 0 ? (
+              <div className="network-empty">No pages yet</div>
+            ) : null}
+            {pagesData.map((p) => (
+              <div key={p.pageId ?? p.id} className="network-item">
                 <img
-                  src={fileUrl(p.logoUrl)}
+                  src={p.logoUrl ? fileUrl(p.logoUrl) : '/img/avatar-placeholder.png'}
                   alt={p.name}
                   className="network-item-avatar"
                 />
@@ -253,14 +346,15 @@ const [eventsData, setEventsData] = useState([]);
                   </div>
                   <p>{p.description}</p>
                   <span className="mutual-connections">
-                    {p.followersCount} followers
+                    {p.followersCount ?? 0} followers
                   </span>
                 </div>
                 <button
+                  type="button"
                   className="network-item-action"
                   onClick={() => {
                     onClose();
-                    navigate(`/app/company/${p.pageId}`);
+                    navigate(`/app/company/${p.pageId ?? p.id}`);
                   }}
                 >
                   View Page
@@ -284,11 +378,12 @@ const [eventsData, setEventsData] = useState([]);
     >
       <div className="manage-network-modal">
         <div className="network-sidebar">
-          {sections.map(section => {
+          {sections.map((section) => {
             const Icon = section.icon;
             return (
               <button
                 key={section.id}
+                type="button"
                 className={`network-section-btn ${activeSection === section.id ? 'active' : ''}`}
                 onClick={() => setActiveSection(section.id)}
               >

@@ -99,6 +99,38 @@
   flex-shrink: 0;
 }
 
+.event-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+}
+
+.event-card-actions {
+  margin-top: 8px;
+}
+
+.event-card-action-btn {
+  border: 1px solid #7C3AED;
+  background: white;
+  color: #7C3AED;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.event-card-action-btn.is-attending {
+  background: #7C3AED;
+  color: white;
+}
+
+.event-card-action-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #DC2626;
+}
+
 @media (max-width: 768px) {
   .event-card {
     padding: 16px;

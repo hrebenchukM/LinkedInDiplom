@@ -114,6 +114,34 @@
   text-decoration: underline;
 }
 
+.vacancy-status-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #6366F1;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.vacancy-status-btn.is-applied {
+  color: #6B7280;
+  cursor: default;
+}
+
+.vacancy-status-btn:disabled {
+  cursor: default;
+}
+
+.vacancy-dismiss.is-favorite {
+  color: #7C3AED;
+}
+
+.vacancy-action-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #DC2626;
+}
+
 @media (max-width: 768px) {
   .vacancy-card {
     padding: 16px;

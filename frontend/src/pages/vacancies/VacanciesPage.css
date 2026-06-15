@@ -44,6 +44,33 @@
   margin: 0;
 }
 
+.vacancies-search-bar {
+  margin-top: 16px;
+}
+
+.vacancies-search-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.vacancies-error,
+.vacancies-empty,
+.vacancies-loading {
+  padding: 24px;
+  color: #6B7280;
+}
+
+.vacancies-error {
+  color: #DC2626;
+}
+
+.vacancies-limitation-note {
+  margin-top: 8px;
+}
+
 .vacancies-list {
   display: flex;
   flex-direction: column;

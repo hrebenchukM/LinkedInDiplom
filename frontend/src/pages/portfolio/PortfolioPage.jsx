@@ -1,29 +1,64 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import './PortfolioPage.css';
 import PortfolioHeader from '../../features/PortfolioHeader/PortfolioHeader';
 import PortfolioGeneralInfo from '../../features/PortfolioGeneralInfo/PortfolioGeneralInfo';
 import PortfolioSections from '../../features/PortfolioSections/PortfolioSections';
-import AppContext from '../../features/appContext/AppContext';
 import { useParams } from 'react-router-dom';
+import { loadPublicPortfolio } from '../../features/profile/loadPortfolio.js';
+import { getErrorMessage } from '../../shared/lib/apiError.js';
 
 const PortfolioPage = () => {
-  
- const { request } = useContext(AppContext);
-  const { username } = useParams(); // это userId
+  const { username } = useParams();
   const [portfolio, setPortfolio] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    request(`api://portfolio/${username}`)
-      .then(setPortfolio)
-      .catch(console.error);
-  }, [username, request]);
+    let cancelled = false;
+    setLoading(true);
+    setError('');
 
-  if (!portfolio) {
+    (async () => {
+      try {
+        const data = await loadPublicPortfolio(username);
+        if (!cancelled) {
+          setPortfolio(data);
+        }
+      } catch (err) {
+        console.error('Portfolio load error:', err);
+        if (!cancelled) {
+          setError(getErrorMessage(err));
+          setPortfolio(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
+
+  if (loading) {
     return <div>Loading portfolio...</div>;
   }
- 
 
-  if (!portfolio) return <div>Loading portfolio...</div>;
+  if (error) {
+    return (
+      <main className="main-content">
+        <div className="container">
+          <div className="portfolio-page auth-error">{error}</div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!portfolio) {
+    return <div>Portfolio not found.</div>;
+  }
 
   return (
     <main className="main-content">

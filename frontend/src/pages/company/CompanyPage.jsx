@@ -1,7 +1,12 @@
-import { useEffect, useContext, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import AppContext from '../../features/appContext/AppContext';
 import { fileUrl } from '../../shared/api/files';
+import {
+  followPage,
+  getPageById,
+  unfollowPage,
+} from '../../features/network/networkApi.js';
+import { getErrorMessage } from '../../shared/lib/apiError.js';
 
 import {
   CheckCircle,
@@ -24,28 +29,65 @@ import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
 const CompanyPage = ({ onNavigate }) => {
 
   const { id: companyId } = useParams();
-  const { request } = useContext(AppContext);
 
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followError, setFollowError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     setLoading(true);
-    request(`api://pages/${companyId}`)
-      .then(res => {
-        if (!cancelled) setCompany(res);
+    getPageById(companyId)
+      .then((page) => {
+        if (!cancelled) {
+          setCompany({
+            page,
+            followersCount: page.followersCount ?? 0,
+            verified: false,
+          });
+        }
       })
       .catch(console.error)
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
 
-    return () => (cancelled = true);
+    return () => { cancelled = true; };
   }, [companyId]);
+
+  const handleFollowToggle = async () => {
+    const pageId = company?.page?.id;
+    if (!pageId || followLoading) return;
+
+    setFollowLoading(true);
+    setFollowError('');
+
+    try {
+      if (isFollowing) {
+        await unfollowPage(pageId);
+        setIsFollowing(false);
+        setCompany((prev) => prev && {
+          ...prev,
+          followersCount: Math.max(0, (prev.followersCount ?? 0) - 1),
+        });
+      } else {
+        await followPage(pageId);
+        setIsFollowing(true);
+        setCompany((prev) => prev && {
+          ...prev,
+          followersCount: (prev.followersCount ?? 0) + 1,
+        });
+      }
+    } catch (error) {
+      setFollowError(getErrorMessage(error));
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   if (loading) {
     return <main className="main-content">Loading...</main>;
@@ -95,9 +137,11 @@ const CompanyPage = ({ onNavigate }) => {
               </div>
 
               <div className="company-actions">
+                {followError && <p className="follow-error">{followError}</p>}
                 <button
                   className={`btn-primary ${isFollowing ? 'following' : ''}`}
-                  onClick={() => setIsFollowing(!isFollowing)}
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
                 >
                   {isFollowing ? (
                     <>

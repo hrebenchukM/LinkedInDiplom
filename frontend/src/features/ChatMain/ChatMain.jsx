@@ -1,50 +1,67 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Phone, Search, MoreVertical, Smile, Paperclip, Send } from 'lucide-react';
 import '../ChatMain/ChatMain.css';
 import { fileUrl } from '../../shared/api/files';
+
+const formatMessageTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 const ChatMain = ({
   selectedUser,
   messages,
   showChat,
+  loading = false,
+  sendError = '',
   onBackClick,
   onAvatarClick,
   currentUserId,
-  onSendMessage
+  onSendMessage,
 }) => {
   const [messageText, setMessageText] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sending, setSending] = useState(false);
 
   const handleCall = () => {
-    alert(`Calling ${selectedUser?.name}...`);
+    // UI-only: backend call endpoint is not available.
   };
 
   const handleSearch = () => {
-    setShowSearch(prev => !prev);
+    setShowSearch((prev) => !prev);
     if (showSearch) setSearchQuery('');
   };
 
-  // ================= FILTER =================
   const visibleMessages = useMemo(() => {
     const list = Array.isArray(messages) ? messages : [];
     return searchQuery
-      ? list.filter(m =>
-          m.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      ? list.filter((message) =>
+          message.content?.toLowerCase().includes(searchQuery.toLowerCase()),
         )
       : list;
   }, [messages, searchQuery]);
 
-  // ================= SEND =================
   const handleSend = async () => {
-    if (!messageText.trim() || !selectedUser) return;
+    if (!messageText.trim() || !selectedUser || sending) return;
 
-    await onSendMessage({
-      chatId: selectedUser.id,
-      content: messageText
-    });
-
-    setMessageText('');
+    setSending(true);
+    try {
+      await onSendMessage({
+        chatId: selectedUser.id,
+        content: messageText.trim(),
+      });
+      setMessageText('');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -54,35 +71,49 @@ const ChatMain = ({
     }
   };
 
+  if (!selectedUser) {
+    return (
+      <div className={`chat-main ${showChat ? 'show-chat' : ''}`}>
+        <div className="network-empty">Select a chat to start messaging</div>
+      </div>
+    );
+  }
+
   return (
     <div className={`chat-main ${showChat ? 'show-chat' : ''}`}>
-      {/* HEADER */}
       <div className="chat-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button className="back-button" onClick={onBackClick}>←</button>
+          <button type="button" className="back-button" onClick={onBackClick}>
+            ←
+          </button>
 
           <div className="chat-header-user">
             <img
-              src={fileUrl(selectedUser?.avatar)}
-              alt={selectedUser?.name}
+              src={fileUrl(selectedUser.avatar) || '/img/avatar-placeholder.png'}
+              alt={selectedUser.name}
               onClick={onAvatarClick}
               style={{ cursor: 'pointer' }}
             />
             <div className="chat-header-info">
-              <h2>{selectedUser?.name}</h2>
+              <h2>{selectedUser.name}</h2>
             </div>
           </div>
         </div>
 
         <div className="chat-header-actions">
-          <button className="icon-button" onClick={handleCall}><Phone size={20} /></button>
-          <button className="icon-button" onClick={handleSearch}><Search size={20} /></button>
-          <button className="icon-button"><MoreVertical size={20} /></button>
+          <button type="button" className="icon-button" onClick={handleCall} title="Calls are not available yet">
+            <Phone size={20} />
+          </button>
+          <button type="button" className="icon-button" onClick={handleSearch}>
+            <Search size={20} />
+          </button>
+          <button type="button" className="icon-button">
+            <MoreVertical size={20} />
+          </button>
         </div>
       </div>
 
-      {/* SEARCH */}
-      {showSearch && (
+      {showSearch ? (
         <div className="chat-search-bar">
           <input
             type="text"
@@ -93,33 +124,79 @@ const ChatMain = ({
             autoFocus
           />
         </div>
-      )}
+      ) : null}
 
-      {/* MESSAGES */}
+      {sendError ? <div className="auth-field-error">{sendError}</div> : null}
+
       <div className="chat-messages">
-        {visibleMessages.map(message => {
-          const isMine = message.senderId === currentUserId;
+        {loading ? <div className="network-loading">Loading messages...</div> : null}
+
+        {!loading && visibleMessages.length === 0 ? (
+          <div className="network-empty">No messages yet</div>
+        ) : null}
+
+        {visibleMessages.map((message) => {
+          const isMine =
+            message.isMine || message.senderId === currentUserId;
+
+          if (message.deleted) {
+            return (
+              <div key={message.id} className="message deleted">
+                <div className="message-content">
+                  <div className="message-bubble">Message deleted</div>
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div key={message.id} className={`message ${isMine ? 'me' : 'other'}`}>
-              {!isMine && (
+              {!isMine ? (
                 <img
-                  src={fileUrl(message.sender?.avatarUrl)}
-                  alt={message.sender?.firstName}
+                  src={
+                    fileUrl(message.sender?.avatarUrl) ||
+                    '/img/avatar-placeholder.png'
+                  }
+                  alt={message.sender?.firstName || 'User'}
                   className="message-avatar"
                 />
-              )}
+              ) : null}
 
               <div className="message-content">
                 <div className="message-bubble">{message.content}</div>
-                <span className="message-time">{message.sentAt}</span>
+
+                {message.media?.length > 0 ? (
+                  <div className="message-media-list">
+                    {message.media.map((media) => (
+                      <a
+                        key={media.id ?? media.url}
+                        href={media.url || fileUrl(media.rawUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {media.mediaType?.startsWith('image') ? (
+                          <img
+                            src={media.url || fileUrl(media.rawUrl)}
+                            alt="Attachment"
+                            className="message-media-image"
+                          />
+                        ) : (
+                          <span>Attachment</span>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+
+                <span className="message-time">
+                  {formatMessageTime(message.sentAt ?? message.createdAt)}
+                </span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* INPUT */}
       <div className="chat-input-wrapper">
         <input
           type="text"
@@ -128,17 +205,27 @@ const ChatMain = ({
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
           onKeyPress={handleKeyPress}
+          disabled={sending}
         />
 
         <div className="chat-input-actions">
-          <button className="input-action-button"><Smile size={20} /></button>
-          <button className="input-action-button"><Paperclip size={20} /></button>
+          <button type="button" className="input-action-button">
+            <Smile size={20} />
+          </button>
+          <button type="button" className="input-action-button" title="Media upload API is ready but UI is not wired">
+            <Paperclip size={20} />
+          </button>
 
-          {messageText.trim() && (
-            <button className="input-action-button" onClick={handleSend}>
+          {messageText.trim() ? (
+            <button
+              type="button"
+              className="input-action-button"
+              onClick={handleSend}
+              disabled={sending}
+            >
               <Send size={20} />
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

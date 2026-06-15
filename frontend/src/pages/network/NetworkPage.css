@@ -6,6 +6,11 @@
   width: 100%;
 }
 
+.network-page {
+  flex: 1;
+  width: 100%;
+}
+
 .network-main {
   display: flex;
   flex-direction: column;

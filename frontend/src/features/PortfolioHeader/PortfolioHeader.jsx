@@ -25,7 +25,7 @@ const PortfolioHeader = ({ user }) => {
             src={
               user.avatarUrl
                 ? fileUrl(user.avatarUrl)
-                : 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg'
+                : '/img/avatar-placeholder.png'
             }
             alt="Profile"
             className="portfolio-avatar"

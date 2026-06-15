@@ -1,12 +1,41 @@
-# React + Vite
+# LinkedIn Diplom — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite SPA for the .NET backend (`https://localhost:7011` by default).
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+Copy environment variables into **`frontend/.env.local`** (next to `package.json`):
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cp .env.example .env.local
+```
+
+Vite loads `.env.local` automatically in dev/build. **`.env.example` is not loaded** — it is documentation only.
+
+Edit `.env.local` if your API or SignalR hub runs on a different host/port. Restart `npm run dev` after changing env files.
+
+## Development
+
+```bash
+npm run dev
+```
+
+## Production build
+
+```bash
+npm run build
+```
+
+## Environment variables
+
+See `.env.example`:
+
+- `VITE_API_BASE_URL` — REST API base URL
+- `VITE_SIGNALR_HUB_URL` — messaging hub URL
+- `VITE_UPLOADS_BASE_URL` — optional uploads CDN/base path
+- `VITE_DEFAULT_PAGE_SIZE` — default list page size
+- `VITE_TOKEN_REFRESH_MARGIN_MS` — access token refresh margin

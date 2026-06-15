@@ -22,10 +22,7 @@ const modalUser = {
     <div className="create-post">
       <div className="create-post-input">
 <img
-  src={u?.avatarUrl
-    ? `${fileUrl(u.avatarUrl)}`
-    : 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-  }
+  src={u?.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
   alt="Profile"
   className="create-post-avatar"
 />

@@ -1,72 +1,148 @@
-import React, { useState } from 'react';
-
-import { Maximize2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { searchProfiles } from '../profile/profileApi.js';
+import { createDirectChat } from '../messaging/messagingApi.js';
+import { getDisplayName } from '../profile/mapProfile.js';
+import { getErrorMessage } from '../../shared/lib/apiError.js';
+import { fileUrl } from '../../shared/api/files';
 import Modal from '../../app/ui/Modal';
 
-const NewMessageModal = ({ isOpen, onClose }) => {
+const NewMessageModal = ({
+  isOpen,
+  onClose,
+  currentUserId,
+  onChatCreated,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const recommendedPeople = [
-    {
-      name: 'Michael Schmidt',
-      title: 'Pursuing MBA at Lead college of Management',
-      avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1'
-    },
-    {
-      name: 'Sana Saeed',
-      title: 'Creative Director at HASH Maldives',
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1'
-    },
-    {
-      name: 'Anna Gohnsom',
-      title: 'Pursuing MBA at Lead college of Management',
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1'
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+      setResults([]);
+      setError('');
+      return;
     }
-  ];
 
-  const handleUserSelect = (person) => {
-    setSelectedUsers([...selectedUsers, person]);
+    if (!searchQuery.trim()) {
+      setResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const profiles = await searchProfiles({
+          query: searchQuery.trim(),
+          pageSize: 10,
+        });
+
+        if (!cancelled) {
+          setResults(
+            profiles
+              .filter((profile) => profile.userId !== currentUserId)
+              .map((profile) => ({
+                userId: profile.userId,
+                name: profile.displayName || getDisplayName({ user: profile }),
+                title: profile.headline ?? '',
+                avatarUrl: profile.avatarUrl,
+              })),
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(getErrorMessage(err));
+          setResults([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen, searchQuery, currentUserId]);
+
+  const handleSelectUser = async (person) => {
+    if (!person?.userId || submitting) return;
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const { chat, limitation } = await createDirectChat(
+        person.userId,
+        currentUserId,
+      );
+
+      if (limitation && chat?.members?.length === 1) {
+        setError(
+          'Chat created, but backend cannot add the other member automatically. Use an existing conversation if available.',
+        );
+      }
+
+      if (chat?.id) {
+        onChatCreated?.(chat.id);
+        onClose();
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New message">
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <button
-            type="button"
-            style={{
-              padding: '8px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <Maximize2 size={20} color="#6b7280" />
-          </button>
-        </div>
+        {error ? <div className="auth-field-error">{error}</div> : null}
 
         <div className="form-group">
           <input
             type="text"
             className="form-input"
-            placeholder="Keep a name or multiple names"
+            placeholder="Search people by name"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ border: 'none', borderBottom: '1px solid #e5e7eb', borderRadius: 0, padding: '12px 0' }}
+            style={{
+              border: 'none',
+              borderBottom: '1px solid #e5e7eb',
+              borderRadius: 0,
+              padding: '12px 0',
+            }}
           />
         </div>
 
         <div style={{ marginTop: '24px' }}>
-          <h3 style={{ fontSize: '16px', color: '#9ca3af', marginBottom: '16px', fontWeight: 600 }}>
-            Recommended
+          <h3
+            style={{
+              fontSize: '16px',
+              color: '#9ca3af',
+              marginBottom: '16px',
+              fontWeight: 600,
+            }}
+          >
+            {loading ? 'Searching...' : 'Results'}
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recommendedPeople.map((person, index) => (
-              <div
-                key={index}
-                onClick={() => handleUserSelect(person)}
+            {!loading && searchQuery && results.length === 0 ? (
+              <p style={{ color: '#6b7280' }}>No users found</p>
+            ) : null}
+
+            {results.map((person) => (
+              <button
+                key={person.userId}
+                type="button"
+                onClick={() => handleSelectUser(person)}
+                disabled={submitting}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -74,30 +150,38 @@ const NewMessageModal = ({ isOpen, onClose }) => {
                   padding: '12px',
                   cursor: 'pointer',
                   borderRadius: '8px',
-                  transition: 'background 0.3s'
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  width: '100%',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <img
-                  src={person.avatar}
+                  src={fileUrl(person.avatarUrl) || '/img/avatar-placeholder.png'}
                   alt={person.name}
                   style={{
                     width: '56px',
                     height: '56px',
                     borderRadius: '50%',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
                   }}
                 />
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px', color: '#1f2937' }}>
+                  <h4
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      marginBottom: '4px',
+                      color: '#1f2937',
+                    }}
+                  >
                     {person.name}
                   </h4>
                   <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-                    {person.title}
+                    {person.title || '—'}
                   </p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

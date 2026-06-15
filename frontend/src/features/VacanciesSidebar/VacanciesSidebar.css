@@ -74,6 +74,38 @@
 .post-vacancy-btn svg {
   flex-shrink: 0;
 }
+
+.sidebar-recommended-queries {
+  margin-bottom: 20px;
+}
+
+.sidebar-queries-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sidebar-queries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sidebar-query-chip {
+  border: 1px solid #E5E7EB;
+  background: #F9FAFB;
+  color: #4B5563;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sidebar-query-chip:hover {
+  background: #F3F4F6;
+}
+
 @media (max-width: 576px) {
   .vacancies-sidebar-container {
     padding: 16px;

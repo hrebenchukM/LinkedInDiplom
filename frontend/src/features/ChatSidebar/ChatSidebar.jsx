@@ -3,7 +3,18 @@ import { Search, Plus, Filter, MoreVertical } from 'lucide-react';
 import '../ChatSidebar/ChatSidebar.css';
 import { fileUrl } from '../../shared/api/files';
 
-const ChatSidebar = ({ activeTab, setActiveTab, chatUsers, selectedChat, onSelectChat, showChat, onNewMessage, onOpenFilters, onOpenSettings }) => {
+const ChatSidebar = ({
+  activeTab,
+  setActiveTab,
+  chatUsers,
+  selectedChat,
+  onSelectChat,
+  showChat,
+  onNewMessage,
+  onOpenFilters,
+  onOpenSettings,
+  loading = false,
+}) => {
   return (
     <div className={`chat-sidebar ${showChat ? 'show-chat' : ''}`}>
       <div className="chat-sidebar-header">
@@ -67,7 +78,15 @@ const ChatSidebar = ({ activeTab, setActiveTab, chatUsers, selectedChat, onSelec
       </div>
 
       <div className="chat-list">
-        {chatUsers.map(user => (
+        {loading ? (
+          <div className="chat-list-empty">Loading chats...</div>
+        ) : chatUsers.length === 0 ? (
+          <div className="chat-list-empty">
+            <p>No chats yet.</p>
+            <p>Create a new message to start chatting.</p>
+          </div>
+        ) : (
+          chatUsers.map((user) => (
           <button
             key={user.id}
             className={`chat-item ${selectedChat === user.id ? 'active' : ''}`}
@@ -88,7 +107,8 @@ const ChatSidebar = ({ activeTab, setActiveTab, chatUsers, selectedChat, onSelec
               </div>
             </div>
           </button>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

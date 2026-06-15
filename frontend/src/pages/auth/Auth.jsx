@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppContext from '../../features/appContext/AppContext';
-import Base64 from '../../shared/base64/Base64';
+import { login, register } from '../../features/auth/authApi.js';
+import { mapAuthResponse } from '../../features/auth/mapAccount.js';
+import { setAuthTokens } from '../../shared/api/tokens.js';
+import { ApiError, getErrorMessage } from '../../shared/lib/apiError.js';
 import './Auth.css';
-import { useContext, useRef } from "react";
 import logoImg from '../../shared/assets/illustrations/linkedin_icon.png';
 
-
 const AuthPage = () => {
-  
-   const { request, setToken } = useContext(AppContext);
+  const { applyAuthSession } = useContext(AppContext);
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
@@ -19,64 +19,126 @@ const AuthPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [formData, setFormData] = useState({
-    login: '',
+    email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError('');
+    setFieldErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
   };
 
+  const handleModeSwitch = (nextMode) => {
+    setMode(nextMode);
+    setError('');
+    setFieldErrors({});
+  };
 
+  const handleAuthError = (err) => {
+    if (err instanceof ApiError) {
+      setFieldErrors(err.fieldErrors || {});
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
+      if (err.status === 401) {
+        setError('Неверный email или пароль');
+        return;
+      }
 
-  if (mode === 'signup') {
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setError(getErrorMessage(err));
       return;
     }
-    alert('Регистрация будет добавлена позже');
-    return;
-  }
 
-  const credentials = Base64.encode(
-    `${formData.login}:${formData.password}`
-  );
+    setError(getErrorMessage(err));
+  };
 
-  fetch("http://localhost:8080/JavaWeb222/user", {
-  method: "GET",
-  headers: {
-    Authorization: "Basic " + credentials,
-  }
-})
-  .then(r => r.json())
-  .then(j => {
-    if (!j.status?.isOk) throw j;
+  const completeAuth = ({ account, tokens }) => {
+    if (!tokens?.accessToken) {
+      throw new Error('Access token was not returned by the server.');
+    }
 
-    const jwt = j.data;
-    setToken(jwt);
-    localStorage.setItem("token", jwt);
-    navigate("/app");
-  })
-  .catch(() => alert("У вході відмовлено"));
+    setAuthTokens(tokens);
+    applyAuthSession({ account, tokens });
+    navigate('/app');
+  };
 
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setFieldErrors({});
+
+    if (mode === 'signup' && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setFieldErrors({ confirmPassword: ['Passwords do not match'] });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      if (mode === 'signup') {
+        const registerResponse = await register({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        const registerMapped = mapAuthResponse(registerResponse);
+
+        if (registerMapped.tokens?.accessToken) {
+          completeAuth(registerMapped);
+          return;
+        }
+
+        const loginResponse = await login({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        completeAuth(mapAuthResponse(loginResponse));
+        return;
+      }
+
+      const loginResponse = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      completeAuth(mapAuthResponse(loginResponse));
+    } catch (err) {
+      handleAuthError(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const renderFieldError = (fieldName) => {
+    const messages = fieldErrors[fieldName];
+    if (!messages?.length) return null;
+
+    return (
+      <p className="auth-field-error" role="alert">
+        {messages.join(' ')}
+      </p>
+    );
+  };
 
   return (
     <div className="auth-page">
+      <div className="auth-logo">
+        <img
+          src={logoImg}
+          width="64"
+          height="64"
+          alt="LinkedIn Analogue"
+          className="landing-logo-img"
+        />
+      </div>
 
-        <div className="auth-logo">
-          <img
-            src={logoImg} width="64" height="64"
-            alt="LinkedIn Analogue"
-            className="landing-logo-img"
-          />
-        </div>
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Welcome to your</h1>
@@ -84,30 +146,28 @@ const AuthPage = () => {
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {error ? (
+            <div className="auth-error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
           <div className="auth-input-group">
             <div className="auth-input-icon">
               <Mail size={20} />
             </div>
-            {/* <input
+            <input
               type="email"
               name="email"
-              placeholder="Email or phone number"
+              placeholder="Email"
               className="auth-input"
               value={formData.email}
               onChange={handleChange}
-              required
-            /> */}
-            <input
-              type="text"
-              name="login"
-              placeholder="Login"
-              className="auth-input"
-              value={formData.login}
-              onChange={handleChange}
+              autoComplete="email"
               required
             />
-
           </div>
+          {renderFieldError('email')}
 
           <div className="auth-input-group">
             <div className="auth-input-icon">
@@ -120,6 +180,7 @@ const AuthPage = () => {
               className="auth-input"
               value={formData.password}
               onChange={handleChange}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               required
             />
             <button
@@ -130,33 +191,38 @@ const AuthPage = () => {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          {renderFieldError('password')}
 
           {mode === 'signup' && (
-            <div className="auth-input-group">
-              <div className="auth-input-icon">
-                <Lock size={20} />
+            <>
+              <div className="auth-input-group">
+                <div className="auth-input-icon">
+                  <Lock size={20} />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  placeholder="Confirm password"
+                  className="auth-input"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-toggle-password"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                placeholder="Confirm password"
-                className="auth-input"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-              <button
-                type="button"
-                className="auth-toggle-password"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+              {renderFieldError('confirmPassword')}
+            </>
           )}
 
-          <button type="submit" className="auth-submit-btn">
-            {mode === 'signup' ? 'Sign Up' : 'Sign In'}
+          <button type="submit" className="auth-submit-btn" disabled={submitting}>
+            {submitting ? 'Please wait...' : mode === 'signup' ? 'Sign Up' : 'Sign In'}
           </button>
 
           {mode === 'signup' && (
@@ -184,7 +250,7 @@ const AuthPage = () => {
           <button
             type="button"
             className="auth-switch-btn"
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            onClick={() => handleModeSwitch(mode === 'signin' ? 'signup' : 'signin')}
           >
             {mode === 'signin' ? 'Sign Up' : 'Sign In'}
           </button>

@@ -69,6 +69,18 @@
   overflow-y: auto;
 }
 
+.chat-list-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-list-empty p {
+  margin: 0 0 8px;
+}
+
 .chat-item {
   width: 100%;
   display: flex;

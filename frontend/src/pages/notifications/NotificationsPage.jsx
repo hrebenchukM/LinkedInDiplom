@@ -1,165 +1,266 @@
-import React, { useContext, useEffect, useState } from 'react';
-import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import noNotificationsImg from '../../shared/assets/illustrations/no-new-notifications.png';
+import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
+import { getErrorMessage } from '../../shared/lib/apiError';
+import {
+  deleteNotification,
+  getMyNotifications,
+  getUnreadCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from '../../features/notifications/notificationsApi';
+import { enrichNotifications } from '../../features/notifications/enrichNotifications';
 
 import './NotificationsPage.css';
 import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
 import SimpleProfileCard from '../../features/SimpleProfileCard/SimpleProfileCard';
 
 const NotificationsPage = ({ onNavigate }) => {
-  const { request } = useContext(AppContext);
+  const navigate = useNavigate();
 
   const [activeFilter, setActiveFilter] = useState('all');
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
-  // ================= LOAD =================
+  const resolveIsReadFilter = () => {
+    if (activeFilter === 'unread') return false;
+    if (activeFilter === 'read') return true;
+    return undefined;
+  };
+
+  const refreshUnreadCount = useCallback(async () => {
+    const count = await getUnreadCount();
+    setUnreadCount(count);
+  }, []);
+
+  const loadNotifications = useCallback(async ({
+    pageToLoad = 1,
+    append = false,
+    filter = activeFilter,
+  } = {}) => {
+    if (pageToLoad === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    setError('');
+
+    const isRead = filter === 'unread'
+      ? false
+      : filter === 'read'
+        ? true
+        : undefined;
+
+    try {
+      const response = await getMyNotifications({
+        page: pageToLoad,
+        pageSize: DEFAULT_PAGE_SIZE,
+        isRead,
+      });
+
+      const enriched = await enrichNotifications(response.items);
+
+      setNotifications((prev) => (append ? [...prev, ...enriched] : enriched));
+      setPage(response.page);
+      setHasNextPage(response.hasNextPage);
+
+      if (filter === 'all' || filter === 'unread') {
+        await refreshUnreadCount();
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+      if (!append) {
+        setNotifications([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [activeFilter, refreshUnreadCount]);
 
   useEffect(() => {
-    setLoading(true);
-
-    const filterParam =
-      activeFilter === 'all' ? '' : `?filter=${activeFilter}`;
-
-    request(`api://notifications${filterParam}`, {}, true)
-      .then(r => {
-        setNotifications(mapFromApi(r.data));
-        setUnreadCount(parseInt(r.meta?.params?.unread || 0));
-      })
-      .finally(() => setLoading(false));
-
+    loadNotifications({ pageToLoad: 1, append: false, filter: activeFilter });
   }, [activeFilter]);
 
-  // ================= MAPPER =================
+  const handleNotificationClick = async (notification) => {
+    if (!notification?.id) return;
 
-  const mapFromApi = (data = []) =>
-    data.map(n => ({
-      id: n.id,
-      type: n.type === 'vacancy' ? 'job' : n.type,
-      unread: n.isRead === 0,
-      time: timeAgo(n.createdAt),
+    if (!notification.isRead) {
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notification.id
+            ? { ...item, isRead: true, unread: false }
+            : item,
+        ),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
 
-      actor: n.actor && {
-        name: `${n.actor.firstName} ${n.actor.secondName}`,
-        avatar: n.actor.avatarUrl ? fileUrl(n.actor.avatarUrl) : '/assets/avatar-placeholder.png',
-        title: n.actor.profileTitle
-      },
+      try {
+        await markNotificationAsRead(notification.id);
+      } catch {
+        await loadNotifications({ pageToLoad: 1, append: false });
+      }
+    }
 
-      vacancy: n.vacancy && {
-        title: n.vacancy.title,
-        location: n.vacancy.location,
-        company: n.vacancy.company && {
-          name: n.vacancy.company.name,
-          logo: n.vacancy.company.logoUrl
-            ? fileUrl(n.vacancy.company.logoUrl)
-            : '/assets/company-placeholder.png'
-        }
-      },
-
-      action: getActionText(n),
-      content: getContentText(n)
-    }));
-
-  // ================= HELPERS =================
-
-  const getActionText = (n) => {
-    switch (n.type) {
-      case 'like': return 'liked your post';
-      case 'comment': return 'commented on your post';
-      case 'connection': return 'accepted your connection request';
-      case 'mention': return 'mentioned you';
-      case 'vacancy': return 'posted a new job';
-      default: return '';
+    if (notification.link) {
+      navigate(notification.link);
     }
   };
 
-  const getContentText = (n) =>
-    n.entityType === 'post' ? n.body : null;
+  const handleDelete = async (event, notificationId) => {
+    event.stopPropagation();
 
-  const timeAgo = (date) => {
-    const diff = (Date.now() - new Date(date)) / 1000;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+    const removed = notifications.find((item) => item.id === notificationId);
+    setNotifications((prev) => prev.filter((item) => item.id !== notificationId));
+
+    if (removed && !removed.isRead) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+
+    try {
+      await deleteNotification(notificationId);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      await loadNotifications({ pageToLoad: 1, append: false });
+    }
   };
 
-  // ================= RENDER =================
+  const handleMarkAllRead = async () => {
+    setMarkingAll(true);
+    setError('');
+
+    setNotifications((prev) =>
+      prev.map((item) => ({ ...item, isRead: true, unread: false })),
+    );
+    setUnreadCount(0);
+
+    try {
+      await markAllNotificationsAsRead();
+    } catch (err) {
+      setError(getErrorMessage(err));
+      await loadNotifications({ pageToLoad: 1, append: false });
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasNextPage || loadingMore) return;
+    loadNotifications({ pageToLoad: page + 1, append: true });
+  };
 
   const renderNotification = (notification) => {
+    const vacancy = notification.entity?.type === 'vacancy'
+      ? notification.entity.data
+      : null;
 
-    // -------- Vacancy --------
-    if (notification.type === 'job' && notification.vacancy) {
+    if ((notification.type === 'job' || notification.type === 'vacancy') && vacancy) {
       return (
         <div
           key={notification.id}
           className={`notification-item ${notification.unread ? 'unread' : ''}`}
+          onClick={() => handleNotificationClick(notification)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') handleNotificationClick(notification);
+          }}
+          role="button"
+          tabIndex={0}
         >
           <img
-            src={notification.vacancy.company.logo}
+            src={vacancy.companyLogo || '/assets/company-placeholder.png'}
             className="notification-avatar"
-            alt={notification.vacancy.company.name}
+            alt={vacancy.companyName || 'Company'}
           />
 
           <div className="notification-content">
             <p className="notification-text">
-              <strong>{notification.vacancy.company.name}</strong> {notification.action}
+              <strong>{vacancy.companyName || 'Company'}</strong>{' '}
+              {notification.action || notification.displayTitle}
             </p>
 
-            <p className="notification-position">
-              {notification.vacancy.title}
-            </p>
+            <p className="notification-position">{vacancy.title}</p>
 
-            {notification.vacancy.location && (
-              <p className="notification-location">
-                {notification.vacancy.location}
-              </p>
+            {vacancy.location && (
+              <p className="notification-location">{vacancy.location}</p>
             )}
 
-            <span className="notification-time">
-              {notification.time}
-            </span>
+            <span className="notification-time">{notification.time}</span>
           </div>
+
+          <button
+            type="button"
+            className="notification-delete-btn"
+            onClick={(event) => handleDelete(event, notification.id)}
+            aria-label="Delete notification"
+          >
+            <X size={16} />
+          </button>
 
           {notification.unread && <div className="notification-dot" />}
         </div>
       );
     }
 
-    // -------- User activity --------
+    const avatar = notification.actorAvatar || '/assets/avatar-placeholder.png';
+    const actorName = notification.actorName || notification.actor?.name || 'User';
+
     return (
       <div
         key={notification.id}
         className={`notification-item ${notification.unread ? 'unread' : ''}`}
+        onClick={() => handleNotificationClick(notification)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') handleNotificationClick(notification);
+        }}
+        role="button"
+        tabIndex={0}
       >
         <img
-          src={notification.actor?.avatar}
+          src={avatar}
           className="notification-avatar"
-          alt={notification.actor?.name}
+          alt={actorName}
         />
 
         <div className="notification-content">
           <p className="notification-text">
-            <strong>{notification.actor?.name}</strong> {notification.action}
+            {notification.title ? (
+              <strong>{notification.displayTitle}</strong>
+            ) : (
+              <>
+                <strong>{actorName}</strong> {notification.action}
+              </>
+            )}
           </p>
 
-          {notification.actor?.title && (
+          {(notification.actor?.title || notification.actor?.profileTitle) && (
             <p className="notification-subtitle">
-              {notification.actor.title}
+              {notification.actor.title || notification.actor.profileTitle}
             </p>
           )}
 
-          {notification.content && (
-            <p className="notification-excerpt">
-              {notification.content}
-            </p>
+          {notification.displayBody && (
+            <p className="notification-excerpt">{notification.displayBody}</p>
           )}
 
-          <span className="notification-time">
-            {notification.time}
-          </span>
+          <span className="notification-time">{notification.time}</span>
         </div>
+
+        <button
+          type="button"
+          className="notification-delete-btn"
+          onClick={(event) => handleDelete(event, notification.id)}
+          aria-label="Delete notification"
+        >
+          <X size={16} />
+        </button>
 
         {notification.unread && <div className="notification-dot" />}
       </div>
@@ -172,22 +273,52 @@ const NotificationsPage = ({ onNavigate }) => {
         <div className="content-grid">
 
           <aside className="sidebar-left">
-            <SimpleProfileCard unreadNotifications={unreadCount} />
+            <SimpleProfileCard />
           </aside>
 
           <section className="notifications-feed">
 
-            <div className="notifications-filters">
-              {['all', 'vacancies', 'publications', 'mentions'].map(f => (
+            <div className="notifications-toolbar">
+              <div className="notifications-filters">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'unread', label: 'Unread' },
+                  { id: 'read', label: 'Read' },
+                ].map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`filter-btn ${activeFilter === filter.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveFilter(filter.id);
+                      setPage(1);
+                    }}
+                  >
+                    {filter.label}
+                    {filter.id === 'unread' && unreadCount > 0 && (
+                      <span className="filter-count">{unreadCount}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {unreadCount > 0 && (
                 <button
-                  key={f}
-                  className={`filter-btn ${activeFilter === f ? 'active' : ''}`}
-                  onClick={() => setActiveFilter(f)}
+                  type="button"
+                  className="mark-all-read-btn"
+                  onClick={handleMarkAllRead}
+                  disabled={markingAll}
                 >
-                  {f === 'all' ? 'All' : f}
+                  {markingAll ? 'Marking...' : 'Mark all as read'}
                 </button>
-              ))}
+              )}
             </div>
+
+            {error && <div className="notifications-error">{error}</div>}
+
+            {loading && (
+              <div className="notifications-loading">Loading notifications...</div>
+            )}
 
             {!loading && notifications.length > 0 && (
               <div className="notifications-list">
@@ -195,36 +326,42 @@ const NotificationsPage = ({ onNavigate }) => {
               </div>
             )}
 
-{!loading && notifications.length === 0 && (
-  <div className="notifications-empty">
+            {!loading && hasNextPage && (
+              <button
+                type="button"
+                className="notifications-load-more"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : 'Load more'}
+              </button>
+            )}
 
-  <div className="empty-illustration">
-  <img
-    src={noNotificationsImg}
-    alt="No notifications"
-    className="empty-illustration-img"
-  />
-</div>
+            {!loading && notifications.length === 0 && (
+              <div className="notifications-empty">
+                <div className="empty-illustration">
+                  <img
+                    src={noNotificationsImg}
+                    alt="No notifications"
+                    className="empty-illustration-img"
+                  />
+                </div>
 
+                <h2 className="empty-title">No new notifications</h2>
 
-    <h2 className="empty-title">
-      No new notifications
-    </h2>
+                <p className="empty-subtitle">
+                  Check out the other updates on the home page
+                </p>
 
-    <p className="empty-subtitle">
-      Check out the other updates on the home page
-    </p>
-
-    <button
-      className="home-page-btn"
-      onClick={() => onNavigate('home')}
-    >
-      Home page
-    </button>
-
-  </div>
-)}
-
+                <button
+                  type="button"
+                  className="home-page-btn"
+                  onClick={() => (onNavigate ? onNavigate('home') : navigate('/app'))}
+                >
+                  Home page
+                </button>
+              </div>
+            )}
 
           </section>
 

@@ -10,7 +10,7 @@ namespace Facade.API.Seeding;
 
 public sealed class DemoContentSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
+    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
     private const string TestUserOneEmail = "test@example.com";
     private const string TestUserTwoEmail = "test2@example.com";
     private const int MinDemoPosts = 3;
@@ -57,7 +57,7 @@ public sealed class DemoContentSeeder
         var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
         var postTemplates = new[]
         {
-            (Email: AdminEmail, Content: $"{marker} Welcome to LinkUp demo network"),
+            (Email: PrimaryDemoUserEmail, Content: $"{marker} Welcome to LinkUp demo network"),
             (Email: TestUserOneEmail, Content: $"{marker} Frontend integration is live"),
             (Email: TestUserTwoEmail, Content: $"{marker} Backend services are connected"),
         };
