@@ -11,7 +11,7 @@ namespace Facade.API.Seeding;
 
 public sealed class DemoPagesGroupsSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
+    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
 
     private readonly NetworkDbContext _networkDb;
     private readonly IPageService _pageService;
@@ -41,12 +41,12 @@ public sealed class DemoPagesGroupsSeeder
         _logger.LogInformation("Demo pages/groups seed started.");
 
         var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
-        var admin = _userLookup.TryGet(users, AdminEmail);
-        if (admin is null)
+        var owner = _userLookup.TryGet(users, PrimaryDemoUserEmail);
+        if (owner is null)
         {
             _logger.LogWarning(
-                "Demo pages/groups seed skipped: admin user {Email} was not found.",
-                AdminEmail);
+                "Demo pages/groups seed skipped: primary demo user {Email} was not found.",
+                PrimaryDemoUserEmail);
             return;
         }
 
@@ -54,8 +54,8 @@ public sealed class DemoPagesGroupsSeeder
         var pageName = $"{marker} LinkUp Labs";
         var groupName = $"{marker} React & .NET Developers";
 
-        await EnsureDemoPageAsync(admin, pageName, marker, cancellationToken);
-        await EnsureDemoGroupAsync(admin, groupName, marker, cancellationToken);
+        await EnsureDemoPageAsync(owner, pageName, marker, cancellationToken);
+        await EnsureDemoGroupAsync(owner, groupName, marker, cancellationToken);
 
         _logger.LogInformation("Demo pages/groups seed completed.");
     }

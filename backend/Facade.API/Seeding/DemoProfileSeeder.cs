@@ -13,7 +13,7 @@ public sealed class DemoProfileSeeder
     private static readonly IReadOnlyDictionary<string, (string FirstName, string LastName, string Headline)> ProfileSeeds =
         new Dictionary<string, (string, string, string)>(StringComparer.OrdinalIgnoreCase)
         {
-            ["admin@local.dev"] = ("Admin", "User", "Platform Administrator"),
+            ["admin@local.dev"] = ("Admin", "User", "System Administrator"),
             ["test@example.com"] = ("Test", "User One", "Frontend Developer"),
             ["test2@example.com"] = ("Test", "User Two", "Backend Developer"),
         };

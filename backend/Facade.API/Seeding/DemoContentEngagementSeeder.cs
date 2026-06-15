@@ -13,7 +13,7 @@ namespace Facade.API.Seeding;
 
 public sealed class DemoContentEngagementSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
+    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
     private const string TestUserOneEmail = "test@example.com";
     private const string TestUserTwoEmail = "test2@example.com";
 
@@ -50,7 +50,7 @@ public sealed class DemoContentEngagementSeeder
         var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
         var testOne = _userLookup.TryGet(users, TestUserOneEmail);
         var testTwo = _userLookup.TryGet(users, TestUserTwoEmail);
-        var admin = _userLookup.TryGet(users, AdminEmail);
+        var primaryDemoUser = _userLookup.TryGet(users, PrimaryDemoUserEmail);
 
         if (testOne is null || testTwo is null)
         {
@@ -62,15 +62,15 @@ public sealed class DemoContentEngagementSeeder
         }
 
         var marker = NormalizeMarker(_options.MarkerPrefix);
-        var posts = await ResolveTargetPostsAsync(admin, marker, cancellationToken);
+        var posts = await ResolveTargetPostsAsync(primaryDemoUser, marker, cancellationToken);
         if (posts.Count == 0)
         {
             _logger.LogWarning("Demo content engagement seed skipped: no posts available.");
             return;
         }
 
-        var commentsCreated = await SeedCommentsAsync(posts, testOne, testTwo, admin, marker, cancellationToken);
-        var reactionsCreated = await SeedReactionsAsync(posts, testOne, testTwo, admin, cancellationToken);
+        var commentsCreated = await SeedCommentsAsync(posts, testOne, testTwo, primaryDemoUser, marker, cancellationToken);
+        var reactionsCreated = await SeedReactionsAsync(posts, testOne, testTwo, primaryDemoUser, cancellationToken);
 
         _logger.LogInformation(
             "Demo content engagement seed completed: {CommentsCreated} comment(s), {ReactionsCreated} reaction(s) created.",
@@ -79,7 +79,7 @@ public sealed class DemoContentEngagementSeeder
     }
 
     private async Task<IReadOnlyList<Post>> ResolveTargetPostsAsync(
-        ApplicationUser? admin,
+        ApplicationUser? primaryDemoUser,
         string marker,
         CancellationToken cancellationToken)
     {
@@ -104,17 +104,17 @@ public sealed class DemoContentEngagementSeeder
             return posts;
         }
 
-        if (admin is null)
+        if (primaryDemoUser is null)
         {
             _logger.LogWarning(
-                "Demo content engagement seed: no posts found and admin {Email} is missing; cannot create demo post.",
-                AdminEmail);
+                "Demo content engagement seed: no posts found and primary demo user {Email} is missing; cannot create demo post.",
+                PrimaryDemoUserEmail);
             return Array.Empty<Post>();
         }
 
         var createResult = await _postService.CreateAsync(new CreatePostParameters
         {
-            AuthorId = admin.Id,
+            AuthorId = primaryDemoUser.Id,
             Content = $"{marker} Welcome to the LinkUp diploma demo feed.",
             Visibility = "public",
         });
@@ -126,7 +126,7 @@ public sealed class DemoContentEngagementSeeder
             return Array.Empty<Post>();
         }
 
-        _logger.LogInformation("Demo content engagement seed: created 1 demo post from admin.");
+        _logger.LogInformation("Demo content engagement seed: created 1 demo post from primary demo user.");
 
         return await _contentDb.Posts
             .AsNoTracking()
@@ -140,7 +140,7 @@ public sealed class DemoContentEngagementSeeder
         IReadOnlyList<Post> posts,
         ApplicationUser testOne,
         ApplicationUser testTwo,
-        ApplicationUser? admin,
+        ApplicationUser? primaryDemoUser,
         string marker,
         CancellationToken cancellationToken)
     {
@@ -158,7 +158,7 @@ public sealed class DemoContentEngagementSeeder
             return 0;
         }
 
-        var commentPlans = BuildCommentPlans(posts, testOne, testTwo, admin, marker);
+        var commentPlans = BuildCommentPlans(posts, testOne, testTwo, primaryDemoUser, marker);
         var created = 0;
 
         foreach (var plan in commentPlans)
@@ -212,10 +212,10 @@ public sealed class DemoContentEngagementSeeder
         IReadOnlyList<Post> posts,
         ApplicationUser testOne,
         ApplicationUser testTwo,
-        ApplicationUser? admin,
+        ApplicationUser? primaryDemoUser,
         CancellationToken cancellationToken)
     {
-        var reactionPlans = BuildReactionPlans(posts, testOne, testTwo, admin);
+        var reactionPlans = BuildReactionPlans(posts, testOne, testTwo, primaryDemoUser);
         var created = 0;
 
         foreach (var plan in reactionPlans)
@@ -265,7 +265,7 @@ public sealed class DemoContentEngagementSeeder
         IReadOnlyList<Post> posts,
         ApplicationUser testOne,
         ApplicationUser testTwo,
-        ApplicationUser? admin,
+        ApplicationUser? primaryDemoUser,
         string marker)
     {
         var plans = new List<(Guid PostId, ApplicationUser? Author, string Content)>();
@@ -273,20 +273,20 @@ public sealed class DemoContentEngagementSeeder
         if (posts.Count >= 1)
         {
             var post = posts[0];
-            var author = PickCommentAuthor(post.UserId, admin, testTwo, testOne);
+            var author = PickCommentAuthor(post.UserId, primaryDemoUser, testTwo, testOne);
             plans.Add((post.Id, author, $"{marker} Great post — demo comment #1."));
         }
 
         if (posts.Count >= 2)
         {
             var post = posts[1];
-            var author = PickCommentAuthor(post.UserId, testTwo, admin, testOne);
+            var author = PickCommentAuthor(post.UserId, testTwo, primaryDemoUser, testOne);
             plans.Add((post.Id, author, $"{marker} Demo comment #2 from the seed pipeline."));
         }
         else if (posts.Count == 1)
         {
             var post = posts[0];
-            var author = PickCommentAuthor(post.UserId, testTwo, admin, testOne);
+            var author = PickCommentAuthor(post.UserId, testTwo, primaryDemoUser, testOne);
             plans.Add((post.Id, author, $"{marker} Demo comment #2 on the same post."));
         }
 
@@ -297,27 +297,27 @@ public sealed class DemoContentEngagementSeeder
         IReadOnlyList<Post> posts,
         ApplicationUser testOne,
         ApplicationUser testTwo,
-        ApplicationUser? admin)
+        ApplicationUser? primaryDemoUser)
     {
         var plans = new List<(Guid PostId, ApplicationUser? User, string ReactionType)>();
 
         if (posts.Count >= 1)
         {
             var post = posts[0];
-            var user = PickReactionUser(post.UserId, testOne, testTwo, admin);
+            var user = PickReactionUser(post.UserId, testOne, testTwo, primaryDemoUser);
             plans.Add((post.Id, user, "like"));
         }
 
         if (posts.Count >= 2)
         {
             var post = posts[1];
-            var user = PickReactionUser(post.UserId, testTwo, testOne, admin);
+            var user = PickReactionUser(post.UserId, testTwo, testOne, primaryDemoUser);
             plans.Add((post.Id, user, "like"));
         }
         else if (posts.Count == 1)
         {
             var post = posts[0];
-            var user = PickReactionUser(post.UserId, testTwo, testOne, admin);
+            var user = PickReactionUser(post.UserId, testTwo, testOne, primaryDemoUser);
             plans.Add((post.Id, user, "celebrate"));
         }
 
@@ -352,9 +352,9 @@ public sealed class DemoContentEngagementSeeder
         string postAuthorId,
         ApplicationUser? primary,
         ApplicationUser? secondary,
-        ApplicationUser? admin)
+        ApplicationUser? fallback)
     {
-        return PickCommentAuthor(postAuthorId, primary, secondary, admin);
+        return PickCommentAuthor(postAuthorId, primary, secondary, fallback);
     }
 
     private static string NormalizeMarker(string? markerPrefix)
