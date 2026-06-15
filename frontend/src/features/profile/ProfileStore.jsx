@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { withLoadState } from "../../shared/lib/asyncLoad";
 import { readJson, writeJson } from "../../shared/lib/storage";
 import { readRegisteredAccount, patchRegisteredAccount } from "../../shared/lib/registeredAccount";
@@ -35,7 +35,8 @@ function buildFormFromSources(sessionUser, registered, cachedProfile) {
 }
 
 export function ProfileProvider({ children }) {
-  const { session, isReady } = useAuth();
+  const { session } = useAuth();
+  const useApi = useBackendApi();
   const [profile, setProfile] = useState(() => readJson(PROFILE_KEY, { name: "Student User", headline: "", city: "", about: "" }));
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -54,20 +55,20 @@ export function ProfileProvider({ children }) {
   );
 
   const reloadFromApi = useCallback(async () => {
-    if (!isReady || !session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) {
+    if (!useApi) {
       return null;
     }
     return withLoadState({ setIsLoading, setLoadError }, async () => {
-      const dto = await profileApi.fetchMyProfile();
+      const dto = await profileApi.tryFetchMyProfile();
       if (dto) applyProfileDto(dto);
       return dto;
     }, "Failed to load profile.");
-  }, [isReady, session.isAuthenticated, session.user?.isGuest, applyProfileDto]);
+  }, [useApi, applyProfileDto]);
 
   useEffect(() => {
-    if (!isReady || !session.isAuthenticated || session.user?.isGuest) return;
+    if (!useApi) return;
     reloadFromApi();
-  }, [isReady, session.isAuthenticated, session.user?.id, session.user?.isGuest, reloadFromApi]);
+  }, [useApi, session.user?.id, reloadFromApi]);
 
   const value = useMemo(
     () => ({
@@ -76,7 +77,7 @@ export function ProfileProvider({ children }) {
       loadError,
       reloadFromApi,
       async loadProfessionalIntoForm() {
-        if (!session.isAuthenticated || session.user?.isGuest || USE_MOCK_AUTH) return [];
+        if (!useApi) return [];
         return loadMyExperienceHistoryItems();
       },
       buildInitialForm() {
@@ -88,7 +89,7 @@ export function ProfileProvider({ children }) {
         writeJson(PROFILE_KEY, next);
       },
       async saveProfileForm(form) {
-        if (session.user?.isGuest || USE_MOCK_AUTH) {
+        if (!useApi) {
           const name = `${form.firstName} ${form.lastName}`.trim() || profile.name;
           const next = {
             name,
@@ -147,7 +148,7 @@ export function ProfileProvider({ children }) {
         return { ok: true, profile: result.profile };
       },
       async uploadAvatar(file, options = {}) {
-        if (session.user?.isGuest || USE_MOCK_AUTH) {
+        if (!useApi) {
           throw new Error("Avatar upload requires a signed-in API account.");
         }
         const result = await profileApi.uploadMyAvatar(file, options);
@@ -158,7 +159,7 @@ export function ProfileProvider({ children }) {
         return result.profile;
       },
       async uploadHeader(file, options = {}) {
-        if (session.user?.isGuest || USE_MOCK_AUTH) {
+        if (!useApi) {
           throw new Error("Header upload requires a signed-in API account.");
         }
         const result = await profileApi.uploadMyHeader(file, options);
@@ -169,7 +170,7 @@ export function ProfileProvider({ children }) {
         return result.profile;
       },
     }),
-    [profile, isLoading, loadError, reloadFromApi, session.user, applyProfileDto],
+    [profile, isLoading, loadError, reloadFromApi, useApi, session.user, applyProfileDto],
   );
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

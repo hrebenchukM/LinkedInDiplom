@@ -39,6 +39,7 @@ using Network.DI;
 
 using Notifications.DI;
 using Facade.API;
+using Facade.API.Seeding;
 using Microsoft.AspNetCore.Mvc;
 using Facade.AI.DI;
 using Facade.AI.Controllers.Controllers;
@@ -74,6 +75,7 @@ builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);
 builder.Services.AddEventsModule(configuration, connectionString);
+builder.Services.AddDemoSeeders(configuration);
 
 // Подключаем AccountManagement facade
 builder.Services.AddAdminManagementFacade();

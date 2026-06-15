@@ -77,24 +77,50 @@ export function resolvePersonAvatar({ profile, userId, name, avatarUrl } = {}) {
   return `${DICEBEAR_AVATAR_BASE}?seed=${encodeURIComponent(seed)}`;
 }
 
+/** Normalize ProfileDto / ProfileResponse profile (camelCase or PascalCase). */
+export function normalizeProfileDto(dto) {
+  if (!dto || typeof dto !== "object") return null;
+  const userId = dto.userId ?? dto.UserId;
+  const id = dto.id ?? dto.Id;
+  if (!userId && !id) return null;
+
+  return {
+    id,
+    userId: userId != null ? String(userId) : undefined,
+    firstName: String(dto.firstName ?? dto.FirstName ?? "").trim(),
+    lastName: String(dto.lastName ?? dto.LastName ?? "").trim(),
+    fullName: String(dto.fullName ?? dto.FullName ?? "").trim(),
+    avatarUrl: String(dto.avatarUrl ?? dto.AvatarUrl ?? "").trim(),
+    headerUrl: String(dto.headerUrl ?? dto.HeaderUrl ?? "").trim(),
+    profileTitle: String(dto.profileTitle ?? dto.ProfileTitle ?? "").trim(),
+    headline: String(dto.headline ?? dto.Headline ?? "").trim(),
+    genInfo: String(dto.genInfo ?? dto.GenInfo ?? "").trim(),
+    university: String(dto.university ?? dto.University ?? "").trim(),
+    location: String(dto.location ?? dto.Location ?? "").trim(),
+    portfolioUrl: String(dto.portfolioUrl ?? dto.PortfolioUrl ?? "").trim(),
+    isCompany: Boolean(dto.isCompany ?? dto.IsCompany ?? false),
+  };
+}
+
 export function mapProfileDtoToRegisteredPatch(dto = {}) {
-  const location = String(dto.location || "").trim();
+  const normalized = normalizeProfileDto(dto) || dto;
+  const location = String(normalized.location || "").trim();
   const locationParts = location ? location.split(",").map((part) => part.trim()) : [];
   const city = locationParts[0] || "";
   const country = locationParts.slice(1).join(", ").trim();
 
   return {
-    firstName: dto.firstName || "",
-    lastName: dto.lastName || "",
-    specialty: dto.headline || "",
-    position: dto.profileTitle || "",
+    firstName: normalized.firstName || "",
+    lastName: normalized.lastName || "",
+    specialty: normalized.headline || "",
+    position: normalized.profileTitle || "",
     city,
     country,
-    about: dto.genInfo || "",
-    education: dto.university || "",
-    portfolioUrl: String(dto.portfolioUrl || "").trim(),
-    avatarDataUrl: resolveMediaUrl(dto.avatarUrl),
-    headerDataUrl: resolveMediaUrl(dto.headerUrl),
+    about: normalized.genInfo || "",
+    education: normalized.university || "",
+    portfolioUrl: String(normalized.portfolioUrl || "").trim(),
+    avatarDataUrl: resolveMediaUrl(normalized.avatarUrl),
+    headerDataUrl: resolveMediaUrl(normalized.headerUrl),
   };
 }
 
@@ -132,20 +158,21 @@ export function mapProfileFormToPatchRequest(form = {}) {
 }
 
 export function mapProfileDtoToPublicView(dto = {}) {
-  const patch = mapProfileDtoToRegisteredPatch(dto);
-  const firstName = String(dto.firstName || "").trim();
-  const lastName = String(dto.lastName || "").trim();
+  const normalized = normalizeProfileDto(dto) || dto;
+  const patch = mapProfileDtoToRegisteredPatch(normalized);
+  const firstName = String(normalized.firstName || "").trim();
+  const lastName = String(normalized.lastName || "").trim();
   const fullName =
-    String(dto.fullName || "").trim() ||
+    String(normalized.fullName || "").trim() ||
     `${firstName} ${lastName}`.trim() ||
     "User";
   const location = [patch.city, patch.country].filter(Boolean).join(", ");
 
   return {
-    userId: dto.userId,
+    userId: normalized.userId,
     fullName,
-    headline: String(dto.headline || "").trim(),
-    profileTitle: String(dto.profileTitle || "").trim(),
+    headline: String(normalized.headline || "").trim(),
+    profileTitle: String(normalized.profileTitle || "").trim(),
     location,
     city: patch.city,
     country: patch.country,
@@ -153,7 +180,7 @@ export function mapProfileDtoToPublicView(dto = {}) {
     education: patch.education,
     avatarUrl: patch.avatarDataUrl,
     headerUrl: patch.headerDataUrl,
-    portfolioUrl: String(dto.portfolioUrl || "").trim(),
+    portfolioUrl: String(normalized.portfolioUrl || "").trim(),
   };
 }
 
@@ -205,18 +232,19 @@ export function mapProfileSearchToPerson(dto, currentUserId) {
 }
 
 export function mapProfileDtoToUiProfile(dto = {}, account = {}) {
-  const firstName = String(dto.firstName || "").trim();
-  const lastName = String(dto.lastName || "").trim();
+  const normalized = normalizeProfileDto(dto) || dto;
+  const firstName = String(normalized.firstName || "").trim();
+  const lastName = String(normalized.lastName || "").trim();
   const fullName =
-    String(dto.fullName || "").trim() ||
+    String(normalized.fullName || "").trim() ||
     `${firstName} ${lastName}`.trim() ||
     String(account.email || "").split("@")[0] ||
     "User";
 
   return {
     name: fullName,
-    headline: String(dto.headline || dto.profileTitle || "Member").trim(),
-    city: mapProfileDtoToRegisteredPatch(dto).city,
-    about: String(dto.genInfo || "").trim(),
+    headline: String(normalized.headline || normalized.profileTitle || "Member").trim(),
+    city: mapProfileDtoToRegisteredPatch(normalized).city,
+    about: String(normalized.genInfo || "").trim(),
   };
 }

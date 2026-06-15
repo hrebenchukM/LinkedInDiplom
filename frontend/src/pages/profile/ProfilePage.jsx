@@ -7,7 +7,7 @@ import { useUiSettings } from "../../app/providers/AppProviders";
 import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/registeredAccount";
 import { resolveMediaUrl } from "../../features/profile/mapProfile";
 import { readJson, writeJson } from "../../shared/lib/storage";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { useBackendApi } from "../../shared/hooks/useBackendApi";
 import { buildCreateCertificateBody } from "../../features/professional/mapCertificate";
 import {
   buildCreateRecommendationBody,
@@ -187,7 +187,7 @@ export function ProfilePage() {
   } = useProfileStore();
   const { people } = useNetworkStore();
   const { theme, lang, setTheme, setLang, t } = useUiSettings();
-  const usesApiProfile = session.isAuthenticated && !session.user?.isGuest && !USE_MOCK_AUTH;
+  const usesApiProfile = useBackendApi();
 
   const [form, setForm] = useState(() => buildFormState(buildInitialForm, session.user));
   const [skillDraft, setSkillDraft] = useState("");

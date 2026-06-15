@@ -735,7 +735,7 @@ export function HomePage() {
       reloadPostsFromApi({ silent: true });
     }, FEED_ROTATE_MS);
     return () => window.clearInterval(timerId);
-  }, [isReady, useApi, reloadPostsFromApi, rotateFeedVisuals]);
+  }, [isReady, useApi, session.user?.id, reloadPostsFromApi, rotateFeedVisuals]);
 
   useEffect(() => {
     const onDocClick = (event) => {

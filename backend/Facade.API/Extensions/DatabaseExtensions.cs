@@ -8,7 +8,10 @@ using Messaging.DataAccess;
 using Network.DataAccess;
 using Notifications.DataAccess;
 using Profile.DataAccess;
+using Facade.API.Seeding;
+using Microsoft.Extensions.Options;
 using Professional.DataAccess;
+
 namespace Facade.API.Extensions;
 
 /// <summary>
@@ -93,6 +96,17 @@ public static class DatabaseExtensions
 
             // Применяем миграции Events-модуля
             await eventsContext.Database.MigrateAsync();
+
+            if (app.Environment.IsDevelopment())
+            {
+                var demoSeedOptions = services.GetRequiredService<IOptions<DemoSeedOptions>>().Value;
+                if (demoSeedOptions.Enabled)
+                {
+                    logger.LogInformation("Demo seed enabled for Development environment.");
+                    var demoSeedOrchestrator = services.GetRequiredService<IDemoSeedOrchestrator>();
+                    await demoSeedOrchestrator.SeedAsync();
+                }
+            }
 
             // Пишем в лог успешный результат
             logger.LogInformation("Database migrations applied successfully");

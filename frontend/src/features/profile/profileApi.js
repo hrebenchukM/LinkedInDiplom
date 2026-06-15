@@ -3,14 +3,13 @@ import { apiFetch, apiUpload } from "../../shared/api/http";
 import { PROFILE } from "../../shared/api/paths";
 import { USE_MOCK_AUTH } from "../../shared/config/features";
 import { unwrapPagedResponse } from "../../shared/lib/pagedResponse";
-import { mapProfileSearchToPerson, normalizeProfileSearchDto } from "./mapProfile";
+import { mapProfileSearchToPerson, normalizeProfileDto, normalizeProfileSearchDto } from "./mapProfile";
 
 const profileCache = new Map();
 
 function unwrapProfileResponse(data) {
-  if (data?.profile) return data.profile;
-  if (data?.id || data?.userId) return data;
-  return null;
+  const raw = data?.profile ?? data?.Profile ?? data;
+  return normalizeProfileDto(raw);
 }
 
 function buildProfileSearchQuery({ query, location, page = 1, pageSize = 20 } = {}) {
@@ -48,7 +47,11 @@ export async function fetchMyProfile() {
 export async function patchMyProfile(body) {
   if (USE_MOCK_AUTH) return { success: true, profile: null };
   const data = await apiClient.patch(PROFILE.me, body);
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data), errors: data?.errors };
+  return {
+    success: Boolean(data?.success ?? data?.Success ?? true),
+    profile: unwrapProfileResponse(data),
+    errors: data?.errors ?? data?.Errors,
+  };
 }
 
 export async function uploadMyAvatar(file, { onProgress } = {}) {
@@ -62,7 +65,7 @@ export async function uploadMyAvatar(file, { onProgress } = {}) {
       "Avatar upload failed.";
     throw new Error(String(message));
   }
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
+  return { success: Boolean(data?.success ?? data?.Success ?? true), profile: unwrapProfileResponse(data) };
 }
 
 export async function uploadMyHeader(file, { onProgress } = {}) {
@@ -76,7 +79,7 @@ export async function uploadMyHeader(file, { onProgress } = {}) {
       "Header upload failed.";
     throw new Error(String(message));
   }
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
+  return { success: Boolean(data?.success ?? data?.Success ?? true), profile: unwrapProfileResponse(data) };
 }
 
 /** Non-throwing fetch for auth bootstrap. */

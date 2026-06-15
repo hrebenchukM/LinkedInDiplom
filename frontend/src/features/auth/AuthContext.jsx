@@ -8,7 +8,7 @@ import {
   persistRegisteredProfile,
 } from "../../shared/lib/authSession";
 import { readJson, writeJson } from "../../shared/lib/storage";
-import { clearAuthTokens, getAccessToken, getRefreshToken, isLegacyMockTokenPair } from "../../shared/api/tokens";
+import { clearAuthTokens, extractAuthTokenFromResponse, getAccessToken, getRefreshToken, isLegacyMockTokenPair, looksLikeMockToken } from "../../shared/api/tokens";
 import { scheduleProactiveTokenRefresh } from "../../shared/api/tokenRefreshScheduler";
 import { applyTokenRolesToUser } from "../../shared/lib/jwtClaims";
 import * as authApi from "./authApi";
@@ -16,7 +16,7 @@ import { patchRegisteredAccount, readRegisteredAccount } from "../../shared/lib/
 import { mapAccountToUser, readProfileFallback } from "./mapAccount";
 import { mapProfileDtoToRegisteredPatch } from "../profile/mapProfile";
 import * as profileApi from "../profile/profileApi";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
+import { USE_MOCK_AUTH, ENABLE_GUEST } from "../../shared/config/features";
 
 const AuthContext = createContext(null);
 
@@ -73,14 +73,21 @@ export function AuthProvider({ children }) {
 
   const completeLogin = useCallback(
     async (loginResponse, profileFallback = {}, options = {}) => {
-      if (!loginResponse?.ok || loginResponse?.data?.success === false) {
+      const successFlag = loginResponse?.data?.success ?? loginResponse?.data?.Success;
+      if (!loginResponse?.ok || successFlag === false) {
         return { ok: false, error: readApiError(loginResponse?.data, "Login failed.") };
       }
-      if (!loginResponse?.data?.token?.accessToken) {
+
+      const tokenDto = extractAuthTokenFromResponse(loginResponse?.data);
+      if (!tokenDto?.accessToken) {
         return { ok: false, error: readApiError(loginResponse?.data, "Login failed — no token received.") };
       }
+      if (!USE_MOCK_AUTH && looksLikeMockToken(tokenDto.accessToken)) {
+        clearAuthTokens();
+        return { ok: false, error: "Login failed — received a demo token instead of a JWT." };
+      }
 
-      applyLoginResponse(loginResponse.data, profileFallback);
+      applyLoginResponse({ ...loginResponse.data, token: tokenDto }, profileFallback);
       let user;
       try {
         user = await buildUserWithProfile(loginResponse.data.account, profileFallback, options);
@@ -130,6 +137,7 @@ export function AuthProvider({ children }) {
 
   const loginWithPassword = useCallback(
     async ({ email, password, profileFallback = {} }) => {
+      clearAuthTokens();
       const loginResponse = await authApi.loginAccount({ email, password });
       if (!loginResponse.ok) {
         return { ok: false, error: readApiError(loginResponse.data, "Invalid email or password.") };
@@ -157,6 +165,9 @@ export function AuthProvider({ children }) {
   );
 
   const loginAsGuest = useCallback(() => {
+    if (!ENABLE_GUEST && !USE_MOCK_AUTH) {
+      return null;
+    }
     const profile = persistGuestProfile({
       id: "guest",
       email: "guest@linkup.local",
@@ -200,6 +211,12 @@ export function AuthProvider({ children }) {
       const saved = readJson(AUTH_SESSION_KEY, emptySession());
 
       if (!USE_MOCK_AUTH && isLegacyMockTokenPair()) {
+        clearSession();
+        if (!cancelled) setIsReady(true);
+        return;
+      }
+
+      if (!USE_MOCK_AUTH && !ENABLE_GUEST && saved.user?.isGuest) {
         clearSession();
         if (!cancelled) setIsReady(true);
         return;
@@ -279,6 +296,13 @@ export function AuthProvider({ children }) {
       readRegisteredAccount,
       /** Demo/mock only (social login). Sets tokens when accessToken is provided. */
       login(userData) {
+        if (
+          !USE_MOCK_AUTH &&
+          userData?.accessToken &&
+          looksLikeMockToken(String(userData.accessToken))
+        ) {
+          return;
+        }
         if (userData?.accessToken) {
           applyLoginResponse(
             {
