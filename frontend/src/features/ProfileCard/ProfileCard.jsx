@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Bookmark } from 'lucide-react';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import '../ProfileCard/ProfileCard.css';
 
 const ProfileCard = () => {
@@ -14,11 +14,7 @@ const ProfileCard = () => {
     <div className="profile-card">
       <div className="profile-header">
       <img
-        src={
-          profile.user.avatarUrl
-            ? fileUrl(profile.user.avatarUrl)
-            : '/img/avatar-placeholder.png'
-        }
+          src={getAssetUrl(profile.user.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
         alt="Profile"
         className="profile-avatar"
       />

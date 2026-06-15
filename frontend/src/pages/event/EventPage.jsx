@@ -15,6 +15,8 @@ import './EventPage.css';
 import SimpleProfileCard from '../../features/SimpleProfileCard/SimpleProfileCard';
 import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
 import { getErrorMessage } from '../../shared/lib/apiError';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 import {
   getEventById,
   getEventSchedule,
@@ -129,8 +131,9 @@ const EventPage = ({ onNavigate }) => {
 
               <div className="event-header-card">
                 <div className="event-image">
-                  <img
-                    src={event.coverImageUrl || event.coverUrl || '/assets/event-cover.jpg'}
+                  <SafeImage
+                    src={event.coverImageUrl || event.coverUrl}
+                    fallback={IMAGE_PLACEHOLDERS.event}
                     alt={event.title}
                   />
                   <span
@@ -144,12 +147,9 @@ const EventPage = ({ onNavigate }) => {
                   <h1 className="event-title">{event.title}</h1>
 
                   <div className="event-organizer">
-                    <img
-                      src={
-                        organizer?.avatar
-                          || organizer?.avatarUrl
-                          || '/assets/avatar-placeholder.png'
-                      }
+                    <SafeImage
+                      src={organizer?.avatar || organizer?.avatarUrl}
+                      fallback={IMAGE_PLACEHOLDERS.avatar}
                       alt={organizer?.name || 'Organizer'}
                     />
                     <div>
@@ -256,7 +256,7 @@ const EventPage = ({ onNavigate }) => {
                     speakers.map((speaker) => (
                       <div key={speaker.id} className="speaker-card">
                         <img
-                          src={speaker.avatarUrl || '/assets/avatar-placeholder.png'}
+                          src={getAssetUrl(speaker.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                           alt={speaker.name}
                         />
                         <h4>{speaker.name}</h4>

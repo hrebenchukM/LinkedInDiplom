@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Bookmark, X } from 'lucide-react';
 import '../VacancyCard/VacancyCard.css';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 
 const VacancyCard = ({
   vacancy,
@@ -29,7 +31,10 @@ const VacancyCard = ({
     isFavorite: false,
   };
 
-  const logoSrc = data.companyLogo || logo || '/img/company-placeholder.png';
+  const logoSrc = getAssetUrl(
+    data.companyLogo || data.company?.logo || logo,
+    IMAGE_PLACEHOLDERS.company,
+  );
   const companyName = data.companyName || company || 'Company';
   const title = data.title || position || '';
   const locationText = data.location || location || '';
@@ -61,7 +66,12 @@ const VacancyCard = ({
     <div className="vacancy-card">
       <div className="vacancy-header">
         <div className="vacancy-top">
-          <img src={logoSrc} alt={companyName} className="vacancy-logo" />
+          <SafeImage
+            src={logoSrc}
+            fallback={IMAGE_PLACEHOLDERS.company}
+            alt={companyName}
+            className="vacancy-logo"
+          />
           <h3 className="vacancy-company">{companyName}</h3>
         </div>
         {onToggleFavorite ? (

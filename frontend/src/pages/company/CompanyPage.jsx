@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import {
   followPage,
   getPageById,
@@ -109,7 +109,7 @@ const CompanyPage = ({ onNavigate }) => {
           <div className="company-header">
             <div className="company-cover">
               <img
-                src={page.logoUrl ? fileUrl(page.logoUrl) : '/assets/event-cover.jpg'}
+                src={getAssetUrl(page.imageUrl || page.logoUrl, IMAGE_PLACEHOLDERS.cover)}
                 alt={page.name}
               />
             </div>
@@ -117,7 +117,7 @@ const CompanyPage = ({ onNavigate }) => {
             <div className="company-header-content">
               <div className="company-header-main">
                 <img
-                  src={page.logoUrl ? fileUrl(page.logoUrl) : '/assets/avatar-placeholder.png'}
+                  src={getAssetUrl(page.imageUrl || page.logoUrl, IMAGE_PLACEHOLDERS.company)}
                   alt={page.name}
                   className="company-logo"
                 />

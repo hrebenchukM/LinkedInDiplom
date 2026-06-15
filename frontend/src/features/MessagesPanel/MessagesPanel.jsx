@@ -6,7 +6,7 @@ import '../MessagesPanel/MessagesPanel.css';
 import messagesIllustration from '../../shared/assets/illustrations/messages.png';
 import NewMessageModal from '../Modals/NewMessageModal';
 import AppContext from '../appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getMyChats } from '../messaging/messagingApi.js';
 import { enrichChatsWithCompanions } from '../messaging/enrichMessagingProfiles.js';
 import { DEFAULT_PAGE_SIZE } from '../../shared/api/config.js';
@@ -70,11 +70,7 @@ const MessagesPanel = ({ onSelectChat }) => {
         <div className="messages-header">
           <div className="messages-title-section">
             <img
-              src={
-                profile?.user?.avatarUrl
-                  ? fileUrl(profile.user.avatarUrl)
-                  : '/img/avatar-placeholder.png'
-              }
+              src={getAssetUrl(profile?.user?.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
               alt="Profile"
               className="messages-avatar"
               onClick={() => navigate('/app/profile')}
@@ -141,7 +137,7 @@ const MessagesPanel = ({ onSelectChat }) => {
                 tabIndex={0}
               >
                 <img
-                  src={fileUrl(message.avatar) || '/img/avatar-placeholder.png'}
+                  src={getAssetUrl(message.avatar, IMAGE_PLACEHOLDERS.avatar)}
                   alt={message.name}
                   className="message-item-avatar"
                 />

@@ -1,3 +1,4 @@
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
 import { getProfileByUserId } from '../profile/profileApi.js';
 import { getDisplayName } from '../profile/mapProfile.js';
 import {
@@ -87,7 +88,7 @@ export async function enrichUsersWithProfiles(items = [], getUserId) {
     return {
       ...item,
       ...enriched,
-      avatar: enriched.avatarUrl,
+      avatar: enriched.avatarUrl ? resolveUploadUrl(enriched.avatarUrl) : '',
     };
   });
 }

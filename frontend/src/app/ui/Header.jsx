@@ -3,7 +3,7 @@ import { LogOut, Shield } from 'lucide-react';
 import { Home, Users, Briefcase, MessageCircle, Bell } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getAccessToken } from '../../shared/api/tokens.js';
 import { isAdminToken } from '../../shared/lib/jwtClaims.js';
 
@@ -132,11 +132,7 @@ const { user, profile, logout, account, token } = useContext(AppContext);
                     onClick={() => navigate('/app/profile')}
                   >
                 <img
-                  src={
-                    profile?.user?.avatarUrl
-                      ? fileUrl(profile?.user?.avatarUrl)
-                      : '/img/avatar-placeholder.png'
-                  }
+                  src={getAssetUrl(profile?.user?.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                   alt="Profile"
                   className="nav-profile-img"
                 />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './ChatProfilePanel.css';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getProfileByUserId } from '../profile/profileApi.js';
 import { mapProfileDto, getDisplayName } from '../profile/mapProfile.js';
 
@@ -80,7 +80,7 @@ const ChatProfilePanel = ({ selectedUser, showProfile, onBackClick }) => {
 
       <div className="profile-avatar-large">
         <img
-          src={fileUrl(fullUser.avatarUrl) || '/img/avatar-placeholder.png'}
+          src={getAssetUrl(fullUser.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
           alt={fullUser.firstName}
         />
       </div>

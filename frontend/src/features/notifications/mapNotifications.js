@@ -1,4 +1,5 @@
 import { mapPagedResponse } from '../../shared/lib/pagination.js';
+import { getAssetUrl } from '../../shared/api/files.js';
 
 function pick(dto, ...keys) {
   if (!dto) return null;
@@ -152,7 +153,7 @@ export function mapNotificationDto(dto, meta = {}) {
     actorUserId,
     actor,
     actorName: actor?.name ?? null,
-    actorAvatar: actor?.avatar ?? '',
+    actorAvatar: actor?.avatar ?? getAssetUrl(actor?.avatarUrl, ''),
     entityType,
     entityId,
     entity,

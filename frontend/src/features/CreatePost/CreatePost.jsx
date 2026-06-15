@@ -3,7 +3,7 @@ import { Image, Video, Calendar } from 'lucide-react';
 import '../CreatePost/CreatePost.css';
 import CreatePostModal from '../Modals/CreatePostModal';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 
 const CreatePost = ({ onPostCreated }) => {
   const { user, profile } = useContext(AppContext);
@@ -15,14 +15,14 @@ const CreatePost = ({ onPostCreated }) => {
 
 const modalUser = {
   name: `${u.firstName} ${u.secondName}`.trim(),
-  avatar: u.avatarUrl ? fileUrl(u.avatarUrl) : null
+  avatar: u.avatarUrl ? getAssetUrl(u.avatarUrl) : null
 };
   return (
     <>
     <div className="create-post">
       <div className="create-post-input">
 <img
-  src={u?.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
+  src={getAssetUrl(u?.avatarUrl ?? u?.avatar, IMAGE_PLACEHOLDERS.avatar)}
   alt="Profile"
   className="create-post-avatar"
 />

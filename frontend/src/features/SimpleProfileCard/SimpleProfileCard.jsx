@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import './SimpleProfileCard.css';
 
 const SimpleProfileCard = () => {
@@ -14,11 +14,7 @@ const SimpleProfileCard = () => {
     <div className="simple-profile-card">
       <div className="simple-profile-content">
         <img
-          src={
-            u.avatarUrl
-              ? fileUrl(u.avatarUrl)
-              : '/img/avatar-placeholder.png'
-          }
+          src={getAssetUrl(u.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
           alt="Profile"
           className="simple-profile-avatar"
         />

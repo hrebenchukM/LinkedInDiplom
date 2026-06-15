@@ -3,6 +3,7 @@ import VacanciesSidebar from '../../features/VacanciesSidebar/VacanciesSidebar';
 import VacancyCard from '../../features/VacancyCard/VacancyCard';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AppContext from '../../features/appContext/AppContext';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
 import { getErrorMessage, getUserFriendlyErrorMessage, isValidationError } from '../../shared/lib/apiError';
 import {
@@ -386,7 +387,7 @@ const VacanciesPage = ({ onNavigate }) => {
                   <div key={vacancy.id} className="job-item">
                     <div className="job-info">
                       <img
-                        src={vacancy.companyLogo || '/img/company-placeholder.png'}
+                        src={getAssetUrl(vacancy.companyLogo, IMAGE_PLACEHOLDERS.company)}
                         alt={vacancy.companyName}
                         className="job-logo"
                       />

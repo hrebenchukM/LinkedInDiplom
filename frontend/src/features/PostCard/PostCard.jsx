@@ -1,7 +1,8 @@
 import { useContext, useEffect, useState } from 'react';
 import { ThumbsUp, MessageCircle, Share2, Send } from 'lucide-react';
 import './PostCard.css';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 import AppContext from '../appContext/AppContext';
 import {
   deletePostReaction,
@@ -28,9 +29,14 @@ const PostCard = ({ post, onNavigate }) => {
     setReactionCount(post.reactionsCount ?? 0);
   }, [post.id, post.myReaction, post.reactionsCount]);
 
-  const avatarSrc = user.avatarUrl
-    ? fileUrl(user.avatarUrl)
-    : '/img/avatar-placeholder.png';
+  const avatarSrc = getAssetUrl(
+    user.avatarUrl ?? user.avatar,
+    IMAGE_PLACEHOLDERS.avatar,
+  );
+  const mediaSrc = getAssetUrl(
+    post.media?.[0]?.url || post.media?.[0]?.rawUrl || post.image,
+    '',
+  );
 
   const handleLike = async () => {
     if (!token || reacting) return;
@@ -60,8 +66,9 @@ const PostCard = ({ post, onNavigate }) => {
   return (
     <div className="post-card">
       <div className="post-header">
-        <img
+        <SafeImage
           src={avatarSrc}
+          fallback={IMAGE_PLACEHOLDERS.avatar}
           alt={user.firstName || 'User'}
           className="post-avatar"
           onClick={() => onNavigate?.('portfolio')}
@@ -83,10 +90,11 @@ const PostCard = ({ post, onNavigate }) => {
         <p>{post.content}</p>
       </div>
 
-      {post.media?.length > 0 ? (
+      {mediaSrc ? (
         <div className="post-image">
-          <img
-            src={post.media[0].url || fileUrl(post.media[0].rawUrl)}
+          <SafeImage
+            src={mediaSrc}
+            fallback={IMAGE_PLACEHOLDERS.cover}
             alt="Post media"
           />
         </div>

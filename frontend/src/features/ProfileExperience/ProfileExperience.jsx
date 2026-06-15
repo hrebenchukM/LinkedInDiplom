@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import '../ProfileExperience/ProfileExperience.css';
 import AddExperienceModal from '../Modals/AddExperienceModal';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 
 const Briefcase = ({ size }) => (
   <svg
@@ -51,7 +51,7 @@ const ProfileExperience = ({ items = [], onAdded }) => {
                 {block.company?.logoUrl
                   ? (
                     <img
-                      src={fileUrl(block.company.logoUrl)}
+                      src={getAssetUrl(block.company.logo || block.company.logoUrl, IMAGE_PLACEHOLDERS.company)}
                       alt={block.company?.name}
                     />
                   )

@@ -168,7 +168,12 @@ export function mapChatToDisplay(chat, companionProfile, lastMessage = null) {
   return {
     ...chat,
     name,
-    avatar: companionUser?.avatarUrl ?? companionUser?.AvatarUrl ?? null,
+    avatar: resolveUploadUrl(
+      companionUser?.avatarUrl ?? companionUser?.AvatarUrl ?? '',
+    ),
+    avatarSrc: resolveUploadUrl(
+      companionUser?.avatarUrl ?? companionUser?.AvatarUrl ?? '',
+    ),
     title: headline,
     lastMessage: resolvedLastMessage?.content ?? chat.lastMessage ?? '',
     time:

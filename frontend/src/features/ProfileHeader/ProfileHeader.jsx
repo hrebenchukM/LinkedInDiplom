@@ -2,7 +2,8 @@ import React, { useContext, useRef, useState } from 'react';
 import { Camera, Edit, ExternalLink } from 'lucide-react';
 import './ProfileHeader.css';
 import RequestRecommendationModal from '../Modals/RequestRecommendationModal';
-import { fileUrl, getProfileHeader } from '../../shared/api/files';
+import { getAssetUrl, getProfileHeader, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 import { uploadAvatar, uploadHeader } from '../profile/profileApi.js';
 import { getDisplayName } from '../profile/mapProfile.js';
 import { getErrorMessage } from '../../shared/lib/apiError.js';
@@ -95,8 +96,9 @@ const ProfileHeader = ({ profile, onProfileUpdated }) => {
         <div className="profile-main-info">
           <div className="profile-top-section">
             <div className="profile-avatar-section">
-              <img
-                src={fileUrl(user.avatarUrl) || '/img/avatar-placeholder.png'}
+              <SafeImage
+                src={user.avatarUrl}
+                fallback={IMAGE_PLACEHOLDERS.avatar}
                 alt="Profile"
                 className="profile-avatar"
                 onClick={() => openFilePicker('avatar')}

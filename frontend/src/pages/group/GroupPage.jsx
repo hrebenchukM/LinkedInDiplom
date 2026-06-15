@@ -5,7 +5,7 @@ import SimpleProfileCard from '../../features/SimpleProfileCard/SimpleProfileCar
 import { useParams } from 'react-router-dom';
 import { useContext, useEffect, useState } from 'react';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getGroupById, getGroupMembers, getGroupPosts } from '../../features/network/networkApi.js';
 import { enrichUsersWithProfiles } from '../../features/network/enrichNetworkProfiles.js';
 import { getPostById } from '../../features/content/contentApi.js';
@@ -138,11 +138,11 @@ const GroupPage = ({ onNavigate }) => {
         <div className="group-page">
           <div className="group-header">
             <div className="group-cover">
-              <img src={group.avatarUrl ? fileUrl(group.avatarUrl) : '/assets/group-cover.jpg'} alt={group.name} />
+              <img src={getAssetUrl(group.imageUrl || group.avatarUrl, IMAGE_PLACEHOLDERS.cover)} alt={group.name} />
             </div>
             <div className="group-header-content">
               <div className="group-header-main">
-                <img src={group.avatarUrl ? fileUrl(group.avatarUrl) : '/assets/group-cover.jpg'} alt={group.name} className="group-avatar" />
+                <img src={getAssetUrl(group.imageUrl || group.avatarUrl, IMAGE_PLACEHOLDERS.cover)} alt={group.name} className="group-avatar" />
                 <div className="group-info">
                   <h1 className="group-name">{group.name}</h1>
                   <p className="group-category">Group</p>
@@ -211,11 +211,7 @@ const GroupPage = ({ onNavigate }) => {
                 <div className="group-posts">
                   <div className="group-create-post">
                     <img
-                      src={
-                        u?.avatarUrl
-                          ? fileUrl(u.avatarUrl)
-                          : 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-                      }
+                      src={getAssetUrl(u?.avatarUrl || u?.avatar, IMAGE_PLACEHOLDERS.avatar)}
                       alt={`${u.firstName} ${u.secondName}`}
                       className="post-avatar"
                     />
@@ -276,7 +272,7 @@ const GroupPage = ({ onNavigate }) => {
                   {!membersLoading && members.map((m) => (
                     <div key={m.id} className="member-item">
                       <img
-                        src={m.user?.avatarUrl ? fileUrl(m.user.avatarUrl) : '/assets/avatar-placeholder.png'}
+                        src={getAssetUrl(m.user?.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                         alt={`${m.user?.firstName} ${m.user?.secondName}`}
                         className="member-avatar"
                       />

@@ -1,7 +1,8 @@
 import React from 'react';
 import { ExternalLink, MoreHorizontal } from 'lucide-react';
 import '../PortfolioHeader/PortfolioHeader.css';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, getBackgroundImageStyle, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 
 const PortfolioHeader = ({ user }) => {
   if (!user) return null;
@@ -11,22 +12,15 @@ const PortfolioHeader = ({ user }) => {
       {/* banner */}
       <div
         className="portfolio-banner"
-        style={{
-          backgroundImage: user.headerUrl
-            ? fileUrl(user.headerUrl)
-            : undefined
-        }}
+        style={getBackgroundImageStyle(user.headerUrl)}
       />
 
       <div className="portfolio-profile-section">
         <div className="portfolio-top-row">
           {/* avatar */}
-          <img
-            src={
-              user.avatarUrl
-                ? fileUrl(user.avatarUrl)
-                : '/img/avatar-placeholder.png'
-            }
+          <SafeImage
+            src={user.avatarUrl}
+            fallback={IMAGE_PLACEHOLDERS.avatar}
             alt="Profile"
             className="portfolio-avatar"
           />

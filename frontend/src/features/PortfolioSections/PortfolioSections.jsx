@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../PortfolioSections/PortfolioSections.css';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 
 const PortfolioSections = ({
   experience = [],
@@ -146,7 +146,7 @@ const PortfolioSections = ({
   <div key={index} className="recommendation-entry">
     <div className="rec-header">
       <img
-        src={fileUrl(rec.author?.avatarUrl || 'default.jpg')}
+        src={getAssetUrl(rec.author?.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
         alt=""
         className="rec-avatar"
       />

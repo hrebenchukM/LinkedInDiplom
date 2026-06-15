@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Phone, Search, MoreVertical, Smile, Paperclip, Send } from 'lucide-react';
 import '../ChatMain/ChatMain.css';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 
 const formatMessageTime = (value) => {
   if (!value) return '';
@@ -89,7 +89,7 @@ const ChatMain = ({
 
           <div className="chat-header-user">
             <img
-              src={fileUrl(selectedUser.avatar) || '/img/avatar-placeholder.png'}
+              src={getAssetUrl(selectedUser.avatar || selectedUser.avatarSrc, IMAGE_PLACEHOLDERS.avatar)}
               alt={selectedUser.name}
               onClick={onAvatarClick}
               style={{ cursor: 'pointer' }}
@@ -153,10 +153,10 @@ const ChatMain = ({
             <div key={message.id} className={`message ${isMine ? 'me' : 'other'}`}>
               {!isMine ? (
                 <img
-                  src={
-                    fileUrl(message.sender?.avatarUrl) ||
-                    '/img/avatar-placeholder.png'
-                  }
+                  src={getAssetUrl(
+                    message.sender?.avatarUrl || message.sender?.avatar,
+                    IMAGE_PLACEHOLDERS.avatar,
+                  )}
                   alt={message.sender?.firstName || 'User'}
                   className="message-avatar"
                 />
@@ -170,13 +170,13 @@ const ChatMain = ({
                     {message.media.map((media) => (
                       <a
                         key={media.id ?? media.url}
-                        href={media.url || fileUrl(media.rawUrl)}
+                        href={getAssetUrl(media.url || media.rawUrl)}
                         target="_blank"
                         rel="noreferrer"
                       >
                         {media.mediaType?.startsWith('image') ? (
                           <img
-                            src={media.url || fileUrl(media.rawUrl)}
+                            src={getAssetUrl(media.url || media.rawUrl, IMAGE_PLACEHOLDERS.cover)}
                             alt="Attachment"
                             className="message-media-image"
                           />

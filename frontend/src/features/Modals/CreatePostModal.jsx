@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Image, Calendar, Star } from 'lucide-react';
 import Modal from '../../app/ui/Modal';
 import AppContext from '../../features/appContext/AppContext';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import {
   createPost,
   uploadPostMedia,
@@ -75,7 +75,10 @@ const CreatePostModal = ({ isOpen, onClose, user, onPostCreated }) => {
     }
   };
 
-  const avatarSrc = user?.avatar || '/img/avatar-placeholder.png';
+  const avatarSrc = getAssetUrl(
+    user?.avatar ?? user?.avatarUrl,
+    IMAGE_PLACEHOLDERS.avatar,
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create a post">

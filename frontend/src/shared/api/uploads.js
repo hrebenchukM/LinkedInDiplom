@@ -4,25 +4,38 @@ export function isAbsoluteUrl(url) {
   return typeof url === 'string' && /^https?:\/\//i.test(url);
 }
 
+function isPassthroughUrl(url) {
+  return typeof url === 'string' && /^(data:|blob:)/i.test(url.trim());
+}
+
 /**
- * Build a full upload URL from a relative backend path.
+ * Build a full upload URL from a backend file reference.
+ * Supports bare filenames (marya.jpg), nested paths (demo/post_1.jpg),
+ * and /uploads/... paths served by the .NET API.
  */
 export function buildUploadUrl(relativePath) {
-  if (!relativePath) return '';
+  if (relativePath == null || relativePath === '') return '';
 
-  if (isAbsoluteUrl(relativePath)) {
-    return relativePath;
+  const trimmed = String(relativePath).trim();
+  if (!trimmed) return '';
+
+  if (isAbsoluteUrl(trimmed) || isPassthroughUrl(trimmed)) {
+    return trimmed;
   }
 
-  if (relativePath.startsWith('/uploads')) {
-    return joinUrl(API_BASE_URL, relativePath);
+  if (trimmed.startsWith('/uploads/') || trimmed === '/uploads') {
+    return joinUrl(API_BASE_URL, trimmed);
   }
 
-  const normalizedPath = relativePath.startsWith('/')
-    ? relativePath.slice(1)
-    : relativePath;
+  const withoutLeadingSlash = trimmed.startsWith('/')
+    ? trimmed.slice(1)
+    : trimmed;
 
-  return joinUrl(UPLOADS_BASE_URL, normalizedPath);
+  if (withoutLeadingSlash.startsWith('uploads/')) {
+    return joinUrl(API_BASE_URL, `/${withoutLeadingSlash}`);
+  }
+
+  return joinUrl(UPLOADS_BASE_URL, withoutLeadingSlash);
 }
 
 /**
@@ -31,4 +44,9 @@ export function buildUploadUrl(relativePath) {
 export function resolveUploadUrl(url) {
   if (!url) return '';
   return buildUploadUrl(url);
+}
+
+/** Alias for resolveUploadUrl — normalizes relative backend paths to absolute URLs. */
+export function normalizeImageUrl(url) {
+  return resolveUploadUrl(url);
 }

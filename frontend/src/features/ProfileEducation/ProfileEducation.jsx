@@ -3,7 +3,7 @@ import { Plus, Edit, Briefcase } from 'lucide-react';
 import '../ProfileEducation/ProfileEducation.css';
 import AddEducationModal from '../Modals/AddEducationModal';
 import AddCertificateModal from '../Modals/AddCertificateModal';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 
 const ProfileEducation = ({
   education = [],
@@ -60,7 +60,7 @@ console.log("CERTIFICATES PROP:", certificates);
               <div className="education-logo">
                 {block.academy?.logoUrl ? (
                   <img
-                    src={fileUrl(block.academy.logoUrl)}
+                    src={getAssetUrl(block.academy.logoUrl, IMAGE_PLACEHOLDERS.company)}
                     alt={block.academy?.name}
                     className="university-img"
                   />
@@ -102,7 +102,7 @@ console.log("CERTIFICATES PROP:", certificates);
             <div className="education-logo">
               {academy?.logoUrl ? (
                 <img
-                  src={fileUrl(academy.logoUrl)}
+                  src={getAssetUrl(academy.logoUrl, IMAGE_PLACEHOLDERS.company)}
                   alt={academy?.name}
                   className="university-img"
                 />
@@ -127,7 +127,7 @@ console.log("CERTIFICATES PROP:", certificates);
 
             {certificate.downloadRef && (
               <a
-                href={fileUrl(certificate.downloadRef)}
+                href={getAssetUrl(certificate.downloadRef)}
                 target="_blank"
                 rel="noreferrer"
                 className="certificate-btn"

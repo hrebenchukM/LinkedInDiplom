@@ -14,7 +14,8 @@ import {
 
 import './ManageNetworkModal.css';
 import Modal from '../../../app/ui/Modal';
-import { fileUrl } from '../../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../../shared/api/files';
+import SafeImage from '../../../shared/ui/SafeImage';
 import {
   getMyContacts,
   getFollowing,
@@ -167,7 +168,7 @@ const ManageNetworkModal = ({
               contactsData.map((u) => (
                 <div key={u.contactId ?? u.userId} className="network-item">
                   <img
-                    src={u.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
+                    src={getAssetUrl(u.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                     alt={u.name}
                     className="network-item-avatar"
                   />
@@ -197,7 +198,7 @@ const ManageNetworkModal = ({
             {followingData.map((u) => (
               <div key={u.id ?? u.userId} className="network-item">
                 <img
-                  src={u.avatarUrl ? fileUrl(u.avatarUrl) : '/img/avatar-placeholder.png'}
+                  src={getAssetUrl(u.avatarUrl || u.avatar, IMAGE_PLACEHOLDERS.avatar)}
                   alt={u.name}
                   className="network-item-avatar"
                 />
@@ -226,11 +227,7 @@ const ManageNetworkModal = ({
             {groupsData.map((g) => (
               <div key={g.groupId ?? g.id} className="network-item">
                 <img
-                  src={
-                    g.avatarUrl
-                      ? fileUrl(g.avatarUrl)
-                      : '/assets/group-placeholder.png'
-                  }
+                  src={getAssetUrl(g.imageUrl || g.avatarUrl, IMAGE_PLACEHOLDERS.cover)}
                   alt={g.name}
                   className="network-item-avatar"
                 />
@@ -264,12 +261,12 @@ const ManageNetworkModal = ({
             ) : null}
             {eventsData.map((eventItem) => (
               <div key={eventItem.id} className="network-event-item">
-                <img
-                  src={
-                    eventItem.coverUrl
-                      || eventItem.coverImageUrl
-                      || '/assets/event-cover.jpg'
-                  }
+                <SafeImage
+                  src={getAssetUrl(
+                    eventItem.coverUrl || eventItem.coverImageUrl,
+                    IMAGE_PLACEHOLDERS.event,
+                  )}
+                  fallback={IMAGE_PLACEHOLDERS.event}
                   alt={eventItem.title}
                   className="network-event-image"
                 />
@@ -335,7 +332,7 @@ const ManageNetworkModal = ({
             {pagesData.map((p) => (
               <div key={p.pageId ?? p.id} className="network-item">
                 <img
-                  src={p.logoUrl ? fileUrl(p.logoUrl) : '/img/avatar-placeholder.png'}
+                  src={getAssetUrl(p.imageUrl || p.logoUrl, IMAGE_PLACEHOLDERS.company)}
                   alt={p.name}
                   className="network-item-avatar"
                 />

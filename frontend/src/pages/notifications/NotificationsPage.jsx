@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import noNotificationsImg from '../../shared/assets/illustrations/no-new-notifications.png';
 import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 import { getErrorMessage } from '../../shared/lib/apiError';
 import {
   deleteNotification,
@@ -174,8 +176,9 @@ const NotificationsPage = ({ onNavigate }) => {
           role="button"
           tabIndex={0}
         >
-          <img
-            src={vacancy.companyLogo || '/assets/company-placeholder.png'}
+          <SafeImage
+            src={getAssetUrl(vacancy.companyLogo || vacancy.company?.logo, IMAGE_PLACEHOLDERS.company)}
+            fallback={IMAGE_PLACEHOLDERS.company}
             className="notification-avatar"
             alt={vacancy.companyName || 'Company'}
           />
@@ -209,7 +212,10 @@ const NotificationsPage = ({ onNavigate }) => {
       );
     }
 
-    const avatar = notification.actorAvatar || '/assets/avatar-placeholder.png';
+    const avatar = getAssetUrl(
+      notification.actorAvatar || notification.actor?.avatar,
+      IMAGE_PLACEHOLDERS.avatar,
+    );
     const actorName = notification.actorName || notification.actor?.name || 'User';
 
     return (
@@ -223,8 +229,9 @@ const NotificationsPage = ({ onNavigate }) => {
         role="button"
         tabIndex={0}
       >
-        <img
+        <SafeImage
           src={avatar}
+          fallback={IMAGE_PLACEHOLDERS.avatar}
           className="notification-avatar"
           alt={actorName}
         />

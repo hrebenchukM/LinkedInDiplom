@@ -1,3 +1,5 @@
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
+
 function pick(dto, ...keys) {
   if (!dto) return null;
   for (const key of keys) {
@@ -242,6 +244,7 @@ export function mapCompanyDto(dto) {
     ownerUserId: pick(dto, 'ownerUserId', 'OwnerUserId'),
     name: pick(dto, 'name', 'Name') ?? 'Company',
     logoUrl: pick(dto, 'logoUrl', 'LogoUrl') ?? '',
+    logo: resolveUploadUrl(pick(dto, 'logoUrl', 'LogoUrl') ?? ''),
     industry: pick(dto, 'industry', 'Industry'),
     location: pick(dto, 'location', 'Location'),
     websiteUrl: pick(dto, 'websiteUrl', 'WebsiteUrl'),

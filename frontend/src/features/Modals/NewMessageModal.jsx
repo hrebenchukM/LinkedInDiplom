@@ -3,7 +3,7 @@ import { searchProfiles } from '../profile/profileApi.js';
 import { createDirectChat } from '../messaging/messagingApi.js';
 import { getDisplayName } from '../profile/mapProfile.js';
 import { getErrorMessage } from '../../shared/lib/apiError.js';
-import { fileUrl } from '../../shared/api/files';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import Modal from '../../app/ui/Modal';
 
 const NewMessageModal = ({
@@ -157,7 +157,7 @@ const NewMessageModal = ({
                 }}
               >
                 <img
-                  src={fileUrl(person.avatarUrl) || '/img/avatar-placeholder.png'}
+                  src={getAssetUrl(person.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                   alt={person.name}
                   style={{
                     width: '56px',

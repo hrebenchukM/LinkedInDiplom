@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 import { useNavigate } from 'react-router-dom';
 import './ConnectionCard.css';
 import {
@@ -95,8 +97,9 @@ const ConnectionCard = ({
 
   return (
     <div className="connection-card">
-      <img
-        src={avatar || '/img/avatar-placeholder.png'}
+      <SafeImage
+        src={avatar}
+        fallback={IMAGE_PLACEHOLDERS.avatar}
         alt={name}
         className="connection-avatar"
         onClick={() => navigate(`/app/portfolio/${userId}`)}

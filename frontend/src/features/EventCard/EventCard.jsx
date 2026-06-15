@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import './EventCard.css';
 import { joinEvent, leaveEvent } from '../events/eventsApi';
 import { getErrorMessage } from '../../shared/lib/apiError';
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
+import SafeImage from '../../shared/ui/SafeImage';
 
 const EventCard = ({
   event,
@@ -28,11 +30,13 @@ const EventCard = ({
     || `${event.organizer?.firstName || ''} ${event.organizer?.secondName || ''}`.trim()
     || 'Organizer';
 
-  const avatar =
+  const avatar = getAssetUrl(
     event.organizer?.avatar
-    || event.coverUrl
-    || event.coverImageUrl
-    || '/assets/avatar-placeholder.png';
+      || event.organizer?.avatarUrl
+      || event.coverUrl
+      || event.coverImageUrl,
+    IMAGE_PLACEHOLDERS.event,
+  );
 
   const formatDate = (dateValue) => {
     const eventDate = new Date(dateValue);
@@ -90,8 +94,9 @@ const EventCard = ({
 
   const cardContent = (
     <>
-      <img
+      <SafeImage
         src={avatar}
+        fallback={IMAGE_PLACEHOLDERS.event}
         alt={organizerName}
         className="event-card-avatar"
       />
@@ -174,13 +179,21 @@ function LegacyActivityCard({ event }) {
   const userName = event?.user
     ? `${event.user.firstName || ''} ${event.user.secondName || ''}`.trim()
     : '';
-  const avatar = event?.user?.avatarUrl || '';
+  const avatar = getAssetUrl(
+    event?.user?.avatarUrl || event?.user?.avatar,
+    IMAGE_PLACEHOLDERS.avatar,
+  );
   const title = meta.title || 'Event';
   const description = meta.description || meta.institution || '';
 
   return (
     <div className="event-card">
-      <img src={avatar} alt={userName} className="event-card-avatar" />
+      <SafeImage
+        src={avatar}
+        fallback={IMAGE_PLACEHOLDERS.avatar}
+        alt={userName}
+        className="event-card-avatar"
+      />
       <div className="event-card-content">
         <div className="event-card-header">
           <div>
