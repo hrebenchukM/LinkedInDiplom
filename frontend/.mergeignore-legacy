@@ -1,6 +1,0 @@
-# Do NOT merge these paths into the backend repo (obsolete prototype, not built by Vite):
-#   frontend/pages/
-#   frontend/shared/
-#   frontend/auth/
-#
-# Active SPA: frontend/src/ + frontend/public/ + frontend/index.html
