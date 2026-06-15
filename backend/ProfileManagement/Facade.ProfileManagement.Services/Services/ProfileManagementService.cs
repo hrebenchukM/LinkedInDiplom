@@ -1,4 +1,6 @@
-﻿using Facade.ProfileManagement.Contracts.DTOs;
+﻿using Amazon.S3;
+using Amazon.S3.Model;
+using Facade.ProfileManagement.Contracts.DTOs;
 using FacadeMessageSettingsDto = Facade.ProfileManagement.Contracts.DTOs.MessageSettingsDto;
 using FacadeProfileViewDto = Facade.ProfileManagement.Contracts.DTOs.ProfileViewDto;
 using Facade.ProfileManagement.Contracts.Options;
@@ -22,11 +24,19 @@ public class ProfileManagementService : IProfileManagementService
 {
     private readonly IProfileClient _profileClient;
     private readonly UploadsOptions _uploadsOptions;
+    private readonly AwsS3Settings _s3Settings;
+    private readonly IAmazonS3? _s3Client;
 
-    public ProfileManagementService(IProfileClient profileClient, IOptions<UploadsOptions> uploadsOptions)
+    public ProfileManagementService(
+        IProfileClient profileClient,
+        IOptions<UploadsOptions> uploadsOptions,
+        IOptions<AwsS3Settings> s3Settings,
+        IAmazonS3? s3Client = null)
     {
         _profileClient = profileClient;
         _uploadsOptions = uploadsOptions.Value;
+        _s3Settings = s3Settings.Value;
+        _s3Client = s3Client;
     }
 
     // Получить мой профиль
@@ -245,14 +255,30 @@ public class ProfileManagementService : IProfileManagementService
         if (!allowedContentTypes.Contains(contentType.ToLowerInvariant()))
             throw new InvalidOperationException("Only jpg, jpeg, png and webp files are allowed.");
 
+        var newFileName = $"{Guid.NewGuid()}{extension}";
+
+        if (_s3Client != null && !string.IsNullOrEmpty(_s3Settings.BucketName))
+        {
+            var key = $"profile/{userId}/{folderName}/{newFileName}";
+
+            var request = new PutObjectRequest
+            {
+                BucketName = _s3Settings.BucketName,
+                Key = key,
+                InputStream = fileStream,
+                ContentType = contentType
+            };
+
+            await _s3Client.PutObjectAsync(request);
+
+            return $"https://{_s3Settings.BucketName}.s3.{_s3Settings.Region}.amazonaws.com/{key}";
+        }
+
         var userFolder = Path.Combine(_uploadsOptions.RootPath, "profile", userId, folderName);
 
         if (!Directory.Exists(userFolder))
-        {
             Directory.CreateDirectory(userFolder);
-        }
 
-        var newFileName = $"{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(userFolder, newFileName);
 
         await using var outputStream = new FileStream(filePath, FileMode.Create);

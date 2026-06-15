@@ -106,6 +106,7 @@ public class ProfileController : ControllerBase
     // POST api/profile/me/avatar
     [Authorize]
     [HttpPost("me/avatar")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ProfileResponse), 200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(400)]
@@ -145,6 +146,7 @@ public class ProfileController : ControllerBase
     // POST api/profile/me/header
     [Authorize]
     [HttpPost("me/header")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ProfileResponse), 200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(400)]
