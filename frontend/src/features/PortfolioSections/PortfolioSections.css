@@ -1,0 +1,316 @@
+.experience-section,
+.education-section,
+.certificates-section,
+.recommendations-section,
+.languages-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.experience-section h2,
+.education-section h2,
+.certificates-section h2,
+.recommendations-section h2,
+.languages-section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+}
+
+.experience-entry,
+.education-entry,
+.certificate-entry {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.experience-entry:last-of-type,
+.education-entry:last-of-type,
+.certificate-entry:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.company-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.red-logo {
+  background: #DC2626;
+}
+
+.black-logo {
+  background: #1f2937;
+}
+
+.sony-logo {
+  background: #1f2937;
+}
+
+.sony-text {
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.experience-details,
+.education-details,
+.certificate-details {
+  flex: 1;
+}
+
+.experience-details h3,
+.education-details h3,
+.certificate-details h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.company-name,
+.experience-date,
+.experience-location,
+.education-degree,
+.education-date,
+.certificate-issuer,
+.certificate-date {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.experience-list {
+  margin: 16px 0 0 0;
+  padding-left: 20px;
+}
+
+.experience-list li {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.education-logo,
+.certificate-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.black-bg {
+  background: #1f2937;
+}
+
+.certificate-entry {
+  align-items: center;
+}
+
+.certificate-button {
+  padding: 8px 20px;
+  background: white;
+  border: 2px solid #7c3aed;
+  border-radius: 20px;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.certificate-button:hover {
+  background: #f5f3ff;
+}
+
+.recommendations-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.rec-tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: -2px;
+}
+
+.rec-tab.active {
+  color: #7c3aed;
+  border-bottom-color: #7c3aed;
+}
+
+.recommendation-entry {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rec-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rec-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.rec-info {
+  flex: 1;
+}
+
+.rec-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.rec-title {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.rec-relation {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.rec-content p {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.language-entry {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.language-entry:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.language-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.language-level {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.show-more-button {
+  width: 100%;
+  padding: 10px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.show-more-button:hover {
+  background: #f9fafb;
+  border-color: #7c3aed;
+}
+
+@media (max-width: 768px) {
+  .experience-section,
+  .education-section,
+  .certificates-section,
+  .recommendations-section,
+  .languages-section {
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .experience-section h2,
+  .education-section h2,
+  .certificates-section h2,
+  .recommendations-section h2,
+  .languages-section h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+
+  .experience-entry,
+  .education-entry {
+    gap: 12px;
+  }
+
+  .experience-details h3,
+  .education-details h3 {
+    font-size: 16px;
+  }
+
+  .certificate-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .certificate-button {
+    width: 100%;
+  }
+
+  .recommendations-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .rec-tab {
+    padding: 12px 16px;
+    white-space: nowrap;
+  }
+
+  .rec-header {
+    gap: 12px;
+  }
+
+  .rec-info h3 {
+    font-size: 15px;
+  }
+}

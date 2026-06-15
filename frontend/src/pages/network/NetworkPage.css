@@ -1,0 +1,155 @@
+.network-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 24px;
+  padding: 24px 0;
+  width: 100%;
+}
+
+.network-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.network-tabs {
+  background: white;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.network-tab {
+  flex: 1;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.network-tab:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+.network-tab:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+.network-tab.active {
+  color: #7C3AED;
+  border-bottom-color: #7C3AED;
+  background: white;
+}
+
+.network-tab:hover:not(.active) {
+  background: #f9fafb;
+  color: #1f2937;
+}
+
+.network-content {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  padding: 40px 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.network-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #7C3AED;
+  letter-spacing: 0.5px;
+  margin: 0 0 32px 0;
+  text-align: center;
+}
+
+.connections-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1280px) {
+  .network-grid {
+    grid-template-columns: 260px 1fr 320px;
+    gap: 20px;
+  }
+
+  .connections-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .network-grid {
+    grid-template-columns: 240px 1fr 300px;
+    gap: 16px;
+  }
+
+  .connections-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .network-grid {
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+  }
+
+  .sidebar-left {
+    display: none;
+  }
+
+  .connections-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .network-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px 0;
+  }
+
+  .sidebar-right {
+    display: none;
+  }
+
+  .connections-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .network-content {
+    padding: 24px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .network-grid {
+    padding: 12px 0;
+  }
+
+  .connections-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .network-content {
+    padding: 20px 12px;
+  }
+
+  .network-tab {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+}

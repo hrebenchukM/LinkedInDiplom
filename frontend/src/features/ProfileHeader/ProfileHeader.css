@@ -1,0 +1,222 @@
+.profile-header-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.profile-banner {
+  height: 200px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+.camera-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #374151;
+}
+
+.camera-button:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-main-info {
+  padding: 0 32px 32px;
+}
+
+.profile-top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: -64px;
+  margin-bottom: 16px;
+}
+
+.profile-avatar-section {
+  position: relative;
+}
+
+.profile-avatar {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-profile-button {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: 2px solid #7c3aed;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #7c3aed;
+  margin-top: 8px;
+}
+
+.edit-profile-button:hover {
+  background: #7c3aed;
+  color: white;
+}
+
+.profile-details {
+  margin-top: 8px;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.profile-university-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f5f3ff;
+  border-radius: 20px;
+  border: 1px solid #e9d5ff;
+}
+
+.university-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-university-badge span {
+  font-size: 13px;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.profile-title {
+  font-size: 16px;
+  color: #374151;
+  margin: 0 0 4px 0;
+}
+
+.profile-location {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.profile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-link {
+  color: #7c3aed;
+  font-size: 14px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.profile-link:hover {
+  color: #6d28d9;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  padding: 10px 24px;
+  background: #7c3aed;
+  border: 2px solid #7c3aed;
+  border-radius: 24px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+}
+
+.btn-secondary {
+  padding: 10px 24px;
+  background: white;
+  border: 2px solid #7c3aed;
+  border-radius: 24px;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background: #f5f3ff;
+}
+
+@media (max-width: 768px) {
+  .profile-banner {
+    height: 150px;
+  }
+
+  .profile-main-info {
+    padding: 0 20px 20px;
+  }
+
+  .profile-avatar {
+    width: 96px;
+    height: 96px;
+  }
+
+  .profile-name {
+    font-size: 24px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}

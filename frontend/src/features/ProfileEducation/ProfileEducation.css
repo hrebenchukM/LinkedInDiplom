@@ -1,0 +1,101 @@
+.education-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.3s;
+}
+
+.icon-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.education-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.education-logo {
+  flex-shrink: 0;
+}
+
+.university-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.education-content {
+  flex: 1;
+}
+
+.education-content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.education-date {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.education-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+}
+.section-divider {
+  margin: 24px 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Certificates */
+.certificate-item {
+  align-items: center;
+}
+
+.certificate-org {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 4px 0;
+}
+
+.certificate-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #6366f1;
+  color: #6366f1;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.certificate-btn:hover {
+  background: #eef2ff;
+}

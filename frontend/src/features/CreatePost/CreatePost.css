@@ -1,0 +1,89 @@
+.create-post {
+  background: white;
+  border-radius: 8px;
+  padding: clamp(12px, 2vw, 16px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.create-post-input {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.create-post-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.create-post-textbox {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 24px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.create-post-textbox:focus {
+  border-color: #7C3AED;
+}
+
+.create-post-textbox::placeholder {
+  color: #999;
+}
+
+.create-post-actions {
+  display: flex;
+  gap: clamp(4px, 1vw, 12px);
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.post-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px clamp(8px, 2vw, 16px);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  font-size: clamp(12px, 2vw, 14px);
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.post-action-btn:hover {
+  background-color: #f3f2ef;
+}
+
+@media (max-width: 576px) {
+  .create-post-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .create-post-textbox {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  .post-action-btn {
+    padding: 6px 8px;
+    min-width: 80px;
+  }
+
+  .post-action-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}

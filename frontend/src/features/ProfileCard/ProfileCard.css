@@ -1,0 +1,97 @@
+.profile-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.profile-header {
+  padding: clamp(16px, 3vw, 24px);
+  text-align: center;
+}
+
+.profile-avatar {
+  width: clamp(60px, 10vw, 80px);
+  height: clamp(60px, 10vw, 80px);
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #7C3AED;
+  margin: 0 0 8px 0;
+}
+
+.profile-title {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.profile-divider {
+  height: 1px;
+  background-color: #e5e5e5;
+}
+
+.profile-contacts {
+  padding: 16px clamp(16px, 3vw, 24px);
+}
+
+.contacts-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7C3AED;
+  margin: 0 0 4px 0;
+}
+
+.contacts-subtitle {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.profile-saved {
+  padding: 16px clamp(16px, 3vw, 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7C3AED;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.profile-saved:hover {
+  background-color: #f3f2ef;
+}
+
+.profile-saved svg {
+  color: #7C3AED;
+}
+
+@media (max-width: 576px) {
+  .profile-name {
+    font-size: 15px;
+  }
+
+  .profile-title {
+    font-size: 12px;
+  }
+
+  .contacts-title {
+    font-size: 12px;
+  }
+
+  .contacts-subtitle {
+    font-size: 11px;
+  }
+
+  .profile-saved {
+    font-size: 12px;
+  }
+}

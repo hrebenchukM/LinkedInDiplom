@@ -1,0 +1,159 @@
+.event-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.event-card:hover {
+  background-color: #fafafa;
+}
+
+.event-card:last-child {
+  border-bottom: none;
+}
+
+.event-card-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.event-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.event-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.event-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #7C3AED;
+  margin: 0;
+}
+
+.event-card-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-card-badge-career {
+  background: #EEF2FF;
+  color: #6366F1;
+}
+
+.event-card-badge-birthday {
+  background: #FCE7F3;
+  color: #DB2777;
+}
+
+.event-card-badge-education {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.event-card-description {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.event-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.event-card-footer svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .event-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .event-card-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .event-card-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .event-card-name {
+    font-size: 14px;
+  }
+
+  .event-card-title {
+    font-size: 13px;
+  }
+
+  .event-card-badge {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .event-card-badge svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .event-card-description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 576px) {
+  .event-card {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .event-card-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .event-card-badge span {
+    display: none;
+  }
+
+  .event-card-badge {
+    padding: 6px;
+  }
+}

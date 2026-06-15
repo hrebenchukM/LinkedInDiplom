@@ -1,0 +1,161 @@
+.main-content {
+  flex: 1;
+  padding: 24px 0;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.sidebar-left {
+  position: sticky;
+  top: 72px;
+  width: 100%;
+}
+
+.main-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; 
+  min-height: 500px;
+  width: 100%;
+}
+
+.sidebar-right {
+  position: sticky;
+  top: 72px;
+  width: 100%;
+}
+
+
+/* ===== FEED PAGINATOR ===== */
+
+.feed-paginator {
+  margin-top: 16px;
+  padding: 12px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.pager-info {
+  min-width: 110px;
+  text-align: center;
+  user-select: none;
+}
+
+.pager-info strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.pager-btn {
+  width: 36px;
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+
+.pager-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.pager-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 576px) {
+  .feed-paginator {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .pager-info {
+    font-size: 13px;
+    min-width: auto;
+  }
+
+  .pager-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .content-grid {
+    grid-template-columns: 260px 1fr 320px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .content-grid {
+    grid-template-columns: 240px 1fr 300px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .content-grid {
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+  }
+
+  .sidebar-left {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .sidebar-right {
+    position: relative;
+    top: 0;
+  }
+
+  .main-content {
+    padding: 16px 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .content-grid {
+    gap: 12px;
+  }
+
+  .main-content {
+    padding: 12px 0;
+  }
+}

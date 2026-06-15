@@ -1,0 +1,150 @@
+.general-info-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.general-info-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 16px 0;
+}
+
+.general-description {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.web-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.web-info svg {
+  color: #7c3aed;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.web-content {
+  flex: 1;
+}
+
+.web-label {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 0 4px 0;
+}
+
+.web-link {
+  font-size: 14px;
+  color: #7c3aed;
+  text-decoration: none;
+}
+
+.web-link:hover {
+  text-decoration: underline;
+}
+
+.copy-button {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.copy-button:hover {
+  background: #f3f4f6;
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.main-skills-section {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.main-skills-section:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.1);
+}
+
+.skills-icon {
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.skills-content {
+  flex: 1;
+  text-align: left;
+}
+
+.skills-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.skills-list {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.skills-arrow {
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .general-info-card {
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .general-info-card h2 {
+    font-size: 18px;
+  }
+
+  .main-skills-section {
+    padding: 12px;
+  }
+
+  .skills-label {
+    font-size: 13px;
+  }
+
+  .skills-list {
+    font-size: 12px;
+  }
+}

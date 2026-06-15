@@ -1,0 +1,53 @@
+.messages-page {
+  display: grid;
+  grid-template-columns: 350px 1fr 400px;
+  gap: 24px;
+  flex: 1;             
+  min-height: 0;   
+  background: #F3F4F6;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1400px) {
+  .messages-page {
+    grid-template-columns: 300px 1fr 350px;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .messages-page {
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .messages-page {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+    height: auto;
+    min-height: calc(100vh - 64px);
+  }
+
+  .messages-page.profile-open .chat-sidebar,
+  .messages-page.profile-open .chat-main {
+    display: none;
+  }
+  .messages-page.profile-open {
+    grid-template-columns: 1fr;
+  }
+
+  .messages-page.profile-open .chat-profile {
+    display: flex;
+  }
+}
+@media (max-width: 600px) {
+  .messages-page {
+    padding: 0;
+  }
+}

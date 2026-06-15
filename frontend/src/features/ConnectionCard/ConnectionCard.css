@@ -1,0 +1,119 @@
+.connection-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  background: white;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.connection-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.connection-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+}
+
+.connection-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #7C3AED;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.connection-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  text-align: center;
+}
+
+.connection-username {
+  font-size: 14px;
+  color: #7C3AED;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.make-contact-btn {
+  background: #7C3AED;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 10px 32px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.make-contact-btn:hover {
+  background: #6D28D9;
+  transform: scale(1.05);
+}
+
+.make-contact-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .connection-card {
+    padding: 24px 20px;
+  }
+
+  .connection-avatar {
+    width: 70px;
+    height: 70px;
+  }
+
+  .connection-name {
+    font-size: 15px;
+  }
+
+  .connection-title {
+    font-size: 13px;
+  }
+
+  .connection-username {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 576px) {
+  .connection-card {
+    padding: 20px 16px;
+  }
+
+  .connection-avatar {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  .connection-name {
+    font-size: 14px;
+  }
+
+  .connection-title {
+    font-size: 12px;
+  }
+
+  .connection-username {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .make-contact-btn {
+    padding: 8px 24px;
+    font-size: 13px;
+  }
+}
