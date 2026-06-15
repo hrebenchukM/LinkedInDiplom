@@ -71,6 +71,7 @@ builder.Services.AddProfileModule(configuration, connectionString);
 builder.Services.AddProfessionalModule(configuration, connectionString);
 builder.Services.AddNetworkModule(configuration, connectionString);
 builder.Services.AddContentModule(configuration, connectionString);
+
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);
@@ -82,7 +83,7 @@ builder.Services.AddAdminManagementFacade();
 builder.Services.AddAccountManagementFacade();
 
 // Подключаем ProfileManagement facade
-builder.Services.AddProfileManagementFacade();
+builder.Services.AddProfileManagementFacade(configuration);
 builder.Services.AddProfessionalManagementFacade();
 builder.Services.AddNetworkManagementFacade();
 builder.Services.AddContentManagementFacade();
