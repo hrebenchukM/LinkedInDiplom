@@ -2,13 +2,13 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color 0.2s;
 }
 
 .event-card:hover {
-  background-color: #fafafa;
+  background-color: var(--bg-surface-hover);
 }
 
 .event-card:last-child {
@@ -41,14 +41,14 @@
 .event-card-name {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
 }
 
 .event-card-title {
   font-size: 14px;
   font-weight: 500;
-  color: #7C3AED;
+  color: var(--text-brand);
   margin: 0;
 }
 
@@ -81,7 +81,7 @@
 
 .event-card-description {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin: 0;
 }
@@ -91,7 +91,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -110,10 +110,10 @@
 }
 
 .event-card-action-btn {
-  border: 1px solid #7C3AED;
-  background: white;
-  color: #7C3AED;
-  border-radius: 999px;
+  border: 1px solid var(--color-brand);
+  background: var(--bg-surface);
+  color: var(--text-brand);
+  border-radius: var(--radius-pill);
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 500;
@@ -121,8 +121,8 @@
 }
 
 .event-card-action-btn.is-attending {
-  background: #7C3AED;
-  color: white;
+  background: var(--color-brand);
+  color: var(--text-on-brand);
 }
 
 .event-card-action-error {
