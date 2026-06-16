@@ -96,6 +96,46 @@ public class ProfileMediaController : ProfileManagementControllerBase
         }
     }
 
+    // DELETE api/profile/me/avatar
+    [Authorize]
+    [HttpDelete("me/avatar")]
+    [ProducesResponseType(typeof(ProfileResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> DeleteMyAvatar()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await ProfileService.DeleteMyAvatarAsync(userId);
+
+        if (!response.Success)
+            return MapProfileError(response);
+
+        return Ok(response);
+    }
+
+    // DELETE api/profile/me/header
+    [Authorize]
+    [HttpDelete("me/header")]
+    [ProducesResponseType(typeof(ProfileResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> DeleteMyHeader()
+    {
+        var userId = GetCurrentUserId();
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        var response = await ProfileService.DeleteMyHeaderAsync(userId);
+
+        if (!response.Success)
+            return MapProfileError(response);
+
+        return Ok(response);
+    }
+
     private static IActionResult MediaBadRequest(string message) =>
         new BadRequestObjectResult(new { success = false, errors = new[] { message } });
 }

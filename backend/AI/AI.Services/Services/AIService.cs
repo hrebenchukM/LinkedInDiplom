@@ -56,6 +56,8 @@ public class AIService : IAIService
         ["typescript"] = ("TypeScript Developer",      "TypeScript skills are valued in both frontend and Node.js roles.",        88),
         ["python"]     = ("Python Developer",          "Python is in high demand for backend, scripting, and data roles.",        91),
         ["java"]       = ("Java Developer",            "Java expertise suits enterprise backend and Android development.",        86),
+        ["postgresql"] = ("Backend / Database Developer", "PostgreSQL skills match backend APIs and data platforms.",           85),
+        ["postgres"]   = ("Backend / Database Developer", "PostgreSQL skills match backend APIs and data platforms.",           85),
         ["sql"]        = ("Database Developer",        "SQL skills are essential for backend, data, and reporting positions.",    80),
         ["docker"]     = ("DevOps / Cloud Engineer",   "Docker and containerisation skills fit well in DevOps roles.",           85),
         ["kubernetes"] = ("DevOps Engineer",           "Kubernetes is a core skill for cloud-native and DevOps positions.",      87),

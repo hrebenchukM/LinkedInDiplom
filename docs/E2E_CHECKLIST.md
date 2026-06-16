@@ -1,6 +1,6 @@
 # Manual E2E checklist — LinkedInDiplom
 
-**Prerequisites:** backend `http://localhost:5282`, frontend `npm run dev` → `http://localhost:5173`, mock auth **off** (`VITE_USE_MOCK_AUTH` unset or `false`).
+**Prerequisites:** backend `http://localhost:5000` (`docker compose up -d`), frontend `npm run dev` → `http://localhost:5173`, mock auth **off** (`VITE_USE_MOCK_AUTH` unset or `false`). Copy `frontend/.env.example` → `.env.local` if proxy fails.
 
 ## Accounts
 

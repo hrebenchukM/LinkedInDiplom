@@ -74,6 +74,7 @@ builder.Services.AddContentModule(configuration, connectionString);
 builder.Services.AddScoped<IDemoContentSeeder, DemoContentSeeder>();
 builder.Services.AddScoped<IDemoNetworkSeeder, DemoNetworkSeeder>();
 builder.Services.AddScoped<IDemoJobsSeeder, DemoJobsSeeder>();
+builder.Services.AddScoped<IDemoSkillsSeeder, DemoSkillsSeeder>();
 builder.Services.AddMessagingModule(configuration, connectionString);
 builder.Services.AddJobsModule(configuration, connectionString);
 builder.Services.AddNotificationsModule(configuration, connectionString);

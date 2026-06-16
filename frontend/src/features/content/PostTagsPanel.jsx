@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as contentApi from "./contentApi";
 import { fetchProfilesByUserIds } from "../profile/profileApi";
+import { useTranslation } from "../../app/i18n/LocaleContext.jsx";
 
-export function PostTagsPanel({ postId, useApi, isOwn, t, onHashtagClick }) {
+export function PostTagsPanel({ postId, useApi, isOwn, onHashtagClick }) {
+  const { t } = useTranslation();
   const [hashtags, setHashtags] = useState([]);
   const [mentions, setMentions] = useState([]);
   const [mentionNames, setMentionNames] = useState({});
@@ -80,7 +82,7 @@ export function PostTagsPanel({ postId, useApi, isOwn, t, onHashtagClick }) {
               <Link
                 key={row.id || `${row.mentionedUserId}-${row.postId}`}
                 className="post-entity-chip post-entity-chip--mention"
-                to={`/profile/${row.mentionedUserId}`}
+                to={`/app/profile/${row.mentionedUserId}`}
               >
                 @{mentionNames[row.mentionedUserId] || row.mentionedUserId}
               </Link>

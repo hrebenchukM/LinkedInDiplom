@@ -364,3 +364,14 @@ FodyWeavers.xsd
 
 # User-uploaded files (avatars, headers, etc.)
 backend/Facade.API/uploads/
+
+# Frontend production build
+frontend/dist/
+
+# Doc build scratch files
+docs/_*.docx
+docs/_*.txt
+
+# Local env files (API keys, secrets)
+.env.local
+frontend/.env.local

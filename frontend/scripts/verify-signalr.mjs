@@ -1,6 +1,6 @@
 import * as signalR from "@microsoft/signalr";
 
-const API = "http://localhost:5282";
+const API = process.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 async function login(email, password) {
   const res = await fetch(`${API}/api/auth/login`, {

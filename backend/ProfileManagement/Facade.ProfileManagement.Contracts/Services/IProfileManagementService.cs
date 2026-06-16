@@ -1,4 +1,4 @@
-﻿using Facade.ProfileManagement.Contracts.DTOs;
+using Facade.ProfileManagement.Contracts.DTOs;
 using Facade.ProfileManagement.Contracts.Requests;
 using Facade.ProfileManagement.Contracts.Requests.MessageSettings;
 using Facade.ProfileManagement.Contracts.Responses;
@@ -38,6 +38,10 @@ public interface IProfileManagementService
         Stream fileStream,
         string fileName,
         string contentType);
+
+    Task<ProfileResponse> DeleteMyAvatarAsync(string userId);
+
+    Task<ProfileResponse> DeleteMyHeaderAsync(string userId);
 
     Task<MessageSettingsDto> GetMyMessageSettingsAsync(string userId);
 

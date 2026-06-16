@@ -1,0 +1,111 @@
+.profile-completion-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-completion-ring svg {
+  transform: rotate(-90deg);
+}
+
+.profile-completion-ring__track {
+  stroke: var(--border-subtle);
+}
+
+.profile-completion-ring__progress {
+  stroke: var(--color-brand);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s ease;
+}
+
+.profile-completion-ring__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.profile-completion-ring__value strong {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.profile-completion-ring__value span {
+  margin-top: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.profile-completion-ring--compact .profile-completion-ring__value strong {
+  font-size: 15px;
+}
+
+.profile-completion-ring--large .profile-completion-ring__value strong {
+  font-size: 26px;
+}
+
+.profile-completion-ring--large .profile-completion-ring__value span {
+  font-size: 11px;
+}
+
+.profile-completion-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+}
+
+.profile-completion-panel__title {
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-completion-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-completion-panel__hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.profile-completion-panel__list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.profile-completion-panel__list li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-radius: var(--radius-input);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.profile-completion-panel__list li.is-done {
+  color: var(--text-brand);
+}

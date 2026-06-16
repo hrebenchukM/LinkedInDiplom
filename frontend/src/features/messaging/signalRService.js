@@ -1,160 +1,185 @@
-import * as signalR from "@microsoft/signalr";
-import { getApiBaseUrl } from "../../shared/api/config";
-import { getAccessToken } from "../../shared/api/tokens";
+import * as signalR from '@microsoft/signalr';
+import { resolveSignalRHubUrl } from '../../shared/api/config.js';
+import { getAccessToken } from '../../shared/api/tokens.js';
+import { mapMessageDto, mapMessageMediaDto } from './mapMessaging.js';
 
 let connection = null;
-const joinedChats = new Set();
-let handlers = {};
+let startPromise = null;
+let listenersAttached = false;
 
-function resolveHubUrl() {
-  const base = getApiBaseUrl() || window.location.origin;
-  return `${String(base).replace(/\/$/, "")}/hubs/messaging`;
-}
+const handlers = {
+  messageCreated: new Set(),
+  messageUpdated: new Set(),
+  messageDeleted: new Set(),
+  messageRead: new Set(),
+  messageMediaAttached: new Set(),
+};
 
-function wireHandlers(hub) {
-  hub.off("MessageCreated");
-  hub.off("MessageUpdated");
-  hub.off("MessageDeleted");
-  hub.off("MessageRead");
-  hub.off("MessageMediaAttached");
-
-  hub.on("MessageCreated", (payload) => handlers.onMessageCreated?.(payload));
-  hub.on("MessageUpdated", (payload) => handlers.onMessageUpdated?.(payload));
-  hub.on("MessageDeleted", (payload) => handlers.onMessageDeleted?.(payload));
-  hub.on("MessageRead", (payload) => handlers.onMessageRead?.(payload));
-  hub.on("MessageMediaAttached", (payload) => handlers.onMessageMediaAttached?.(payload));
-}
-
-async function rejoinActiveChats() {
-  if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
-  const ids = [...joinedChats];
-  await Promise.all(
-    ids.map(async (chatId) => {
-      try {
-        await connection.invoke("JoinChat", chatId);
-      } catch {
-        // ignore transient join failures; next reconnect will retry
-      }
+const EVENT_BINDINGS = [
+  { names: ['MessageCreated', 'messageCreated'], bucket: 'messageCreated', normalize: (p) => mapMessageDto(p) },
+  { names: ['MessageUpdated', 'messageUpdated'], bucket: 'messageUpdated', normalize: (p) => mapMessageDto(p) },
+  {
+    names: ['MessageDeleted', 'messageDeleted'],
+    bucket: 'messageDeleted',
+    normalize: (p) => ({
+      chatId: p?.chatId ?? p?.ChatId,
+      messageId: p?.messageId ?? p?.MessageId,
     }),
-  );
-}
+  },
+  {
+    names: ['MessageRead', 'messageRead'],
+    bucket: 'messageRead',
+    normalize: (p) => ({
+      chatId: p?.chatId ?? p?.ChatId,
+      id: p?.id ?? p?.Id,
+      messageId: p?.messageId ?? p?.MessageId,
+      userId: p?.userId ?? p?.UserId,
+      readAt: p?.readAt ?? p?.ReadAt,
+    }),
+  },
+  {
+    names: ['MessageMediaAttached', 'messageMediaAttached'],
+    bucket: 'messageMediaAttached',
+    normalize: (p) => ({
+      chatId: p?.chatId ?? p?.ChatId,
+      messageId: p?.messageId ?? p?.MessageId,
+      media: mapMessageMediaDto(p?.media ?? p?.Media),
+    }),
+  },
+];
 
-export function getMessagingHubState() {
-  return connection?.state ?? signalR.HubConnectionState.Disconnected;
-}
+function attachListeners() {
+  if (!connection || listenersAttached) return;
 
-export function isMessagingHubOnline() {
-  return getMessagingHubState() === signalR.HubConnectionState.Connected;
-}
-
-export async function connectMessagingHub(nextHandlers = {}) {
-  handlers = nextHandlers;
-
-  if (connection?.state === signalR.HubConnectionState.Connected) {
-    wireHandlers(connection);
-    return connection;
-  }
-
-  if (connection?.state === signalR.HubConnectionState.Connecting) {
-    wireHandlers(connection);
-    return connection;
-  }
-
-  if (connection) {
-    try {
-      await connection.stop();
-    } catch {
-      // ignore stop errors during reconnect
-    }
-    connection = null;
-  }
-
-  const token = getAccessToken();
-  if (!token) return null;
-
-  connection = new signalR.HubConnectionBuilder()
-    .withUrl(resolveHubUrl(), {
-      accessTokenFactory: () => getAccessToken(),
-      skipNegotiation: false,
-      transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
-    })
-    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-    .configureLogging(signalR.LogLevel.Warning)
-    .build();
-
-  wireHandlers(connection);
-
-  connection.onreconnected(() => {
-    handlers.onReconnected?.();
-    rejoinActiveChats();
+  EVENT_BINDINGS.forEach(({ names, bucket, normalize }) => {
+    names.forEach((eventName) => {
+      connection.on(eventName, (payload) => {
+        const normalized = normalize(payload);
+        handlers[bucket].forEach((handler) => handler(normalized));
+      });
+    });
   });
 
-  connection.onclose(() => {
-    handlers.onDisconnected?.();
-  });
+  listenersAttached = true;
+}
 
-  await connection.start();
-  await rejoinActiveChats();
-  handlers.onConnected?.();
+export function getMessagingConnection() {
   return connection;
 }
 
-export async function reconnectMessagingHub() {
+export async function startMessagingConnection() {
   const token = getAccessToken();
-  if (!token) return disconnectMessagingHub();
+  if (!token) {
+    return null;
+  }
 
-  const state = getMessagingHubState();
-  if (state === signalR.HubConnectionState.Connected) {
-    await rejoinActiveChats();
+  if (connection?.state === signalR.HubConnectionState.Connected) {
     return connection;
   }
 
-  if (state === signalR.HubConnectionState.Connecting) return connection;
-
-  try {
-    return await connectMessagingHub(handlers);
-  } catch {
-    return null;
+  if (startPromise) {
+    return startPromise;
   }
+
+  connection = new signalR.HubConnectionBuilder()
+    .withUrl(resolveSignalRHubUrl(), {
+      accessTokenFactory: () => getAccessToken() || '',
+    })
+    .withAutomaticReconnect()
+    .configureLogging(signalR.LogLevel.Warning)
+    .build();
+
+  attachListeners();
+
+  startPromise = connection
+    .start()
+    .then(() => connection)
+    .catch((error) => {
+      console.warn('SignalR messaging connection failed:', error);
+      connection = null;
+      listenersAttached = false;
+      return null;
+    })
+    .finally(() => {
+      startPromise = null;
+    });
+
+  return startPromise;
 }
 
-export async function joinMessagingChat(chatId) {
-  if (!chatId) return;
-  joinedChats.add(String(chatId));
-
-  if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
-
-  try {
-    await connection.invoke("JoinChat", chatId);
-  } catch {
-    // hub may reconnect and rejoin automatically
-  }
-}
-
-export async function leaveMessagingChat(chatId) {
-  if (!chatId) return;
-  joinedChats.delete(String(chatId));
-
-  if (!connection || connection.state !== signalR.HubConnectionState.Connected) return;
-
-  try {
-    await connection.invoke("LeaveChat", chatId);
-  } catch {
-    // ignore leave errors
-  }
-}
-
-export async function disconnectMessagingHub() {
-  joinedChats.clear();
-  handlers = {};
-
+export async function stopMessagingConnection() {
   if (!connection) return;
 
   try {
     await connection.stop();
-  } catch {
-    // ignore stop errors
+  } catch (error) {
+    console.warn('SignalR stop failed:', error);
   } finally {
     connection = null;
+    listenersAttached = false;
+    startPromise = null;
   }
+}
+
+export async function joinChat(chatId) {
+  if (!chatId) return;
+
+  const hub = await startMessagingConnection();
+  if (!hub) return;
+
+  try {
+    await hub.invoke('JoinChat', chatId);
+  } catch (error) {
+    console.warn(`SignalR JoinChat failed for ${chatId}:`, error);
+  }
+}
+
+export async function leaveChat(chatId) {
+  if (!chatId || !connection) return;
+
+  try {
+    await connection.invoke('LeaveChat', chatId);
+  } catch (error) {
+    console.warn(`SignalR LeaveChat failed for ${chatId}:`, error);
+  }
+}
+
+export function onMessageCreated(handler) {
+  handlers.messageCreated.add(handler);
+}
+
+export function offMessageCreated(handler) {
+  handlers.messageCreated.delete(handler);
+}
+
+export function onMessageUpdated(handler) {
+  handlers.messageUpdated.add(handler);
+}
+
+export function offMessageUpdated(handler) {
+  handlers.messageUpdated.delete(handler);
+}
+
+export function onMessageDeleted(handler) {
+  handlers.messageDeleted.add(handler);
+}
+
+export function offMessageDeleted(handler) {
+  handlers.messageDeleted.delete(handler);
+}
+
+export function onMessageRead(handler) {
+  handlers.messageRead.add(handler);
+}
+
+export function offMessageRead(handler) {
+  handlers.messageRead.delete(handler);
+}
+
+export function onMessageMediaAttached(handler) {
+  handlers.messageMediaAttached.add(handler);
+}
+
+export function offMessageMediaAttached(handler) {
+  handlers.messageMediaAttached.delete(handler);
 }

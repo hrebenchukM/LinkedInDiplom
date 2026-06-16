@@ -1,0 +1,139 @@
+.voice-call-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.voice-call-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(124, 58, 237, 0.35), transparent 55%),
+    linear-gradient(180deg, #1e1b4b 0%, #0f172a 45%, #020617 100%);
+}
+
+.voice-call-overlay__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 24px;
+  text-align: center;
+}
+
+.voice-call-overlay__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.voice-call-overlay__name {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.voice-call-overlay__status {
+  margin: 0 0 36px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.voice-call-overlay__status--pulse {
+  animation: voice-call-status-pulse 1.6s ease-in-out infinite;
+}
+
+.voice-call-avatar-wrap {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-call-avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 2;
+}
+
+.voice-call-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(167, 139, 250, 0.55);
+  animation: voice-call-ring 2.4s ease-out infinite;
+}
+
+.voice-call-ring--2 { animation-delay: 0.8s; }
+.voice-call-ring--3 { animation-delay: 1.6s; }
+
+.voice-call-controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 20px 36px;
+}
+
+.voice-call-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 72px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 18px;
+  padding: 14px 12px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.voice-call-control--end {
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  border-radius: 50%;
+  padding: 0;
+  justify-content: center;
+  background: #ef4444;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45);
+}
+
+.voice-call-control--end:hover {
+  background: #dc2626;
+}
+
+.voice-call-control--active {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+@keyframes voice-call-ring {
+  0% { transform: scale(0.75); opacity: 0.85; }
+  100% { transform: scale(1.65); opacity: 0; }
+}
+
+@keyframes voice-call-status-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

@@ -1,158 +1,173 @@
-import { useCallback, useEffect, useState } from "react";
-import * as adminApi from "../../features/admin/adminApi";
-import { LoadStatus } from "../../shared/ui/LoadStatus";
-import { withLoadState } from "../../shared/lib/asyncLoad";
-import { useUiSettings } from "../../app/providers/AppProviders";
-import { showApiFeedback } from "../../shared/lib/apiFeedback";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
+import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
+import { getErrorMessage } from '../../shared/lib/apiError';
+import {
+  deleteAdminEvent,
+  getAdminEvents,
+  restoreAdminEvent,
+} from '../../features/admin/adminApi';
+import { useAdminProfiles } from '../../features/admin/useAdminProfiles';
+import AdminUserCell from './AdminUserCell';
 
-function formatDate(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
-}
-
-export function AdminEventsPage() {
-  const { t } = useUiSettings();
-  const [query, setQuery] = useState("");
-  const [deletedFilter, setDeletedFilter] = useState("");
+export default function AdminEventsPage() {
+  const { t } = useTranslation();
+  const [items, setItems] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState({ items: [], totalCount: 0, hasNextPage: false });
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState("");
-  const [busyId, setBusyId] = useState("");
+  const [hasNextPage, setHasNextPage] = useState(false);
 
-  const reload = useCallback(async () => {
-    await withLoadState({ setIsLoading, setLoadError }, async () => {
-      const data = await adminApi.fetchAdminEvents({
-        page,
-        pageSize: 20,
-        query: query.trim(),
-        isDeleted: deletedFilter === "" ? undefined : deletedFilter === "true",
-        includeDeleted: true,
+  const loadItems = useCallback(async ({
+    pageToLoad = 1,
+    append = false,
+    deletedFilter = filter,
+    searchValue = search,
+  } = {}) => {
+    if (pageToLoad === 1) setLoading(true);
+    else setLoadingMore(true);
+    setError('');
+
+    const isDeleted = deletedFilter === 'deleted'
+      ? true
+      : deletedFilter === 'active'
+        ? false
+        : undefined;
+
+    try {
+      const response = await getAdminEvents({
+        page: pageToLoad,
+        pageSize: DEFAULT_PAGE_SIZE,
+        isDeleted,
+        includeDeleted: deletedFilter === 'all',
+        query: searchValue?.trim() || undefined,
       });
-      setResult(data);
-    }, t("admin.events.loadFailed", "Could not load events."));
-  }, [deletedFilter, page, query, t]);
+
+      setItems((prev) => (append ? [...prev, ...response.items] : response.items));
+      setPage(response.page);
+      setHasNextPage(response.hasNextPage);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      if (!append) setItems([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [filter, search]);
+
+  const organizerIds = useMemo(() => items.map((item) => item.organizerUserId), [items]);
+  const profiles = useAdminProfiles(organizerIds);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    const timeout = setTimeout(() => {
+      loadItems({ pageToLoad: 1, append: false });
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [loadItems]);
 
-  async function runAction(eventId, action) {
-    setBusyId(eventId);
+  const handleDelete = async (eventId) => {
+    if (!window.confirm(t('admin.events.confirmDelete', 'Delete this event?'))) return;
     try {
-      await action();
-      showApiFeedback(t("admin.events.updated", "Event updated."), { variant: "success" });
-      await reload();
-    } catch (error) {
-      showApiFeedback(String(error?.message || t("admin.events.actionFailed", "Action failed.")), {
-        variant: "error",
-      });
-    } finally {
-      setBusyId("");
+      await deleteAdminEvent(eventId);
+      await loadItems({ pageToLoad: 1, append: false });
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
-  }
+  };
+
+  const handleRestore = async (eventId) => {
+    try {
+      await restoreAdminEvent(eventId);
+      await loadItems({ pageToLoad: 1, append: false });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
 
   return (
-    <section>
-      <div className="admin-page__head">
-        <h1 className="admin-page__title">{t("admin.events.title", "Events moderation")}</h1>
-      </div>
+    <>
+      <h1 className="admin-page-title">{t('admin.events.title', 'Events moderation')}</h1>
+      <p className="admin-page-subtitle">{t('admin.nav.events', 'Events')}</p>
 
       <div className="admin-toolbar">
+        <select className="admin-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">{t('admin.events.all', 'All events')}</option>
+          <option value="active">{t('admin.events.active', 'Active only')}</option>
+          <option value="deleted">{t('admin.events.deletedOnly', 'Deleted only')}</option>
+        </select>
         <input
           type="search"
-          placeholder={t("admin.events.search", "Search events")}
-          value={query}
-          onChange={(event) => {
-            setPage(1);
-            setQuery(event.target.value);
-          }}
+          className="admin-input"
+          placeholder={t('admin.events.search', 'Search events')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-        <select
-          value={deletedFilter}
-          onChange={(event) => {
-            setPage(1);
-            setDeletedFilter(event.target.value);
-          }}
-        >
-          <option value="">{t("admin.events.all", "All events")}</option>
-          <option value="false">{t("admin.events.active", "Active only")}</option>
-          <option value="true">{t("admin.events.deletedOnly", "Deleted only")}</option>
-        </select>
       </div>
 
-      <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reload} t={t} />
+      {error && <div className="admin-error">{error}</div>}
+      {loading && <div className="admin-loading">{t('common.loading', 'Loading...')}</div>}
+      {!loading && items.length === 0 && (
+        <div className="admin-empty">{t('admin.events.empty', 'No events found.')}</div>
+      )}
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>{t("admin.events.titleCol", "Title")}</th>
-              <th>{t("admin.events.organizer", "Organizer")}</th>
-              <th>{t("admin.events.start", "Start")}</th>
-              <th>{t("admin.events.location", "Location")}</th>
-              <th>{t("admin.users.actions", "Actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.items.length === 0 ? (
+      {!loading && items.length > 0 && (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan={5}>{t("admin.events.empty", "No events found.")}</td>
+                <th>{t('admin.events.titleCol', 'Title')}</th>
+                <th>{t('admin.events.organizer', 'Organizer')}</th>
+                <th>{t('admin.events.start', 'Start')}</th>
+                <th>{t('admin.events.location', 'Location')}</th>
+                <th>{t('admin.users.status', 'Status')}</th>
+                <th>{t('admin.users.actions', 'Actions')}</th>
               </tr>
-            ) : (
-              result.items.map((event) => (
-                <tr key={event.id}>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.title}</td>
+                  <td><AdminUserCell profiles={profiles} userId={item.organizerUserId} /></td>
+                  <td>{item.startAtLabel}</td>
+                  <td>{item.location || (item.isOnline ? t('admin.events.online', 'Online') : '—')}</td>
                   <td>
-                    <div>{event.title}</div>
-                    {event.isDeleted ? (
-                      <span className="admin-badge admin-badge--danger">{t("admin.deleted", "Deleted")}</span>
-                    ) : null}
+                    <span className={`admin-badge ${item.isDeleted ? 'admin-badge-deleted' : 'admin-badge-active'}`}>
+                      {item.isDeleted ? t('admin.deleted', 'Deleted') : t('admin.active', 'Active')}
+                    </span>
                   </td>
-                  <td>{event.organizerUserId || "—"}</td>
-                  <td>{formatDate(event.startAt)}</td>
-                  <td>{event.isOnline ? t("admin.events.online", "Online") : event.location || "—"}</td>
                   <td>
                     <div className="admin-actions">
-                      {event.isDeleted ? (
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          disabled={busyId === event.id}
-                          onClick={() => runAction(event.id, () => adminApi.restoreEvent(event.id))}
-                        >
-                          {t("admin.restore", "Restore")}
+                      {!item.isDeleted ? (
+                        <button type="button" className="admin-btn admin-btn-danger" onClick={() => handleDelete(item.id)}>
+                          {t('admin.delete', 'Delete')}
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--danger"
-                          disabled={busyId === event.id}
-                          onClick={() => runAction(event.id, () => adminApi.deleteEvent(event.id))}
-                        >
-                          {t("admin.delete", "Delete")}
+                        <button type="button" className="admin-btn" onClick={() => handleRestore(item.id)}>
+                          {t('admin.restore', 'Restore')}
                         </button>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      <div className="admin-pagination">
-        <button type="button" className="admin-btn" disabled={page <= 1 || isLoading} onClick={() => setPage((v) => Math.max(1, v - 1))}>
-          {t("common.prev", "Previous")}
+      {!loading && hasNextPage && (
+        <button
+          type="button"
+          className="admin-btn admin-load-more"
+          onClick={() => loadItems({ pageToLoad: page + 1, append: true })}
+          disabled={loadingMore}
+        >
+          {loadingMore ? t('common.loading', 'Loading...') : t('common.loadMore', 'Load more')}
         </button>
-        <span>
-          {t("admin.page", "Page")} {page} · {result.totalCount} {t("admin.total", "total")}
-        </span>
-        <button type="button" className="admin-btn" disabled={!result.hasNextPage || isLoading} onClick={() => setPage((v) => v + 1)}>
-          {t("common.next", "Next")}
-        </button>
-      </div>
-    </section>
+      )}
+    </>
   );
 }

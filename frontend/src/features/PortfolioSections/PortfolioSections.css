@@ -1,0 +1,208 @@
+.experience-section,
+.education-section,
+.certificates-section,
+.recommendations-section,
+.languages-section {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.experience-section h2,
+.education-section h2,
+.certificates-section h2,
+.recommendations-section h2,
+.languages-section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 24px 0;
+}
+
+.experience-entry,
+.education-entry,
+.certificate-entry {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.experience-entry:last-of-type,
+.education-entry:last-of-type,
+.certificate-entry:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.company-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.experience-details h3,
+.education-details h3,
+.certificate-details h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.company-name,
+.experience-date,
+.experience-location,
+.education-degree,
+.education-date,
+.certificate-issuer,
+.certificate-date {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.experience-list li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.certificate-button {
+  padding: 8px 20px;
+  background: transparent;
+  border: 2px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  color: var(--text-brand);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.certificate-button:hover {
+  background: var(--color-brand-soft);
+}
+
+.recommendations-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+.rec-tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.rec-tab.active {
+  color: var(--text-brand);
+  border-bottom-color: var(--color-brand);
+}
+
+.recommendation-entry {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rec-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.rec-title {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.rec-relation {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.rec-content p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.language-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.language-level {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.show-more-button {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-pill);
+  color: var(--text-brand);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.show-more-button:hover {
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand);
+}
+
+@media (max-width: 768px) {
+  .experience-section,
+  .education-section,
+  .certificates-section,
+  .recommendations-section,
+  .languages-section {
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .certificate-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .certificate-button {
+    width: 100%;
+  }
+
+  .recommendations-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}

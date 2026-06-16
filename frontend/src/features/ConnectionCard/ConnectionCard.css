@@ -1,0 +1,143 @@
+.connection-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  min-height: 260px;
+  padding: 32px 24px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.connection-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-brand-muted);
+}
+
+.connection-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+}
+
+.connection-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-brand);
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.connection-title {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 2.75em;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+  text-align: center;
+  line-height: 1.375;
+}
+
+.connection-card > .auth-field-error {
+  flex-shrink: 0;
+  width: 100%;
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.connection-username {
+  font-size: 14px;
+  color: var(--text-brand);
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.make-contact-btn {
+  background: var(--color-brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 10px 32px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 220px;
+}
+
+.connection-card > .make-contact-btn {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.make-contact-btn:hover {
+  background: var(--color-brand-hover);
+  transform: scale(1.05);
+}
+
+.make-contact-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .connection-card {
+    padding: 24px 20px;
+  }
+
+  .connection-avatar {
+    width: 70px;
+    height: 70px;
+  }
+
+  .connection-name {
+    font-size: 15px;
+  }
+
+  .connection-title {
+    font-size: 13px;
+  }
+
+  .connection-username {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 576px) {
+  .connection-card {
+    padding: 20px 16px;
+  }
+
+  .connection-avatar {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  .connection-name {
+    font-size: 14px;
+  }
+
+  .connection-title {
+    font-size: 12px;
+  }
+
+  .connection-username {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .make-contact-btn {
+    padding: 8px 24px;
+    font-size: 13px;
+  }
+}

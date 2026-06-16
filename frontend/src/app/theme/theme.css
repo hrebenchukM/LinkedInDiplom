@@ -1,0 +1,79 @@
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-brand: #6d28d9;
+  --color-brand-hover: #5b21b6;
+  --color-brand-soft: #ede9fe;
+  --color-brand-muted: #a78bfa;
+
+  --bg-page: #e8eaed;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-hover: #f3f4f6;
+  --bg-muted: #f9fafb;
+  --bg-input: #ffffff;
+  --bg-header-search: rgba(255, 255, 255, 0.95);
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-brand: #6d28d9;
+  --text-on-brand: #ffffff;
+
+  --border-default: rgba(15, 23, 42, 0.08);
+  --border-subtle: #e5e7eb;
+  --border-input: #d1d5db;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-header: 0 2px 12px rgba(91, 33, 182, 0.2);
+
+  --header-gradient: linear-gradient(135deg, #4c1d95 0%, #6d28d9 45%, #7c3aed 100%);
+  --panel-gradient: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+
+  --radius-card: 12px;
+  --radius-input: 10px;
+  --radius-pill: 999px;
+
+  --app-header-height: 60px;
+  --messages-page-padding-y: 28px;
+
+  --auth-gradient: linear-gradient(160deg, #f5f3ff 0%, #eef2ff 50%, #faf5ff 100%);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-brand: #a78bfa;
+  --color-brand-hover: #c4b5fd;
+  --color-brand-soft: rgba(167, 139, 250, 0.12);
+  --color-brand-muted: #8b5cf6;
+
+  --bg-page: #0c0e14;
+  --bg-surface: #161922;
+  --bg-surface-elevated: #1c2030;
+  --bg-surface-hover: #252b3a;
+  --bg-muted: #12151c;
+  --bg-input: #1f2433;
+  --bg-header-search: rgba(22, 25, 34, 0.92);
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --text-brand: #c4b5fd;
+  --text-on-brand: #ffffff;
+
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-subtle: #2d3344;
+  --border-input: #3d4558;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-header: 0 2px 16px rgba(0, 0, 0, 0.55);
+
+  --header-gradient: linear-gradient(135deg, #2e1065 0%, #4c1d95 45%, #5b21b6 100%);
+  --panel-gradient: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+
+  --auth-gradient: linear-gradient(160deg, #0c0e14 0%, #161922 50%, #1a1033 100%);
+}

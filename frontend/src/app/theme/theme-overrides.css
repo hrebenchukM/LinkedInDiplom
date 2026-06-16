@@ -1,0 +1,65 @@
+/* Fallback dark-theme fixes for pages/components not yet on CSS variables */
+
+[data-theme='dark'] .notifications-page,
+[data-theme='dark'] .notifications-list,
+[data-theme='dark'] .notification-item,
+[data-theme='dark'] .profile-page-section,
+[data-theme='dark'] .manage-network-modal,
+[data-theme='dark'] .modal-content {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .modal-header,
+[data-theme='dark'] .modal-footer {
+  border-color: var(--border-subtle);
+}
+
+[data-theme='dark'] .modal-header h2,
+[data-theme='dark'] .modal-body,
+[data-theme='dark'] .network-empty h3 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .network-empty,
+[data-theme='dark'] .network-empty p,
+[data-theme='dark'] .modal-body p {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] .group-header,
+[data-theme='dark'] .group-content-card,
+[data-theme='dark'] .group-sidebar-card,
+[data-theme='dark'] .event-header-card,
+[data-theme='dark'] .event-section-card,
+[data-theme='dark'] .event-sidebar-card,
+[data-theme='dark'] .company-header,
+[data-theme='dark'] .company-content-card,
+[data-theme='dark'] .company-sidebar-card,
+[data-theme='dark'] .public-profile-card,
+[data-theme='dark'] .public-profile-header {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+[data-theme='dark'] .group-name,
+[data-theme='dark'] .event-title,
+[data-theme='dark'] .company-name,
+[data-theme='dark'] .public-profile-info h1 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .group-category,
+[data-theme='dark'] .company-category,
+[data-theme='dark'] .event-organizer-name,
+[data-theme='dark'] .public-profile-headline,
+[data-theme='dark'] .public-profile-meta {
+  color: var(--text-secondary);
+}

@@ -1,7 +1,6 @@
-import { apiClient } from "../../shared/api/client";
-import { AI } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
-import { mapJobRecommendationToCard, normalizeJobRecommendationDto } from "./mapAi";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
+import { mapJobRecommendationToCard, normalizeJobRecommendationDto } from './mapAi.js';
 
 function unwrapRecommendedJobsResponse(data) {
   if (data?.success === false) {
@@ -9,17 +8,16 @@ function unwrapRecommendedJobsResponse(data) {
       (Array.isArray(data?.errors) && data.errors[0]) ||
       data?.error ||
       data?.message ||
-      "Recommended jobs request failed.";
+      'Recommended jobs request failed.';
     throw new Error(String(message));
   }
   const list = data?.recommendations ?? data?.Recommendations ?? [];
   return Array.isArray(list) ? list : [];
 }
 
-/** `GET /api/ai/recommended-jobs` */
+/** GET /api/ai/recommended-jobs */
 export async function fetchRecommendedJobs() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(AI.recommendedJobs);
+  const data = await apiClient.get(API_PATHS.ai.recommendedJobs);
   return unwrapRecommendedJobsResponse(data)
     .map(normalizeJobRecommendationDto)
     .filter(Boolean)

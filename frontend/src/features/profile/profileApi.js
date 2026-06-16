@@ -1,148 +1,187 @@
-import { apiClient } from "../../shared/api/client";
-import { apiFetch, apiUpload } from "../../shared/api/http";
-import { PROFILE } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
-import { unwrapPagedResponse } from "../../shared/lib/pagedResponse";
-import { mapProfileSearchToPerson, normalizeProfileSearchDto } from "./mapProfile";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
+import { buildPaginationQuery } from '../../shared/lib/pagination.js';
+import { clearAuthorCache } from '../content/enrichPostsWithAuthors.js';
+import {
+  extractProfileFromApiResponse,
+  extractProfileFromUploadResponse,
+  mapProfileDto,
+  mapProfileSearchResult,
+  mapProfileViewsResponse,
+  mergeProfileUpdate,
+} from './mapProfile.js';
 
-const profileCache = new Map();
+export const PROFILE_UPDATED_EVENT = 'linkup:profile-updated';
 
-function unwrapProfileResponse(data) {
-  if (data?.profile) return data.profile;
-  if (data?.id || data?.userId) return data;
-  return null;
-}
+export function publishProfileUpdate(profile, setProfile) {
+  if (!profile) return null;
 
-function buildProfileSearchQuery({ query, location, page = 1, pageSize = 20 } = {}) {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  });
-  const trimmedQuery = String(query || "").trim();
-  if (trimmedQuery) params.set("query", trimmedQuery);
-  const trimmedLocation = String(location || "").trim();
-  if (trimmedLocation) params.set("location", trimmedLocation);
-  return params.toString();
-}
+  setProfile?.(profile);
+  clearProfileCache();
+  clearAuthorCache();
 
-/** Public profile search — `GET /api/profile/search`. */
-export async function searchProfiles({ query = "", location, page = 1, pageSize = 20, currentUserId } = {}) {
-  if (USE_MOCK_AUTH) {
-    return { items: [], page, pageSize, totalCount: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false };
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(PROFILE_UPDATED_EVENT, { detail: { profile } }),
+    );
   }
-  const qs = buildProfileSearchQuery({ query, location, page, pageSize });
-  const data = await apiClient.get(`${PROFILE.search}?${qs}`);
-  const paged = unwrapPagedResponse(data, normalizeProfileSearchDto);
-  return {
-    ...paged,
-    items: paged.items.map((dto) => mapProfileSearchToPerson(dto, currentUserId)).filter(Boolean),
-  };
-}
 
-export async function fetchMyProfile() {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.get(PROFILE.me);
-  return unwrapProfileResponse(data);
-}
-
-export async function patchMyProfile(body) {
-  if (USE_MOCK_AUTH) return { success: true, profile: null };
-  const data = await apiClient.patch(PROFILE.me, body);
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data), errors: data?.errors };
-}
-
-export async function uploadMyAvatar(file, { onProgress } = {}) {
-  if (USE_MOCK_AUTH) return { success: false, profile: null };
-  const { ok, data } = await apiUpload("POST", PROFILE.avatar, file, "file", { onProgress });
-  if (!ok) {
-    const message =
-      (Array.isArray(data?.errors) && data.errors[0]) ||
-      data?.error ||
-      data?.message ||
-      "Avatar upload failed.";
-    throw new Error(String(message));
-  }
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
-}
-
-export async function uploadMyHeader(file, { onProgress } = {}) {
-  if (USE_MOCK_AUTH) return { success: false, profile: null };
-  const { ok, data } = await apiUpload("POST", PROFILE.header, file, "file", { onProgress });
-  if (!ok) {
-    const message =
-      (Array.isArray(data?.errors) && data.errors[0]) ||
-      data?.error ||
-      data?.message ||
-      "Header upload failed.";
-    throw new Error(String(message));
-  }
-  return { success: Boolean(data?.success ?? true), profile: unwrapProfileResponse(data) };
-}
-
-/** Non-throwing fetch for auth bootstrap. */
-export async function tryFetchMyProfile() {
-  try {
-    return await fetchMyProfile();
-  } catch {
-    return null;
-  }
-}
-
-/** Public profile by user id — throws on HTTP / missing profile (for profile view page). */
-export async function fetchPublicProfile(userId) {
-  if (USE_MOCK_AUTH) {
-    throw new Error("Public profiles are not available in mock auth mode.");
-  }
-  if (!userId) {
-    throw new Error("User id is required.");
-  }
-  const data = await apiClient.get(PROFILE.byUserId(String(userId)));
-  const profile = unwrapProfileResponse(data);
-  if (!profile) {
-    throw new Error("Profile not found.");
-  }
   return profile;
 }
 
-/** Apply registration fields to backend profile after first login. */
-export async function fetchProfileByUserId(userId) {
-  if (USE_MOCK_AUTH || !userId) return null;
-  const key = String(userId);
-  if (profileCache.has(key)) return profileCache.get(key);
+export async function getMyProfile() {
+  const dto = await apiClient.get(API_PATHS.profile.me);
+  return mapProfileDto(dto);
+}
+
+export async function updateMyProfile(data, method = 'patch', accountEmail = null) {
+  const response =
+    method === 'put'
+      ? await apiClient.put(API_PATHS.profile.me, data)
+      : await apiClient.patch(API_PATHS.profile.me, data);
+
+  const mapped = extractProfileFromApiResponse(response, accountEmail);
+  if (mapped) return mapped;
+
+  return getMyProfile();
+}
+
+export async function getProfileByUserId(userId) {
+  const dto = await apiClient.get(API_PATHS.profile.byUserId(userId));
+  return mapProfileDto(dto);
+}
+
+/** Alias used by legacy public profile views. */
+export async function fetchPublicProfile(userId) {
+  return getProfileByUserId(userId);
+}
+
+export async function recordProfileView(profileOwnerId, source = 'profile') {
+  if (!profileOwnerId) return null;
+  return apiClient.post(API_PATHS.profile.recordView(profileOwnerId), { source });
+}
+
+export async function searchProfiles(params = {}) {
+  const text = String(params.query ?? params.search ?? '').trim();
+  const query = buildPaginationQuery({
+    page: params.page,
+    pageSize: params.pageSize ?? params.limit,
+    extra: {
+      query: text || undefined,
+      location: params.location,
+    },
+  });
+  const response = await apiClient.get(API_PATHS.profile.search, { query });
+  return mapProfileSearchResult(response);
+}
+
+export async function uploadAvatar(file, options = {}) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.upload(API_PATHS.profile.avatar, formData);
+  const uploaded =
+    extractProfileFromUploadResponse(response, options.accountEmail) ??
+    await getMyProfile();
+  const merged = mergeProfileUpdate(options.currentProfile, uploaded);
+  return publishProfileUpdate(merged, options.setProfile) ?? merged;
+}
+
+export async function uploadHeader(file, options = {}) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.upload(API_PATHS.profile.header, formData);
+  const uploaded =
+    extractProfileFromUploadResponse(response, options.accountEmail) ??
+    await getMyProfile();
+  const merged = mergeProfileUpdate(options.currentProfile, uploaded);
+  return publishProfileUpdate(merged, options.setProfile) ?? merged;
+}
+
+export async function deleteAvatar(options = {}) {
+  const response = await apiClient.delete(API_PATHS.profile.avatar);
+  const updated =
+    extractProfileFromUploadResponse(response, options.accountEmail) ??
+    await getMyProfile();
+  const merged = mergeProfileUpdate(options.currentProfile, updated, { clearAvatar: true });
+  return publishProfileUpdate(merged, options.setProfile) ?? merged;
+}
+
+export async function deleteHeader(options = {}) {
+  const response = await apiClient.delete(API_PATHS.profile.header);
+  const updated =
+    extractProfileFromUploadResponse(response, options.accountEmail) ??
+    await getMyProfile();
+  const merged = mergeProfileUpdate(options.currentProfile, updated, { clearHeader: true });
+  return publishProfileUpdate(merged, options.setProfile) ?? merged;
+}
+
+export async function getProfileViews() {
+  const response = await apiClient.get(API_PATHS.profile.profileViews);
+  return mapProfileViewsResponse(response);
+}
+
+export async function getProfileViewRecords() {
+  const response = await apiClient.get(API_PATHS.profile.profileViews);
+  if (Array.isArray(response)) return response;
+  return response?.items ?? response?.Items ?? [];
+}
+
+export async function getMessageSettings() {
+  return apiClient.get(API_PATHS.profile.messageSettings);
+}
+
+export async function updateMessageSettings(data, method = 'put') {
+  return method === 'patch'
+    ? apiClient.patch(API_PATHS.profile.messageSettings, data)
+    : apiClient.put(API_PATHS.profile.messageSettings, data);
+}
+
+export async function resolveProfileUserId(identifier) {
+  if (!identifier) return null;
+
   try {
-    const data = await apiClient.get(PROFILE.byUserId(key));
-    const profile = unwrapProfileResponse(data);
-    if (profile) profileCache.set(key, profile);
+    const profile = await getProfileByUserId(identifier);
+    return profile?.userId ?? profile?.user?.id ?? identifier;
+  } catch {
+    const results = await searchProfiles({ query: identifier, pageSize: 5 });
+    const exact = results.find(
+      (item) =>
+        item.userId === identifier ||
+        item.displayName?.toLowerCase() === identifier.toLowerCase(),
+    );
+    return exact?.userId ?? results[0]?.userId ?? null;
+  }
+}
+
+const batchProfileCache = new Map();
+
+export async function fetchProfileByUserId(userId) {
+  if (!userId) return null;
+
+  const key = String(userId);
+  if (batchProfileCache.has(key)) {
+    return batchProfileCache.get(key);
+  }
+
+  try {
+    const profile = await getProfileByUserId(key);
+    batchProfileCache.set(key, profile);
     return profile;
   } catch {
+    batchProfileCache.set(key, null);
     return null;
   }
 }
 
+/** Batch profile lookup for feed, network, messaging enrichment. */
 export async function fetchProfilesByUserIds(userIds = []) {
   const unique = [...new Set(userIds.filter(Boolean).map(String))];
-  const entries = await Promise.all(unique.map(async (id) => [id, await fetchProfileByUserId(id)]));
+  const entries = await Promise.all(
+    unique.map(async (id) => [id, await fetchProfileByUserId(id)]),
+  );
   return Object.fromEntries(entries);
 }
 
 export function clearProfileCache() {
-  profileCache.clear();
-}
-
-export async function tryApplyRegistrationProfile(fallback = {}) {
-  const patch = {};
-  const firstName = String(fallback.firstName || "").trim();
-  const lastName = String(fallback.lastName || "").trim();
-  const headline = String(fallback.specialty || fallback.headline || "").trim();
-  if (firstName) patch.firstName = firstName;
-  if (lastName) patch.lastName = lastName;
-  if (headline) patch.headline = headline;
-  if (!Object.keys(patch).length) return null;
-
-  try {
-    const result = await patchMyProfile(patch);
-    return result.profile;
-  } catch {
-    return null;
-  }
+  batchProfileCache.clear();
 }

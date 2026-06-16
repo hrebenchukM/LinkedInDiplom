@@ -59,6 +59,9 @@ public static class DatabaseExtensions
             // Применяем миграции Professional-модуля
             await professionalContext.Database.MigrateAsync();
 
+            var demoSkillsSeeder = services.GetRequiredService<IDemoSkillsSeeder>();
+            await demoSkillsSeeder.SeedAsync();
+
             // Получаем NetworkDbContext из DI
             var networkContext = services.GetRequiredService<NetworkDbContext>();
 

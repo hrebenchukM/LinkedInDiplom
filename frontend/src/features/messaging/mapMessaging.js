@@ -1,138 +1,296 @@
-import { resolveAvatarSeed, resolvePersonAvatar } from "../profile/mapProfile";
-import { resolveMediaUrl } from "./messagingApi";
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
+import { getDisplayName } from '../profile/mapProfile.js';
 
-function mapMediaDtoToUi(dto) {
+function pick(dto, ...keys) {
   if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+export function mapChatMemberDto(dto) {
+  if (!dto) return null;
+
   return {
-    id: String(dto.id),
-    url: resolveMediaUrl(dto.mediaUrl || dto.MediaUrl),
-    type: String(dto.mediaType || dto.MediaType || "file"),
+    id: pick(dto, 'id', 'Id'),
+    chatId: pick(dto, 'chatId', 'ChatId'),
+    userId: pick(dto, 'userId', 'UserId'),
+    folder: pick(dto, 'folder', 'Folder'),
+    joinedAt: pick(dto, 'joinedAt', 'JoinedAt'),
+    leftAt: pick(dto, 'leftAt', 'LeftAt'),
   };
 }
 
-export function mapMessageDtoToUi(dto, currentUserId) {
-  const mediaRaw = dto.media || dto.Media || [];
-  const media = Array.isArray(mediaRaw) ? mediaRaw.map(mapMediaDtoToUi).filter(Boolean) : [];
+export function getCompanionUserIdFromChat(chat, currentUserId) {
+  const members = chat?.members ?? [];
+  const currentId = currentUserId != null ? String(currentUserId) : '';
+  const other = members.find(
+    (member) => String(member.userId ?? member.UserId ?? '') !== currentId,
+  );
+  return other?.userId ?? other?.UserId ?? null;
+}
+
+import { getStoredCompanionUserId } from './userInitiatedChats.js';
+
+const TEST_CHAT_CONTENT = /signalr|live-test|verify-realtime|test-message|e2e[-_]?test|from-[A-Z0-9]+$/i;
+
+export function isTestChatContent(content) {
+  return TEST_CHAT_CONTENT.test(String(content || '').trim());
+}
+
+/** Hide orphan / SignalR test chats and chats with non-contacts. */
+export function shouldShowChatInList(chat, options = {}) {
+  if (!chat?.id) return false;
+
+  const lastMessage = String(chat.lastMessage ?? '').trim();
+  if (lastMessage && isTestChatContent(lastMessage)) {
+    return false;
+  }
+
+  const { contactUserIds, userInitiatedChatIds } = options;
+  const chatId = String(chat.id);
+  const isUserInitiated =
+    userInitiatedChatIds instanceof Set ? userInitiatedChatIds.has(chatId) : false;
+
+  let companionUserId = chat.companionUserId ?? null;
+  if (!companionUserId && isUserInitiated) {
+    companionUserId = getStoredCompanionUserId(chat.id);
+  }
+
+  if (!companionUserId) {
+    return false;
+  }
+
+  if (contactUserIds instanceof Set) {
+    const companionId = String(companionUserId);
+    const isContact = contactUserIds.has(companionId);
+    if (!isContact && !isUserInitiated) {
+      return false;
+    }
+  }
+
+  if (chat.profileFailed && lastMessage && isTestChatContent(lastMessage)) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function resolveCompanionUserId(chat, currentUserId, { getMembers } = {}) {
+  if (!chat) return null;
+
+  const currentId = currentUserId != null ? String(currentUserId) : '';
+
+  let companionUserId =
+    chat.companionUserId ?? getCompanionUserIdFromChat(chat, currentUserId);
+
+  if (companionUserId) {
+    return String(companionUserId);
+  }
+
+  const createdBy = chat.createdBy ?? chat.CreatedBy;
+  if (createdBy && String(createdBy) !== currentId) {
+    return String(createdBy);
+  }
+
+  if (typeof getMembers === 'function' && chat.id) {
+    try {
+      const rawMembers = await getMembers(chat.id);
+      const members = (Array.isArray(rawMembers) ? rawMembers : [])
+        .map((item) => mapChatMemberDto(item))
+        .filter(Boolean);
+      companionUserId = getCompanionUserIdFromChat({ members }, currentUserId);
+      if (companionUserId) {
+        return String(companionUserId);
+      }
+    } catch {
+      /* members endpoint may fail for deleted chats */
+    }
+  }
+
+  return null;
+}
+
+export function mapChatDto(dto, currentUserId = null) {
+  if (!dto) return null;
+
+  const members = (dto.members ?? dto.Members ?? [])
+    .map((item) => mapChatMemberDto(item))
+    .filter(Boolean);
+
+  const id = pick(dto, 'id', 'Id');
+  const companionUserId = getCompanionUserIdFromChat({ members }, currentUserId);
 
   return {
-    id: String(dto.id),
-    fromMe: String(dto.senderId ?? dto.SenderId) === String(currentUserId),
-    text: String(dto.content ?? dto.Content ?? ""),
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    senderId: String(dto.senderId ?? dto.SenderId ?? ""),
+    id,
+    chatId: id,
+    createdBy: pick(dto, 'createdBy', 'CreatedBy'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt') ?? pick(dto, 'createdAt', 'CreatedAt'),
+    members,
+    companionUserId,
+    companion: null,
+    lastMessage: pick(dto, 'lastMessage', 'LastMessage') ?? '',
+    lastMessageAt:
+      pick(dto, 'lastMessageAt', 'LastMessageAt', 'updatedAt', 'UpdatedAt') ??
+      pick(dto, 'createdAt', 'CreatedAt'),
+    unreadCount: pick(dto, 'unreadCount', 'UnreadCount') ?? 0,
+    hasUnread: Boolean(pick(dto, 'hasUnread', 'HasUnread')),
+  };
+}
+
+export function mapChatListResponse(response, currentUserId = null) {
+  const paged = mapPagedResponse(response);
+  return {
+    ...paged,
+    items: paged.items
+      .map((item) => mapChatDto(item, currentUserId))
+      .filter(Boolean),
+  };
+}
+
+export function mapMessageMediaDto(dto) {
+  if (!dto) return null;
+
+  const rawUrl = pick(dto, 'mediaUrl', 'MediaUrl', 'url', 'Url', 'fileUrl');
+  return {
+    id: pick(dto, 'id', 'Id'),
+    messageId: pick(dto, 'messageId', 'MessageId'),
+    url: rawUrl ? resolveUploadUrl(rawUrl) : null,
+    rawUrl,
+    mediaType: pick(dto, 'mediaType', 'MediaType', 'type', 'Type'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+  };
+}
+
+export function mapMessageDto(dto, currentUserId = null) {
+  if (!dto) return null;
+
+  const content =
+    pick(dto, 'content', 'Content', 'text', 'Text', 'body', 'Body') ?? '';
+  const senderId = pick(dto, 'senderId', 'SenderId');
+  const createdAt = pick(dto, 'createdAt', 'CreatedAt', 'sentAt', 'SentAt');
+  const deletedAt = pick(dto, 'deletedAt', 'DeletedAt');
+
+  const rawMedia = dto.media ?? dto.Media ?? [];
+  const media = (Array.isArray(rawMedia) ? rawMedia : [])
+    .map(mapMessageMediaDto)
+    .filter(Boolean);
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    chatId: pick(dto, 'chatId', 'ChatId'),
+    senderId,
+    content,
+    text: content,
+    sentAt: createdAt,
+    createdAt,
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt', 'editedAt', 'EditedAt'),
+    readAt: pick(dto, 'readAt', 'ReadAt'),
+    deletedAt,
+    deleted: Boolean(deletedAt),
     media,
-    _api: true,
+    status: deletedAt ? 'deleted' : 'sent',
+    isMine: currentUserId ? senderId === currentUserId : false,
+    sender: null,
   };
 }
 
-function isGuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    String(value || ""),
-  );
+export function mapMessageListResponse(response, currentUserId = null) {
+  const paged = mapPagedResponse(response);
+  return {
+    ...paged,
+    items: paged.items
+      .map((item) => mapMessageDto(item, currentUserId))
+      .filter(Boolean),
+  };
 }
 
-/** Technical placeholders like "Chat", "Chat · f654dbf5" — not real user names. */
-export function isGenericChatPeer(name) {
-  const value = String(name || "").trim();
-  if (!value || /^chat$/i.test(value)) return true;
-  return /^chat\s*[·.\-–—]\s*[0-9a-f]{4,}/i.test(value);
+export function mapMessageToCreateRequest(formState = {}) {
+  return {
+    content:
+      formState.content ?? formState.text ?? formState.body ?? '',
+  };
 }
 
-export function resolvePeerDisplayName(profile, userId) {
-  const fromProfile =
-    profile?.fullName?.trim() ||
-    `${profile?.firstName || profile?.FirstName || ""} ${profile?.lastName || profile?.LastName || ""}`.trim();
-  if (fromProfile) return fromProfile;
-  if (userId && isGuid(userId)) return "";
-  return String(userId || "").trim();
+export function mapMessageMediaUploadResponse(response) {
+  if (!response) return null;
+
+  const media =
+    response.media ??
+    response.Media ??
+    response.messageMedia ??
+    response.MessageMedia ??
+    response;
+
+  return mapMessageMediaDto(media);
 }
 
-export function resolveOtherUserId(chatDto, messages, currentUserId) {
-  const members = Array.isArray(chatDto?.members) ? chatDto.members : chatDto?.Members || [];
-  const otherMember = members.find(
-    (member) => String(member.userId ?? member.UserId ?? "") !== String(currentUserId),
-  );
-  if (otherMember) return String(otherMember.userId ?? otherMember.UserId ?? "");
+export function mapChatToDisplay(chat, companionProfile, lastMessage = null) {
+  if (!chat) return null;
 
-  const createdBy = String(chatDto?.createdBy ?? chatDto?.CreatedBy ?? "");
-  if (createdBy && createdBy !== String(currentUserId)) return createdBy;
+  const companionUser = companionProfile?.user ?? companionProfile;
+  const name = companionProfile?.failed
+    ? 'User'
+    : getDisplayName(companionProfile ?? { user: companionUser });
+  const headline =
+    companionUser?.headline ??
+    companionUser?.profileTitle ??
+    companionProfile?.headline ??
+    '';
 
-  const incoming = (messages || []).find(
-    (message) => String(message.senderId ?? message.SenderId ?? "") !== String(currentUserId),
-  );
-  if (incoming) return String(incoming.senderId ?? incoming.SenderId ?? "");
+  const resolvedLastMessage = lastMessage ?? {
+    content: chat.lastMessage,
+    sentAt: chat.lastMessageAt,
+  };
 
-  return "";
+  return {
+    ...chat,
+    name,
+    profileFailed: Boolean(companionProfile?.failed),
+    avatar: resolveUploadUrl(
+      companionUser?.avatarUrl ?? companionUser?.AvatarUrl ?? '',
+    ),
+    avatarSrc: resolveUploadUrl(
+      companionUser?.avatarUrl ?? companionUser?.AvatarUrl ?? '',
+    ),
+    title: headline,
+    lastMessage: resolvedLastMessage?.content ?? chat.lastMessage ?? '',
+    time:
+      resolvedLastMessage?.sentAt ??
+      resolvedLastMessage?.createdAt ??
+      chat.lastMessageAt,
+    unread: chat.hasUnread || (chat.unreadCount ?? 0) > 0,
+    companion: companionUser
+      ? {
+          id: chat.companionUserId ?? companionUser.id,
+          firstName: companionUser.firstName ?? name.split(' ')[0] ?? 'User',
+          secondName:
+            companionUser.secondName ??
+            companionUser.lastName ??
+            name.split(' ').slice(1).join(' '),
+          avatarUrl: companionUser.avatarUrl ?? companionUser.AvatarUrl ?? null,
+          profileTitle: headline,
+          headline,
+          email: companionUser.email,
+          location: companionUser.location,
+          genInfo: companionUser.about ?? companionUser.genInfo,
+          university: companionUser.university,
+          portfolioUrl: companionUser.portfolioUrl,
+        }
+      : null,
+  };
 }
 
-export function applyPeerIdentity(chat, { peerUserId, profile, peerName, avatar, avatarSeed } = {}) {
-  const userId = String(peerUserId || chat.peerUserId || "").trim();
-  const resolvedName =
-    String(peerName || "").trim() ||
-    resolvePeerDisplayName(profile, userId) ||
-    (isGenericChatPeer(chat.peer) ? "" : String(chat.peer || "").trim());
-
-  const next = { ...chat };
-  if (userId) next.peerUserId = userId;
-
-  if (resolvedName) {
-    next.peer = resolvedName;
-  } else if (userId && !isGenericChatPeer(chat.peer)) {
-    next.peer = String(chat.peer || "").trim();
-  } else {
-    next.peer = "";
-  }
-
-  if (avatar) {
-    next.avatar = avatar;
-  } else if (userId || next.id) {
-    next.avatar = resolvePersonAvatar({ profile, userId: userId || next.id, name: next.peer });
-    next.avatarSeed = resolveAvatarSeed({ profile, userId: userId || next.id, name: next.peer });
-  }
-
-  if (avatarSeed) next.avatarSeed = avatarSeed;
-  return next;
+export function extractChatFromResponse(response) {
+  const chatDto = response?.chat ?? response?.Chat ?? response;
+  return mapChatDto(chatDto);
 }
 
-/** Hide orphan empty chats that were never tied to a real contact. */
-export function shouldShowChatInList(chat) {
-  if (!chat) return false;
-  const peer = String(chat.peer || "").trim();
-  const hasIncoming = (chat.messages || []).some((message) => !message.fromMe);
-  if (hasIncoming && peer && !isGenericChatPeer(peer)) return true;
-  if (hasIncoming && chat.peerUserId) return true;
-  if (chat.peerUserId && peer && !isGenericChatPeer(peer)) return true;
-  if (peer && !isGenericChatPeer(peer)) return true;
-  return false;
-}
-
-export function resolveChatDisplayName(chat, fallback = "") {
-  const peer = String(chat?.peer || "").trim();
-  if (peer && !isGenericChatPeer(peer)) return peer;
-  return String(fallback || "").trim();
-}
-
-export function mapChatDtoToUi(chat, currentUserId, profileByUserId = {}, messages = []) {
-  const otherUserId = resolveOtherUserId(chat, messages, currentUserId);
-  const chatId = String(chat.id ?? chat.Id ?? "");
-  const profile = otherUserId ? profileByUserId[otherUserId] : null;
-  const peer = resolvePeerDisplayName(profile, otherUserId);
-  const seedUserId = otherUserId || (isGuid(chatId) ? chatId : null);
-
-  return applyPeerIdentity(
-    {
-      id: chatId,
-      peer: peer || "",
-      peerUserId: otherUserId || null,
-      online: true,
-      messages: [],
-      lastReadIncomingCount: 0,
-      _api: true,
-    },
-    {
-      peerUserId: otherUserId,
-      profile,
-      peerName: peer,
-    },
-  );
+export function extractMessageFromResponse(response, currentUserId = null) {
+  const messageDto = response?.message ?? response?.Message ?? response;
+  return mapMessageDto(messageDto, currentUserId);
 }

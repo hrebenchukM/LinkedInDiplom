@@ -1,53 +1,40 @@
-import { apiFetch } from "../../shared/api/http";
-import { AUTH } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
 
-async function request(method, path, body) {
-  if (import.meta.env.DEV && USE_MOCK_AUTH) {
-    const { mockAuthFetch } = await import("./mockAuthApi");
-    return mockAuthFetch(method, path, body);
-  }
-  return apiFetch(method, path, body);
+export function login(credentials) {
+  return apiClient.post(API_PATHS.auth.login, {
+    email: credentials.email,
+    password: credentials.password,
+  });
 }
 
-/**
- * Backend contract: { email, password } only.
- * Mock mode accepts extra profile fields for local demo.
- */
-export function registerAccount(payload) {
-  const body =
-    import.meta.env.DEV && USE_MOCK_AUTH
-      ? payload
-      : { email: payload.email, password: payload.password };
-  return request("POST", AUTH.register, body);
+export function register(data) {
+  return apiClient.post(API_PATHS.auth.register, {
+    email: data.email,
+    password: data.password,
+  });
 }
 
-/** Backend contract: { email, password } */
-export function loginAccount({ email, password }) {
-  return request("POST", AUTH.login, { email, password });
+export function refreshToken(refreshTokenValue) {
+  return apiClient.post(API_PATHS.auth.refresh, {
+    refreshToken: refreshTokenValue,
+  });
 }
 
-/** Backend contract: { providerToken } — provider set server-side from route. */
+export function logout(refreshTokenValue) {
+  return apiClient.post(API_PATHS.auth.logout, {
+    refreshToken: refreshTokenValue,
+  });
+}
+
+export function getCurrentAccount() {
+  return apiClient.get(API_PATHS.auth.me);
+}
+
 export function googleLogin(providerToken) {
-  return request("POST", AUTH.google, { providerToken });
+  return apiClient.post(API_PATHS.auth.google, { providerToken });
 }
 
-/** Backend contract: { providerToken } — provider set server-side from route. */
 export function facebookLogin(providerToken) {
-  return request("POST", AUTH.facebook, { providerToken });
-}
-
-/** Backend contract: { refreshToken } */
-export function logoutAccount(refreshToken) {
-  return request("POST", AUTH.logout, { refreshToken });
-}
-
-/** Backend contract: { refreshToken } */
-export function refreshAccessToken(refreshToken) {
-  return request("POST", AUTH.refresh, { refreshToken });
-}
-
-/** Requires Authorization header. Returns AccountDto. */
-export function fetchCurrentAccount() {
-  return request("GET", AUTH.me);
+  return apiClient.post(API_PATHS.auth.facebook, { providerToken });
 }

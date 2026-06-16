@@ -1,44 +1,49 @@
-# Frontend SPA (React + Vite)
+# Frontend (master2 UI + Docker API)
 
-**Backend merge:** read [`HANDOFF_FOR_BACKEND.md`](./HANDOFF_FOR_BACKEND.md).
-
-## Structure
-
-```
-src/
-  features/auth/     authApi.js, AuthContext.jsx  ← real /api/auth integration
-  shared/api/        http.js, client.js, paths.js
-  shared/config/     feature flags
-  pages/             UI (demo data except auth)
-```
+UI from branch `master2` (modals, Figma-like layout). API via Vite proxy to Docker `:5000`.
 
 ## Quick start
 
-```bash
-cp .env.example .env.local
+```powershell
+docker compose up -d
+cd frontend
+copy .env.example .env.local
 npm ci
 npm run dev
 ```
 
-API on `http://localhost:5282`: leave `VITE_API_BASE_URL` empty (Vite proxy).
+Open **http://localhost:5173/auth**
 
-## Build
+## Routes
 
-```bash
-npm run build
+| Page | URL |
+|------|-----|
+| Login | `/auth` |
+| Home / Feed | `/app` |
+| Profile | `/app/profile` |
+| Network | `/app/network` |
+| Vacancies | `/app/vacancies` |
+| Messages | `/app/messages` |
+| Notifications | `/app/notifications` |
+| Admin | `/app/admin/dashboard` |
+
+Legacy redirects: `/home` → `/app`, `/chat` → `/app/messages`.
+
+## Demo accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@local.dev` | `Admin123!` |
+| User | `andrii.rotar@gmail.com` | `LinkUpDemo2024!` |
+
+## Verify
+
+```powershell
+npm run verify:all
 ```
 
-Output: `dist/` (do not commit).
+Manual checklist: http://localhost:5173/verify.html
 
-## Stage 8 — polish & E2E
+## Modals
 
-- **E2E checklist:** [`../docs/E2E_CHECKLIST.md`](../docs/E2E_CHECKLIST.md)
-- **Demo social login:** [`../docs/DEMO_SOCIAL_AUTH.md`](../docs/DEMO_SOCIAL_AUTH.md)
-- **Production config:** startup logs from `validateDeploymentConfig()` in browser console
-
-## Demo mode (no backend)
-
-```env
-VITE_USE_MOCK_AUTH=true
-VITE_ENABLE_GUEST=true
-```
+`src/features/Modals/` — CreatePost, AddExperience, AddSkill, PostJob, etc.

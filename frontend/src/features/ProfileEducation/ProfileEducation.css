@@ -1,0 +1,127 @@
+.education-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+  padding: 16px 18px;
+}
+
+.education-card .section-header h2 {
+  font-size: 17px;
+}
+
+.education-card .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.education-card .icon-button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.education-card .icon-button:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.education-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.education-logo {
+  flex-shrink: 0;
+}
+
+.university-img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-input);
+  object-fit: cover;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-default);
+}
+
+.education-content h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.education-date {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.education-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+}
+
+.section-divider {
+  margin: 16px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.certificate-item {
+  align-items: center;
+}
+
+.certificate-org {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.certificate-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-brand-muted);
+  color: var(--text-brand);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.certificate-btn:hover {
+  background: var(--color-brand-soft);
+}
+
+.education-card .btn-add {
+  padding: 10px 20px;
+  background: transparent;
+  border: 2px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  color: var(--text-brand);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.education-card .btn-add:hover {
+  background: var(--color-brand-soft);
+}

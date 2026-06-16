@@ -1,0 +1,126 @@
+.vacancies-sidebar-container {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+}
+
+.vacancies-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.vacancies-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-input);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vacancies-nav-item:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.vacancies-nav-item.active {
+  background: var(--bg-surface-hover);
+  color: var(--text-brand);
+}
+
+.vacancies-nav-item svg {
+  flex-shrink: 0;
+}
+
+.post-vacancy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1.5px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-brand);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.post-vacancy-btn:hover {
+  background: var(--color-brand);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.35);
+}
+
+.post-vacancy-btn:active {
+  transform: translateY(0);
+}
+
+.post-vacancy-btn svg {
+  flex-shrink: 0;
+}
+
+.sidebar-recommended-queries {
+  margin-bottom: 20px;
+}
+
+.sidebar-queries-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sidebar-queries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sidebar-query-chip {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebar-query-chip:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+@media (max-width: 576px) {
+  .vacancies-sidebar-container {
+    padding: 16px;
+  }
+
+  .vacancies-nav-item {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  .post-vacancy-btn {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+}

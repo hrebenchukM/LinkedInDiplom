@@ -186,6 +186,162 @@ public partial class ProfileManagementService
 
 
 
+    public async Task<ProfileResponse> DeleteMyAvatarAsync(string userId)
+
+    {
+
+        var existingProfile = await _profileClient.Profiles.GetAsync(new GetProfileByUserIdParameters
+
+        {
+
+            UserId = userId
+
+        });
+
+
+
+        if (existingProfile == null)
+
+        {
+
+            return new ProfileResponse
+
+            {
+
+                Success = false,
+
+                Errors = new[] { "Profile not found." }
+
+            };
+
+        }
+
+
+
+        var oldAvatarUrl = existingProfile.AvatarUrl;
+
+
+
+        if (string.IsNullOrWhiteSpace(oldAvatarUrl))
+
+        {
+
+            return new ProfileResponse
+
+            {
+
+                Success = true,
+
+                Profile = MapProfileToFacadeDto(existingProfile)
+
+            };
+
+        }
+
+
+
+        var updatedProfile = await _profileClient.Profiles.UpdateAsync(
+
+            existingProfile with { AvatarUrl = null });
+
+
+
+        await _fileStorageService.DeleteAsync(oldAvatarUrl);
+
+
+
+        return new ProfileResponse
+
+        {
+
+            Success = true,
+
+            Profile = MapProfileToFacadeDto(updatedProfile)
+
+        };
+
+    }
+
+
+
+    public async Task<ProfileResponse> DeleteMyHeaderAsync(string userId)
+
+    {
+
+        var existingProfile = await _profileClient.Profiles.GetAsync(new GetProfileByUserIdParameters
+
+        {
+
+            UserId = userId
+
+        });
+
+
+
+        if (existingProfile == null)
+
+        {
+
+            return new ProfileResponse
+
+            {
+
+                Success = false,
+
+                Errors = new[] { "Profile not found." }
+
+            };
+
+        }
+
+
+
+        var oldHeaderUrl = existingProfile.HeaderUrl;
+
+
+
+        if (string.IsNullOrWhiteSpace(oldHeaderUrl))
+
+        {
+
+            return new ProfileResponse
+
+            {
+
+                Success = true,
+
+                Profile = MapProfileToFacadeDto(existingProfile)
+
+            };
+
+        }
+
+
+
+        var updatedProfile = await _profileClient.Profiles.UpdateAsync(
+
+            existingProfile with { HeaderUrl = null });
+
+
+
+        await _fileStorageService.DeleteAsync(oldHeaderUrl);
+
+
+
+        return new ProfileResponse
+
+        {
+
+            Success = true,
+
+            Profile = MapProfileToFacadeDto(updatedProfile)
+
+        };
+
+    }
+
+
+
     private Task<string> SaveProfileImageAsync(
 
         string userId,

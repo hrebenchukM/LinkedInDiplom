@@ -1,0 +1,284 @@
+.manage-network-modal-content {
+  max-width: 900px;
+}
+
+.manage-network-modal {
+  display: flex;
+  min-height: 500px;
+  max-height: 70vh;
+  color: var(--text-primary);
+}
+
+.manage-network-modal .network-sidebar {
+  width: 250px;
+  border-right: 1px solid var(--border-subtle);
+  padding: 16px 0;
+  overflow-y: auto;
+  background: var(--bg-muted);
+}
+
+.manage-network-modal .network-section-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.manage-network-modal .network-section-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.manage-network-modal .network-section-btn.active {
+  background: var(--color-brand-soft);
+  color: var(--text-brand);
+  border-left: 3px solid var(--color-brand);
+  font-weight: 600;
+}
+
+.manage-network-modal .network-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.manage-network-modal .network-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--bg-surface);
+}
+
+.manage-network-modal .network-search {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.manage-network-modal .network-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-input);
+  font-size: 14px;
+  outline: none;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.manage-network-modal .network-search input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
+.manage-network-modal .network-content {
+  padding: 16px 20px;
+}
+
+.manage-network-modal .network-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.manage-network-modal .network-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.manage-network-modal .network-item-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.manage-network-modal .network-item-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.manage-network-modal .network-item-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.manage-network-modal .network-item-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-soft);
+  color: var(--text-brand);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.manage-network-modal .mutual-connections {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.manage-network-modal .network-item-action {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  color: var(--text-brand);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.manage-network-modal .network-item-action:hover {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.manage-network-modal .network-item-action-secondary {
+  background: var(--bg-muted);
+  border-color: var(--border-input);
+  color: var(--text-primary);
+}
+
+.manage-network-modal .network-item-action-secondary:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
+}
+
+.manage-network-modal .network-group-category {
+  font-size: 13px;
+  color: var(--text-brand);
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+
+.manage-network-modal .network-group-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.manage-network-modal .network-stat-separator {
+  color: var(--border-input);
+}
+
+.manage-network-modal .network-event-item {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+  background: var(--bg-muted);
+}
+
+.manage-network-modal .network-event-item:hover {
+  border-color: var(--border-input);
+  box-shadow: var(--shadow-sm);
+}
+
+.manage-network-modal .network-event-header h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.manage-network-modal .network-event-type.virtual {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.manage-network-modal .network-event-type.in-person {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.manage-network-modal .network-event-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.manage-network-modal .network-event-attendees {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.manage-network-modal .network-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.manage-network-modal .network-empty h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 16px 0 8px 0;
+}
+
+.manage-network-modal .network-empty p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .manage-network-modal {
+    flex-direction: column;
+  }
+
+  .manage-network-modal .network-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 8px 0;
+  }
+
+  .manage-network-modal .network-event-item {
+    flex-direction: column;
+  }
+
+  .manage-network-modal .network-event-image {
+    width: 100%;
+    height: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .manage-network-modal .network-item-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .manage-network-modal .network-event-image {
+    height: 140px;
+  }
+}

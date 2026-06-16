@@ -5,11 +5,15 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.oxml import parse_xml
 from pptx.util import Inches, Pt
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-OUTPUT_DOCS_FILE = Path(__file__).resolve().parent / "LinkedIn_Diploma_Presentation_UA.pptx"
+DOCS_DIR = Path(__file__).resolve().parent
+OUTPUT_DOCS_FILE = DOCS_DIR / "LinkedIn_Diploma_Presentation_UA.pptx"
 OUTPUT_ROOT_FILE = ROOT_DIR / "presentation.pptx"
+FS_BACKEND_IMG = DOCS_DIR / "assets" / "filesystem-backend.png"
+FS_FRONTEND_IMG = DOCS_DIR / "assets" / "filesystem-frontend.png"
 
 WHITE = RGBColor(255, 255, 255)
 BG_DARK = RGBColor(7, 11, 20)
@@ -436,6 +440,67 @@ def normalize_slide_numbers():
         number += 1
 
 
+PROJECT_FILESYSTEM = {
+    "root": "LinkedInDiplom-master",
+    "sections": [
+        {
+            "folder": "frontend",
+            "color_idx": 2,
+            "items": [
+                "src/pages",
+                "src/features",
+                "src/app",
+                "vite.config.js",
+                "package.json",
+            ],
+            "note": "React 19 + Vite SPA — наш фокус",
+        },
+        {
+            "folder": "backend",
+            "color_idx": 4,
+            "items": [
+                "Identity",
+                "Profile / Professional",
+                "Network / Content",
+                "Messaging / Jobs",
+                "Events / Notifications",
+                "Facade.API",
+                "Tests",
+            ],
+            "note": "модульний моноліт — для контексту",
+        },
+        {
+            "folder": "docs",
+            "color_idx": 1,
+            "items": ["architecture", "api", "E2E checklist"],
+            "note": "документація проєкту",
+        },
+    ],
+}
+
+FRONTEND_TREE_LINES = [
+    "frontend/",
+    "├── src/",
+    "│   ├── app/           router, providers, layout",
+    "│   ├── pages/         auth, home, network, jobs, chat, admin",
+    "│   ├── features/      auth, profile, jobs, chat, network",
+    "│   └── shared/",
+    "│       ├── api/       HTTP-клієнт, paths",
+    "│       ├── ui/        спільні компоненти",
+    "│       └── lib/       storage, session",
+    "├── vite.config.js",
+    "└── package.json",
+]
+
+BACKEND_TREE_LINES = [
+    "backend/  (контекст масштабу)",
+    "├── Identity · Profile · Professional",
+    "├── Network · Content · Messaging",
+    "├── Jobs · Events · Notifications",
+    "└── Facade.API",
+]
+
+
 SLIDES = [
     {
         "type": "cover",
@@ -446,7 +511,7 @@ SLIDES = [
             "Проєкт: сайт для професійної взаємодії, пошуку роботи та комунікації",
             "Frontend розробники: Ямчук Тимур, Андрій Ротарь",
             "Стек frontend: React 19, Vite 6, React Router, Context API",
-            "Інтеграція: REST API, JWT, Swagger, PostgreSQL через backend",
+            "Demo-режим: social demo та mock-дані для стабільної демонстрації на захисті",
         ],
     },
     {
@@ -456,30 +521,18 @@ SLIDES = [
         "headline": "LinkedIn обрано як найсильнішу модель, бо він поєднує професійний профіль, мережу контактів, контент, вакансії та комунікацію.",
         "points": [
             "Це не просто сайт з вакансіями, а повна професійна екосистема для кандидата, роботодавця і спільнот.",
-            "Такий формат дозволяє показати більше дипломної роботи: UI, маршрути, стани, API-інтеграцію і різні сценарії користувача.",
-            "Клон LinkedIn добре демонструється на захисті: користувач проходить шлях від реєстрації до пошуку роботи та спілкування.",
+            "Такий формат дозволяє показати більше дипломної роботи: UI, маршрути, клієнтські стани та користувацькі сценарії.",
+            "Клон LinkedIn добре демонструється на захисті через demo-flow: вхід → профіль → стрічка → вакансії → чат.",
         ],
         "metric": "6",
         "metric_label": "основних розділів об'єднані в одному сайті",
     },
     {
-        "type": "comparison",
+        "type": "filesystem",
         "focus": None,
-        "title": "LinkedIn-підхід проти типових конкурентів",
-        "left_title": "Що є у конкурентів",
-        "right_title": "Що краще у LinkedIn Clone",
-        "left": [
-            "Job-board дає вакансії, але майже не розвиває професійний профіль користувача.",
-            "Окремі соцмережі мають контент, але не прив'язані до кар'єрного сценарію.",
-            "Месенджери вирішують комунікацію, але знаходяться поза професійною платформою.",
-            "Багато аналогів показують окремі функції без єдиного користувацького шляху.",
-        ],
-        "right": [
-            "Вакансії, профіль, стрічка, мережа, спільноти та чати працюють як одна система.",
-            "Профіль користувача стає центром: навички, досвід, резюме, avatar і активність.",
-            "Комунікація вбудована в сайт, тому користувач не виходить у сторонні сервіси.",
-            "Frontend пов'язаний з API: auth, profile, jobs, content, network і messaging.",
-        ],
+        "title": "Файлова структура проєкту",
+        "subtitle": "Фокус доповіді — frontend SPA; backend показано лише для розуміння масштабу системи",
+        "tree": PROJECT_FILESYSTEM,
     },
     {
         "type": "comparison",
@@ -503,17 +556,18 @@ SLIDES = [
     {
         "type": "modules",
         "focus": None,
-        "title": "Переваги нашого сайту",
-        "subtitle": "Переваги сформовані з того, що реально реалізовано в інтерфейсі та коді",
+        "title": "Переваги UX нашого сайту",
+        "subtitle": "Акцент на зручності інтерфейсу для користувача, а не на backend-інтеграції",
+        "footer": "Для кандидата: одна навігація, теми, мови та social demo — все в одному UX.",
         "items": [
             ("Єдиний UX", "одна навігація для всіх сценаріїв"),
-            ("Профіль", "навички, досвід, резюме, avatar"),
-            ("Вакансії", "пошук, фільтри, saved, apply"),
-            ("Контент", "стрічка, пости, реакції, коментарі"),
-            ("Мережа", "контакти, groups, pages, events"),
-            ("Чати", "діалоги, unread, AI assistant"),
-            ("Теми та мови", "dark/light theme, i18n"),
-            ("API-зв'язок", "реальні endpoint-и і token flow"),
+            ("Dark/Light", "перемикання теми через CSS variables"),
+            ("i18n", "4 мови інтерфейсу в runtime"),
+            ("Картки", "зрозуміла структура контенту"),
+            ("Анімації", "плавні переходи між сторінками"),
+            ("Пошук", "глобальний пошук по сутностях"),
+            ("Demo-режим", "social demo без реєстрації по пошті"),
+            ("Fallback", "стабільні mock-дані для захисту"),
         ],
     },
     {
@@ -531,65 +585,88 @@ SLIDES = [
         "right": [
             "Користувач шукає роботу, веде профіль, читає контент і спілкується в одному місці.",
             "Вакансії, контакти та повідомлення об'єднані в логічний кандидатський сценарій.",
-            "Сайт має API-шар, JWT-сесію, fallback-дані і готовий demo-flow.",
-            "На захисті можна показати послідовність: auth → profile → feed → jobs → chat.",
+            "Frontend має demo-режим і fallback-дані для гарантованої демонстрації на захисті.",
+            "На захисті показуємо послідовність через social demo: auth → profile → feed → jobs → chat.",
         ],
     },
     {
-        "type": "modules",
+        "type": "structure",
         "focus": None,
-        "title": "Що це за сайт",
-        "subtitle": "LinkedIn Clone — це LinkedIn-like вебплатформа для професійного нетворкінгу",
-        "items": [
-            ("Auth", "реєстрація, login, session bootstrap"),
-            ("Home", "головний екран і стрічка контенту"),
-            ("Network", "контакти, спільноти, pages/events"),
-            ("Vacancies", "вакансії, фільтри, відгуки"),
-            ("Chat", "повідомлення та AI-помічник"),
-            ("Profile", "особистий кабінет користувача"),
-            ("Search", "глобальний пошук по сутностях"),
-            ("UI", "адаптивні картки, теми, анімації"),
+        "title": "Компонентна структура frontend",
+        "subtitle": "Кожен блок — ізольований React-модуль з власною логікою",
+        "tree": FRONTEND_TREE_LINES,
+        "points": [
+            "pages/ — екрани за сценаріями: auth, home, network, jobs, chat, admin",
+            "features/ — бізнес-логіка модулів, API-виклики, mappers",
+            "app/ — router, providers, layout, ініціалізація UI",
+            "shared/ — api, ui, lib: спільний код без прив'язки до одного модуля",
+            "contexts — Auth, Profile, Network, Vacancies, Chat (глобальний стан)",
         ],
+        "note": "Код розбито за папками так, щоб модулі не залежали один від одного напряму.",
     },
     {
         "type": "architecture",
         "focus": None,
-        "title": "Архітектура сайту",
+        "title": "Архітектура frontend",
         "steps": [
-            ("React/Vite SPA", "сторінки, routing, state"),
-            ("Providers", "auth, profile, network, jobs, chat"),
-            ("API client", "tokens, refresh, errors"),
-            ("Facade.API", "REST endpoints для frontend"),
-            ("PostgreSQL", "дані модулів системи"),
+            ("React/Vite SPA", "UI, routing, компоненти"),
+            ("Context Providers", "auth, profile, network, jobs, chat"),
+            ("API client", "підготовлений шар запитів"),
+            ("Facade.API", "контракт backend-команди"),
+            ("Demo + mock", "стабільна демонстрація на захисті"),
         ],
-        "note": "Frontend побудований як SPA: сторінки розділені за сценаріями, стан винесено в providers, а доступ до backend проходить через єдиний API-шар.",
+        "note": "Frontend керує станом через Context API та API-клієнт; backend і БД — зона backend-команди, ми показуємо готовий клієнтський шар.",
     },
     {
         "type": "frontend",
         "focus": "home",
-        "title": "З чого складається frontend",
+        "title": "Маршрутизація frontend",
+        "subtitle": "React Router, guarded routes та demo-вхід без live-реєстрації",
         "routes": [
-            ("/auth", "реєстрація, login, social demo"),
-            ("/home", "стрічка, composer, mini inbox"),
-            ("/network", "контакти, groups, pages/events"),
-            ("/vacancies", "вакансії, фільтри, apply"),
-            ("/chat", "повідомлення, AI assistant, calls"),
-            ("/profile", "кабінет, avatar, skills, resume"),
+            ("/auth", "публічний маршрут, social demo"),
+            ("RequireAuth", "захист приватних сторінок"),
+            ("AuthBootstrapGate", "ініціалізація сесії при завантаженні"),
+            ("/home … /profile", "приватні маршрути основних модулів"),
+            ("PageTransitionOutlet", "анімації переходів між сторінками"),
+            ("redirect / → /home", "стартовий сценарій після входу"),
         ],
     },
     {
         "type": "journey",
         "focus": "home",
-        "title": "Наскрізний сценарій демонстрації",
+        "title": "Demo-flow для захисту",
         "steps": [
-            "Реєстрація",
+            "Social demo",
             "Профіль",
             "Стрічка",
             "Спільноти",
             "Вакансії",
             "Чати",
         ],
-        "note": "Такий порядок дозволяє показати сайт як завершений продукт, а не набір окремих сторінок.",
+        "note": "На захисті використовуємо social demo і mock-дані — без live-реєстрації та без залежності від нестабільного API.",
+    },
+    {
+        "type": "admin",
+        "focus": None,
+        "title": "Адмін-панель платформи",
+        "subtitle": "Окремий UI-контур /admin для модерації та керування LinkedIn Clone",
+        "access": [
+            "/admin/* → RequireAuth + RequireAdmin",
+            "JWT role Admin (user.isAdmin)",
+            "Без ролі — AdminForbiddenPage (403)",
+            "AdminLayout: sidebar з 7 розділами",
+            "adminApi.js → /api/admin/*",
+        ],
+        "sections": [
+            ("Dashboard", "stats: users, posts, vacancies, events"),
+            ("Users", "list, filters, lock/unlock, roles, create user"),
+            ("Content", "moderation постів: search, delete/restore"),
+            ("Comments", "moderation коментарів до постів"),
+            ("Jobs", "moderation вакансій + recommended queries"),
+            ("Events", "moderation подій: delete/restore"),
+            ("Roles", "ролі User/Admin у drawer користувача"),
+        ],
+        "note": "UI адмінки на frontend; demo/mock — порожні дані; повний сценарій — Admin JWT + backend.",
     },
     {
         "type": "roles",
@@ -603,9 +680,9 @@ SLIDES = [
             "Чати, дизайн і особистий кабінет.",
         ],
         "right": [
-            "Головний екран і контент на сайті.",
-            "Вкладка спільноти.",
-            "Злиття backend з frontend.",
+            "Головний екран і динамічна контентна стрічка (Feed).",
+            "Архітектура Network: контакти, groups, pages, events.",
+            "API-клієнт, demo-режим і підготовка до backend-інтеграції.",
         ],
     },
     {
@@ -652,7 +729,7 @@ SLIDES = [
         "points": [
             "Створено інтерфейс діалогів, повідомлень і станів unread.",
             "Додано сценарії архівації, mute, видалення повідомлень і share posts.",
-            "Реалізовано AI assistant як додаткову демонстраційну функцію для швидких підказок.",
+            "UI-шар для AI-підказок і майбутнього WebRTC — це mock-моделі, не production-функції.",
             "Комунікація підтримує ідею LinkedIn-like продукту: робота, контакти і повідомлення в одному місці.",
         ],
     },
@@ -683,37 +760,37 @@ SLIDES = [
     {
         "type": "feature",
         "focus": "home",
-        "title": "Андрій Ротарь: контент на сайті",
-        "headline": "Контентна стрічка робить платформу живою, а не лише каталогом вакансій.",
+        "title": "Андрій Ротарь: контентна стрічка (Feed)",
+        "headline": "Feed — найскладніша frontend-частина: динамічні пости, реакції та оновлення стану.",
         "points": [
-            "Реалізовано подачу постів у форматі професійної стрічки.",
-            "Додано взаємодії з контентом: реакції, коментарі та оновлення після дій користувача.",
-            "Контент підтримує ідею професійної активності та розвитку персонального бренду.",
-            "Стрічка логічно пов'язана з профілем, мережею контактів і головною навігацією.",
+            "Реалізовано подачу постів у форматі професійної стрічки з composer і sidebar inbox.",
+            "Додано обробку реакцій, коментарів і оновлення UI після дій користувача.",
+            "Стрічка синхронізується з providers і mock/API-даними без перезавантаження сторінки.",
+            "Це технічно складніший модуль, ніж статичні форми auth або profile.",
         ],
     },
     {
         "type": "feature",
         "focus": "network",
-        "title": "Андрій Ротарь: вкладка спільноти",
-        "headline": "Спільноти розширюють сайт від пошуку роботи до професійного нетворкінгу.",
+        "title": "Андрій Ротарь: архітектура Network",
+        "headline": "Network поєднує контакти, підписки, groups, pages і events в одній вкладці.",
         "points": [
-            "Вкладка network об'єднує контакти, підписки, групи, сторінки та події.",
-            "Користувач може бачити професійне оточення, а не лише список вакансій.",
+            "Побудовано структуру вкладки network з окремими підрозділами та навігацією.",
+            "Реалізовано зв'язки між контактами, профілями та соціальними сутностями.",
             "Groups/pages/events підсилюють відмінність LinkedIn Clone від звичайного job-board.",
-            "Сторінка спільноти підтримує довгострокову взаємодію користувачів.",
+            "Модуль показує архітектурну складність frontend, а не лише візуальний дизайн.",
         ],
     },
     {
         "type": "feature",
         "focus": "home",
-        "title": "Андрій Ротарь: злиття backend з frontend",
-        "headline": "Інтеграція з backend перетворює frontend із макета на робочий вебзастосунок.",
+        "title": "Андрій Ротарь: API-клієнт і demo-режим",
+        "headline": "На захисті — demo-режим з fallback; API-клієнт готовий до підключення backend.",
         "points": [
-            "Налаштовано API-взаємодію для auth, profile, content, network, jobs і messaging.",
-            "Frontend працює з token flow: access token, refresh token і session bootstrap.",
-            "Proxy та API-клієнт дозволяють запускати сайт локально і демонструвати реальні сценарії.",
-            "Fallback-дані залишають демо стабільним, навіть якщо backend недоступний.",
+            "Social demo і fallback-дані гарантують стабільну демонстрацію без залежності від сервера.",
+            "Створено структуру API-клієнта та proxy для майбутньої backend-інтеграції.",
+            "Механізм оновлення сесії є в коді, але live refresh на захисті не показуємо.",
+            "Backend-баги — зона backend-команди; frontend-шар готовий до підключення.",
         ],
     },
     {
@@ -723,24 +800,25 @@ SLIDES = [
         "left_title": "Що реалізовано",
         "right_title": "Практичний результат",
         "left": [
-            "Створено основні сторінки LinkedIn-like платформи: auth, home, network, vacancies, chat, profile.",
-            "Реалізовано користувацькі сценарії: реєстрація, профіль, контент, пошук роботи, чати.",
-            "Інтерфейс об'єднано з API-шаром і підтримкою станів користувача.",
+            "Завершений frontend MVP: UI, routing, providers, demo-flow і компонентна архітектура.",
+            "Два зони відповідальності: кандидатський UX (Тимур) і контент/мережа/API-клієнт (Андрій).",
+            "Demo-режим забезпечує стабільну презентацію без ризику live API-помилок.",
         ],
         "right": [
-            "Сайт можна демонструвати як завершений frontend-продукт, а не набір макетів.",
-            "Кожен учасник frontend-команди має чітку зону виступу на захисті.",
-            "Проєкт показує перевагу LinkedIn-like підходу над простими сайтами вакансій.",
+            "Це не макет, а архітектурно завершений frontend-продукт з реальними сценаріями.",
+            "Проєкт показує перевагу LinkedIn-like підходу над простими job-board.",
+            "Frontend готовий до подальшого підключення backend після стабілізації API.",
         ],
     },
     {
         "type": "final",
         "focus": None,
         "title": "Підсумок",
+        "subtitle": "Frontend MVP з demo-flow — архітектурно завершений продукт для захисту",
         "facts": [
-            "LinkedIn Clone демонструє професійну платформу з профілем, контентом, мережею, вакансіями та чатами.",
-            "Frontend-частина має зрозумілий користувацький шлях і розподіл відповідальності між Тимуром та Андрієм.",
-            "Головна перевага проєкту — не окрема функція, а цілісна LinkedIn-like екосистема.",
+            "LinkedIn Clone — це frontend MVP професійної екосистеми, а не окремий job-board.",
+            "На захисті демонструємо demo-flow через social demo та mock-дані.",
+            "Головний результат — архітектурно завершений клієнтський шар і зрозумілий UX.",
         ],
     },
 ]
@@ -767,6 +845,9 @@ def apply_report_style():
                 for i, point in enumerate(slide["points"])
             ]
 
+        elif slide["type"] == "filesystem":
+            slide["subtitle"] = f"Звітний огляд: {slide['subtitle']}"
+
         elif slide["type"] == "comparison":
             slide["left_title"] = f"Стан у конкурентів: {slide['left_title']}"
             slide["right_title"] = f"Наше рішення: {slide['right_title']}"
@@ -783,6 +864,11 @@ def apply_report_style():
                 (name, f"Рішення: {desc}") for name, desc in slide["items"]
             ]
 
+        elif slide["type"] == "structure":
+            slide["subtitle"] = f"Звітний огляд: {slide['subtitle']}"
+            slide["points"] = [f"Модуль: {point}" for point in slide["points"]]
+            slide["note"] = f"Архітектура: {slide['note']}"
+
         elif slide["type"] == "architecture":
             slide["steps"] = [
                 (name, f"Чому обрано: {desc}") for name, desc in slide["steps"]
@@ -796,6 +882,10 @@ def apply_report_style():
 
         elif slide["type"] == "journey":
             slide["note"] = f"Звітний результат: {slide['note']}"
+
+        elif slide["type"] == "admin":
+            slide["subtitle"] = f"Звітний огляд: {slide['subtitle']}"
+            slide["note"] = f"Результат: {slide['note']}"
 
         elif slide["type"] == "roles":
             slide["left"] = [f"Зона відповідальності: {point}" for point in slide["left"]]
@@ -820,6 +910,99 @@ def apply_report_style():
 
 apply_report_style()
 normalize_slide_numbers()
+
+MODULE_ICON_DATA = {
+    "Єдиний UX": {"main": "UX", "color_idx": 0},
+    "Dark/Light": {"main": "TH", "color_idx": 1},
+    "i18n": {"main": "LN", "color_idx": 2},
+    "Картки": {"main": "CD", "color_idx": 3},
+    "Анімації": {"main": "AN", "color_idx": 4},
+    "Пошук": {"main": "SR", "color_idx": 5},
+    "Demo-режим": {"main": "DM", "color_idx": 6},
+    "Fallback": {"main": "FB", "color_idx": 7},
+    "pages/": {"main": "PG", "color_idx": 0},
+    "features/": {"main": "FT", "color_idx": 1},
+    "app/": {"main": "AP", "color_idx": 2},
+    "shared/api": {"main": "API", "color_idx": 3},
+    "shared/ui": {"main": "UI", "color_idx": 4},
+    "shared/lib": {"main": "LB", "color_idx": 5},
+    "contexts": {"main": "CTX", "color_idx": 6},
+    "config": {"main": "CFG", "color_idx": 7},
+    "Dashboard": {"main": "DB", "color_idx": 0},
+    "Users": {"main": "US", "color_idx": 1},
+    "Content": {"main": "CT", "color_idx": 2},
+    "Comments": {"main": "CM", "color_idx": 3},
+    "Jobs": {"main": "JB", "color_idx": 4},
+    "Events": {"main": "EV", "color_idx": 5},
+    "Roles": {"main": "RL", "color_idx": 6},
+}
+
+FEATURE_TASK_META = {
+    "вікно реєстрації": {
+        "short": "Auth",
+        "icon": "A",
+        "color_idx": 0,
+        "subtitle": "реєстрація, login, ініціалізація сесії",
+    },
+    "сторінка вакансій": {
+        "short": "Jobs",
+        "icon": "J",
+        "color_idx": 2,
+        "subtitle": "список, картки, фільтри, apply",
+    },
+    "пошук роботи": {
+        "short": "Search",
+        "icon": "S",
+        "color_idx": 4,
+        "subtitle": "фільтри, запит, релевантні вакансії",
+    },
+    "чати": {
+        "short": "Chat",
+        "icon": "C",
+        "color_idx": 5,
+        "subtitle": "діалоги, unread, UI mock AI/WebRTC",
+    },
+    "дизайн і особистий кабінет": {
+        "short": "Profile",
+        "icon": "P",
+        "color_idx": 1,
+        "subtitle": "кабінет, avatar, skills, resume",
+    },
+    "головний екран": {
+        "short": "Home",
+        "icon": "H",
+        "color_idx": 0,
+        "subtitle": "стрічка, навігація, швидкий доступ",
+    },
+    "контентна стрічка": {
+        "short": "Feed",
+        "icon": "F",
+        "color_idx": 3,
+        "subtitle": "пости, реакції, коментарі, providers",
+    },
+    "архітектура network": {
+        "short": "Network",
+        "icon": "N",
+        "color_idx": 4,
+        "subtitle": "контакти, groups, pages, events",
+    },
+    "злиття backend з frontend": {
+        "short": "API",
+        "icon": "API",
+        "color_idx": 7,
+        "subtitle": "API-клієнт, demo-режим, fallback",
+    },
+    "api-клієnt і demo-режим": {
+        "short": "API",
+        "icon": "API",
+        "color_idx": 7,
+        "subtitle": "API-клієnt, demo-режим, fallback",
+    },
+}
+
+MODULE_COLORS = [BLUE, PURPLE, CYAN, GREEN, ORANGE, BLUE, PURPLE, CYAN]
+
+NS_P = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
 def add_shape(slide, shape_type, x, y, w, h, color, line_color=None):
@@ -858,8 +1041,9 @@ def add_centered_text(slide, x, y, w, h, text, size=18, bold=False, color=TEXT):
 
 def add_bullet_list(slide, items, x, y, w, line_h=0.56, size=13, color=TEXT):
     for i, txt in enumerate(items):
-        add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, x, y + i * line_h + 0.12, 0.12, 0.12, PURPLE_SOFT)
-        add_text(slide, x + 0.25, y + i * line_h, w - 0.25, line_h, txt, size=size, color=color)
+        yy = y + i * line_h
+        add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, x, yy + 0.1, 0.12, 0.12, PURPLE_SOFT)
+        add_text(slide, x + 0.25, yy, w - 0.3, line_h - 0.04, txt, size=size, color=color)
 
 
 def add_title(slide, title, subtitle=None):
@@ -872,6 +1056,157 @@ def add_card_with_shadow(slide, x, y, w, h, radius_color=CARD):
     shadow = add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, x + 0.04, y + 0.05, w, h, RGBColor(7, 9, 13))
     card = add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, x, y, w, h, radius_color, line_color=BORDER)
     return shadow, card
+
+
+def draw_icon_badge(slide, x, y, size, icon, bg_color, font_size=14, text_color=WHITE):
+    if len(icon) > 1:
+        w = size * 1.25
+        shape = add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, x, y, w, size, bg_color, line_color=bg_color)
+        font_size = min(font_size, 9)
+    else:
+        w = size
+        shape = add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, x, y, size, size, bg_color, line_color=bg_color)
+    tf = shape.text_frame
+    tf.margin_left = Inches(0)
+    tf.margin_right = Inches(0)
+    tf.margin_top = Inches(0)
+    tf.margin_bottom = Inches(0)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = icon
+    p.alignment = PP_ALIGN.CENTER
+    p.font.size = Pt(font_size)
+    p.font.bold = True
+    p.font.color.rgb = text_color
+    return shape
+
+
+def track_shape(shape, anim_ids):
+    if anim_ids is not None:
+        anim_ids.append(shape.shape_id)
+    return shape
+
+
+def add_click_appear_sequence(slide, shape_ids, duration_ms=450):
+    if not shape_ids:
+        return
+
+    effect_nodes = []
+    node_id = 3
+    for spid in shape_ids:
+        effect_nodes.append(
+            f"""
+            <p:par>
+              <p:cTn id="{node_id}" presetID="10" presetClass="entr" presetSubtype="0"
+                     fill="hold" nodeType="clickEffect">
+                <p:stCondLst>
+                  <p:cond delay="indefinite"/>
+                </p:stCondLst>
+                <p:childTnLst>
+                  <p:animEffect transition="in" filter="fade">
+                    <p:cBhvr>
+                      <p:cTn id="{node_id + 1}" dur="{duration_ms}"/>
+                      <p:tgtEl>
+                        <p:spTgt spid="{spid}"/>
+                      </p:tgtEl>
+                    </p:cBhvr>
+                  </p:animEffect>
+                </p:childTnLst>
+              </p:cTn>
+            </p:par>"""
+        )
+        node_id += 2
+
+    timing_xml = f"""
+    <p:timing xmlns:p="{NS_P}">
+      <p:tnLst>
+        <p:par>
+          <p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">
+            <p:childTnLst>
+              <p:seq concurrent="1" nextAc="seek">
+                <p:cTn id="2" dur="indefinite" nodeType="mainSeq">
+                  <p:childTnLst>
+                    {''.join(effect_nodes)}
+                  </p:childTnLst>
+                </p:cTn>
+              </p:seq>
+            </p:childTnLst>
+          </p:cTn>
+        </p:par>
+      </p:tnLst>
+    </p:timing>
+    """
+    slide._element.append(parse_xml(timing_xml))
+
+
+def get_module_icons(name):
+    return MODULE_ICON_DATA.get(name, {"main": "◆", "color_idx": 0})
+
+
+def get_feature_task_label(data):
+    title = data.get("title", "")
+    title = re.sub(r"^\d+\.\s*", "", title)
+    title = re.sub(r"^Звіт:\s*", "", title)
+    parts = [part.strip() for part in title.split(":") if part.strip()]
+    if len(parts) >= 2:
+        return parts[-1]
+    return title
+
+
+def get_feature_task_meta(data):
+    label = get_feature_task_label(data).lower()
+    for key, meta in FEATURE_TASK_META.items():
+        if key in label:
+            return meta
+    short = label.split()[0][:10].title() if label else "Task"
+    return {
+        "short": short,
+        "icon": short[0].upper(),
+        "color_idx": 0,
+        "subtitle": label,
+    }
+
+
+def draw_green_check(slide, x, y, size=16):
+    return add_centered_text(slide, x, y, 0.3, 0.3, "✓", size=size, bold=True, color=GREEN)
+
+
+def add_check_list(slide, items, x, y, w, line_h=0.82, size=9.5, color=TEXT):
+    for i, txt in enumerate(items):
+        yy = y + i * line_h
+        draw_green_check(slide, x, yy + 0.04, size=14)
+        add_text(slide, x + 0.28, yy, w - 0.32, line_h - 0.04, txt, size=size, color=color)
+
+
+def draw_task_card(slide, x, y, w, h, meta, anim_ids=None):
+    color = MODULE_COLORS[meta.get("color_idx", 0) % len(MODULE_COLORS)]
+    icon_text = meta.get("icon", "T")
+    header_y = y + 0.14
+    icon_size = 0.4
+    add_card_with_shadow(slide, x, y, w, h, CARD)
+    draw_icon_badge(slide, x + 0.16, header_y, icon_size, icon_text, color, font_size=12)
+    draw_green_check(slide, x + w - 0.4, header_y + 0.05, size=17)
+    title_w = w - 1.05
+    add_centered_text(slide, x + 0.62, header_y + 0.04, title_w, 0.32, meta["short"], size=13, bold=True, color=TEXT)
+    add_text(slide, x + 0.16, y + 0.58, w - 0.32, 0.46, meta.get("subtitle", ""), size=9.5, color=TEXT_MUTED)
+    return meta
+
+
+def draw_number_circle(slide, x, y, size, number, color):
+    shape = add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, x, y, size, size, color)
+    tf = shape.text_frame
+    tf.margin_left = Inches(0)
+    tf.margin_right = Inches(0)
+    tf.margin_top = Inches(0)
+    tf.margin_bottom = Inches(0)
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = str(number)
+    p.alignment = PP_ALIGN.CENTER
+    p.font.size = Pt(17 if size < 1.0 else 20)
+    p.font.bold = True
+    p.font.color.rgb = WHITE
+    return shape
 
 
 def draw_nav_buttons(slide, focus):
@@ -902,8 +1237,8 @@ def draw_nav_buttons(slide, focus):
 
 def draw_base(slide, idx, total, focus, show_nav=True, show_header=True):
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 0, 13.333, 7.5, BG_DARK)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 9.8, -1.45, 4.0, 4.0, RGBColor(18, 32, 55))
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, -1.3, 5.25, 3.6, 3.6, RGBColor(22, 24, 47))
+    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 10.55, 0.35, 2.5, 2.5, RGBColor(18, 32, 55))
+    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 0.35, 5.45, 1.55, 1.55, RGBColor(22, 24, 47))
     if show_header:
         add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 0, 13.333, 0.72, BG_DARK_2)
         add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 0.7, 13.333, 0.02, BORDER)
@@ -919,14 +1254,14 @@ def draw_base(slide, idx, total, focus, show_nav=True, show_header=True):
             draw_nav_buttons(slide, focus)
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 7.32, 13.333, 0.18, BG_DARK_2)
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 7.32, 13.333 * idx / total, 0.18, BLUE)
-    add_text(slide, 0.55, 7.31, 2.3, 0.12, "LinkedIn Diplom", size=8, color=TEXT_MUTED)
+    add_text(slide, 0.75, 7.31, 2.3, 0.12, "LinkedIn Diplom", size=8, color=TEXT_MUTED)
     add_text(slide, 12.3, 7.31, 0.9, 0.12, f"{idx}/{total}", size=8, color=TEXT_MUTED, align=PP_ALIGN.RIGHT)
 
 
 def draw_cover(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"), show_nav=False, show_header=False)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 10.4, 0.75, 2.2, 2.2, BLUE_SOFT)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 9.8, 2.6, 3.0, 3.0, RGBColor(17, 37, 63))
+    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 10.8, 0.55, 2.0, 2.0, BLUE_SOFT)
+    add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, 10.2, 2.35, 2.4, 2.4, RGBColor(17, 37, 63))
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 0.68, 0.95, 1.18, 0.9, BLUE, line_color=BLUE).text_frame.text = "in"
     p = slide.shapes[-1].text_frame.paragraphs[0]
     p.font.size = Pt(34)
@@ -1037,17 +1372,17 @@ def draw_report(slide, data, idx, total):
 def draw_statement(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"))
     add_title(slide, data["title"])
-    add_text(slide, 0.9, 1.78, 7.3, 1.15, data["headline"], size=27, bold=True, color=WHITE)
+    add_text(slide, 0.9, 1.68, 7.0, 1.75, data["headline"], size=21, bold=True, color=WHITE)
     add_card_with_shadow(slide, 8.65, 1.55, 3.15, 3.0, CARD_SOFT)
     add_centered_text(slide, 9.0, 1.95, 2.45, 1.15, data["metric"], size=70, bold=True, color=PURPLE_SOFT)
     add_centered_text(slide, 9.0, 3.15, 2.45, 0.7, data["metric_label"], size=13, color=TEXT)
-    add_card_with_shadow(slide, 0.95, 3.48, 7.4, 2.35, CARD)
-    add_bullet_list(slide, data["points"], 1.25, 3.82, 6.75, line_h=0.62, size=14)
+    add_card_with_shadow(slide, 0.95, 3.78, 7.35, 2.12, CARD)
+    add_bullet_list(slide, data["points"], 1.22, 4.02, 6.5, line_h=0.56, size=13)
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.95, 4.95, 2.55, 0.55, BLUE, line_color=BLUE)
     add_centered_text(slide, 9.04, 5.08, 2.35, 0.25, "MVP для захисту", size=12, bold=True, color=WHITE)
 
 
-def draw_modules(slide, data, idx, total):
+def draw_modules(slide, data, idx, total, anim_ids=None):
     draw_base(slide, idx, total, data.get("focus"))
     add_title(slide, data["title"], data.get("subtitle"))
     cols = 4
@@ -1057,18 +1392,85 @@ def draw_modules(slide, data, idx, total):
     start_y = 1.95
     gap_x = 0.32
     gap_y = 0.32
-    colors = [BLUE, PURPLE, CYAN, GREEN, ORANGE, BLUE, PURPLE, CYAN]
+    colors = MODULE_COLORS
     for i, (name, desc) in enumerate(data["items"]):
         row = i // cols
         col = i % cols
         x = start_x + col * (card_w + gap_x)
         y = start_y + row * (card_h + gap_y)
+        icon_meta = get_module_icons(name)
+        color = colors[icon_meta.get("color_idx", i) % len(colors)]
         add_card_with_shadow(slide, x, y, card_w, card_h, CARD)
-        add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, x + 0.18, y + 0.2, 0.58, 0.38, colors[i % len(colors)], line_color=colors[i % len(colors)])
-        add_text(slide, x + 0.88, y + 0.18, 1.75, 0.34, name, size=14, bold=True, color=TEXT)
-        add_text(slide, x + 0.22, y + 0.68, card_w - 0.44, 0.42, desc, size=10.5, color=TEXT_MUTED)
+        main_icon = draw_icon_badge(
+            slide,
+            x + 0.16,
+            y + 0.18,
+            0.42,
+            icon_meta["main"],
+            color,
+            font_size=15,
+        )
+        track_shape(main_icon, anim_ids)
+        add_text(slide, x + 0.68, y + 0.2, card_w - 0.88, 0.3, name, size=13, bold=True, color=TEXT)
+        add_text(slide, x + 0.2, y + 0.72, card_w - 0.4, 0.42, desc, size=10.5, color=TEXT_MUTED)
     add_card_with_shadow(slide, 1.15, 5.5, 11.0, 0.82, CARD_SOFT)
-    add_centered_text(slide, 1.35, 5.66, 10.6, 0.42, "Єдина платформа: користувач не перемикається між окремими сервісами для роботи, контенту та комунікації.", size=13, color=TEXT)
+    footer = data.get(
+        "footer",
+        "Єдина платформа: користувач не перемикається між окремими сервісами для роботи, контенту та комунікації.",
+    )
+    add_centered_text(slide, 1.35, 5.66, 10.6, 0.42, footer, size=13, color=TEXT)
+
+
+def draw_structure(slide, data, idx, total):
+    draw_base(slide, idx, total, data.get("focus"))
+    add_title(slide, data["title"], data.get("subtitle"))
+    add_card_with_shadow(slide, 0.78, 1.78, 5.55, 4.55, CARD)
+    add_text(slide, 1.02, 2.0, 4.8, 0.28, "Дерево папок frontend", size=13, bold=True, color=CYAN)
+    for i, line in enumerate(data.get("tree", FRONTEND_TREE_LINES)):
+        color = TEXT if line.endswith("/") or line.startswith("frontend") else TEXT_MUTED
+        add_text(slide, 1.05, 2.38 + i * 0.34, 5.1, 0.3, line, size=9.5, color=color)
+    add_card_with_shadow(slide, 6.62, 1.78, 6.0, 4.55, CARD_SOFT)
+    add_text(slide, 6.88, 2.0, 5.4, 0.28, "Ізольовані React-модулі", size=13, bold=True, color=PURPLE_SOFT)
+    add_check_list(slide, data["points"], 6.88, 2.42, 5.5, line_h=0.72, size=10, color=TEXT)
+    add_card_with_shadow(slide, 0.78, 6.05, 11.85, 0.62, CARD_SOFT)
+    add_text(slide, 1.02, 6.18, 11.4, 0.38, data["note"], size=10.5, color=TEXT)
+
+
+def draw_filesystem_tree_panel(slide, x, y, w, h, label, lines, label_color):
+    add_card_with_shadow(slide, x, y, w, h, CARD)
+    add_text(slide, x + 0.18, y + 0.12, w - 0.36, 0.24, label, size=12, bold=True, color=label_color)
+    inner_y = y + 0.42
+    for i, line in enumerate(lines):
+        is_root = line.endswith("/") or "frontend/" in line or "backend/" in line
+        add_text(
+            slide,
+            x + 0.16,
+            inner_y + i * 0.31,
+            w - 0.32,
+            0.28,
+            line,
+            size=9.2 if not is_root else 10,
+            bold=is_root,
+            color=TEXT if is_root else TEXT_MUTED,
+        )
+
+
+def draw_filesystem(slide, data, idx, total):
+    draw_base(slide, idx, total, data.get("focus"))
+    add_title(slide, data["title"], data.get("subtitle"))
+    draw_filesystem_tree_panel(slide, 0.78, 1.72, 7.35, 4.95, "frontend/ — наш фокус", FRONTEND_TREE_LINES, CYAN)
+    draw_filesystem_tree_panel(slide, 8.35, 1.72, 4.58, 4.95, "backend/ — контекст", BACKEND_TREE_LINES, ORANGE)
+    add_card_with_shadow(slide, 0.78, 6.05, 12.15, 0.62, CARD_SOFT)
+    add_text(
+        slide,
+        1.02,
+        6.18,
+        11.65,
+        0.38,
+        "Структура з реального репозиторію: React SPA розбито на pages, features, app та shared.",
+        size=10.5,
+        color=TEXT,
+    )
 
 
 def draw_comparison(slide, data, idx, total):
@@ -1078,10 +1480,22 @@ def draw_comparison(slide, data, idx, total):
     add_card_with_shadow(slide, 6.72, 1.78, 5.82, 4.95, CARD_SOFT)
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0.78, 1.78, 5.82, 0.07, ORANGE)
     add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 6.72, 1.78, 5.82, 0.07, GREEN)
-    add_text(slide, 1.08, 2.14, 4.9, 0.4, data["left_title"], size=18, bold=True, color=ORANGE)
-    add_text(slide, 7.02, 2.14, 4.9, 0.4, data["right_title"], size=18, bold=True, color=GREEN)
-    add_bullet_list(slide, data["left"], 1.08, 2.78, 5.1, line_h=0.74, size=13)
-    add_bullet_list(slide, data["right"], 7.02, 2.78, 5.1, line_h=0.74, size=13)
+    add_text(slide, 1.15, 2.02, 4.45, 0.82, data["left_title"], size=14, bold=True, color=ORANGE)
+    add_text(slide, 7.08, 2.02, 4.45, 0.82, data["right_title"], size=14, bold=True, color=GREEN)
+    add_bullet_list(slide, data["left"], 1.2, 2.95, 4.35, line_h=0.92, size=11.5)
+    add_bullet_list(slide, data["right"], 7.13, 2.95, 4.35, line_h=0.92, size=11.5)
+
+
+def add_fitted_picture(slide, image_path, x, y, max_w, max_h):
+    pic = slide.shapes.add_picture(str(image_path), Inches(x), Inches(y))
+    max_w_emu = Inches(max_w)
+    max_h_emu = Inches(max_h)
+    scale = min(max_w_emu / pic.width, max_h_emu / pic.height)
+    pic.width = int(pic.width * scale)
+    pic.height = int(pic.height * scale)
+    pic.left = int(Inches(x) + (max_w_emu - pic.width) / 2)
+    pic.top = int(Inches(y) + (max_h_emu - pic.height) / 2)
+    return pic
 
 
 def draw_stack(slide, data, idx, total):
@@ -1101,7 +1515,7 @@ def draw_stack(slide, data, idx, total):
 
 def draw_architecture(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"))
-    add_title(slide, data["title"], "Основний потік запиту від інтерфейсу до бази даних")
+    add_title(slide, data["title"], "Frontend: Context API, API-клієнт, demo-режим")
     count = len(data["steps"])
     start_x = 0.72
     y = 2.08
@@ -1149,7 +1563,7 @@ def draw_security(slide, data, idx, total):
 
 def draw_frontend(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"))
-    add_title(slide, data["title"], "SPA з guarded routes, state providers, темною/світлою темою та i18n")
+    add_title(slide, data["title"], data.get("subtitle", "React Router, guarded routes, demo-вхід"))
     add_card_with_shadow(slide, 0.86, 1.78, 11.65, 4.95, CARD)
     for i, (route, desc) in enumerate(data["routes"]):
         x = 1.22 + (i % 3) * 3.62
@@ -1159,38 +1573,66 @@ def draw_frontend(slide, data, idx, total):
         add_text(slide, x + 0.24, y + 0.72, 2.65, 0.44, desc, size=11.5, color=TEXT)
 
 
+def draw_admin(slide, data, idx, total):
+    draw_base(slide, idx, total, data.get("focus"))
+    add_title(slide, data["title"], data.get("subtitle"))
+    add_card_with_shadow(slide, 0.78, 1.78, 3.48, 4.12, CARD)
+    add_text(slide, 1.0, 1.98, 3.0, 0.28, "Доступ і архітектура", size=13, bold=True, color=PURPLE_SOFT)
+    add_check_list(slide, data["access"], 1.0, 2.38, 3.05, line_h=0.74, size=9, color=TEXT)
+    add_card_with_shadow(slide, 4.42, 1.78, 8.52, 4.12, CARD_SOFT)
+    add_text(slide, 4.62, 1.98, 4.5, 0.28, "Розділи admin-панелі", size=13, bold=True, color=CYAN)
+    colors = MODULE_COLORS
+    row_h = 0.52
+    start_y = 2.38
+    for i, (name, desc) in enumerate(data["sections"]):
+        y = start_y + i * row_h
+        icon_meta = get_module_icons(name)
+        color = colors[icon_meta.get("color_idx", i) % len(colors)]
+        if i > 0:
+            add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 4.58, y - 0.02, 8.18, 0.01, BORDER)
+        draw_icon_badge(slide, 4.58, y + 0.06, 0.3, icon_meta["main"], color, font_size=9)
+        add_text(slide, 4.98, y + 0.08, 1.35, 0.22, name, size=11.5, bold=True, color=TEXT)
+        add_text(slide, 6.35, y + 0.08, 6.2, 0.36, desc, size=9, color=TEXT_MUTED)
+        draw_green_check(slide, 12.62, y + 0.08, size=14)
+    add_card_with_shadow(slide, 0.78, 6.02, 12.15, 0.58, CARD_SOFT)
+    add_text(slide, 1.0, 6.14, 11.7, 0.34, data["note"], size=10, color=TEXT)
+
+
 def draw_journey(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"))
-    add_title(slide, data["title"], "Демонстраційний шлях користувача на захисті")
-    start_x = 0.72
-    y = 2.34
-    w = 1.74
-    for i, step in enumerate(data["steps"]):
-        x = start_x + i * 2.05
-        add_shape(slide, MSO_AUTO_SHAPE_TYPE.OVAL, x, y, 1.15, 1.15, BLUE if i < 3 else PURPLE)
-        add_centered_text(slide, x, y + 0.08, 1.15, 0.46, str(i + 1), size=20, bold=True, color=WHITE)
-        add_centered_text(slide, x - 0.28, y + 1.35, w, 0.62, step, size=11.5, color=TEXT)
-        if i < len(data["steps"]) - 1:
-            add_shape(slide, MSO_AUTO_SHAPE_TYPE.CHEVRON, x + 1.28, y + 0.32, 0.38, 0.48, BLUE_SOFT)
+    add_title(slide, data["title"], "Social demo, mock-дані, без live API")
+    steps = data["steps"]
+    count = len(steps)
+    circle_d = 0.9
+    start_x = 0.9
+    lane_w = 11.55
+    step_pitch = (lane_w - circle_d) / max(1, count - 1)
+    y = 2.55
+    label_w = max(1.35, step_pitch + 0.15)
+    for i, step in enumerate(steps):
+        x = start_x + i * step_pitch
+        draw_number_circle(slide, x, y, circle_d, i + 1, BLUE if i < 3 else PURPLE)
+        add_centered_text(slide, x - (label_w - circle_d) / 2, y + circle_d + 0.16, label_w, 0.58, step, size=11, color=TEXT)
+        if i < count - 1:
+            chevron_x = x + circle_d + 0.06
+            chevron_w = max(0.18, step_pitch - circle_d - 0.12)
+            add_shape(slide, MSO_AUTO_SHAPE_TYPE.CHEVRON, chevron_x, y + 0.28, chevron_w, 0.34, BLUE_SOFT)
     add_card_with_shadow(slide, 1.25, 5.25, 10.75, 0.9, CARD_SOFT)
     add_centered_text(slide, 1.55, 5.42, 10.15, 0.42, data["note"], size=13, color=TEXT)
 
 
-def draw_feature(slide, data, idx, total):
+def draw_feature(slide, data, idx, total, anim_ids=None):
     draw_base(slide, idx, total, data.get("focus"))
     add_title(slide, data["title"])
-    add_text(slide, 0.92, 1.75, 6.9, 0.92, data["headline"], size=22, bold=True, color=WHITE)
-    add_card_with_shadow(slide, 0.95, 3.02, 6.85, 2.75, CARD)
-    add_bullet_list(slide, data["points"], 1.26, 3.34, 6.1, line_h=0.55, size=12.4)
-    add_card_with_shadow(slide, 8.15, 1.78, 3.65, 4.8, CARD_SOFT)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.45, 2.12, 3.05, 0.38, BLUE_SOFT, line_color=BORDER)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.RECTANGLE, 8.45, 2.78, 3.05, 0.05, BORDER)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.45, 3.05, 2.45, 0.52, CARD_LIGHT, line_color=BORDER)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.45, 3.85, 2.8, 0.52, CARD_LIGHT, line_color=BORDER)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.45, 4.65, 2.15, 0.52, CARD_LIGHT, line_color=BORDER)
-    add_shape(slide, MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, 8.45, 5.55, 1.5, 0.34, BLUE, line_color=BLUE)
-    add_text(slide, 8.62, 2.2, 2.7, 0.12, "UI mockup", size=8.5, color=TEXT_MUTED)
-    add_centered_text(slide, 8.52, 5.62, 1.35, 0.12, "Action", size=8.5, bold=True, color=WHITE)
+    task_meta = get_feature_task_meta(data)
+    card_w = 3.15
+    card_h = 1.1
+    card_x = 13.333 - 0.68 - card_w
+    card_y = 1.5
+    draw_task_card(slide, card_x, card_y, card_w, card_h, task_meta, anim_ids)
+    add_text(slide, 0.92, 1.75, card_x - 1.0, 0.92, data["headline"], size=22, bold=True, color=WHITE)
+    add_card_with_shadow(slide, 0.95, 2.95, 11.45, 2.95, CARD)
+    add_bullet_list(slide, data["points"], 1.26, 3.28, 10.8, line_h=0.58, size=12.8)
 
 
 def draw_integration(slide, data, idx, total):
@@ -1244,7 +1686,11 @@ def draw_roles(slide, data, idx, total):
 def draw_final(slide, data, idx, total):
     draw_base(slide, idx, total, data.get("focus"))
     add_text(slide, 1.0, 1.35, 11.0, 0.8, data["title"], size=38, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_text(slide, 1.35, 2.15, 10.65, 0.45, "Готовий MVP демонструє повний цикл: інтерфейс, API, дані, безпеку та запуск.", size=17, color=TEXT_MUTED, align=PP_ALIGN.CENTER)
+    subtitle = data.get(
+        "subtitle",
+        "Frontend MVP з demo-flow — архітектурно завершений продукт для захисту",
+    )
+    add_text(slide, 1.35, 2.15, 10.65, 0.45, subtitle, size=17, color=TEXT_MUTED, align=PP_ALIGN.CENTER)
     for i, fact in enumerate(data["facts"]):
         add_card_with_shadow(slide, 1.55, 3.05 + i * 0.9, 10.2, 0.68, CARD_SOFT)
         add_text(slide, 1.9, 3.22 + i * 0.9, 9.45, 0.24, fact, size=13.5, color=TEXT)
@@ -1265,13 +1711,16 @@ def build_presentation():
         "report": draw_report,
         "statement": draw_statement,
         "modules": draw_modules,
+        "structure": draw_structure,
         "comparison": draw_comparison,
+        "filesystem": draw_filesystem,
         "stack": draw_stack,
         "architecture": draw_architecture,
         "database": draw_database,
         "security": draw_security,
         "frontend": draw_frontend,
         "journey": draw_journey,
+        "admin": draw_admin,
         "feature": draw_feature,
         "integration": draw_integration,
         "quality": draw_quality,
@@ -1283,7 +1732,14 @@ def build_presentation():
 
     for idx, data in enumerate(SLIDES, start=1):
         slide = presentation.slides.add_slide(presentation.slide_layouts[6])
-        draw_map[data["type"]](slide, data, idx, total)
+        if data["type"] == "modules":
+            anim_ids = []
+            draw_map[data["type"]](slide, data, idx, total, anim_ids)
+            add_click_appear_sequence(slide, anim_ids)
+        elif data["type"] == "feature":
+            draw_map[data["type"]](slide, data, idx, total, None)
+        else:
+            draw_map[data["type"]](slide, data, idx, total)
 
     presentation.save(OUTPUT_DOCS_FILE)
     presentation.save(OUTPUT_ROOT_FILE)
