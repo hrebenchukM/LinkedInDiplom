@@ -33,6 +33,19 @@
   color-scheme: dark;
 }
 
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .modal-content select {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme='dark'] .form-select option,
+[data-theme='dark'] .modal-content select option {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+}
+
 [data-theme='dark'] .group-header,
 [data-theme='dark'] .group-content-card,
 [data-theme='dark'] .group-sidebar-card,

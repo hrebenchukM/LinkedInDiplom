@@ -143,9 +143,11 @@ const VacanciesPage = ({ onNavigate }) => {
 
       if (isValidationError(err) && (nextFilters || nextSearch)) {
         try {
+          const retryQuery = mapFiltersToVacancyQuery({}, nextSearch);
           const response = await getVacancies({
             page: pageToLoad,
             pageSize: DEFAULT_PAGE_SIZE,
+            ...retryQuery,
             favoriteIds: nextFavoriteIds,
             appliedIds: nextAppliedIds,
           });
@@ -206,10 +208,13 @@ const VacanciesPage = ({ onNavigate }) => {
     setPage(1);
   };
 
-  const visibleVacancies = useMemo(
-    () => applyClientSideVacancyFilters(vacancies, filters),
-    [vacancies, filters],
-  );
+  const visibleVacancies = useMemo(() => {
+    if (searchQuery.trim()) {
+      return vacancies;
+    }
+
+    return applyClientSideVacancyFilters(vacancies, filters);
+  }, [vacancies, filters, searchQuery]);
 
   const userSkillNames = useMemo(
     () => userSkills.map((item) => item.skill?.name).filter(Boolean),
@@ -281,6 +286,9 @@ const VacanciesPage = ({ onNavigate }) => {
   const handleSearchQuery = (query) => {
     setSearchQuery(query ?? '');
     setPage(1);
+    if (viewMode === 'saved') {
+      setViewMode('all');
+    }
   };
 
   const handleLoadMore = () => {

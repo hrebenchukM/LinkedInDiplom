@@ -13,8 +13,7 @@ import {
 } from '../../features/auth/socialAuth.js';
 import { setAuthTokens, getAccessToken } from '../../shared/api/tokens.js';
 import { ApiError, getErrorMessage } from '../../shared/lib/apiError.js';
-import ThemeToggle from '../../app/theme/ThemeToggle.jsx';
-import LanguageSwitcher from '../../app/i18n/LanguageSwitcher.jsx';
+import AuthTopBar from './AuthTopBar.jsx';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 import './Auth.css';
 import logoImg from '../../shared/assets/illustrations/linkedin_icon.png';
@@ -187,8 +186,7 @@ const AuthPage = () => {
 
   return (
     <div className="auth-page">
-      <ThemeToggle variant="auth" />
-      <LanguageSwitcher variant="auth" />
+      <AuthTopBar />
 
       <div className="auth-logo">
         <img

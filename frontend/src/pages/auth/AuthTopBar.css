@@ -1,0 +1,18 @@
+.auth-top-bar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .auth-top-bar {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    justify-content: flex-end;
+  }
+}

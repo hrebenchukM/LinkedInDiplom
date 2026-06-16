@@ -294,3 +294,19 @@ export async function getCompanyById(companyId) {
     return null;
   }
 }
+
+export async function createMyCompany(data) {
+  const response = await apiClient.post(API_PATHS.professional.myCompanies, data);
+  const success = response?.success ?? response?.Success;
+  const company = response?.company ?? response?.Company;
+  const errors = response?.errors ?? response?.Errors;
+
+  if (success === false || !company) {
+    const message = Array.isArray(errors) && errors.length > 0
+      ? errors.join(' ')
+      : 'Could not create company.';
+    throw new Error(message);
+  }
+
+  return mapCompanyDto(company);
+}

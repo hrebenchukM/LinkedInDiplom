@@ -58,9 +58,15 @@
   border: 1px solid var(--border-input);
   border-radius: var(--radius-input);
   font-size: 14px;
-  background: var(--bg-input);
+  background-color: var(--bg-input);
   color: var(--text-primary);
+  color-scheme: light dark;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme='dark'] .vacancies-search-input {
+  color-scheme: dark;
+  background-color: var(--bg-input);
 }
 
 .vacancies-search-input:focus {

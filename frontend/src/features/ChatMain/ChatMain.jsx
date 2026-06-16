@@ -13,6 +13,8 @@ import {
   User,
   Star,
   ShieldAlert,
+  PhoneMissed,
+  PhoneOff,
 } from 'lucide-react';
 import '../ChatMain/ChatMain.css';
 import VoiceCallOverlay from './VoiceCallOverlay.jsx';
@@ -26,6 +28,10 @@ import {
 import { Sparkles } from 'lucide-react';
 import SharedPostCard from './SharedPostCard.jsx';
 import { mergeSharedPostDisplayMessages, resolveSharedPostMessage } from '../../features/messaging/sharedPostMessage.js';
+import {
+  getCallMessageText,
+  isCallMessage,
+} from '../../shared/lib/callMessage.js';
 import {
   clearChatDraft,
   getChatDraft,
@@ -65,6 +71,7 @@ const ChatMain = ({
   onDeleteChat,
   onViewProfile,
   onDraftChange,
+  onCallEnded,
 }) => {
   const { t, locale: contextLocale } = useTranslation();
   const locale = localeProp || contextLocale;
@@ -89,15 +96,26 @@ const ChatMain = ({
   const menuRef = useRef(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const callEndedRef = useRef(false);
 
   const handleCall = () => {
     if (isAiAssistant) return;
     setMenuOpen(false);
+    callEndedRef.current = false;
     setCallActive(true);
   };
 
-  const handleCallClose = () => {
+  const handleCallClose = (result) => {
     setCallActive(false);
+
+    if (isAiAssistant || !selectedUser?.id || callEndedRef.current) return;
+
+    callEndedRef.current = true;
+    const reason = result?.reason ?? 'cancelled';
+    onCallEnded?.({
+      chatId: selectedUser.id,
+      callStatus: reason === 'no-answer' ? 'missed' : 'cancelled',
+    });
   };
 
   useEffect(() => {
@@ -116,6 +134,7 @@ const ChatMain = ({
   useEffect(() => {
     setMenuOpen(false);
     setCallActive(false);
+    callEndedRef.current = false;
   }, [selectedUser?.id]);
 
   useEffect(() => {
@@ -442,6 +461,35 @@ const ChatMain = ({
           const isMine = message.isMine || message.senderId === currentUserId;
           const isAiMessage = message.isAiAssistant || message.senderId === 'aiassistant';
           const sharedPost = resolveSharedPostMessage(message);
+
+          if (isCallMessage(message)) {
+            const isMissed = message.callStatus === 'missed';
+
+            return (
+              <div key={message.id} className="message message--call">
+                <div className={`chat-call-card${isMissed ? ' chat-call-card--missed' : ''}`}>
+                  <span className={`chat-call-card__icon${isMissed ? ' chat-call-card__icon--missed' : ''}`}>
+                    {isMissed ? <PhoneMissed size={18} aria-hidden="true" /> : <PhoneOff size={18} aria-hidden="true" />}
+                  </span>
+                  <div className="chat-call-card__body">
+                    <span className="chat-call-card__text">{getCallMessageText(message, t)}</span>
+                    <span className="chat-call-card__time">
+                      {formatMessageTime(message.sentAt ?? message.createdAt, dateLocale)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="chat-call-card__retry"
+                    onClick={handleCall}
+                    title={t('chat.callBack', 'Call back')}
+                    aria-label={t('chat.callBack', 'Call back')}
+                  >
+                    <Phone size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          }
 
           if (message.deleted) {
             return (

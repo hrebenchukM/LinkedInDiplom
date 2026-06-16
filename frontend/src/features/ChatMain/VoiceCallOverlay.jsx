@@ -17,6 +17,16 @@ export default function VoiceCallOverlay({ contact, onClose }) {
     return () => window.clearTimeout(timer);
   }, [contact?.id]);
 
+  useEffect(() => {
+    if (phase !== 'no-answer') return undefined;
+
+    const autoCloseTimer = window.setTimeout(() => {
+      onClose?.({ reason: 'no-answer' });
+    }, 2200);
+
+    return () => window.clearTimeout(autoCloseTimer);
+  }, [phase, onClose]);
+
   const statusLabel =
     phase === 'no-answer'
       ? t('chat.callNoAnswer', 'No answer')

@@ -1,37 +1,82 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X } from 'lucide-react';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
-import { AI_ASSISTANT_CHAT_ID } from '../messaging/aiAssistantSession.js';
+import {
+  AI_ASSISTANT_CHAT_ID,
+  AI_HOME_TOAST_EVENT,
+  AI_HOME_TOAST_PENDING_KEY,
+  AI_HOME_TOAST_SHOWN_KEY,
+} from '../messaging/aiAssistantSession.js';
 import './AiAssistantHomeToast.css';
 
-const SESSION_KEY = 'linkup.aiHomePromptShown';
+function readPendingFlag() {
+  try {
+    return sessionStorage.getItem(AI_HOME_TOAST_PENDING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
-export default function AiAssistantHomeToast({ enabled = true, delayMs = 10000 }) {
+function shouldShowToast(isDemo) {
+  if (readPendingFlag()) return true;
+
+  try {
+    return !isDemo && sessionStorage.getItem(AI_HOME_TOAST_SHOWN_KEY) !== '1';
+  } catch {
+    return !isDemo;
+  }
+}
+
+function markToastHandled(isDemo) {
+  try {
+    sessionStorage.removeItem(AI_HOME_TOAST_PENDING_KEY);
+    if (!isDemo) {
+      sessionStorage.setItem(AI_HOME_TOAST_SHOWN_KEY, '1');
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export default function AiAssistantHomeToast({
+  enabled = true,
+  isDemo = false,
+  delayMs = 10000,
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (!enabled) return undefined;
+  const scheduleToast = useCallback(() => {
+    if (!enabled || !shouldShowToast(isDemo)) return;
 
-    try {
-      if (sessionStorage.getItem(SESSION_KEY) === '1') return undefined;
-    } catch {
-      /* ignore */
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
     }
 
-    const timer = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setVisible(true);
-      try {
-        sessionStorage.setItem(SESSION_KEY, '1');
-      } catch {
-        /* ignore */
-      }
+      markToastHandled(isDemo);
+      timerRef.current = null;
     }, delayMs);
+  }, [delayMs, enabled, isDemo]);
 
-    return () => clearTimeout(timer);
-  }, [enabled, delayMs]);
+  useEffect(() => {
+    scheduleToast();
+
+    const onPrompt = () => scheduleToast();
+    window.addEventListener(AI_HOME_TOAST_EVENT, onPrompt);
+
+    return () => {
+      window.removeEventListener(AI_HOME_TOAST_EVENT, onPrompt);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [scheduleToast]);
 
   if (!visible) return null;
 
@@ -52,7 +97,12 @@ export default function AiAssistantHomeToast({ enabled = true, delayMs = 10000 }
 
       <div className="ai-home-toast-content">
         <strong>{t('home.aiToast.title', 'AI Assistant')}</strong>
-        <p>{t('home.aiToast.message', 'Need help navigating LinkUp? I can guide you to profile, network, jobs and more.')}</p>
+        <p>
+          {t(
+            'home.aiToast.message',
+            'Need help navigating LinkUp? I can guide you to profile, network, jobs and more.',
+          )}
+        </p>
         <button
           type="button"
           className="ai-home-toast-action"

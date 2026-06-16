@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import ThemeToggle from '../../app/theme/ThemeToggle.jsx';
-import LanguageSwitcher from '../../app/i18n/LanguageSwitcher.jsx';
+import AuthTopBar from '../auth/AuthTopBar.jsx';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 import './Landing.css';
 import Footer from '../../app/ui/Footer';
@@ -34,8 +33,7 @@ const LandingPage = () => {
 
   return (
     <div className="landing-page">
-      <ThemeToggle variant="auth" />
-      <LanguageSwitcher variant="auth" />
+      <AuthTopBar />
 
       <header className="landing-header">
         <div className="landing-header-container">

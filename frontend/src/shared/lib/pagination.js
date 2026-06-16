@@ -89,7 +89,10 @@ export function buildPaginationQuery({
 
   appendQueryParam(params, 'page', page);
   appendQueryParam(params, 'pageSize', pageSize ?? limit);
-  appendQueryParam(params, 'search', search ?? query);
+
+  const searchText = search ?? query;
+  appendQueryParam(params, 'search', searchText);
+  appendQueryParam(params, 'query', searchText);
 
   const normalizedSortBy = sortBy == null || sortBy === '' ? undefined : String(sortBy);
   const normalizedSortDirection = normalizeSortDirection(sortDirection);

@@ -1,8 +1,7 @@
 import './Splash.css';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ThemeToggle from '../../app/theme/ThemeToggle.jsx';
-import LanguageSwitcher from '../../app/i18n/LanguageSwitcher.jsx';
+import AuthTopBar from '../auth/AuthTopBar.jsx';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 
 import splashImg from '../../shared/assets/illustrations/splash.png';
@@ -22,8 +21,7 @@ export default function SplashPage() {
 
   return (
     <div className="splash-page">
-      <ThemeToggle variant="auth" />
-      <LanguageSwitcher variant="auth" />
+      <AuthTopBar />
 
       <div className="splash-content">
         <h1 className="splash-title">{t('splash.welcome', 'Welcome to LinkUp')}</h1>

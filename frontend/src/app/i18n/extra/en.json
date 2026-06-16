@@ -771,6 +771,7 @@
   "profile.skills.empty": "No skills added",
   "profile.skills.hotList": "Suggested skills",
   "profile.skills.notInCatalog": "Skill not found in catalog. Try another name.",
+  "profile.skills.remove": "Remove skill",
   "profile.skills.removeFailed": "Failed to remove skill.",
   "profile.skills.removed": "Skill removed.",
   "profile.skills.title": "Skills",

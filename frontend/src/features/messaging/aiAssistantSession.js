@@ -13,6 +13,10 @@ import {
 export const AI_ASSISTANT_CHAT_ID = AI_ASSISTANT_PEER_ID;
 
 const STORAGE_KEY = 'linkup.aiAssistant.messages';
+export const AI_HOME_TOAST_PENDING_KEY = 'linkup.aiHomePromptPending';
+export const AI_HOME_TOAST_SHOWN_KEY = 'linkup.aiHomePromptShown';
+export const AI_ASSISTANT_UPDATED_EVENT = 'linkup:ai-assistant-updated';
+export const AI_HOME_TOAST_EVENT = 'linkup:ai-home-toast';
 
 function welcomeMessages(t) {
   const intro = t(
@@ -74,6 +78,58 @@ export function loadAiAssistantMessages(t) {
     /* ignore */
   }
   return welcomeMessages(t);
+}
+
+export function clearAiAssistantMessages() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function buildDemoGreetingMessage(content) {
+  const now = new Date().toISOString();
+  return {
+    id: `ai-demo-${Date.now()}`,
+    chatId: AI_ASSISTANT_CHAT_ID,
+    senderId: AI_ASSISTANT_CHAT_ID,
+    content,
+    sentAt: now,
+    createdAt: now,
+    isMine: false,
+    isAiAssistant: true,
+    sender: {
+      id: AI_ASSISTANT_CHAT_ID,
+      firstName: 'AI Assistant',
+      avatarUrl: getContactAvatarUrl(
+        getContactProfile(AI_ASSISTANT_PEER_ID),
+        AI_ASSISTANT_CHAT_ID,
+      ),
+    },
+  };
+}
+
+/** Fresh AI chat + bottom-right prompt after demo login. */
+export function prepareDemoAiAssistantSession() {
+  clearAiAssistantMessages();
+
+  const greeting = buildDemoGreetingMessage(
+    'Hi! I am your LinkUp assistant. Ask about profile, network, jobs, or type help for commands.',
+  );
+  saveAiAssistantMessages([greeting]);
+
+  try {
+    sessionStorage.removeItem(AI_HOME_TOAST_SHOWN_KEY);
+    sessionStorage.setItem(AI_HOME_TOAST_PENDING_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AI_ASSISTANT_UPDATED_EVENT));
+    window.dispatchEvent(new CustomEvent(AI_HOME_TOAST_EVENT));
+  }
 }
 
 export function saveAiAssistantMessages(messages) {

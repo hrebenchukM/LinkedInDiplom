@@ -36,8 +36,6 @@ import { getErrorMessage } from '../../shared/lib/apiError.js';
 
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 
-import AiAssistantHomeToast from '../../features/AiAssistantHomeToast/AiAssistantHomeToast.jsx';
-
 import AppContext from '../../features/appContext/AppContext';
 import { PROFILE_UPDATED_EVENT } from '../../features/profile/profileApi.js';
 
@@ -729,8 +727,6 @@ const HomePage = ({ onNavigate }) => {
         </div>
 
       </div>
-
-      <AiAssistantHomeToast enabled={Boolean(user)} delayMs={10000} />
 
     </main>
 

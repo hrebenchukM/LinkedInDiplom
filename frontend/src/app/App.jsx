@@ -24,6 +24,12 @@ import { getMyProfile, PROFILE_UPDATED_EVENT } from '../features/profile/profile
 import { getDisplayName } from '../features/profile/mapProfile.js';
 import { clearMessagingProfileCache } from '../features/messaging/enrichMessagingProfiles.js';
 import { persistRegisteredProfile } from '../shared/lib/authSession.js';
+import { isDemoAccountEmail } from '../features/auth/demoAccount.js';
+import {
+  AI_HOME_TOAST_EVENT,
+  AI_HOME_TOAST_PENDING_KEY,
+  prepareDemoAiAssistantSession,
+} from '../features/messaging/aiAssistantSession.js';
 
 // public
 import SplashPage from '../pages/splash/Splash';
@@ -86,6 +92,10 @@ export default function App() {
     if (nextAccount) {
       setAccount(nextAccount);
       setUser(buildUserFromAccount(nextAccount));
+
+      if (isDemoAccountEmail(nextAccount.email)) {
+        prepareDemoAiAssistantSession();
+      }
     }
   }, []);
 
@@ -200,6 +210,20 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    try {
+      if (sessionStorage.getItem(AI_HOME_TOAST_PENDING_KEY) === '1') {
+        window.dispatchEvent(new CustomEvent(AI_HOME_TOAST_EVENT));
+      }
+    } catch {
+      /* ignore */
+    }
+
+    return undefined;
   }, [token]);
 
   useEffect(() => {

@@ -24,10 +24,8 @@
 }
 
 .theme-toggle--auth {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 10;
+  position: static;
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
   border-radius: 12px;

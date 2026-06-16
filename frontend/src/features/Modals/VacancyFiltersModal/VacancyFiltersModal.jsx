@@ -137,49 +137,53 @@ const VacancyFiltersModal = ({ isOpen, onClose, onApplyFilters }) => {
           <h3>{t('vac.filters.salaryRange', 'Salary Range')}</h3>
           <p className="filter-hint">{t('vac.filters.pageOnly', 'Applied on the current page only')}</p>
           <div className="salary-range">
-            <input
-              type="number"
-              placeholder={t('vac.filters.min', 'Min')}
-              value={filters.salaryRange[0]}
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  salaryRange: [
-                    Number(event.target.value) || 0,
-                    prev.salaryRange[1],
-                  ],
-                }))
-              }
-            />
-            <span>—</span>
-            <input
-              type="number"
-              placeholder={t('vac.filters.max', 'Max')}
-              value={filters.salaryRange[1]}
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  salaryRange: [
-                    prev.salaryRange[0],
-                    Number(event.target.value) || 300000,
-                  ],
-                }))
-              }
-            />
+            <div className="salary-inputs">
+              <input
+                type="number"
+                className="form-input"
+                placeholder={t('vac.filters.min', 'Min')}
+                value={filters.salaryRange[0]}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    salaryRange: [
+                      Number(event.target.value) || 0,
+                      prev.salaryRange[1],
+                    ],
+                  }))
+                }
+              />
+              <span>—</span>
+              <input
+                type="number"
+                className="form-input"
+                placeholder={t('vac.filters.max', 'Max')}
+                value={filters.salaryRange[1]}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    salaryRange: [
+                      prev.salaryRange[0],
+                      Number(event.target.value) || 300000,
+                    ],
+                  }))
+                }
+              />
+            </div>
           </div>
         </div>
 
         <div className="filter-actions">
           <button
             type="button"
-            className="filter-btn-secondary"
+            className="modal-btn modal-btn--secondary filter-btn-secondary"
             onClick={handleReset}
           >
             {t('vac.filters.reset', 'Reset')}
           </button>
           <button
             type="button"
-            className="filter-btn-primary"
+            className="modal-btn modal-btn--primary filter-btn-primary"
             onClick={handleApply}
           >
             {t('vac.filters.apply', 'Apply')}

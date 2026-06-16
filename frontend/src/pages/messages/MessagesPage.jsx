@@ -41,6 +41,7 @@ import { debugLog } from '../../shared/lib/debugSession.js';
 import { truncateChatPreview } from '../../shared/lib/formatChatTime.js';
 import {
   AI_ASSISTANT_CHAT_ID,
+  AI_ASSISTANT_UPDATED_EVENT,
   buildAiAssistantDisplayChat,
   isAiAssistantChatId,
   loadAiAssistantMessages,
@@ -74,6 +75,16 @@ import {
   getChatDraft,
   getChatIdsWithDrafts,
 } from '../../features/messaging/chatDraftStorage.js';
+import {
+  appendCallMessage,
+  clearCallMessagesForChat,
+  getCallMessagesForChat,
+} from '../../features/messaging/chatCallStorage.js';
+import {
+  buildCallMessage,
+  getCallMessageText,
+  mergeCallMessages,
+} from '../../shared/lib/callMessage.js';
 import {
   filterChatsForSidebar,
   getChatFilterEmptyMessageKey,
@@ -216,7 +227,12 @@ const MessagesPage = () => {
         const enriched = await enrichMessagesWithSenders(result.items);
         if (requestId !== messagesRequestRef.current) return;
 
-        const sorted = sortMessages(enriched);
+        const storedCalls = getCallMessagesForChat(currentUserId, chatId).map((message) => ({
+          ...message,
+          content: message.content || getCallMessageText(message, t),
+        }));
+        const withCalls = mergeCallMessages(enriched, storedCalls);
+        const sorted = sortMessages(withCalls);
         setMessages(sorted);
 
         const latest = sorted[sorted.length - 1];
@@ -428,6 +444,23 @@ const MessagesPage = () => {
     return undefined;
   }, [selectedChat, t]);
 
+  useEffect(() => {
+    const syncAiAssistantFromStorage = () => {
+      const stored = loadAiAssistantMessages(t);
+      const latest = stored[stored.length - 1];
+      if (latest?.content) {
+        setAiPreview(truncateChatPreview(latest.content));
+      }
+      if (selectedChat && isAiAssistantChatId(selectedChat)) {
+        setMessages(stored);
+      }
+    };
+
+    syncAiAssistantFromStorage();
+    window.addEventListener(AI_ASSISTANT_UPDATED_EVENT, syncAiAssistantFromStorage);
+    return () => window.removeEventListener(AI_ASSISTANT_UPDATED_EVENT, syncAiAssistantFromStorage);
+  }, [selectedChat, t]);
+
   const handleSelectChat = (chatId) => {
     messagesRequestRef.current += 1;
 
@@ -493,6 +526,22 @@ const MessagesPage = () => {
       );
     }
   }, [routeChatId, chats, loadingChats, selectedChat]);
+
+  const handleCallEnded = useCallback(({ chatId, callStatus }) => {
+    if (!chatId || !currentUserId || isAiAssistantChatId(chatId)) return;
+
+    const callMessage = buildCallMessage({
+      chatId,
+      callStatus,
+      currentUserId,
+      t,
+    });
+
+    appendCallMessage(currentUserId, chatId, callMessage);
+
+    setMessages((prev) => sortMessages([...prev, callMessage]));
+    updateChatPreview(chatId, callMessage);
+  }, [currentUserId, t, updateChatPreview]);
 
   const handleSendMessage = async ({ chatId, content }) => {
     if (!chatId || !content?.trim()) return;
@@ -626,6 +675,7 @@ const MessagesPage = () => {
   const finalizeChatRemoval = (chatId) => {
     clearUserInitiatedChat(chatId);
     clearArchivedChat(currentUserId, chatId);
+    clearCallMessagesForChat(currentUserId, chatId);
     setArchiveTick((value) => value + 1);
     setChats((prev) => prev.filter((item) => item.id !== chatId));
     setSendError('');
@@ -842,6 +892,7 @@ const MessagesPage = () => {
           }}
           currentUserId={currentUserId}
           onSendMessage={handleSendMessage}
+          onCallEnded={handleCallEnded}
           locale={locale}
         />
 
