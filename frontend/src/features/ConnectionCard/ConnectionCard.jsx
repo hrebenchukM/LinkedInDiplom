@@ -10,7 +10,6 @@ import {
   sendContactRequest,
 } from '../network/networkApi.js';
 import { getErrorMessage } from '../../shared/lib/apiError.js';
-import { debugLog } from '../../shared/lib/debugSession.js';
 import { openChatWithUser } from '../network/openChatWithUser.js';
 
 const ConnectionCard = ({
@@ -41,14 +40,6 @@ const ConnectionCard = ({
     setError('');
 
     try {
-      // #region agent log
-      debugLog(
-        'ConnectionCard.jsx:handleWrite',
-        'write started',
-        { userId: String(userId), status, cardType },
-        'D',
-      );
-      // #endregion
       if (status === 'incoming' && contactId) {
         await acceptContactRequest(contactId);
         setStatus('contact');
@@ -64,18 +55,7 @@ const ConnectionCard = ({
       });
 
       onActionComplete?.();
-      // #region agent log
-      debugLog('ConnectionCard.jsx:handleWrite', 'write success', { userId: String(userId) }, 'E');
-      // #endregion
     } catch (err) {
-      // #region agent log
-      debugLog(
-        'ConnectionCard.jsx:handleWrite',
-        'write failed',
-        { userId: String(userId), error: getErrorMessage(err) },
-        'B',
-      );
-      // #endregion
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);

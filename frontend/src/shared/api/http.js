@@ -7,7 +7,6 @@ import {
   setAuthTokens,
 } from './tokens.js';
 import { ApiError, logApiError, parseApiError } from '../lib/apiError.js';
-import { debugLog } from '../lib/debugSession.js';
 import { API_PATHS } from './paths.js';
 import { mapRefreshResponse } from '../../features/auth/mapAccount.js';
 
@@ -202,20 +201,6 @@ async function executeRequest(method, path, options = {}) {
     if (import.meta.env.DEV) {
       logApiError(apiError, `${method} ${path}`);
     }
-
-    // #region agent log
-    debugLog(
-      'http.js:executeRequest',
-      'api request failed',
-      {
-        method,
-        path,
-        status: response.status,
-        message: apiError.message,
-      },
-      'B',
-    );
-    // #endregion
 
     throw apiError;
   }

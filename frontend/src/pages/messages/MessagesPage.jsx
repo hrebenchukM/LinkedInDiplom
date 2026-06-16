@@ -37,7 +37,6 @@ import {
   offMessageMediaAttached,
 } from '../../features/messaging/signalRService.js';
 import { getErrorMessage } from '../../shared/lib/apiError.js';
-import { debugLog } from '../../shared/lib/debugSession.js';
 import { truncateChatPreview } from '../../shared/lib/formatChatTime.js';
 import {
   AI_ASSISTANT_CHAT_ID,
@@ -694,28 +693,9 @@ const MessagesPage = () => {
 
     const chat = chats.find((item) => item.id === chatId);
     try {
-      // #region agent log
-      debugLog(
-        'MessagesPage.jsx:handleDeleteChat',
-        'delete started',
-        { chatId: String(chatId), hasCreatedBy: Boolean(chat?.createdBy) },
-        'B',
-      );
-      // #endregion
       await removeChatForUser(chatId, currentUserId, chat?.createdBy);
       finalizeChatRemoval(chatId);
-      // #region agent log
-      debugLog('MessagesPage.jsx:handleDeleteChat', 'delete success', { chatId: String(chatId) }, 'E');
-      // #endregion
     } catch (err) {
-      // #region agent log
-      debugLog(
-        'MessagesPage.jsx:handleDeleteChat',
-        'delete failed',
-        { chatId: String(chatId), error: getErrorMessage(err) },
-        'B',
-      );
-      // #endregion
       setSendError(getErrorMessage(err));
     }
   };

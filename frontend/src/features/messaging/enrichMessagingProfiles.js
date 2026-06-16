@@ -10,7 +10,6 @@ import {
   getChatCompanions,
 } from './userInitiatedChats.js';
 import { getSharedPostPreview } from './sharedPostMessage.js';
-import { debugLog } from '../../shared/lib/debugSession.js';
 import { getChatById, getChatMembers } from './messagingApi.js';
 import {
   getCompanionUserIdFromChat,
@@ -158,25 +157,7 @@ export async function enrichChatsWithCompanions(chats = [], currentUserId) {
           .filter(Boolean)
           .map(String),
       );
-      // #region agent log
-      debugLog(
-        'enrichMessagingProfiles.js:enrichChatsWithCompanions',
-        'contacts loaded for chat filter',
-        { count: filterOptions.contactUserIds.size, pageSize: 100 },
-        'B',
-        'post-fix',
-      );
-      // #endregion
     } catch (err) {
-      // #region agent log
-      debugLog(
-        'enrichMessagingProfiles.js:enrichChatsWithCompanions',
-        'contacts load failed',
-        { error: err?.message ?? 'unknown' },
-        'B',
-        'post-fix',
-      );
-      // #endregion
       filterOptions.contactUserIds = new Set();
     }
   }

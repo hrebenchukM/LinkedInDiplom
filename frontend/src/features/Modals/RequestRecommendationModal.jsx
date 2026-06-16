@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../../app/ui/Modal';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
-import { debugLog } from '../../shared/lib/debugSession.js';
 
 const RequestRecommendationModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -12,16 +11,6 @@ const RequestRecommendationModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     const query = searchQuery.trim();
     if (!query) return;
-
-    // #region agent log
-      debugLog(
-        'RequestRecommendationModal.jsx:handleSubmit',
-        'recommendation request submitted',
-        { queryLength: query.length },
-        'A',
-        'post-fix',
-      );
-    // #endregion
 
     setNotice(
       t(

@@ -20,7 +20,6 @@ import {
   mergeProfileUpdate,
 } from '../profile/mapProfile.js';
 import { getErrorMessage } from '../../shared/lib/apiError.js';
-import { debugLog } from '../../shared/lib/debugSession.js';
 import AppContext from '../appContext/AppContext';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 
@@ -157,9 +156,6 @@ const ProfileHeader = ({ profile, onProfileUpdated }) => {
     const lastName = lastNameDraft.trim();
     if (!firstName) {
       setUploadError(t('profile.header.firstNameRequired', 'First name is required'));
-      // #region agent log
-      debugLog('ProfileHeader.jsx:handleSaveName', 'validation failed', { reason: 'empty-firstName' }, 'C');
-      // #endregion
       return;
     }
 
@@ -188,26 +184,7 @@ const ProfileHeader = ({ profile, onProfileUpdated }) => {
       onProfileUpdated?.(enriched);
       setIsEditingName(false);
       setUploadSuccess(t('profile.header.nameSaved', 'Name updated'));
-      // #region agent log
-      debugLog(
-        'ProfileHeader.jsx:handleSaveName',
-        'name saved',
-        {
-          hasFirstName: Boolean(enriched.user?.firstName),
-          hasLastName: Boolean(enriched.user?.secondName || enriched.user?.lastName),
-        },
-        'E',
-      );
-      // #endregion
     } catch (err) {
-      // #region agent log
-      debugLog(
-        'ProfileHeader.jsx:handleSaveName',
-        'name save failed',
-        { error: getErrorMessage(err) },
-        'B',
-      );
-      // #endregion
       setUploadError(getErrorMessage(err));
     } finally {
       setSavingName(false);
