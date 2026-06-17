@@ -14,6 +14,8 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.26" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.414.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +35,8 @@
     <ProjectReference Include="..\..\Professional\Professional.Services\Professional.Services.csproj" />
     <ProjectReference Include="..\..\Professional\Professional.Contracts\Professional.Contracts.csproj" />
     <ProjectReference Include="..\..\Professional\Professional.DataAccess\Professional.DataAccess.csproj" />
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Services\Facade.FileStorage.Services.csproj" />
+    <ProjectReference Include="..\..\FileStorage\Facade.FileStorage.Contracts\Facade.FileStorage.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
