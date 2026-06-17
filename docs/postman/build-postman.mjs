@@ -320,7 +320,7 @@ const signalrFolder = folder('12 SignalR Info (not HTTP)', [
       'Hub URL: {{baseUrl}}/hubs/messaging?access_token={{accessToken}}\n\n' +
       'Client methods: JoinChat(chatId), LeaveChat(chatId)\n\n' +
       'Server events: MessageCreated, MessageUpdated, MessageDeleted, MessageRead, MessageMediaAttached\n\n' +
-      'See docs/18_SIGNALR_CHAT.md and frontend/scripts/verify-signalr.mjs',
+      'See docs/07_REALTIME_AND_DOMAIN_EVENTS.md and frontend/scripts/verify-signalr.mjs',
   }),
 ]);
 
@@ -397,7 +397,7 @@ for (const n of orderedNames) {
 
 col.info.description =
   'LinkedInDiplom backend API — modular monolith. Import with LinkedInDiplom.local.postman_environment.json. ' +
-  'Run 01 Auth → Login, then 11 Admin → Admin Login. See docs/api/POSTMAN_TESTING.md.';
+  'Run 01 Auth → Login, then 11 Admin → Admin Login. See docs/09_TESTING_AND_POSTMAN.md.';
 col.info.version = '2026-06-17';
 col.item = newItems;
 

@@ -61,7 +61,7 @@ Identity дополнительно:
 
 ## File uploads (backend)
 
-11 multipart endpoints через `IFileStorageService`; в БД только URL. Frontend integration **ещё не выполнена**. Подробно: `09_CONFIG_UPLOADS.md`.
+11 multipart endpoints через `IFileStorageService`; в БД только URL. Подробно: [05_CONFIGURATION_AND_UPLOADS.md](05_CONFIGURATION_AND_UPLOADS.md).
 
 ## Устаревшие вещи
 

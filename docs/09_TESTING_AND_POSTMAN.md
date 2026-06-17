@@ -1,4 +1,174 @@
-# Postman: тестирование LinkedInDiplom API
+
+
+---
+
+<!-- merged from: 09_TESTING_AND_POSTMAN.md -->
+
+# Тесты и troubleshooting
+
+# 11. Тесты и troubleshooting
+
+## Тесты
+
+Проект: `backend/Tests/LinkedIn.Tests`
+
+Пакеты:
+
+- xUnit
+- Moq
+- Microsoft.EntityFrameworkCore.InMemory
+
+Фактические test classes:
+
+- `ProfileServiceTests` (7)
+- `PostServiceTests` (11)
+- `HashtagServiceTests` (8)
+
+Всего: 26 тестов.
+
+Запуск:
+
+```bash
+dotnet test LinkedIn.sln
+```
+
+## Чего не хватает в покрытии
+
+- facade service tests
+- error mapping tests
+- auth/refresh regression tests
+- integration tests по API
+- расширение покрытия по Network/Messaging/Jobs/Notifications/Events
+
+## Частые проблемы
+
+- Swagger не открывается: проверьте Development env и URL
+- 401 в Swagger: формат `Bearer <token>`
+- DB connection error: проверьте postgres/connection string
+- порт занят: поменяйте mapping в compose
+- lock dll: остановите запущенный процесс API
+- migrations не применяются: смотрите логи api контейнера
+
+
+---
+
+<!-- merged from: 09_TESTING_AND_POSTMAN.md -->
+
+# Postman quick start
+
+# Postman: как протестировать весь LinkedInDiplom API
+
+> **Обновлено:** 2026-06-17 — новая структура папок 00–99, auto-save tokens/IDs.
+
+Подробная документация: [../09_TESTING_AND_POSTMAN.md](../09_TESTING_AND_POSTMAN.md)
+
+---
+
+## 1) Что импортировать
+
+1. `docs/postman/LinkedInDiplom.postman_collection.json`
+2. `docs/postman/LinkedInDiplom.local.postman_environment.json`
+
+Postman → **Import** → оба файла → выбрать environment **LinkedInDiplom Local**.
+
+---
+
+## 2) baseUrl
+
+По умолчанию:
+
+```
+baseUrl = https://localhost:7011
+```
+
+Альтернативы (из `launchSettings.json`):
+
+- `http://localhost:5282` (HTTP profile)
+- Docker port из `docker-compose.yml`
+
+---
+
+## 3) Запуск backend
+
+```bash
+cd backend/Facade.API
+dotnet run --launch-profile https
+```
+
+Smoke: папка **00 Health / Swagger / Base** → Swagger JSON → **200**.
+
+---
+
+## 4) Быстрый старт (3 шага)
+
+1. **01 Auth → Login** → auto-saves `accessToken`, `refreshToken`, `userId`
+2. **01 Auth → Get Current User** → проверка JWT
+3. **03 Content → Get Feed** → проверка данных (demo seed)
+
+Admin: **11 Admin → Admin Login** (`admin@local.dev` / `Admin123!`) → `adminAccessToken`
+
+---
+
+## 5) Структура папок
+
+| # | Папка |
+|---|-------|
+| 00 | Health / Swagger / Base |
+| 01 | Auth / Account |
+| 02 | Profile |
+| 03 | Content |
+| 04 | Network |
+| 05 | Messaging |
+| 06 | Jobs |
+| 07 | Events |
+| 08 | Professional |
+| 09 | Notifications |
+| 10 | File Uploads (все multipart) |
+| 11 | Admin |
+| 12 | SignalR Info (docs only) |
+| 99 | Error Examples + AI |
+
+---
+
+## 6) Auto-save
+
+**Tokens:** Login, Admin Login, Refresh Token  
+**IDs:** Create Post, Create Chat, Create Vacancy, Create Contact, и др.
+
+Console Postman покажет: `accessToken saved`, `postId saved: ...`
+
+---
+
+## 7) Upload
+
+Папка **10 File Uploads** — form-data, key `file`, выберите файл вручную.
+
+---
+
+## 8) Обновление коллекции
+
+```bash
+node docs/postman/build-postman.mjs
+```
+
+---
+
+## 9) Demo users
+
+| Email | Password |
+|-------|----------|
+| test@example.com | Test123! |
+| admin@local.dev | Admin123! |
+| marya101204@gmail.com | Mgg101204 |
+
+См. также [../08_SEED_DATA.md](../08_SEED_DATA.md)
+
+
+---
+
+<!-- merged from: 09_TESTING_AND_POSTMAN.md -->
+
+# Postman testing (полная документация)
 
 > **Обновлено:** 2026-06-17  
 > Коллекция синхронизирована с backend controllers (56 controllers, ~200 endpoints).
@@ -12,7 +182,7 @@
 | `docs/postman/LinkedInDiplom.postman_collection.json` | Коллекция запросов |
 | `docs/postman/LinkedInDiplom.local.postman_environment.json` | Environment с переменными |
 | `docs/postman/build-postman.mjs` | Скрипт обновления коллекции (запускать после изменений API) |
-| `docs/api/POSTMAN_TESTING.md` | Подробная документация (этот файл) |
+| `docs/09_TESTING_AND_POSTMAN.md` | Подробная документация (этот файл) |
 
 ---
 
@@ -258,7 +428,7 @@ Postman WebSocket может подключиться, но полный chat fl
 - `frontend/scripts/verify-signalr.mjs`
 - или frontend app
 
-См. `docs/18_SIGNALR_CHAT.md` и папку **12 SignalR Info**.
+См. `docs/07_REALTIME_AND_DOMAIN_EVENTS.md` и папку **12 SignalR Info**.
 
 ---
 
@@ -339,7 +509,7 @@ Environment variables: `userEmail`, `userPassword`, `adminEmail`, `adminPassword
 
 > Auth=Yes → Bearer `{{accessToken}}`. Admin → Bearer `{{adminAccessToken}}`.
 
-Полный каталог: `docs/06_API_OVERVIEW.md`
+Полный каталог: `docs/04_API_REFERENCE.md`
 
 ### 01 Auth
 
@@ -365,7 +535,7 @@ Environment variables: `userEmail`, `userPassword`, `adminEmail`, `adminPassword
 | POST | `/api/profile/{id}/views` | optional |
 | GET | `/api/profile/me/profile-views` | Yes |
 
-*(Остальные модули — см. `06_API_OVERVIEW.md` и запросы в коллекции.)*
+*(Остальные модули — см. `04_API_REFERENCE.md` и запросы в коллекции.)*
 
 ---
 

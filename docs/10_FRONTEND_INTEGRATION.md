@@ -1,4 +1,4 @@
-# 25. Frontend Integration Guide
+# 10. Frontend Integration Guide
 
 > Практическое руководство для React-frontend: как подключиться к backend LinkedInDiplom.
 
@@ -73,7 +73,7 @@ sequenceDiagram
   API-->>FE: Profile
 ```
 
-**External login:** `POST /api/auth/google`, `POST /api/auth/facebook` — body с provider token (см. `05_API_AUTH_JWT.md`).
+**External login:** `POST /api/auth/google`, `POST /api/auth/facebook` — body с provider token (см. `04_API_REFERENCE.md`).
 
 ---
 
@@ -141,7 +141,7 @@ Response: `{ items: [...], totalCount: N, page, pageSize }`.
 | Send message | `POST /api/messaging/me/chats/{chatId}/messages` |
 | Mark read | `POST /api/messaging/me/messages/{messageId}/read` |
 
-**SignalR (realtime):** см. [18_SIGNALR_CHAT.md](18_SIGNALR_CHAT.md). HTTP send остаётся primary; SignalR — для live updates.
+**SignalR (realtime):** см. [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md). HTTP send остаётся primary; SignalR — для live updates.
 
 ---
 
@@ -181,7 +181,7 @@ PATCH /api/notifications/me/read-all
 
 ## 11. Admin (роль Admin)
 
-Все под `/api/admin/*` — требуют JWT + role `Admin`. См. [04_FACADE_MODULES.md](04_FACADE_MODULES.md).
+Все под `/api/admin/*` — требуют JWT + role `Admin`. См. [02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md).
 
 ---
 
@@ -236,7 +236,7 @@ fetch(`${API}/api/profile/me/avatar`, {
 | Primary showcase | marya101204@gmail.com | из DemoSeed options |
 | Test | test@example.com | Test123! |
 
-Полный список seed users — [22_SEED_DATA.md](22_SEED_DATA.md).
+Полный список seed users — [08_SEED_DATA.md](08_SEED_DATA.md).
 
 ---
 
@@ -251,4 +251,4 @@ fetch(`${API}/api/profile/me/avatar`, {
 7. Jobs → vacancies with filters
 8. Skills autocomplete on profile
 
-Детальный Postman checklist — [api/POSTMAN_TESTING.md](api/POSTMAN_TESTING.md).
+Детальный Postman checklist — [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md).

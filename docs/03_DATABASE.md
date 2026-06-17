@@ -1,8 +1,63 @@
+
+
+---
+
+<!-- merged from: 03_DATABASE.md -->
+
+# Миграции и порядок schema
+
+# 08. PostgreSQL / EF migrations
+
+## Database
+
+- PostgreSQL database: `linkedin_dev`
+- модули в отдельных schemas:
+  `identity`, `profile`, `professional`, `network`, `content`, `messaging`, `jobs`, `notifications`, `events`
+
+## DbContext per module
+
+- IdentityDbContext
+- ProfileDbContext
+- ProfessionalDbContext
+- NetworkDbContext
+- ContentDbContext
+- MessagingDbContext
+- JobsDbContext
+- NotificationsDbContext
+- EventsDbContext
+
+## Migration order при старте API
+
+Identity → Profile → Professional → Network → Content → Messaging → Jobs → Notifications → Events
+
+Реализовано в `Facade.API/Extensions/DatabaseExtensions.cs`.
+
+## Как пересоздать dev DB
+
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
+## Проверка через DBeaver/Beekeeper
+
+- host: `localhost`
+- port: `5432`
+- database: `linkedin_dev`
+- user/pass: `postgres/postgres`
+
+
+---
+
+<!-- merged from: 03_DATABASE.md -->
+
+# Логическая схема таблиц
+
 # 12. DB schema (сжатый обзор)
 
-Актуальный сжатый обзор — **этот файл** (`docs/12_DB_SCHEMA.md`).
+Актуальный сжатый обзор — **этот файл** (`docs/03_DATABASE.md`).
 
-Ранее планировался отдельный `docs/database/DB_SCHEMA.md` — **файл отсутствует**; детальная схема — в EF migrations (`backend/*/DataAccess/Migrations`) и `08_INFRA_DB_MIGRATIONS.md`.
+Ранее планировался отдельный `docs/database/DB_SCHEMA.md` — **файл отсутствует**; детальная схема — в EF migrations (`backend/*/DataAccess/Migrations`) и `03_DATABASE.md`.
 
 ## Сопоставление модуль → schema
 

@@ -1,55 +1,70 @@
-# LinkedInDiplom docs
+# LinkedInDiplom — документация backend
 
-Документация в папке `docs` (+ подпапки `docs/api`, `docs/postman`).
+> **Проект:** дипломная работа — профессиональная социальная сеть (аналог LinkedIn)  
+> **Backend:** `.NET 8` modular monolith, host `Facade.API`  
+> **БД:** PostgreSQL 16, одна база, 9 schema  
+> **Frontend:** React (Vite), отдельная папка `frontend/`  
+> **Обновлено:** 2026-06-17
 
-**Главный индекс:** [00_README.md](00_README.md) — навигация для защиты диплома.
+---
 
-## Файлы
+## Для защиты диплома — с чего начать
 
-0. `00_README.md` — главная навигация (обновлено 2026-06-17)
-1. `README.md` — этот файл
-2. `01_OVERVIEW.md` — что за проект, структура, модули
-3. `02_ARCHITECTURE.md` — слои, правила, паттерны, request flow
-4. `03_CORE_MODULES.md` — 9 core-модулей подробно
-5. `04_FACADE_MODULES.md` — facade-модули, **Admin-only catalog writes**, AdminManagement `/api/admin`
-6. `05_API_AUTH_JWT.md` — auth/JWT/roles/AdminSeed/refresh/logout/current user
-7. `06_API_VALIDATION_ERRORS_SWAGGER.md` — validation, error handling, Swagger
-8. `07_INFRA_DOCKER.md` — Dockerfile, compose, init-db, порты, volume
-9. `08_INFRA_DB_MIGRATIONS.md` — PostgreSQL schemas, migration order, EF
-10. `09_CONFIG_UPLOADS.md` — FileStorage module, local/S3 uploads, 11 endpoints, env vars, limits
-11. `10_DEVELOPMENT.md` — запуск, добавление модуля/фичи
-12. `11_TESTS_AND_TROUBLESHOOTING.md` — тесты и типовые проблемы
-13. `12_DB_SCHEMA.md` — логическая схема таблиц (сжатый обзор)
-14. `13_V1_LIMITATIONS.md` — ограничения v1 (legacy index)
-15. `06_API_OVERVIEW.md` — каталог всех API endpoints
-16. `18_SIGNALR_CHAT.md` — SignalR hub и realtime events
-17. `19_DOMAIN_EVENTS_NOTIFICATIONS.md` — domain events → notifications
-18. `20_PATTERNS.md` — паттерны на примерах проекта
-19. `22_SEED_DATA.md` — demo seed orchestrator (актуально)
-20. `24_CONFIGURATION.md` — appsettings reference
-21. `25_FRONTEND_INTEGRATION_GUIDE.md` — интеграция frontend
-22. `26_LIMITATIONS_AND_TODO.md` — limitations + TODO (актуально)
-23. `api/POSTMAN_TESTING.md` — таблицы endpoint-ов и upload smoke checklist
-24. `postman/` — Postman collection + environment + README
+1. **[01_OVERVIEW.md](01_OVERVIEW.md)** — обзор системы  
+2. **[02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md)** — архитектура и модули  
+3. **[08_SEED_DATA.md](08_SEED_DATA.md)** — demo seed  
+4. **[11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md)** — что готово / что частично  
 
-В `docs/`: **22+** markdown-файлов + `api/` + `postman/`.
+---
 
-## API capabilities (актуально после Steps 1–9)
+## Карта документов (12 файлов)
 
-Краткий список реализованных возможностей backend (подробности — в `03_CORE_MODULES.md`, `04_FACADE_MODULES.md`, `13_V1_LIMITATIONS.md`):
+| № | Файл | О чём |
+|---|------|--------|
+| — | **README.md** (этот файл) | Навигация |
+| 01 | [01_OVERVIEW.md](01_OVERVIEW.md) | Обзор, tech stack, route prefixes |
+| 02 | [02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md) | Архитектура, core/facade модули, паттерны |
+| 03 | [03_DATABASE.md](03_DATABASE.md) | Миграции, schema, таблицы |
+| 04 | [04_API_REFERENCE.md](04_API_REFERENCE.md) | Auth/JWT, endpoints, validation, Swagger |
+| 05 | [05_CONFIGURATION_AND_UPLOADS.md](05_CONFIGURATION_AND_UPLOADS.md) | appsettings, FileStorage, S3 |
+| 06 | [06_INFRASTRUCTURE_AND_DEVELOPMENT.md](06_INFRASTRUCTURE_AND_DEVELOPMENT.md) | Docker, запуск, добавление фич |
+| 07 | [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md) | SignalR, domain events |
+| 08 | [08_SEED_DATA.md](08_SEED_DATA.md) | Demo seed orchestrator |
+| 09 | [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md) | Тесты, Postman collection |
+| 10 | [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md) | Frontend ↔ backend |
+| 11 | [11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md) | Limitations, TODO, защита |
 
-| Область | Что добавлено |
-|---|---|
-| **Profile** | People search: `GET /api/profile/search` |
-| **Professional** | Public sections: `GET /api/professional/users/{userId}/experiences|educations|skills` |
-| **Content** | Network-aware feed (JWT) / public feed (anonymous); `GET /api/content/users/{userId}/posts` |
-| **Events** | Discover `GET /api/events`, attending `GET /api/events/me/attending`, speakers `GET /api/events/speakers`; `attendeeCount`, `isAttending` |
-| **Network** | Paged contacts + cancel / incoming / outgoing / pending-counts |
-| **Jobs / Notifications** | `PagedResponse` на vacancies и notifications |
-| **Admin** | Events moderation, comments moderation, event stats в overview |
-| **Validation** | Events dates, admin role/lock, query date ranges (см. `06_API_VALIDATION_ERRORS_SWAGGER.md`) |
-| **Postman** | Collection + `api/POSTMAN_TESTING.md` синхронизированы (Step 9); папки `11 AI`, `12 Validation / Negative cases` |
-| **Demo seed** | 24-step orchestrator: skills catalog, jobs catalog, bot content, bot network — см. `22_SEED_DATA.md` |
-| **Jobs filter** | `minSalaryFrom` на `GET /api/jobs/vacancies` |
+**Postman JSON:** `docs/postman/LinkedInDiplom.postman_collection.json` + environment.
 
-**V1 limitations** — см. `26_LIMITATIONS_AND_TODO.md` (актуально) или `13_V1_LIMITATIONS.md` (legacy).
+---
+
+## Быстрые команды
+
+```bash
+cd backend/Facade.API
+dotnet run --launch-profile https
+dotnet build LinkedIn.sln
+dotnet test backend/Tests/LinkedIn.Tests/LinkedIn.Tests.csproj
+# Swagger: https://localhost:7011/swagger
+```
+
+---
+
+## API prefixes
+
+| Prefix | Модуль |
+|--------|--------|
+| `/api/auth` | Auth, JWT |
+| `/api/profile` | Profile, media |
+| `/api/professional` | Skills, experience |
+| `/api/network` | Contacts, groups, pages |
+| `/api/content` | Posts, feed |
+| `/api/messaging` | Chats, messages |
+| `/api/jobs` | Vacancies |
+| `/api/events` | Events |
+| `/api/notifications` | Notifications |
+| `/api/admin` | Platform admin |
+| `/api/ai` | Gemini AI |
+| `/hubs/messaging` | SignalR |
+
+Подробности — [04_API_REFERENCE.md](04_API_REFERENCE.md).

@@ -1,4 +1,4 @@
-# 22. Demo Seed Data
+# 08. Demo Seed Data
 
 > Как на пустой Development БД появляются пользователи, посты, jobs, network и messages.  
 > **Код не меняется этим документом** — описание актуального состояния `master`.
