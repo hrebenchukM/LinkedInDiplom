@@ -1,282 +1,176 @@
-import { apiClient } from "../../shared/api/client";
-import { apiFetch } from "../../shared/api/http";
-import { AUTH, ADMIN } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
-import { readApiError } from "../../shared/lib/apiError";
-import { EMPTY_PAGED, unwrapPagedResponse } from "../../shared/lib/pagedResponse";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
 import {
-  normalizeAdminCommentDto,
-  normalizeAdminEventDto,
-  normalizeAdminPostDto,
-  normalizeAdminStatsDto,
-  normalizeAdminUserDto,
-  normalizeAdminVacancyDto,
-  normalizeRecommendedQueryDto,
-  normalizeRoleDto,
-} from "./mapAdmin";
+  ADMIN_COMMENTS_SORT_BY,
+  ADMIN_EVENTS_SORT_BY,
+  ADMIN_POSTS_SORT_BY,
+  ADMIN_USERS_SORT_BY,
+  ADMIN_VACANCIES_SORT_BY,
+  DEFAULT_ADMIN_QUERY,
+  buildAllowedSortQuery,
+} from '../../shared/api/sortParams.js';
+import { buildPaginationQuery } from '../../shared/lib/pagination.js';
+import {
+  mapAdminCommentsResponse,
+  mapAdminEventsResponse,
+  mapAdminPostsResponse,
+  mapAdminRoleList,
+  mapAdminStatsDto,
+  mapAdminUserDto,
+  mapAdminUsersResponse,
+  mapAdminVacanciesResponse,
+} from './mapAdmin.js';
 
-function buildQuery(params = {}) {
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
-    search.set(key, String(value));
-  });
-  const qs = search.toString();
-  return qs ? `?${qs}` : "";
-}
-
-export async function fetchStatsOverview() {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.get(ADMIN.statsOverview);
-  return normalizeAdminStatsDto(data);
-}
-
-export async function fetchAdminUsers({
-  page = 1,
-  pageSize = 20,
-  email = "",
-  role = "",
-  isDeleted,
-  isLocked,
-  sortBy = "createdAt",
-  sortDirection = "desc",
-} = {}) {
-  if (USE_MOCK_AUTH) return EMPTY_PAGED;
-  const qs = buildQuery({
+function buildAdminQuery(params = {}, { allowedSortBy = ['createdAt', 'updatedAt'] } = {}) {
+  const {
     page,
     pageSize,
-    email: email || undefined,
-    role: role || undefined,
-    isDeleted: isDeleted === undefined ? undefined : String(isDeleted),
-    isLocked: isLocked === undefined ? undefined : String(isLocked),
+    limit,
+    search,
+    query,
+    email,
+    role,
+    isDeleted,
+    isLocked,
+    includeDeleted,
     sortBy,
     sortDirection,
+    ...rest
+  } = params;
+
+  const sortQuery = buildAllowedSortQuery({
+    sortBy: sortBy ?? DEFAULT_ADMIN_QUERY.sortBy,
+    sortDirection: sortDirection ?? DEFAULT_ADMIN_QUERY.sortDirection,
+    allowedSortBy,
   });
-  const data = await apiClient.get(`${ADMIN.users}${qs}`);
-  return unwrapPagedResponse(data, normalizeAdminUserDto);
+
+  return buildPaginationQuery({
+    page,
+    pageSize: pageSize ?? limit,
+    search: search ?? query,
+    sortBy: sortQuery.sortBy ?? allowedSortBy[0] ?? DEFAULT_ADMIN_QUERY.sortBy,
+    sortDirection: sortQuery.sortDirection ?? DEFAULT_ADMIN_QUERY.sortDirection,
+    extra: {
+      email,
+      role,
+      isDeleted,
+      isLocked,
+      includeDeleted,
+      ...rest,
+    },
+  });
 }
 
-export async function fetchAdminUser(userId) {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.get(ADMIN.user(userId));
-  return normalizeAdminUserDto(data);
+// Stats
+export async function getAdminStatsOverview() {
+  const response = await apiClient.get(API_PATHS.admin.stats.overview);
+  return mapAdminStatsDto(response);
 }
 
-export async function lockUser(userId, lockoutEnd) {
-  if (USE_MOCK_AUTH) return null;
-  const body = lockoutEnd ? { lockoutEnd } : {};
-  return apiClient.patch(ADMIN.lockUser(userId), body, { feedback: false });
+// Users
+export async function getAdminUsers(params = {}) {
+  const query = buildAdminQuery(params, { allowedSortBy: ADMIN_USERS_SORT_BY });
+  const response = await apiClient.get(API_PATHS.admin.users.list, { query });
+  return mapAdminUsersResponse(response);
+}
+
+export async function getAdminUserById(userId) {
+  const response = await apiClient.get(API_PATHS.admin.users.byId(userId));
+  return mapAdminUserDto(response);
+}
+
+export async function lockUser(userId, data = {}) {
+  return apiClient.patch(API_PATHS.admin.users.lock(userId), data);
 }
 
 export async function unlockUser(userId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.unlockUser(userId), {}, { feedback: false });
-}
-
-export async function restoreUser(userId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.restoreUser(userId), {}, { feedback: false });
+  return apiClient.patch(API_PATHS.admin.users.unlock(userId));
 }
 
 export async function deleteUser(userId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.user(userId), { feedback: false });
+  return apiClient.delete(API_PATHS.admin.users.byId(userId));
 }
 
-export async function fetchUserRoles(userId) {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(ADMIN.userRoles(userId));
-  if (Array.isArray(data)) return data.map(String);
-  return [];
+export async function restoreUser(userId) {
+  return apiClient.patch(API_PATHS.admin.users.restore(userId));
 }
 
-export async function addUserRole(userId, roleName) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.post(ADMIN.userRoles(userId), { roleName }, { feedback: false });
+// Roles
+export async function getAdminRoles() {
+  try {
+    const response = await apiClient.get(API_PATHS.admin.roles.list);
+    const roles = mapAdminRoleList(response);
+    return roles.length > 0 ? roles : [{ id: 'Admin', name: 'Admin' }, { id: 'User', name: 'User' }];
+  } catch {
+    return [{ id: 'Admin', name: 'Admin' }, { id: 'User', name: 'User' }];
+  }
+}
+
+export async function assignUserRole(userId, roleName) {
+  return apiClient.post(API_PATHS.admin.users.roles(userId), {
+    roleName,
+  });
 }
 
 export async function removeUserRole(userId, roleName) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.userRole(userId, roleName), { feedback: false });
+  return apiClient.delete(API_PATHS.admin.users.roleByName(userId, roleName));
 }
 
-export async function fetchAdminRoles() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(ADMIN.roles);
-  const items = Array.isArray(data) ? data : data?.items || data?.Items || [];
-  return items.map(normalizeRoleDto).filter(Boolean);
+// Content
+export async function getAdminPosts(params = {}) {
+  const query = buildAdminQuery(params, { allowedSortBy: ADMIN_POSTS_SORT_BY });
+  const response = await apiClient.get(API_PATHS.admin.content.posts, { query });
+  return mapAdminPostsResponse(response);
 }
 
-/** Creates account via public register API, then optionally assigns a role (admin session unchanged). */
-export async function createUser({ email, password, roleName }) {
-  if (USE_MOCK_AUTH) {
-    throw new Error("User creation is not available in mock auth mode.");
-  }
-  const { ok, data } = await apiFetch("POST", AUTH.register, { email, password });
-  if (!ok || data?.success === false) {
-    throw new Error(readApiError(data, "Registration failed."));
-  }
-  const account = data?.account ?? data?.Account;
-  const userId = account?.id ?? account?.Id;
-  if (!userId) {
-    throw new Error("User was created but the server did not return an id.");
-  }
-  const normalizedRole = String(roleName || "").trim();
-  if (normalizedRole && normalizedRole !== "User") {
-    await addUserRole(userId, normalizedRole);
-  }
-  return {
-    id: String(userId),
-    email: account?.email ?? account?.Email ?? email,
-  };
+export async function deleteAdminPost(postId) {
+  return apiClient.delete(API_PATHS.admin.content.postById(postId));
 }
 
-export async function fetchAdminPosts({
-  page = 1,
-  pageSize = 20,
-  search = "",
-  isDeleted,
-  includeDeleted = true,
-  sortBy = "createdAt",
-  sortDirection = "desc",
-} = {}) {
-  if (USE_MOCK_AUTH) return EMPTY_PAGED;
-  const qs = buildQuery({
-    page,
-    pageSize,
-    search: search || undefined,
-    isDeleted: isDeleted === undefined ? undefined : String(isDeleted),
-    includeDeleted: String(includeDeleted),
-    sortBy,
-    sortDirection,
-  });
-  const data = await apiClient.get(`${ADMIN.posts}${qs}`);
-  return unwrapPagedResponse(data, normalizeAdminPostDto);
+export async function restoreAdminPost(postId) {
+  return apiClient.patch(API_PATHS.admin.content.restorePost(postId));
 }
 
-export async function deletePost(postId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.post(postId), { feedback: false });
+export async function getAdminComments(params = {}) {
+  const query = buildAdminQuery(params, { allowedSortBy: ADMIN_COMMENTS_SORT_BY });
+  const response = await apiClient.get(API_PATHS.admin.content.comments, { query });
+  return mapAdminCommentsResponse(response);
 }
 
-export async function restorePost(postId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.restorePost(postId), {}, { feedback: false });
+export async function deleteAdminComment(commentId) {
+  return apiClient.delete(API_PATHS.admin.content.commentById(commentId));
 }
 
-export async function fetchAdminComments({
-  page = 1,
-  pageSize = 20,
-  query = "",
-  isDeleted,
-  includeDeleted = true,
-  sortBy = "createdAt",
-  sortDirection = "desc",
-} = {}) {
-  if (USE_MOCK_AUTH) return EMPTY_PAGED;
-  const qs = buildQuery({
-    page,
-    pageSize,
-    query: query || undefined,
-    isDeleted: isDeleted === undefined ? undefined : String(isDeleted),
-    includeDeleted: String(includeDeleted),
-    sortBy,
-    sortDirection,
-  });
-  const data = await apiClient.get(`${ADMIN.comments}${qs}`);
-  return unwrapPagedResponse(data, normalizeAdminCommentDto);
+export async function restoreAdminComment(commentId) {
+  return apiClient.patch(API_PATHS.admin.content.restoreComment(commentId));
 }
 
-export async function deleteComment(commentId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.comment(commentId), { feedback: false });
+// Jobs
+export async function getAdminVacancies(params = {}) {
+  const query = buildAdminQuery(params, { allowedSortBy: ADMIN_VACANCIES_SORT_BY });
+  const response = await apiClient.get(API_PATHS.admin.jobs.vacancies, { query });
+  return mapAdminVacanciesResponse(response);
 }
 
-export async function restoreComment(commentId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.restoreComment(commentId), {}, { feedback: false });
+export async function deleteAdminVacancy(vacancyId) {
+  return apiClient.delete(API_PATHS.admin.jobs.vacancyById(vacancyId));
 }
 
-export async function fetchAdminEvents({
-  page = 1,
-  pageSize = 20,
-  query = "",
-  isDeleted,
-  includeDeleted = true,
-  sortBy = "createdAt",
-  sortDirection = "desc",
-} = {}) {
-  if (USE_MOCK_AUTH) return EMPTY_PAGED;
-  const qs = buildQuery({
-    page,
-    pageSize,
-    query: query || undefined,
-    isDeleted: isDeleted === undefined ? undefined : String(isDeleted),
-    includeDeleted: String(includeDeleted),
-    sortBy,
-    sortDirection,
-  });
-  const data = await apiClient.get(`${ADMIN.events}${qs}`);
-  return unwrapPagedResponse(data, normalizeAdminEventDto);
+export async function restoreAdminVacancy(vacancyId) {
+  return apiClient.patch(API_PATHS.admin.jobs.restoreVacancy(vacancyId));
 }
 
-export async function deleteEvent(eventId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.event(eventId), { feedback: false });
+// Events
+export async function getAdminEvents(params = {}) {
+  const query = buildAdminQuery(params, { allowedSortBy: ADMIN_EVENTS_SORT_BY });
+  const response = await apiClient.get(API_PATHS.admin.events.list, { query });
+  return mapAdminEventsResponse(response);
 }
 
-export async function restoreEvent(eventId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.restoreEvent(eventId), {}, { feedback: false });
+export async function deleteAdminEvent(eventId) {
+  return apiClient.delete(API_PATHS.admin.events.byId(eventId));
 }
 
-export async function fetchAdminVacancies({
-  page = 1,
-  pageSize = 20,
-  search = "",
-  isDeleted,
-  includeDeleted = true,
-  sortBy = "createdAt",
-  sortDirection = "desc",
-} = {}) {
-  if (USE_MOCK_AUTH) return EMPTY_PAGED;
-  const qs = buildQuery({
-    page,
-    pageSize,
-    search: search || undefined,
-    isDeleted: isDeleted === undefined ? undefined : String(isDeleted),
-    includeDeleted: String(includeDeleted),
-    sortBy,
-    sortDirection,
-  });
-  const data = await apiClient.get(`${ADMIN.vacancies}${qs}`);
-  return unwrapPagedResponse(data, normalizeAdminVacancyDto);
-}
-
-export async function deleteVacancy(vacancyId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.vacancy(vacancyId), { feedback: false });
-}
-
-export async function restoreVacancy(vacancyId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.patch(ADMIN.restoreVacancy(vacancyId), {}, { feedback: false });
-}
-
-export async function fetchRecommendedQueries() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(ADMIN.recommendedQueries);
-  const items = Array.isArray(data) ? data : data?.items || data?.Items || [];
-  return items.map(normalizeRecommendedQueryDto).filter(Boolean);
-}
-
-export async function createRecommendedQuery(query) {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.post(ADMIN.recommendedQueries, { query }, { feedback: false });
-  return normalizeRecommendedQueryDto(data);
-}
-
-export async function deleteRecommendedQuery(id) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(ADMIN.recommendedQuery(id), { feedback: false });
+export async function restoreAdminEvent(eventId) {
+  return apiClient.patch(API_PATHS.admin.events.restore(eventId));
 }

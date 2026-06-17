@@ -1,184 +1,167 @@
-import { apiClient } from "../../shared/api/client";
-import { JOBS } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
-import { EMPTY_PAGED, unwrapPagedItems, unwrapPagedResponse } from "../../shared/lib/pagedResponse";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
+import { buildPaginationQuery } from '../../shared/lib/pagination.js';
+import { mapVacancySortBy, normalizeSortDirection, DEFAULT_VACANCY_QUERY } from '../../shared/api/sortParams.js';
 import {
-  normalizeRecommendedQueryDto,
-  normalizeSearchQueryDto,
-  normalizeVacancyDto,
-} from "./mapJobs";
+  mapApplicationDto,
+  mapApplicationList,
+  mapFavoriteDto,
+  mapFavoriteList,
+  mapRecommendedQueryList,
+  mapVacancyDto,
+  mapVacancyListResponse,
+} from './mapJobs.js';
 
-function buildVacanciesQuery({
-  query,
-  location,
-  companyId,
-  postedByUserId,
-  employmentType,
-  schedule,
-  minSalaryFrom,
-  sortBy,
-  sortDirection,
-  page = 1,
-  pageSize = 50,
-} = {}) {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-    sortBy: String(sortBy || "createdAt"),
-    sortDirection: String(sortDirection || "desc"),
-  });
-  if (query) params.set("query", String(query));
-  if (location) params.set("location", String(location));
-  if (companyId) params.set("companyId", String(companyId));
-  if (postedByUserId) params.set("postedByUserId", String(postedByUserId));
-  if (employmentType) params.set("employmentType", String(employmentType));
-  if (schedule) params.set("schedule", String(schedule));
-  if (minSalaryFrom != null) params.set("minSalaryFrom", String(minSalaryFrom));
-  return params.toString();
+function unwrapVacancy(response) {
+  const vacancy = response?.vacancy ?? response?.Vacancy ?? response;
+  return mapVacancyDto(vacancy);
 }
 
-function unwrapSearchQueryResponse(data) {
-  if (data?.success === false) {
-    const message =
-      (Array.isArray(data?.errors) && data.errors[0]) ||
-      data?.error ||
-      data?.message ||
-      "Search query request failed.";
-    throw new Error(String(message));
-  }
-  const raw = data?.searchQuery || data?.SearchQuery || data;
-  return normalizeSearchQueryDto(raw);
-}
-
-function unwrapVacancyResponse(data) {
-  if (data?.success === false) {
-    const message =
-      (Array.isArray(data?.errors) && data.errors[0]) ||
-      data?.error ||
-      data?.message ||
-      "Vacancy request failed.";
-    throw new Error(String(message));
-  }
-  return data?.vacancy || data?.Vacancy || data;
-}
-
-/** `GET /api/jobs/me/search-queries` */
-export async function fetchMySearchQueries() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(JOBS.mySearchQueries);
-  return unwrapPagedItems(data, normalizeSearchQueryDto);
-}
-
-/** `POST /api/jobs/me/search-queries` */
-export async function createSearchQuery(body) {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.post(JOBS.mySearchQueries, body);
-  return unwrapSearchQueryResponse(data);
-}
-
-/** `DELETE /api/jobs/me/search-queries/{searchId}` */
-export async function deleteSearchQuery(searchId) {
-  if (USE_MOCK_AUTH || !searchId) return null;
-  const data = await apiClient.delete(JOBS.mySearchQuery(searchId));
-  return unwrapSearchQueryResponse(data);
-}
-
-/** `GET /api/jobs/recommended-queries` */
-export async function fetchRecommendedQueries() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(JOBS.recommendedQueries);
-  return unwrapPagedItems(data, normalizeRecommendedQueryDto);
-}
-
-/** `GET /api/jobs/vacancies` — returns paged normalized vacancy DTOs. */
-export async function fetchVacancies({
-  query,
-  location,
-  companyId,
-  postedByUserId,
-  employmentType,
-  schedule,
-  minSalaryFrom,
-  sortBy,
-  sortDirection,
-  page = 1,
-  pageSize = 50,
-} = {}) {
-  if (USE_MOCK_AUTH) return { ...EMPTY_PAGED, page, pageSize };
-  const qs = buildVacanciesQuery({
-    query,
-    location,
-    companyId,
-    postedByUserId,
-    employmentType,
-    schedule,
-    minSalaryFrom,
-    sortBy,
-    sortDirection,
+function buildVacancyQuery(params = {}) {
+  const {
     page,
     pageSize,
+    query,
+    search,
+    sortBy,
+    sortDirection,
+    filters: _filters,
+    favoriteIds: _favoriteIds,
+    appliedIds: _appliedIds,
+    companyId,
+    location,
+    employmentType,
+    schedule,
+    postedByUserId,
+    fromCreatedAt,
+    toCreatedAt,
+  } = params;
+
+  const mappedSortBy = mapVacancySortBy(sortBy) ?? DEFAULT_VACANCY_QUERY.sortBy;
+  const mappedSortDirection =
+    normalizeSortDirection(sortDirection) ?? DEFAULT_VACANCY_QUERY.sortDirection;
+
+  const extra = {};
+  if (companyId) extra.companyId = companyId;
+  if (location) extra.location = location;
+  if (employmentType) extra.employmentType = employmentType;
+  if (schedule) extra.schedule = schedule;
+  if (postedByUserId) extra.postedByUserId = postedByUserId;
+  if (fromCreatedAt) extra.fromCreatedAt = fromCreatedAt;
+  if (toCreatedAt) extra.toCreatedAt = toCreatedAt;
+
+  return buildPaginationQuery({
+    page,
+    pageSize,
+    query: query ?? search,
+    sortBy: mappedSortBy,
+    sortDirection: mappedSortDirection,
+    extra,
   });
-  const data = await apiClient.get(`${JOBS.vacancies}?${qs}`);
-  return unwrapPagedResponse(data, normalizeVacancyDto);
 }
 
-/** `POST /api/jobs/me/vacancies` */
-export async function createVacancy(body) {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.post(JOBS.createVacancy, body);
-  return unwrapVacancyResponse(data);
+// Vacancies
+export async function getVacancies(params = {}) {
+  const query = buildVacancyQuery(params);
+  const response = await apiClient.get(API_PATHS.jobs.vacancies, { query });
+  return mapVacancyListResponse(response, {
+    favoriteIds: params.favoriteIds,
+    appliedIds: params.appliedIds,
+  });
 }
 
-/** `PATCH /api/jobs/me/vacancies/{vacancyId}` */
-export async function updateVacancy(vacancyId, body) {
-  if (USE_MOCK_AUTH || !vacancyId) return null;
-  const data = await apiClient.patch(JOBS.myVacancy(vacancyId), body);
-  return unwrapVacancyResponse(data);
+export async function getVacancyById(vacancyId) {
+  const response = await apiClient.get(API_PATHS.jobs.vacancyById(vacancyId));
+  return mapVacancyDto(response);
 }
 
-/** `DELETE /api/jobs/me/vacancies/{vacancyId}` */
+export async function createVacancy(data) {
+  const response = await apiClient.post(API_PATHS.jobs.myVacancies, data);
+  return unwrapVacancy(response);
+}
+
+export async function updateVacancy(vacancyId, data, method = 'patch') {
+  const path = API_PATHS.jobs.myVacancyById(vacancyId);
+  const response = method === 'put'
+    ? await apiClient.put(path, data)
+    : await apiClient.patch(path, data);
+  return unwrapVacancy(response);
+}
+
 export async function deleteVacancy(vacancyId) {
-  if (USE_MOCK_AUTH || !vacancyId) return null;
-  const data = await apiClient.delete(JOBS.myVacancy(vacancyId));
-  return unwrapVacancyResponse(data);
+  return apiClient.delete(API_PATHS.jobs.myVacancyById(vacancyId));
 }
 
-/** `GET /api/jobs/vacancies/{vacancyId}` */
-export async function fetchVacancyById(vacancyId) {
-  if (USE_MOCK_AUTH || !vacancyId) return null;
-  const data = await apiClient.get(JOBS.vacancy(vacancyId));
-  return normalizeVacancyDto(unwrapVacancyResponse(data));
-}
-
+// Applications
 export async function applyToVacancy(vacancyId) {
-  if (USE_MOCK_AUTH) return { success: true };
-  return apiClient.post(JOBS.apply(vacancyId));
+  return apiClient.post(API_PATHS.jobs.apply(vacancyId));
 }
 
-export async function fetchMyApplications() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(JOBS.myApplications);
-  return unwrapPagedItems(data, (item) => item);
+export async function getMyApplications(params = {}) {
+  try {
+    const response = await apiClient.get(API_PATHS.jobs.applications);
+    return mapApplicationList(response);
+  } catch {
+    return [];
+  }
 }
 
-/** `DELETE /api/jobs/me/applications/{applicationId}` */
-export async function withdrawApplication(applicationId) {
-  if (USE_MOCK_AUTH || !applicationId) return null;
-  return apiClient.delete(JOBS.myApplication(applicationId));
+export async function getApplicationById(applicationId) {
+  const applications = await getMyApplications();
+  return applications.find((item) => item.id === applicationId) ?? null;
 }
 
-export async function fetchMyFavorites() {
-  if (USE_MOCK_AUTH) return [];
-  const data = await apiClient.get(JOBS.myFavorites);
-  return unwrapPagedItems(data, (item) => item);
+// Favorites
+export async function getMyFavoriteVacancies() {
+  try {
+    const response = await apiClient.get(API_PATHS.jobs.favorites);
+    return mapFavoriteList(response);
+  } catch {
+    return [];
+  }
 }
 
-export async function addFavorite(vacancyId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.post(JOBS.favorite(vacancyId));
+export async function addVacancyToFavorites(vacancyId) {
+  return apiClient.post(API_PATHS.jobs.favoriteByVacancyId(vacancyId));
 }
 
-export async function removeFavorite(vacancyId) {
-  if (USE_MOCK_AUTH) return null;
-  return apiClient.delete(JOBS.favorite(vacancyId));
+export async function removeVacancyFromFavorites(vacancyId) {
+  return apiClient.delete(API_PATHS.jobs.favoriteByVacancyId(vacancyId));
 }
+
+// Recommended
+export async function getRecommendedJobQueries() {
+  try {
+    const response = await apiClient.get(API_PATHS.jobs.recommendedQueries);
+    return mapRecommendedQueryList(response);
+  } catch {
+    return [];
+  }
+}
+
+export async function loadVacancyMeta() {
+  const [favorites, applications] = await Promise.all([
+    getMyFavoriteVacancies(),
+    getMyApplications(),
+  ]);
+
+  const favoriteIds = new Set(
+    favorites
+      .map((item) => item.vacancyId ?? item.vacancy?.id)
+      .filter(Boolean),
+  );
+
+  const appliedIds = new Set(
+    applications
+      .map((item) => item.vacancyId ?? item.vacancy?.id)
+      .filter(Boolean),
+  );
+
+  return { favoriteIds, appliedIds, favorites, applications };
+}
+
+export {
+  mapApplicationDto,
+  mapFavoriteDto,
+  mapVacancyDto,
+};

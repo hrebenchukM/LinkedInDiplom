@@ -10,7 +10,7 @@ export async function mapPostsWithAuthors(postDtos, currentUserId, displayName, 
   return dtos.map((dto) => {
     const profile = profiles[dto.userId];
     const authorName =
-      profile?.fullName ||
+      profile?.fullName?.trim() ||
       `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
       (String(dto.userId) === String(currentUserId) ? displayName : "Member");
     const authorAvatar = profile?.avatarUrl ? resolveMediaUrl(profile.avatarUrl) : "";

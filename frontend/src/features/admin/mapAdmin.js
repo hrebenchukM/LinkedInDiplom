@@ -1,128 +1,266 @@
-function pick(dto, camel, pascal, fallback = "") {
-  const value = dto?.[camel] ?? dto?.[pascal];
-  if (value === undefined || value === null) return fallback;
-  return value;
-}
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
 
-export function normalizeAdminUserDto(dto) {
-  const id = pick(dto, "id", "Id");
-  if (!id) return null;
-  const rolesRaw = dto.roles ?? dto.Roles ?? [];
-  const roles = Array.isArray(rolesRaw) ? rolesRaw.map(String) : [];
-  const lockoutEnd = dto.lockoutEnd ?? dto.LockoutEnd ?? null;
-  const deletedAt = dto.deletedAt ?? dto.DeletedAt ?? null;
-  return {
-    id: String(id),
-    email: String(pick(dto, "email", "Email")),
-    userName: String(pick(dto, "userName", "UserName")),
-    emailConfirmed: Boolean(pick(dto, "emailConfirmed", "EmailConfirmed", false)),
-    lockoutEnabled: Boolean(pick(dto, "lockoutEnabled", "LockoutEnabled", false)),
-    lockoutEnd,
-    isLocked: Boolean(lockoutEnd && new Date(lockoutEnd) > new Date()),
-    isDeleted: Boolean(deletedAt),
-    deletedAt,
-    createdAt: pick(dto, "createdAt", "CreatedAt"),
-    roles,
-  };
-}
-
-export function normalizeAdminStatsDto(dto) {
+function pick(dto, ...keys) {
   if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeRoles(roles) {
+  if (!roles) return [];
+  if (Array.isArray(roles)) return roles.map(String).filter(Boolean);
+  return [String(roles)];
+}
+
+export function formatAdminDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function resolveDeletedStatus(dto) {
+  const deletedAt = pick(dto, 'deletedAt', 'DeletedAt');
+  const isDeleted = pick(dto, 'isDeleted', 'IsDeleted');
+  if (typeof isDeleted === 'boolean') return isDeleted;
+  return Boolean(deletedAt);
+}
+
+function resolveLockedStatus(dto) {
+  const lockoutEnd = pick(dto, 'lockoutEnd', 'LockoutEnd');
+  if (!lockoutEnd) return false;
+  return new Date(lockoutEnd).getTime() > Date.now();
+}
+
+export function mapAdminStatsDto(dto) {
+  if (!dto || typeof dto !== 'object') {
+    return {
+      totalUsers: 0,
+      activeUsers: 0,
+      deletedUsers: 0,
+      totalPosts: 0,
+      activePosts: 0,
+      deletedPosts: 0,
+      totalVacancies: 0,
+      activeVacancies: 0,
+      deletedVacancies: 0,
+      totalEvents: 0,
+      activeEvents: 0,
+      deletedEvents: 0,
+      upcomingEvents: 0,
+      totalRecommendedJobQueries: 0,
+    };
+  }
+
   return {
-    totalUsers: Number(dto.totalUsers ?? dto.TotalUsers ?? 0),
-    activeUsers: Number(dto.activeUsers ?? dto.ActiveUsers ?? 0),
-    deletedUsers: Number(dto.deletedUsers ?? dto.DeletedUsers ?? 0),
-    totalPosts: Number(dto.totalPosts ?? dto.TotalPosts ?? 0),
-    activePosts: Number(dto.activePosts ?? dto.ActivePosts ?? 0),
-    deletedPosts: Number(dto.deletedPosts ?? dto.DeletedPosts ?? 0),
-    totalVacancies: Number(dto.totalVacancies ?? dto.TotalVacancies ?? 0),
-    activeVacancies: Number(dto.activeVacancies ?? dto.ActiveVacancies ?? 0),
-    deletedVacancies: Number(dto.deletedVacancies ?? dto.DeletedVacancies ?? 0),
-    totalEvents: Number(dto.totalEvents ?? dto.TotalEvents ?? 0),
-    activeEvents: Number(dto.activeEvents ?? dto.ActiveEvents ?? 0),
-    upcomingEvents: Number(dto.upcomingEvents ?? dto.UpcomingEvents ?? 0),
-    totalRecommendedJobQueries: Number(
-      dto.totalRecommendedJobQueries ?? dto.TotalRecommendedJobQueries ?? 0,
+    totalUsers: toNumber(pick(dto, 'totalUsers', 'TotalUsers')),
+    activeUsers: toNumber(pick(dto, 'activeUsers', 'ActiveUsers')),
+    deletedUsers: toNumber(pick(dto, 'deletedUsers', 'DeletedUsers')),
+    totalPosts: toNumber(pick(dto, 'totalPosts', 'TotalPosts')),
+    activePosts: toNumber(pick(dto, 'activePosts', 'ActivePosts')),
+    deletedPosts: toNumber(pick(dto, 'deletedPosts', 'DeletedPosts')),
+    totalVacancies: toNumber(pick(dto, 'totalVacancies', 'TotalVacancies')),
+    activeVacancies: toNumber(pick(dto, 'activeVacancies', 'ActiveVacancies')),
+    deletedVacancies: toNumber(pick(dto, 'deletedVacancies', 'DeletedVacancies')),
+    totalEvents: toNumber(pick(dto, 'totalEvents', 'TotalEvents')),
+    activeEvents: toNumber(pick(dto, 'activeEvents', 'ActiveEvents')),
+    deletedEvents: toNumber(pick(dto, 'deletedEvents', 'DeletedEvents')),
+    upcomingEvents: toNumber(pick(dto, 'upcomingEvents', 'UpcomingEvents')),
+    totalRecommendedJobQueries: toNumber(
+      pick(dto, 'totalRecommendedJobQueries', 'TotalRecommendedJobQueries'),
     ),
   };
 }
 
-export function normalizeAdminPostDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  if (!id) return null;
+export function mapAdminUserDto(dto) {
+  if (!dto) return null;
+
+  const roles = normalizeRoles(pick(dto, 'roles', 'Roles'));
+  const isDeleted = resolveDeletedStatus(dto);
+  const isLocked = resolveLockedStatus(dto);
+
   return {
-    id: String(id),
-    userId: String(dto.userId ?? dto.UserId ?? ""),
-    content: String(dto.content ?? dto.Content ?? ""),
-    visibility: String(dto.visibility ?? dto.Visibility ?? ""),
-    commentCount: Number(dto.commentCount ?? dto.CommentCount ?? 0),
-    reactionCount: Number(dto.reactionCount ?? dto.ReactionCount ?? 0),
-    isDeleted: Boolean(dto.isDeleted ?? dto.IsDeleted ?? dto.deletedAt ?? dto.DeletedAt),
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    deletedAt: dto.deletedAt ?? dto.DeletedAt ?? null,
+    id: pick(dto, 'id', 'Id'),
+    email: pick(dto, 'email', 'Email') ?? '',
+    userName: pick(dto, 'userName', 'UserName') ?? '',
+    emailConfirmed: Boolean(pick(dto, 'emailConfirmed', 'EmailConfirmed')),
+    lockoutEnabled: Boolean(pick(dto, 'lockoutEnabled', 'LockoutEnabled')),
+    lockoutEnd: pick(dto, 'lockoutEnd', 'LockoutEnd'),
+    isLocked,
+    accessFailedCount: toNumber(pick(dto, 'accessFailedCount', 'AccessFailedCount')),
+    roles,
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    isDeleted,
+    status: isDeleted ? 'Deleted' : isLocked ? 'Locked' : 'Active',
+    createdAtLabel: formatAdminDate(pick(dto, 'createdAt', 'CreatedAt')),
   };
 }
 
-export function normalizeAdminVacancyDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  if (!id) return null;
+export function mapAdminUsersResponse(response) {
+  const paged = mapPagedResponse(response);
   return {
-    id: String(id),
-    title: String(dto.title ?? dto.Title ?? ""),
-    companyId: String(dto.companyId ?? dto.CompanyId ?? ""),
-    postedBy: String(dto.postedBy ?? dto.PostedBy ?? dto.postedByUserId ?? dto.PostedByUserId ?? ""),
-    location: String(dto.location ?? dto.Location ?? ""),
-    isDeleted: Boolean(dto.isDeleted ?? dto.IsDeleted ?? dto.deletedAt ?? dto.DeletedAt),
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    deletedAt: dto.deletedAt ?? dto.DeletedAt ?? null,
+    ...paged,
+    items: paged.items.map(mapAdminUserDto).filter(Boolean),
   };
 }
 
-export function normalizeRecommendedQueryDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  const query = String(dto?.query ?? dto?.Query ?? "").trim();
-  if (!id || !query) return null;
+export function mapAdminRoleDto(dto) {
+  if (!dto) return null;
+  if (typeof dto === 'string') {
+    return { id: dto, name: dto, description: '' };
+  }
+
   return {
-    id: String(id),
-    query,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
+    id: pick(dto, 'id', 'Id') ?? pick(dto, 'name', 'Name'),
+    name: pick(dto, 'name', 'Name') ?? String(dto),
+    description: pick(dto, 'description', 'Description') ?? '',
   };
 }
 
-export function normalizeAdminCommentDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  if (!id) return null;
+export function mapAdminRoleList(response) {
+  const items = Array.isArray(response) ? response : [];
+  return items.map(mapAdminRoleDto).filter(Boolean);
+}
+
+export function mapAdminPostDto(dto) {
+  if (!dto) return null;
+
+  const content = pick(dto, 'content', 'Content') ?? '';
+  const isDeleted = resolveDeletedStatus(dto);
+
   return {
-    id: String(id),
-    postId: String(dto.postId ?? dto.PostId ?? ""),
-    authorUserId: String(dto.authorUserId ?? dto.AuthorUserId ?? ""),
-    content: String(dto.content ?? dto.Content ?? ""),
-    isDeleted: Boolean(dto.isDeleted ?? dto.IsDeleted ?? dto.deletedAt ?? dto.DeletedAt),
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    deletedAt: dto.deletedAt ?? dto.DeletedAt ?? null,
+    id: pick(dto, 'id', 'Id'),
+    userId: pick(dto, 'userId', 'UserId'),
+    authorId: pick(dto, 'userId', 'UserId'),
+    content,
+    contentPreview: content.length > 120 ? `${content.slice(0, 120)}...` : content,
+    visibility: pick(dto, 'visibility', 'Visibility') ?? '',
+    reactionCount: toNumber(pick(dto, 'reactionCount', 'ReactionCount')),
+    commentCount: toNumber(pick(dto, 'commentCount', 'CommentCount')),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'editedAt', 'EditedAt', 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    isDeleted,
+    status: isDeleted ? 'Deleted' : 'Active',
+    createdAtLabel: formatAdminDate(pick(dto, 'createdAt', 'CreatedAt')),
   };
 }
 
-export function normalizeAdminEventDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  if (!id) return null;
+export function mapAdminPostsResponse(response) {
+  const paged = mapPagedResponse(response);
   return {
-    id: String(id),
-    title: String(dto.title ?? dto.Title ?? ""),
-    organizerUserId: String(dto.organizerUserId ?? dto.OrganizerUserId ?? ""),
-    location: String(dto.location ?? dto.Location ?? ""),
-    isOnline: Boolean(dto.isOnline ?? dto.IsOnline ?? false),
-    attendeeCount: Number(dto.attendeeCount ?? dto.AttendeeCount ?? 0),
-    startAt: dto.startAt ?? dto.StartAt,
-    isDeleted: Boolean(dto.isDeleted ?? dto.IsDeleted ?? dto.deletedAt ?? dto.DeletedAt),
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    deletedAt: dto.deletedAt ?? dto.DeletedAt ?? null,
+    ...paged,
+    items: paged.items.map(mapAdminPostDto).filter(Boolean),
   };
 }
 
-export function normalizeRoleDto(dto) {
-  const id = dto?.id ?? dto?.Id;
-  const name = String(dto?.name ?? dto?.Name ?? "").trim();
-  if (!id || !name) return null;
-  return { id: String(id), name };
+export function mapAdminCommentDto(dto) {
+  if (!dto) return null;
+
+  const content = pick(dto, 'content', 'Content') ?? '';
+  const isDeleted = resolveDeletedStatus(dto);
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    postId: pick(dto, 'postId', 'PostId'),
+    authorUserId: pick(dto, 'authorUserId', 'AuthorUserId'),
+    authorId: pick(dto, 'authorUserId', 'AuthorUserId'),
+    content,
+    contentPreview: content.length > 120 ? `${content.slice(0, 120)}...` : content,
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    isDeleted,
+    status: isDeleted ? 'Deleted' : 'Active',
+    createdAtLabel: formatAdminDate(pick(dto, 'createdAt', 'CreatedAt')),
+  };
+}
+
+export function mapAdminCommentsResponse(response) {
+  const paged = mapPagedResponse(response);
+  return {
+    ...paged,
+    items: paged.items.map(mapAdminCommentDto).filter(Boolean),
+  };
+}
+
+export function mapAdminVacancyDto(dto) {
+  if (!dto) return null;
+
+  const isDeleted = resolveDeletedStatus(dto);
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    companyId: pick(dto, 'companyId', 'CompanyId'),
+    companyName: pick(dto, 'companyName', 'CompanyName') ?? '',
+    postedBy: pick(dto, 'postedBy', 'PostedBy'),
+    title: pick(dto, 'title', 'Title') ?? '',
+    location: pick(dto, 'location', 'Location') ?? '',
+    jobType: pick(dto, 'jobType', 'JobType'),
+    description: pick(dto, 'description', 'Description') ?? '',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    isDeleted,
+    status: isDeleted ? 'Deleted' : 'Active',
+    createdAtLabel: formatAdminDate(pick(dto, 'createdAt', 'CreatedAt')),
+  };
+}
+
+export function mapAdminVacanciesResponse(response) {
+  const paged = mapPagedResponse(response);
+  return {
+    ...paged,
+    items: paged.items.map(mapAdminVacancyDto).filter(Boolean),
+  };
+}
+
+export function mapAdminEventDto(dto) {
+  if (!dto) return null;
+
+  const isDeleted = resolveDeletedStatus(dto);
+  const startAt = pick(dto, 'startAt', 'StartAt');
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    organizerId: pick(dto, 'organizerUserId', 'OrganizerUserId'),
+    organizerUserId: pick(dto, 'organizerUserId', 'OrganizerUserId'),
+    title: pick(dto, 'title', 'Title') ?? '',
+    location: pick(dto, 'location', 'Location') ?? '',
+    isOnline: Boolean(pick(dto, 'isOnline', 'IsOnline')),
+    attendeeCount: toNumber(pick(dto, 'attendeeCount', 'AttendeeCount')),
+    startAt,
+    endAt: pick(dto, 'endAt', 'EndAt'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    isDeleted,
+    status: isDeleted ? 'Deleted' : 'Active',
+    startAtLabel: formatAdminDate(startAt),
+    createdAtLabel: formatAdminDate(pick(dto, 'createdAt', 'CreatedAt')),
+  };
+}
+
+export function mapAdminEventsResponse(response) {
+  const paged = mapPagedResponse(response);
+  return {
+    ...paged,
+    items: paged.items.map(mapAdminEventDto).filter(Boolean),
+  };
 }

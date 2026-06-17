@@ -8,7 +8,7 @@ const mockAuthStub = path.resolve(__dirname, "src/features/auth/mockAuthApi.stub
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const proxyTarget = env.VITE_DEV_PROXY_TARGET || "http://localhost:5282";
+  const proxyTarget = env.VITE_DEV_PROXY_TARGET || "http://localhost:5000";
   const isProductionBuild = mode === "production";
 
   return {
@@ -35,7 +35,6 @@ export default defineConfig(({ mode }) => {
         "/hubs": {
           target: proxyTarget,
           changeOrigin: true,
-          secure: false,
           ws: true,
         },
       },

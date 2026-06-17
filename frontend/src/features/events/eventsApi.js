@@ -1,73 +1,136 @@
-import { apiClient } from "../../shared/api/client";
-import { apiUpload } from "../../shared/api/http";
-import { EVENTS } from "../../shared/api/paths";
-import { USE_MOCK_AUTH } from "../../shared/config/features";
-import { unwrapPagedResponse } from "../../shared/lib/pagedResponse";
-import { mapEventToView, normalizeEventDto } from "./mapEvents";
+import apiClient from '../../shared/api/client.js';
+import { API_PATHS } from '../../shared/api/paths.js';
+import { buildPaginationQuery } from '../../shared/lib/pagination.js';
+import {
+  mapEventCoverUploadResponse,
+  mapEventDto,
+  mapEventListResponse,
+  mapEventScheduleResponse,
+  mapEventSpeakerListResponse,
+} from './mapEvents.js';
 
-function buildEventsQuery({ page = 1, pageSize = 20, isOnline, query } = {}) {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
+function buildEventQuery(params = {}) {
+  const {
+    page,
+    pageSize,
+    limit,
+    query,
+    search,
+    sortBy,
+    sortDirection,
+    fromStartAt,
+    toStartAt,
+    isOnline,
+    location,
+    organizerUserId,
+    ...filters
+  } = params;
+
+  return buildPaginationQuery({
+    page,
+    pageSize: pageSize ?? limit,
+    query: query ?? search,
+    sortBy,
+    sortDirection,
+    extra: {
+      fromStartAt,
+      toStartAt,
+      isOnline,
+      location,
+      organizerUserId,
+      ...filters,
+    },
   });
-  if (isOnline != null) params.set("isOnline", String(isOnline));
-  if (query) params.set("query", query);
-  return params.toString();
 }
 
-function unwrapEventResponse(data) {
-  const dto = data?.event ?? data?.Event ?? data;
-  return normalizeEventDto(dto);
+function unwrapEvent(response) {
+  const event = response?.event ?? response?.Event ?? response;
+  return mapEventDto(event);
 }
 
-/** Public discover — `GET /api/events`. */
-export async function discoverEvents({ page = 1, pageSize = 20, isOnline, query } = {}) {
-  if (USE_MOCK_AUTH) return { items: [], page, pageSize, totalCount: 0, hasNextPage: false };
-  const qs = buildEventsQuery({ page, pageSize, isOnline, query });
-  const data = await apiClient.get(`${EVENTS.discover}?${qs}`);
-  const paged = unwrapPagedResponse(data, normalizeEventDto);
-  return { ...paged, items: paged.items.map(mapEventToView) };
+// Events
+export async function discoverEvents(params = {}) {
+  const query = buildEventQuery(params);
+  const response = await apiClient.get(API_PATHS.events.discover, { query });
+  return mapEventListResponse(response, {
+    attendingIds: params.attendingIds,
+  });
 }
 
-/** JWT — `GET /api/events/me/attending`. */
-export async function fetchAttendingEvents({ page = 1, pageSize = 20 } = {}) {
-  if (USE_MOCK_AUTH) return { items: [], page, pageSize, totalCount: 0, hasNextPage: false };
-  const qs = buildEventsQuery({ page, pageSize });
-  const data = await apiClient.get(`${EVENTS.attending}?${qs}`);
-  const paged = unwrapPagedResponse(data, normalizeEventDto);
-  return { ...paged, items: paged.items.map(mapEventToView) };
+export async function getEvents(params = {}) {
+  return discoverEvents(params);
+}
+
+export async function getEventById(eventId) {
+  const response = await apiClient.get(API_PATHS.events.byId(eventId));
+  return mapEventDto(response);
+}
+
+// Attending
+export async function getMyAttendingEvents(params = {}) {
+  try {
+    const query = buildEventQuery(params);
+    const response = await apiClient.get(API_PATHS.events.attending, { query });
+    const paged = mapEventListResponse(response);
+    return {
+      ...paged,
+      items: paged.items.map((event) => ({ ...event, isAttending: true })),
+    };
+  } catch {
+    return mapEventListResponse([]);
+  }
 }
 
 export async function joinEvent(eventId) {
-  if (USE_MOCK_AUTH || !eventId) return null;
-  return apiClient.post(EVENTS.join(eventId));
+  return apiClient.post(API_PATHS.events.join(eventId));
 }
 
 export async function leaveEvent(eventId) {
-  if (USE_MOCK_AUTH || !eventId) return null;
-  return apiClient.delete(EVENTS.leave(eventId));
+  return apiClient.delete(API_PATHS.events.attendance(eventId));
 }
 
-/** `POST /api/events/me` */
-export async function createEvent(body) {
-  if (USE_MOCK_AUTH) return null;
-  const data = await apiClient.post(EVENTS.create, body, { feedback: false });
-  const event = unwrapEventResponse(data);
-  return event ? mapEventToView(event) : null;
-}
-
-/** `POST /api/events/me/{eventId}/cover` — multipart file */
-export async function uploadEventCover(eventId, file, { onProgress } = {}) {
-  if (USE_MOCK_AUTH || !eventId || !file) return null;
-  const { ok, data } = await apiUpload("POST", EVENTS.cover(eventId), file, "file", { onProgress });
-  if (!ok) {
-    const message =
-      (Array.isArray(data?.errors) && data.errors[0]) ||
-      data?.error ||
-      data?.message ||
-      "Cover upload failed.";
-    throw new Error(String(message));
+// Speakers
+export async function getEventSpeakers(eventId, params = {}) {
+  try {
+    const query = buildEventQuery(params);
+    const response = await apiClient.get(API_PATHS.events.speakers(eventId), { query });
+    return mapEventSpeakerListResponse(response);
+  } catch {
+    return [];
   }
-  const event = unwrapEventResponse(data);
-  return event ? mapEventToView(event) : null;
+}
+
+// Schedule
+export async function getEventSchedule(eventId) {
+  try {
+    const response = await apiClient.get(API_PATHS.events.schedule(eventId));
+    return mapEventScheduleResponse(response);
+  } catch {
+    return [];
+  }
+}
+
+// Attendees (optional count fallback)
+export async function getEventAttendees(eventId, limit = 50) {
+  try {
+    const response = await apiClient.get(API_PATHS.events.attendees(eventId), {
+      query: { limit },
+    });
+    return Array.isArray(response) ? response : [];
+  } catch {
+    return [];
+  }
+}
+
+// Upload
+export async function uploadEventCover(eventId, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.upload(API_PATHS.events.cover(eventId), formData);
+  return mapEventCoverUploadResponse(response);
+}
+
+export async function loadAttendingEventIds() {
+  const result = await getMyAttendingEvents({ page: 1, pageSize: 100 });
+  return new Set(result.items.map((event) => event.id).filter(Boolean));
 }

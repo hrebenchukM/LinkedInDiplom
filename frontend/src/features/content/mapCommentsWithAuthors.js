@@ -1,5 +1,6 @@
 import { fetchProfilesByUserIds } from "../profile/profileApi";
-import { resolvePersonAvatar } from "../profile/mapProfile";
+import { getDisplayName, getProfileAvatar } from "../profile/mapProfile";
+import { getAssetUrl, IMAGE_PLACEHOLDERS } from "../../shared/api/files";
 
 function resolveAuthorName(profile, userId, currentUserId, displayName, memberLabel) {
   const fromProfile =
@@ -20,7 +21,9 @@ function mapSingleComment(dto, profiles, { currentUserId, displayName, userAvata
     id: String(dto.id ?? dto.Id),
     userId: userId ? String(userId) : "",
     author,
-    avatar: isOwn && userAvatar ? userAvatar : resolvePersonAvatar({ profile, userId, name: author }),
+    avatar: isOwn && userAvatar
+      ? userAvatar
+      : getAssetUrl(getProfileAvatar({ user: profile }), IMAGE_PLACEHOLDERS.avatar),
     seed: userId || author,
     text: String(dto.content ?? dto.Content ?? ""),
     _api: true,

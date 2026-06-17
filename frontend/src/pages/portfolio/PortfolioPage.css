@@ -1,0 +1,17 @@
+.portfolio-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.portfolio-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (max-width: 768px) {
+  .portfolio-page {
+    padding: 12px;
+  }
+}

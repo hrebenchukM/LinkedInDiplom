@@ -1,250 +1,224 @@
-import { getApiBaseUrl } from "../../shared/api/config";
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
 
-const DICEBEAR_AVATAR_BASE = "https://api.dicebear.com/7.x/avataaars/svg";
+export { resolveUploadUrl as resolveMediaUrl };
 
-function isGuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    String(value || ""),
+function pick(dto, ...keys) {
+  if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+function formatDateOnly(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value.slice(0, 10);
+  return String(value);
+}
+
+export function getDisplayName(profile) {
+  if (!profile) return 'User';
+
+  const user = profile.user ?? profile;
+  const first = pick(user, 'firstName', 'FirstName') ?? '';
+  const last = pick(user, 'secondName', 'lastName', 'LastName', 'surname') ?? '';
+  const full = `${first} ${last}`.trim();
+
+  if (full) return full;
+  return pick(user, 'email', 'Email', 'userName', 'UserName') || 'User';
+}
+
+export function getProfileAvatar(profile) {
+  const user = profile?.user ?? profile;
+  const raw = pick(user, 'avatarUrl', 'AvatarUrl', 'avatar', 'Avatar');
+  return raw ? resolveUploadUrl(raw) : '';
+}
+
+export function getProfileHeader(profile) {
+  const user = profile?.user ?? profile;
+  const raw =
+    pick(user, 'headerUrl', 'HeaderUrl', 'backgroundUrl', 'BackgroundUrl', 'coverUrl', 'CoverUrl') ??
+    pick(profile, 'headerUrl', 'HeaderUrl', 'backgroundUrl', 'coverUrl');
+  return raw ? resolveUploadUrl(raw) : '';
+}
+
+/**
+ * Map backend ProfileDto (flat) to UI shape expected by existing components.
+ */
+export function mapProfileDto(dto, accountEmail = null) {
+  if (!dto) return null;
+
+  const userId = pick(dto, 'userId', 'UserId', 'id', 'Id');
+  const firstName = pick(dto, 'firstName', 'FirstName') ?? '';
+  const lastName = pick(dto, 'lastName', 'LastName', 'secondName', 'SecondName') ?? '';
+  const avatarUrl = pick(dto, 'avatarUrl', 'AvatarUrl');
+  const headerUrl = pick(dto, 'headerUrl', 'HeaderUrl', 'backgroundUrl', 'BackgroundUrl');
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    userId,
+    login: accountEmail ?? pick(dto, 'email', 'Email') ?? userId,
+    role: null,
+    user: {
+      id: userId,
+      firstName,
+      secondName: lastName,
+      lastName,
+      profileTitle: pick(dto, 'profileTitle', 'ProfileTitle'),
+      headline: pick(dto, 'headline', 'Headline'),
+      genInfo: pick(dto, 'genInfo', 'GenInfo'),
+      about: pick(dto, 'genInfo', 'GenInfo'),
+      university: pick(dto, 'university', 'University'),
+      location: pick(dto, 'location', 'Location'),
+      portfolioUrl: pick(dto, 'portfolioUrl', 'PortfolioUrl'),
+      avatarUrl,
+      headerUrl,
+      isCompany: Boolean(pick(dto, 'isCompany', 'IsCompany')),
+      email: accountEmail ?? pick(dto, 'email', 'Email'),
+    },
+    headline: pick(dto, 'headline', 'Headline'),
+    location: pick(dto, 'location', 'Location'),
+    about: pick(dto, 'genInfo', 'GenInfo'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+  };
+}
+
+export function mapProfileListItemDto(dto) {
+  return mapProfileDto(dto);
+}
+
+export function mapProfileSearchResult(response) {
+  return mapPagedResponse(response).items.map((item) => ({
+    userId: pick(item, 'userId', 'UserId'),
+    firstName: pick(item, 'firstName', 'FirstName'),
+    lastName: pick(item, 'lastName', 'LastName'),
+    secondName: pick(item, 'lastName', 'LastName'),
+    displayName: pick(item, 'displayName', 'DisplayName') || getDisplayName({ user: item }),
+    headline: pick(item, 'headline', 'Headline'),
+    location: pick(item, 'location', 'Location'),
+    avatarUrl: pick(item, 'avatarUrl', 'AvatarUrl'),
+    headerUrl: pick(item, 'headerUrl', 'HeaderUrl'),
+  }));
+}
+
+export function mapProfileToUpdateRequest(formState = {}) {
+  const request = {};
+
+  if (formState.firstName != null) request.firstName = formState.firstName;
+  if (formState.lastName != null) request.lastName = formState.lastName;
+  if (formState.secondName != null) request.lastName = formState.secondName;
+  if (formState.profileTitle != null) request.profileTitle = formState.profileTitle;
+  if (formState.headline != null) request.headline = formState.headline;
+  if (formState.about != null) request.genInfo = formState.about;
+  if (formState.genInfo != null) request.genInfo = formState.genInfo;
+  if (formState.university != null) request.university = formState.university;
+  if (formState.location != null) request.location = formState.location;
+  if (formState.portfolioUrl != null) request.portfolioUrl = formState.portfolioUrl;
+  if (formState.isCompany != null) request.isCompany = formState.isCompany;
+
+  return request;
+}
+
+export function extractProfileFromUploadResponse(response, accountEmail = null) {
+  return extractProfileFromApiResponse(response, accountEmail);
+}
+
+function hasProfileDtoShape(dto) {
+  if (!dto || typeof dto !== 'object') return false;
+  return (
+    dto.userId != null ||
+    dto.UserId != null ||
+    dto.id != null ||
+    dto.Id != null ||
+    'firstName' in dto ||
+    'FirstName' in dto ||
+    'lastName' in dto ||
+    'LastName' in dto
   );
 }
 
-const GENERIC_PEER_LABELS = new Set(["chat", "user", "contact", "member"]);
+export function extractProfileFromApiResponse(response, accountEmail = null) {
+  if (!response) return null;
 
-/** Relative `/uploads/...` paths work via Vite proxy when API base is empty. */
-export function resolveMediaUrl(url) {
-  const value = String(url || "").trim();
-  if (!value) return "";
-  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) {
-    return value;
-  }
-  const base = getApiBaseUrl();
-  if (!base) return value.startsWith("/") ? value : `/${value}`;
-  const path = value.startsWith("/") ? value : `/${value}`;
-  return `${base}${path}`;
-}
+  const profileDto =
+    response.profile ??
+    response.Profile ??
+    response.data?.profile ??
+    response.data?.Profile ??
+    null;
 
-/** Stable Dicebear seed — GUID user/chat id first so avatars never collide across people. */
-export function resolveAvatarSeed({ profile, userId, name, avatarUrl } = {}) {
-  const sources = [
-    String(avatarUrl || profile?.avatarUrl || "").trim(),
-    String(profile?.avatarUrl || "").trim(),
-  ];
-
-  for (const source of sources) {
-    const match = source.match(/[?&]seed=([^&]+)/i);
-    if (match?.[1]) {
-      try {
-        return decodeURIComponent(match[1]);
-      } catch {
-        return match[1];
-      }
-    }
+  if (hasProfileDtoShape(profileDto)) {
+    return mapProfileDto(profileDto, accountEmail);
   }
 
-  const uid = String(userId || profile?.userId || "").trim();
-  if (isGuid(uid)) {
-    return uid.toLowerCase();
+  if (hasProfileDtoShape(response)) {
+    return mapProfileDto(response, accountEmail);
   }
 
-  const email = String(profile?.email || "").trim();
-  if (email.includes("@")) {
-    return email.split("@")[0];
+  return null;
+}
+
+export function mergeProfileUpdate(currentProfile, nextProfile, options = {}) {
+  if (!nextProfile) return currentProfile ?? null;
+  if (!currentProfile) return nextProfile;
+
+  const { clearAvatar = false, clearHeader = false } = options;
+  const mergedUser = {
+    ...currentProfile.user,
+    ...nextProfile.user,
+  };
+
+  if (nextProfile.user?.firstName == null && currentProfile.user?.firstName) {
+    mergedUser.firstName = currentProfile.user.firstName;
+  }
+  if (
+    nextProfile.user?.secondName == null &&
+    nextProfile.user?.lastName == null &&
+    (currentProfile.user?.secondName || currentProfile.user?.lastName)
+  ) {
+    mergedUser.secondName = currentProfile.user.secondName ?? currentProfile.user.lastName;
+    mergedUser.lastName = currentProfile.user.lastName ?? currentProfile.user.secondName;
   }
 
-  const displayName = String(
-    profile?.fullName ||
-      `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
-      name ||
-      "",
-  ).trim();
-  const normalizedName = displayName.replace(/\s+/g, "");
-  if (normalizedName && !GENERIC_PEER_LABELS.has(normalizedName.toLowerCase())) {
-    return normalizedName;
+  if (clearAvatar || nextProfile.user?.avatarUrl === null) {
+    mergedUser.avatarUrl = null;
   }
 
-  return uid || normalizedName || "user";
-}
-
-/** Profile URL when available; otherwise a deterministic Dicebear avatar. */
-export function resolvePersonAvatar({ profile, userId, name, avatarUrl } = {}) {
-  const explicit = String(avatarUrl || profile?.avatarUrl || "").trim();
-  if (explicit) {
-    const resolved = resolveMediaUrl(explicit);
-    if (resolved) return resolved;
+  if (clearHeader || nextProfile.user?.headerUrl === null) {
+    mergedUser.headerUrl = null;
   }
 
-  const seed = resolveAvatarSeed({ profile, userId, name, avatarUrl: explicit });
-  return `${DICEBEAR_AVATAR_BASE}?seed=${encodeURIComponent(seed)}`;
-}
-
-/** Normalize ProfileDto / ProfileResponse profile (camelCase or PascalCase). */
-export function normalizeProfileDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const userId = dto.userId ?? dto.UserId;
-  const id = dto.id ?? dto.Id;
-  if (!userId && !id) return null;
-
   return {
-    id,
-    userId: userId != null ? String(userId) : undefined,
-    firstName: String(dto.firstName ?? dto.FirstName ?? "").trim(),
-    lastName: String(dto.lastName ?? dto.LastName ?? "").trim(),
-    fullName: String(dto.fullName ?? dto.FullName ?? "").trim(),
-    avatarUrl: String(dto.avatarUrl ?? dto.AvatarUrl ?? "").trim(),
-    headerUrl: String(dto.headerUrl ?? dto.HeaderUrl ?? "").trim(),
-    profileTitle: String(dto.profileTitle ?? dto.ProfileTitle ?? "").trim(),
-    headline: String(dto.headline ?? dto.Headline ?? "").trim(),
-    genInfo: String(dto.genInfo ?? dto.GenInfo ?? "").trim(),
-    university: String(dto.university ?? dto.University ?? "").trim(),
-    location: String(dto.location ?? dto.Location ?? "").trim(),
-    portfolioUrl: String(dto.portfolioUrl ?? dto.PortfolioUrl ?? "").trim(),
-    isCompany: Boolean(dto.isCompany ?? dto.IsCompany ?? false),
+    ...currentProfile,
+    ...nextProfile,
+    user: mergedUser,
+    updatedAt: nextProfile.updatedAt ?? new Date().toISOString(),
   };
 }
 
-export function mapProfileDtoToRegisteredPatch(dto = {}) {
-  const normalized = normalizeProfileDto(dto) || dto;
-  const location = String(normalized.location || "").trim();
-  const locationParts = location ? location.split(",").map((part) => part.trim()) : [];
-  const city = locationParts[0] || "";
-  const country = locationParts.slice(1).join(", ").trim();
+export function getProfileMediaVersion(profile) {
+  const updatedAt = profile?.updatedAt ?? profile?.user?.updatedAt;
+  if (!updatedAt) return Date.now();
+  const parsed = new Date(updatedAt).getTime();
+  return Number.isNaN(parsed) ? Date.now() : parsed;
+}
 
+export function mapProfileAnalytics(views = [], postViews = 0) {
+  const list = Array.isArray(views) ? views : [];
   return {
-    firstName: normalized.firstName || "",
-    lastName: normalized.lastName || "",
-    specialty: normalized.headline || "",
-    position: normalized.profileTitle || "",
-    city,
-    country,
-    about: normalized.genInfo || "",
-    education: normalized.university || "",
-    portfolioUrl: String(normalized.portfolioUrl || "").trim(),
-    avatarDataUrl: resolveMediaUrl(normalized.avatarUrl),
-    headerDataUrl: resolveMediaUrl(normalized.headerUrl),
+    profileViews: list.length,
+    postViews: postViews ?? 0,
   };
 }
 
-export function mapRegisterFallbackToPatchRequest(fallback = {}) {
-  const patch = {};
-  const firstName = String(fallback.firstName || "").trim();
-  const lastName = String(fallback.lastName || "").trim();
-  const headline = String(fallback.specialty || fallback.headline || "").trim();
+export function mapProfileViewsResponse(response) {
+  if (Array.isArray(response)) {
+    return mapProfileAnalytics(response);
+  }
 
-  if (firstName) patch.firstName = firstName;
-  if (lastName) patch.lastName = lastName;
-  if (headline) patch.headline = headline;
-
-  return patch;
-}
-
-export function mapProfileFormToPatchRequest(form = {}) {
-  const location = [form.city, form.country]
-    .map((part) => String(part || "").trim())
-    .filter(Boolean)
-    .join(", ");
-
-  const patch = {
-    firstName: String(form.firstName || "").trim() || null,
-    lastName: String(form.lastName || "").trim() || null,
-    headline: String(form.specialty || "").trim() || null,
-    profileTitle: String(form.position || "").trim() || null,
-    genInfo: String(form.about || "").trim() || null,
-    university: String(form.education || "").trim() || null,
-    portfolioUrl: String(form.portfolioUrl || "").trim() || null,
-    location: location || null,
-  };
-
-  return Object.fromEntries(Object.entries(patch).filter(([, value]) => value != null && value !== ""));
-}
-
-export function mapProfileDtoToPublicView(dto = {}) {
-  const normalized = normalizeProfileDto(dto) || dto;
-  const patch = mapProfileDtoToRegisteredPatch(normalized);
-  const firstName = String(normalized.firstName || "").trim();
-  const lastName = String(normalized.lastName || "").trim();
-  const fullName =
-    String(normalized.fullName || "").trim() ||
-    `${firstName} ${lastName}`.trim() ||
-    "User";
-  const location = [patch.city, patch.country].filter(Boolean).join(", ");
-
-  return {
-    userId: normalized.userId,
-    fullName,
-    headline: String(normalized.headline || "").trim(),
-    profileTitle: String(normalized.profileTitle || "").trim(),
-    location,
-    city: patch.city,
-    country: patch.country,
-    about: patch.about,
-    education: patch.education,
-    avatarUrl: patch.avatarDataUrl,
-    headerUrl: patch.headerDataUrl,
-    portfolioUrl: String(normalized.portfolioUrl || "").trim(),
-  };
-}
-
-export function normalizeProfileSearchDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const userId = dto.userId ?? dto.UserId;
-  if (!userId) return null;
-  return {
-    userId: String(userId),
-    firstName: String(dto.firstName ?? dto.FirstName ?? "").trim(),
-    lastName: String(dto.lastName ?? dto.LastName ?? "").trim(),
-    displayName: String(dto.displayName ?? dto.DisplayName ?? "").trim(),
-    headline: String(dto.headline ?? dto.Headline ?? "").trim(),
-    location: String(dto.location ?? dto.Location ?? "").trim(),
-    avatarUrl: String(dto.avatarUrl ?? dto.AvatarUrl ?? "").trim(),
-  };
-}
-
-export function mapProfileSearchToPerson(dto, currentUserId) {
-  const normalized = normalizeProfileSearchDto(dto);
-  if (!normalized) return null;
-  if (currentUserId && String(normalized.userId) === String(currentUserId)) return null;
-
-  const name =
-    normalized.displayName ||
-    `${normalized.firstName} ${normalized.lastName}`.trim() ||
-    `User ${normalized.userId.slice(0, 8)}`;
-  const role = normalized.headline || normalized.location || "Member";
-  const profile = {
-    firstName: normalized.firstName,
-    lastName: normalized.lastName,
-    avatarUrl: normalized.avatarUrl,
-  };
-  const avatarSeed = resolveAvatarSeed({ profile, userId: normalized.userId, name });
-  const avatar = resolvePersonAvatar({ profile, userId: normalized.userId, name });
-
-  return {
-    id: `search-${normalized.userId}`,
-    userId: normalized.userId,
-    name,
-    role,
-    handle: normalized.userId.slice(0, 12),
-    seed: avatarSeed,
-    avatar,
-    keywords: `${name} ${normalized.headline} ${normalized.location}`.toLowerCase(),
-    _api: true,
-    _searchResult: true,
-  };
-}
-
-export function mapProfileDtoToUiProfile(dto = {}, account = {}) {
-  const normalized = normalizeProfileDto(dto) || dto;
-  const firstName = String(normalized.firstName || "").trim();
-  const lastName = String(normalized.lastName || "").trim();
-  const fullName =
-    String(normalized.fullName || "").trim() ||
-    `${firstName} ${lastName}`.trim() ||
-    String(account.email || "").split("@")[0] ||
-    "User";
-
-  return {
-    name: fullName,
-    headline: String(normalized.headline || normalized.profileTitle || "Member").trim(),
-    city: mapProfileDtoToRegisteredPatch(normalized).city,
-    about: String(normalized.genInfo || "").trim(),
-  };
+  const items = response?.items ?? response?.Items ?? [];
+  return mapProfileAnalytics(items);
 }

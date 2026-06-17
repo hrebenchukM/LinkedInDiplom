@@ -1,0 +1,39 @@
+.layout {
+  min-height: 100dvh;
+  background-color: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+}
+
+.layout main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Messages: chat fills viewport; footer on scroll */
+.layout main:has(.messages-page-wrapper) {
+  flex: 1 0 auto;
+  min-height: calc(100dvh - var(--app-header-height, 60px));
+  overflow: visible;
+}
+
+.layout:has(.messages-page-wrapper) .footer {
+  flex-shrink: 0;
+}
+
+.layout:has(.messages-page-wrapper) .footer .footer-top {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.layout:has(.messages-page-wrapper) .footer .footer-links {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.layout:has(.messages-page-wrapper) .footer .footer-right {
+  display: none;
+}

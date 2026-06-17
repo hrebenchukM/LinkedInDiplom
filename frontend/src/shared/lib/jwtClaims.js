@@ -1,65 +1,96 @@
-/** ASP.NET ClaimTypes.Role and common JWT aliases. */
 const ROLE_CLAIM_KEYS = [
-  "role",
-  "roles",
-  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+  'role',
+  'roles',
+  'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
 ];
 
-export const ADMIN_ROLE_NAME = "Admin";
+const USER_ID_CLAIM_KEYS = [
+  'sub',
+  'nameid',
+  'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
+];
 
-/** Decode JWT payload (no signature check — UI hints only). */
+const EMAIL_CLAIM_KEYS = [
+  'email',
+  'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+];
+
+function decodeBase64Url(value) {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+
+  if (typeof atob !== 'function') {
+    throw new Error('Base64 decoding is not available.');
+  }
+
+  return atob(padded);
+}
+
 export function decodeJwtPayload(token) {
-  if (!token || typeof token !== "string") return null;
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
+  if (typeof token !== 'string' || token.split('.').length < 2) {
+    return null;
+  }
 
   try {
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    return JSON.parse(atob(padded));
+    const payloadPart = token.split('.')[1];
+    const json = decodeBase64Url(payloadPart);
+    const payload = JSON.parse(json);
+    return payload && typeof payload === 'object' ? payload : null;
   } catch {
     return null;
   }
 }
 
-function normalizeClaimValues(value) {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value.map(String);
-  return [String(value)];
+function pickClaim(payload, keys) {
+  if (!payload) return null;
+
+  for (const key of keys) {
+    const value = payload[key];
+    if (value != null && value !== '') {
+      return value;
+    }
+  }
+
+  return null;
 }
 
-export function getRolesFromJwtPayload(payload) {
-  if (!payload || typeof payload !== "object") return [];
+function normalizeRoles(value) {
+  if (value == null) return [];
+
+  const list = Array.isArray(value) ? value : [value];
+  return list.filter(Boolean).map(String);
+}
+
+export function getRolesFromToken(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return [];
 
   const roles = new Set();
+
   for (const key of ROLE_CLAIM_KEYS) {
-    if (!(key in payload)) continue;
-    normalizeClaimValues(payload[key]).forEach((role) => {
-      const trimmed = role.trim();
-      if (trimmed) roles.add(trimmed);
-    });
+    normalizeRoles(payload[key]).forEach((role) => roles.add(role));
   }
+
   return [...roles];
 }
 
-export function getRolesFromAccessToken(token) {
-  return getRolesFromJwtPayload(decodeJwtPayload(token));
+export function getUserIdFromToken(token) {
+  const payload = decodeJwtPayload(token);
+  const value = pickClaim(payload, USER_ID_CLAIM_KEYS);
+  return value != null ? String(value) : null;
 }
 
-export function isAdminFromRoles(roles) {
-  return Array.isArray(roles) && roles.includes(ADMIN_ROLE_NAME);
+export function getEmailFromToken(token) {
+  const payload = decodeJwtPayload(token);
+  const value = pickClaim(payload, EMAIL_CLAIM_KEYS);
+  return value != null ? String(value) : null;
 }
 
-export function getAuthFlagsFromAccessToken(token) {
-  const roles = getRolesFromAccessToken(token);
-  return { roles, isAdmin: isAdminFromRoles(roles) };
+export function hasRole(token, role) {
+  if (!role) return false;
+  return getRolesFromToken(token).includes(role);
 }
 
-/** Merge role claims from the current access token into the SPA user model. */
-export function applyTokenRolesToUser(user, accessToken) {
-  if (!user || user.isGuest || !accessToken) {
-    return user;
-  }
-  const { roles, isAdmin } = getAuthFlagsFromAccessToken(accessToken);
-  return { ...user, roles, isAdmin };
+export function isAdminToken(token) {
+  return hasRole(token, 'Admin');
 }

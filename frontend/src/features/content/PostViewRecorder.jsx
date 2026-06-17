@@ -1,19 +1,25 @@
 import { useEffect, useRef } from "react";
-import { tryRecordPostView } from "./postViewsApi";
+import { recordPostView } from "./contentApi.js";
 
-/** Records a post view once when the card enters the viewport (API mode). */
+const recordedPostIds = new Set();
+
+/** Records a post view once when the card enters the viewport. */
 export function PostViewRecorder({ postId, enabled, source = "feed" }) {
   const ref = useRef(null);
 
   useEffect(() => {
     if (!enabled || !postId) return undefined;
+    const id = String(postId);
+    if (recordedPostIds.has(id)) return undefined;
+
     const el = ref.current;
     if (!el) return undefined;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          tryRecordPostView(postId, source);
+          recordedPostIds.add(id);
+          recordPostView(id, source);
           observer.disconnect();
         }
       },

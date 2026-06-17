@@ -1,127 +1,142 @@
-import { resolveMediaUrl } from "../profile/mapProfile";
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
 
-/** Normalizes API JSON (camelCase or PascalCase) into a stable post shape. */
-export function normalizePostDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const rawMedia = dto.media ?? dto.Media ?? [];
-  const media = Array.isArray(rawMedia)
-    ? rawMedia.map((item) => ({
-        url: item?.url ?? item?.Url,
-        type: item?.type ?? item?.Type,
-      }))
-    : [];
+function pick(dto, ...keys) {
+  if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+export function mapMediaDto(dto) {
+  if (!dto) return null;
+
+  const rawUrl = pick(dto, 'url', 'Url', 'fileUrl', 'FileUrl', 'mediaUrl', 'MediaUrl');
+  return {
+    id: pick(dto, 'id', 'Id'),
+    url: rawUrl ? resolveUploadUrl(rawUrl) : null,
+    rawUrl,
+    type: pick(dto, 'type', 'Type') ?? 'image',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+  };
+}
+
+export function mapMediaUploadResponse(response) {
+  if (!response) return null;
+
+  const media =
+    response.media ??
+    response.Media ??
+    response.data?.media ??
+    response;
+
+  return mapMediaDto(media);
+}
+
+export function mapPostDto(dto) {
+  if (!dto) return null;
+
+  const rawMedia = dto.media ?? dto.Media ?? dto.mediaUrls ?? dto.MediaUrls ?? [];
+  const media = (Array.isArray(rawMedia) ? rawMedia : [])
+    .map((item) => (typeof item === 'string' ? mapMediaDto({ url: item }) : mapMediaDto(item)))
+    .filter(Boolean);
+
+  const content = pick(dto, 'content', 'Content', 'text', 'Text', 'body', 'Body') ?? '';
 
   return {
-    id: dto.id ?? dto.Id,
-    userId: dto.userId ?? dto.UserId,
-    content: dto.content ?? dto.Content ?? "",
-    visibility: dto.visibility ?? dto.Visibility,
-    reactionCount: dto.reactionCount ?? dto.ReactionCount ?? 0,
-    commentCount: dto.commentCount ?? dto.CommentCount ?? 0,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
+    id: pick(dto, 'id', 'Id'),
+    userId: pick(dto, 'userId', 'UserId', 'authorId', 'AuthorId'),
+    authorId: pick(dto, 'authorId', 'AuthorId', 'userId', 'UserId'),
+    content,
+    text: content,
+    visibility: pick(dto, 'visibility', 'Visibility') ?? 'Public',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt', 'publishedAt', 'PublishedAt'),
+    updatedAt: pick(dto, 'editedAt', 'EditedAt', 'updatedAt', 'UpdatedAt'),
     media,
+    image: media[0]?.url ?? media[0]?.rawUrl ?? null,
+    commentsCount:
+      pick(dto, 'commentCount', 'CommentCount', 'commentsCount', 'CommentsCount') ?? 0,
+    reactionsCount:
+      pick(dto, 'reactionCount', 'ReactionCount', 'reactionsCount', 'ReactionsCount') ?? 0,
+    repostCount: pick(dto, 'repostCount', 'RepostCount') ?? 0,
+    myReaction:
+      pick(dto, 'myReactionType', 'MyReactionType', 'myReaction', 'MyReaction') ?? null,
+    user: null,
+    author: null,
   };
 }
 
-export function mapPostDtoToFeedPost(dto, { authorName, authorHeadline, authorAvatar, currentUserId } = {}) {
-  const normalized = normalizePostDto(dto) || dto;
-  const isOwn = String(normalized.userId) === String(currentUserId);
-  const media = Array.isArray(normalized.media) ? normalized.media : [];
-  const firstImage = media.find((item) => item?.url)?.url;
-
+export function mapPostListResponse(response) {
+  const paged = mapPagedResponse(response);
   return {
-    id: String(normalized.id ?? dto.id ?? dto.Id ?? ""),
-    isOwn,
-    author: authorName || (isOwn ? "You" : "Member"),
-    seed: authorName || dto.userId,
-    avatar: authorAvatar || "",
-    role: authorHeadline || "",
-    text: String(normalized.content || ""),
-    image: firstImage ? resolveMediaUrl(firstImage) : "",
-    video: "",
-    likes: Number(normalized.reactionCount) || 0,
-    commentCount: Number(normalized.commentCount) || 0,
-    comments: [],
-    createdAt: normalized.createdAt ? new Date(normalized.createdAt).getTime() : Date.now(),
-    visibility: normalized.visibility,
-    userId: normalized.userId,
-    _api: true,
+    ...paged,
+    items: paged.items.map(mapPostDto).filter(Boolean),
   };
 }
 
-export function normalizeSavedPostDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapPostToCreateRequest(formState = {}) {
+  const request = {
+    content: formState.content ?? formState.text ?? formState.body ?? '',
+    visibility: formState.visibility ?? 'Public',
+  };
+
+  const mediaIds = formState.mediaIds ?? formState.MediaIds;
+  if (Array.isArray(mediaIds) && mediaIds.length > 0) {
+    request.mediaIds = mediaIds;
+  }
+
+  return request;
+}
+
+export function mapPostToUpdateRequest(formState = {}) {
   return {
-    id: dto.id ?? dto.Id,
-    userId: dto.userId ?? dto.UserId,
-    postId: dto.postId ?? dto.PostId,
-    savedAt: dto.savedAt ?? dto.SavedAt,
-    unsavedAt: dto.unsavedAt ?? dto.UnsavedAt,
-    post: normalizePostDto(dto.post ?? dto.Post),
+    content: formState.content ?? formState.text ?? formState.body ?? '',
+    visibility: formState.visibility ?? 'Public',
   };
 }
 
-export function normalizeHashtagDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapCommentDto(dto) {
+  if (!dto) return null;
+
+  const content = pick(dto, 'content', 'Content', 'text', 'Text') ?? '';
+
   return {
-    id: dto.id ?? dto.Id,
-    name: dto.name ?? dto.Name ?? "",
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    updatedAt: dto.updatedAt ?? dto.UpdatedAt,
+    id: pick(dto, 'id', 'Id'),
+    postId: pick(dto, 'postId', 'PostId'),
+    userId: pick(dto, 'userId', 'UserId'),
+    parentCommentId: pick(dto, 'parentCommentId', 'ParentCommentId'),
+    content,
+    text: content,
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    user: null,
+    author: null,
   };
 }
 
-export function normalizePostHashtagDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapCommentListResponse(response) {
+  const paged = mapPagedResponse(response);
   return {
-    id: dto.id ?? dto.Id,
-    postId: dto.postId ?? dto.PostId,
-    hashtagId: dto.hashtagId ?? dto.HashtagId,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    hashtag: normalizeHashtagDto(dto.hashtag ?? dto.Hashtag),
+    ...paged,
+    items: paged.items.map(mapCommentDto).filter(Boolean),
   };
 }
 
-export function normalizeMentionDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapReactionDto(dto) {
+  if (!dto) return null;
+
   return {
-    id: dto.id ?? dto.Id,
-    postId: dto.postId ?? dto.PostId,
-    mentionedUserId: dto.mentionedUserId ?? dto.MentionedUserId,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
+    id: pick(dto, 'id', 'Id'),
+    postId: pick(dto, 'postId', 'PostId'),
+    userId: pick(dto, 'userId', 'UserId'),
+    reactionType: pick(dto, 'reactionType', 'ReactionType') ?? 'Like',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
   };
 }
 
-export function normalizeHashtagFollowDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  return {
-    id: dto.id ?? dto.Id,
-    userId: dto.userId ?? dto.UserId,
-    hashtagId: dto.hashtagId ?? dto.HashtagId,
-    followedAt: dto.followedAt ?? dto.FollowedAt,
-    unfollowedAt: dto.unfollowedAt ?? dto.UnfollowedAt,
-    hashtag: normalizeHashtagDto(dto.hashtag ?? dto.Hashtag),
-  };
-}
-
-export function normalizeRepostDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  return {
-    id: dto.id ?? dto.Id,
-    userId: dto.userId ?? dto.UserId,
-    originalPostId: dto.originalPostId ?? dto.OriginalPostId,
-    repostedAt: dto.repostedAt ?? dto.RepostedAt,
-    removedAt: dto.removedAt ?? dto.RemovedAt,
-    originalPost: normalizePostDto(dto.originalPost ?? dto.OriginalPost),
-  };
-}
-
-export function mapCommentDtoToUi(dto, authorName = "User") {
-  return {
-    id: String(dto.id),
-    author: authorName,
-    seed: authorName,
-    text: String(dto.content || ""),
-    _api: true,
-  };
+export function extractPostFromResponse(response) {
+  const postDto = response?.post ?? response?.Post ?? response;
+  return mapPostDto(postDto);
 }

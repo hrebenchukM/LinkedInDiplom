@@ -1,0 +1,141 @@
+.chat-profile {
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  padding: 24px;
+  overflow-y: auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.profile-back-button {
+  display: none;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-back-button:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--color-brand);
+  color: var(--text-brand);
+}
+
+.profile-avatar-large {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.profile-avatar-large img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.chat-profile .profile-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.profile-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-section:last-child {
+  border-bottom: none;
+}
+
+.profile-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.profile-section p {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.profile-position {
+  font-weight: 600;
+}
+
+.profile-duration {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.profile-education {
+  font-weight: 600;
+}
+
+.profile-degree {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.profile-link {
+  color: var(--text-brand);
+  cursor: pointer;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1200px) {
+  .chat-profile {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 30;
+    box-shadow: none;
+    transform: translateX(100%);
+    transition: transform 0.3s;
+    padding-top: 80px;
+  }
+
+  .chat-profile.show-profile {
+    display: flex;
+    flex-direction: column;
+    transform: translateX(0);
+  }
+
+  .profile-back-button {
+    display: flex;
+  }
+}
+
+@media (max-width: 600px) {
+  .chat-profile {
+    padding: 16px;
+  }
+}

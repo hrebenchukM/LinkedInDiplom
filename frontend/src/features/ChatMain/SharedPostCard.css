@@ -1,0 +1,131 @@
+.shared-post-card {
+  display: block;
+  width: min(100%, 280px);
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 8px 24px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.shared-post-card:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.1),
+    0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.shared-post-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.shared-post-card--mine {
+  border-color: rgba(124, 58, 237, 0.28);
+}
+
+.shared-post-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shared-post-card__body {
+  padding: 10px 12px 12px;
+}
+
+.shared-post-card__author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.shared-post-card__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.shared-post-card__author-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shared-post-card__author-text strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-post-card__author-text span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-post-card__media {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  line-height: 0;
+}
+
+.shared-post-card__image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.shared-post-card__caption {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shared-post-card__caption strong {
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.shared-post-card__caption span {
+  color: var(--text-primary);
+}
+
+.message.me .shared-post-card {
+  margin-left: auto;
+}
+
+.message.other .shared-post-card {
+  margin-right: auto;
+}
+
+.message-content--shared-post {
+  max-width: min(300px, 88%);
+}

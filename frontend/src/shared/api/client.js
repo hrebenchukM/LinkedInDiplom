@@ -1,29 +1,47 @@
-import { readApiError } from "../lib/apiError";
-import { showApiFeedback } from "../lib/apiFeedback";
-import { apiFetch, parseJsonSafe, withAuthHeaders, buildApiUrl } from "./http";
+import { del, get, patch, post, put, upload } from './http.js';
 
-async function request(method, path, body, options = {}) {
-  const { ok, status, data } = await apiFetch(method, path, body, options);
-  if (!ok) {
-    const message = readApiError(data, `Request failed with status ${status}`);
-    const showFeedback =
-      options.feedback === true || (options.feedback !== false && method !== "GET");
-    if (showFeedback) {
-      showApiFeedback(message);
-    }
-    throw new Error(message);
+function normalizeGetArgs(path, queryOrOptions) {
+  if (
+    queryOrOptions &&
+    typeof queryOrOptions === 'object' &&
+    ('query' in queryOrOptions ||
+      'headers' in queryOrOptions ||
+      'signal' in queryOrOptions)
+  ) {
+    return { path, options: queryOrOptions };
   }
-  if (status === 204) return null;
-  return data;
+
+  return {
+    path,
+    options: queryOrOptions ? { query: queryOrOptions } : {},
+  };
 }
 
-/** Throws on HTTP error — use for module integration (profile, messaging, …). */
 export const apiClient = {
-  get: (path, options) => request("GET", path, undefined, options),
-  post: (path, body, options) => request("POST", path, body, options),
-  put: (path, body, options) => request("PUT", path, body, options),
-  patch: (path, body, options) => request("PATCH", path, body, options),
-  delete: (path, options) => request("DELETE", path, undefined, options),
+  get(path, queryOrOptions) {
+    const { path: resolvedPath, options } = normalizeGetArgs(path, queryOrOptions);
+    return get(resolvedPath, options);
+  },
+
+  post(path, body, options = {}) {
+    return post(path, body, options);
+  },
+
+  put(path, body, options = {}) {
+    return put(path, body, options);
+  },
+
+  patch(path, body, options = {}) {
+    return patch(path, body, options);
+  },
+
+  delete(path, options = {}) {
+    return del(path, options);
+  },
+
+  upload(path, formData, options = {}) {
+    return upload(path, formData, options);
+  },
 };
 
-export { apiFetch, parseJsonSafe, withAuthHeaders, buildApiUrl };
+export default apiClient;

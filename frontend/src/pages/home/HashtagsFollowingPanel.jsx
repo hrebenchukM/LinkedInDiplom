@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import * as contentApi from "../../features/content/contentApi";
 import { LoadStatus } from "../../shared/ui/LoadStatus";
+import { useTranslation } from "../../app/i18n/LocaleContext.jsx";
 
-export function HashtagsFollowingPanel({ t, onHint, focusSearch = "" }) {
+export function HashtagsFollowingPanel({ onHint, focusSearch = "" }) {
+  const { t } = useTranslation();
   const [follows, setFollows] = useState([]);
   const [search, setSearch] = useState(focusSearch);
   const [results, setResults] = useState([]);
@@ -82,7 +84,7 @@ export function HashtagsFollowingPanel({ t, onHint, focusSearch = "" }) {
 
   return (
     <section className="home-card hashtags-panel">
-      <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reload} t={t} />
+      <LoadStatus isLoading={isLoading} loadError={loadError} onRetry={reload} />
       <h3 className="hashtags-panel__title">{t("home.hashtags.following", "Following hashtags")}</h3>
       <input
         className="hashtags-panel__search"

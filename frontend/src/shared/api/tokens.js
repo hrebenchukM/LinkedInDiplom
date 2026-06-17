@@ -1,129 +1,111 @@
-import { decodeJwtPayload } from "../lib/jwtClaims";
+const ACCESS_TOKEN_KEY = 'linkedin_access_token';
+const REFRESH_TOKEN_KEY = 'linkedin_refresh_token';
+const ACCESS_EXPIRES_AT_KEY = 'linkedin_access_expires_at';
 
-export const AUTH_ACCESS_TOKEN_KEY = "authAccessToken";
-export const AUTH_REFRESH_TOKEN_KEY = "authRefreshToken";
-export const AUTH_TOKEN_EXPIRES_AT_KEY = "authTokenExpiresAt";
+/** @deprecated Legacy Java JWT key — cleared on setAuthTokens/clearAuthTokens for migration. */
+const LEGACY_TOKEN_KEY = 'token';
 
-function resolveExpiresAtIso(tokenDto) {
-  const raw = tokenDto?.expiresAt ?? tokenDto?.ExpiresAt;
-  if (raw) {
-    const parsed = new Date(raw);
-    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
   }
-
-  const accessToken = tokenDto?.accessToken ?? tokenDto?.AccessToken;
-  const payload = decodeJwtPayload(accessToken);
-  if (payload?.exp) {
-    return new Date(payload.exp * 1000).toISOString();
-  }
-
-  return null;
 }
 
-export function setAuthTokens(accessToken, refreshToken) {
+function writeStorage(key, value) {
   try {
-    if (accessToken) {
-      window.localStorage.setItem(AUTH_ACCESS_TOKEN_KEY, accessToken);
+    if (value == null || value === '') {
+      localStorage.removeItem(key);
     } else {
-      window.localStorage.removeItem(AUTH_ACCESS_TOKEN_KEY);
-    }
-    if (refreshToken) {
-      window.localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken);
-    } else {
-      window.localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+      localStorage.setItem(key, value);
     }
   } catch {
-    // ignore storage errors
+    // ignore storage failures (private mode, etc.)
   }
-}
-
-export function setTokenExpiresAt(iso) {
-  try {
-    if (iso) {
-      window.localStorage.setItem(AUTH_TOKEN_EXPIRES_AT_KEY, iso);
-    } else {
-      window.localStorage.removeItem(AUTH_TOKEN_EXPIRES_AT_KEY);
-    }
-  } catch {
-    // ignore storage errors
-  }
-}
-
-export function getTokenExpiresAt() {
-  try {
-    return window.localStorage.getItem(AUTH_TOKEN_EXPIRES_AT_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function clearAuthTokens() {
-  try {
-    window.localStorage.removeItem(AUTH_ACCESS_TOKEN_KEY);
-    window.localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
-    window.localStorage.removeItem(AUTH_TOKEN_EXPIRES_AT_KEY);
-  } catch {
-    // ignore storage errors
-  }
-  import("./tokenRefreshScheduler.js").then((module) => module.cancelProactiveTokenRefresh());
 }
 
 export function getAccessToken() {
-  try {
-    return window.localStorage.getItem(AUTH_ACCESS_TOKEN_KEY) || "";
-  } catch {
-    return "";
-  }
+  return readStorage(ACCESS_TOKEN_KEY);
+}
+
+export function setAccessToken(token) {
+  writeStorage(ACCESS_TOKEN_KEY, token);
+}
+
+export function clearAccessToken() {
+  writeStorage(ACCESS_TOKEN_KEY, null);
 }
 
 export function getRefreshToken() {
-  try {
-    return window.localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || "";
-  } catch {
-    return "";
+  return readStorage(REFRESH_TOKEN_KEY);
+}
+
+export function setRefreshToken(token) {
+  writeStorage(REFRESH_TOKEN_KEY, token);
+}
+
+export function clearRefreshToken() {
+  writeStorage(REFRESH_TOKEN_KEY, null);
+}
+
+export function getTokenExpiresAt() {
+  const raw = readStorage(ACCESS_EXPIRES_AT_KEY);
+  if (!raw) return null;
+
+  const timestamp = Date.parse(raw);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+export function setTokenExpiresAt(expiresAt) {
+  if (expiresAt == null || expiresAt === '') {
+    writeStorage(ACCESS_EXPIRES_AT_KEY, null);
+    return;
   }
+
+  const value =
+    expiresAt instanceof Date
+      ? expiresAt.toISOString()
+      : typeof expiresAt === 'number'
+        ? new Date(expiresAt).toISOString()
+        : String(expiresAt);
+
+  writeStorage(ACCESS_EXPIRES_AT_KEY, value);
 }
 
-/** True for mock/demo tokens that must not be used against Facade.API. */
-export function looksLikeMockToken(value) {
-  return (
-    typeof value === "string" &&
-    (value.startsWith("mock-access-") ||
-      value.startsWith("mock-refresh-") ||
-      value === "mock" ||
-      /^mock-/i.test(value))
-  );
+export function setAuthTokens({ accessToken, refreshToken, expiresAt }) {
+  setAccessToken(accessToken);
+  setRefreshToken(refreshToken);
+  setTokenExpiresAt(expiresAt);
+
+  // Drop legacy Java token key so old and new auth do not coexist.
+  writeStorage(LEGACY_TOKEN_KEY, null);
 }
 
-/** Normalize AuthTokenDto from API (camelCase or PascalCase). */
-export function normalizeAuthTokenDto(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const accessToken = String(raw.accessToken ?? raw.AccessToken ?? "").trim();
-  if (!accessToken) return null;
-  const refreshToken = String(raw.refreshToken ?? raw.RefreshToken ?? "").trim();
-  const expiresAt = raw.expiresAt ?? raw.ExpiresAt ?? null;
-  return { accessToken, refreshToken: refreshToken || null, expiresAt };
-}
-
-/** Read token block from login/refresh response body. */
-export function extractAuthTokenFromResponse(data) {
-  const token = data?.token ?? data?.Token;
-  return normalizeAuthTokenDto(token);
-}
-
+/** Normalize API token payload and persist access/refresh tokens. */
 export function applyTokenDto(tokenDto) {
-  const normalized = normalizeAuthTokenDto(tokenDto) ?? tokenDto;
-  if (!normalized?.accessToken) return;
-  setAuthTokens(normalized.accessToken, normalized.refreshToken || null);
-  setTokenExpiresAt(resolveExpiresAtIso(normalized));
-  queueMicrotask(() => {
-    import("./tokenRefreshScheduler.js").then((module) => module.scheduleProactiveTokenRefresh());
+  if (!tokenDto || typeof tokenDto !== 'object') return;
+
+  setAuthTokens({
+    accessToken: tokenDto.accessToken ?? tokenDto.AccessToken ?? null,
+    refreshToken: tokenDto.refreshToken ?? tokenDto.RefreshToken ?? null,
+    expiresAt: tokenDto.expiresAt ?? tokenDto.ExpiresAt ?? null,
   });
 }
 
-/** Demo/mock tokens stored while VITE_USE_MOCK_AUTH was true — invalid for Facade.API. */
-export function isLegacyMockTokenPair() {
-  const access = getAccessToken();
-  const refresh = getRefreshToken();
-  return looksLikeMockToken(access) || looksLikeMockToken(refresh);
+export function clearAuthTokens() {
+  clearAccessToken();
+  clearRefreshToken();
+  writeStorage(ACCESS_EXPIRES_AT_KEY, null);
+  writeStorage(LEGACY_TOKEN_KEY, null);
+}
+
+export function isAccessTokenExpiredOrNearExpiry(marginMs = 0) {
+  const expiresAt = getTokenExpiresAt();
+  if (expiresAt == null) {
+    // No expiry metadata — treat as not expired (Stage 2 refresh will set expiresAt).
+    return false;
+  }
+
+  return Date.now() + marginMs >= expiresAt;
 }

@@ -1,238 +1,384 @@
-export function normalizeSearchQueryDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const id = dto.id ?? dto.Id;
-  if (!id) return null;
+import { mapVacancySortBy, normalizeSortDirection } from '../../shared/api/sortParams.js';
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
+
+function pick(dto, ...keys) {
+  if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+function normalizeTextList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map(String);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(/\n|•|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function formatSalary(salaryFrom, salaryTo, currency) {
+  const from = salaryFrom != null ? Number(salaryFrom) : null;
+  const to = salaryTo != null ? Number(salaryTo) : null;
+  const curr = currency ? ` ${currency}` : '';
+
+  if (from != null && to != null) {
+    return `${from.toLocaleString()} – ${to.toLocaleString()}${curr}`.trim();
+  }
+  if (from != null) {
+    return `from ${from.toLocaleString()}${curr}`.trim();
+  }
+  if (to != null) {
+    return `up to ${to.toLocaleString()}${curr}`.trim();
+  }
+  return 'Salary not specified';
+}
+
+export function mapVacancyDto(dto, meta = {}) {
+  if (!dto) return null;
+
+  const id = pick(dto, 'id', 'Id');
+  const companyId = pick(dto, 'companyId', 'CompanyId');
+  const salaryFrom = pick(dto, 'salaryFrom', 'SalaryFrom');
+  const salaryTo = pick(dto, 'salaryTo', 'SalaryTo');
+  const currency = pick(dto, 'salaryCurrency', 'SalaryCurrency', 'currency', 'Currency');
+  const jobType = pick(dto, 'jobType', 'JobType');
+  const schedule = pick(dto, 'schedule', 'Schedule');
+  const description = pick(dto, 'description', 'Description');
+  const createdAt = pick(dto, 'postedAt', 'PostedAt', 'createdAt', 'CreatedAt');
+  const company = meta.company ?? null;
+
   return {
-    id: String(id),
-    userId: String(dto.userId ?? dto.UserId ?? ""),
-    query: String(dto.query ?? dto.Query ?? "").trim(),
-    location: String(dto.location ?? dto.Location ?? "").trim(),
-    radius: dto.radius ?? dto.Radius ?? null,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    updatedAt: dto.updatedAt ?? dto.UpdatedAt,
+    id,
+    companyId,
+    title: pick(dto, 'title', 'Title') ?? '',
+    company: company ?? (companyId
+      ? {
+          id: companyId,
+          name: meta.companyName ?? 'Company',
+          logo: meta.companyLogo ?? '',
+        }
+      : null),
+    companyName: company?.name ?? meta.companyName ?? 'Company',
+    companyLogo: company?.logo ?? meta.companyLogo ?? '',
+    location: pick(dto, 'location', 'Location') ?? '',
+    salary: formatSalary(salaryFrom, salaryTo, currency),
+    salaryFrom,
+    salaryTo,
+    currency,
+    employmentType: jobType ?? '',
+    jobType: jobType ?? '',
+    schedule: schedule ?? '',
+    experienceLevel: pick(dto, 'experienceLevel', 'ExperienceLevel') ?? '',
+    description,
+    requirements: normalizeTextList(pick(dto, 'requirements', 'Requirements')),
+    createdAt,
+    postedAt: createdAt,
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+    deletedAt: pick(dto, 'deletedAt', 'DeletedAt'),
+    postedBy: pick(dto, 'postedBy', 'PostedBy'),
+    isFavorite: Boolean(meta.isFavorite),
+    hasApplied: Boolean(meta.hasApplied),
   };
 }
 
-export function formatSearchQueryLabel(item, fallback = "Saved search") {
-  const parts = [item?.query, item?.location].map((value) => String(value || "").trim()).filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : fallback;
-}
-
-export function buildCreateSearchQueryBody({ query, location } = {}) {
-  const trimmedQuery = String(query || "").trim();
-  const trimmedLocation = String(location || "").trim();
+export function mapVacancyListResponse(response, meta = {}) {
+  const paged = mapPagedResponse(response);
   return {
-    query: trimmedQuery || undefined,
-    location: trimmedLocation || undefined,
+    ...paged,
+    items: paged.items
+      .map((item) => {
+        const vacancyId = pick(item, 'id', 'Id');
+        return mapVacancyDto(item, {
+          isFavorite: meta.favoriteIds?.has?.(vacancyId),
+          hasApplied: meta.appliedIds?.has?.(vacancyId),
+        });
+      })
+      .filter(Boolean),
   };
 }
 
-export function normalizeRecommendedQueryDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const id = dto.id ?? dto.Id;
-  const query = String(dto.query ?? dto.Query ?? "").trim();
-  if (!id || !query) return null;
+const JOB_TYPE_MAP = {
+  'Full-time': 'Full time',
+  'Part-time': 'Part time',
+  'Full time': 'Full time',
+  'Part time': 'Part time',
+};
+
+export function mapVacancyToCreateRequest(formState) {
+  const jobType = formState.employmentType
+    ?? formState.jobType
+    ?? JOB_TYPE_MAP[formState.jobType]
+    ?? formState.jobType
+    ?? null;
+
   return {
-    id: String(id),
-    query,
-    createdAt: dto.createdAt ?? dto.CreatedAt,
+    companyId: formState.companyId,
+    title: formState.title?.trim() ?? '',
+    description: formState.description?.trim() || null,
+    location: formState.location?.trim() || null,
+    jobType: jobType || null,
+    schedule: formState.schedule ?? formState.workplaceType ?? null,
+    salaryFrom: formState.salaryFrom != null && formState.salaryFrom !== ''
+      ? Number(formState.salaryFrom)
+      : null,
+    salaryTo: formState.salaryTo != null && formState.salaryTo !== ''
+      ? Number(formState.salaryTo)
+      : null,
+    salaryCurrency: formState.currency?.trim() || formState.salaryCurrency?.trim() || null,
   };
 }
 
-export function normalizeVacancyDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  const id = dto.id ?? dto.Id;
-  if (!id) return null;
+export function mapVacancyToUpdateRequest(formState) {
+  return mapVacancyToCreateRequest(formState);
+}
+
+export function mapApplicationDto(dto) {
+  if (!dto) return null;
+
+  const vacancy = pick(dto, 'vacancy', 'Vacancy');
+
   return {
-    id: String(id),
-    companyId: dto.companyId ?? dto.CompanyId,
-    postedBy: dto.postedBy ?? dto.PostedBy ?? "",
-    title: dto.title ?? dto.Title ?? "",
-    jobType: dto.jobType ?? dto.JobType ?? "",
-    schedule: dto.schedule ?? dto.Schedule ?? "",
-    location: dto.location ?? dto.Location ?? "",
-    salaryFrom: dto.salaryFrom ?? dto.SalaryFrom,
-    salaryTo: dto.salaryTo ?? dto.SalaryTo,
-    salaryCurrency: dto.salaryCurrency ?? dto.SalaryCurrency ?? "",
-    description: dto.description ?? dto.Description ?? "",
-    postedAt: dto.postedAt ?? dto.PostedAt,
-    updatedAt: dto.updatedAt ?? dto.UpdatedAt,
+    id: pick(dto, 'id', 'Id'),
+    vacancyId: pick(dto, 'vacancyId', 'VacancyId'),
+    userId: pick(dto, 'userId', 'UserId'),
+    status: pick(dto, 'status', 'Status') ?? '',
+    appliedAt: pick(dto, 'appliedAt', 'AppliedAt'),
+    statusChangedAt: pick(dto, 'statusChangedAt', 'StatusChangedAt'),
+    withdrawnAt: pick(dto, 'withdrawnAt', 'WithdrawnAt'),
+    vacancy: vacancy ? mapVacancyDto(vacancy) : null,
   };
 }
 
-export function mapVacancyDtoToJob(dto, companyName = "", currentUserId) {
-  const normalized = normalizeVacancyDto(dto);
-  if (!normalized) return null;
+export function mapApplicationList(response) {
+  const items = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.items)
+      ? response.items
+      : [];
 
-  const salaryFrom =
-    normalized.salaryFrom != null ? Math.round(Number(normalized.salaryFrom) / 1000) : 0;
-  const salaryTo = normalized.salaryTo != null ? Math.round(Number(normalized.salaryTo) / 1000) : 0;
-  const postedAt = normalized.postedAt ? new Date(normalized.postedAt) : new Date();
-  const postedDays = Math.max(0, Math.floor((Date.now() - postedAt.getTime()) / 86400000));
-  const location = String(normalized.location || "Remote").trim();
-  const description = String(normalized.description || "").trim();
-  const schedule = String(normalized.schedule || "").trim();
-  const remote = /remote/i.test(schedule) || /remote/i.test(location) ? "yes" : /hybrid/i.test(schedule) ? "hybrid" : "no";
-  const userPosted =
-    Boolean(currentUserId) && String(normalized.postedBy) === String(currentUserId);
-
-  return {
-    id: normalized.id,
-    role: normalized.title,
-    title: normalized.title,
-    company: companyName || `Company ${String(normalized.companyId || "").slice(0, 8)}`,
-    companyId: normalized.companyId ? String(normalized.companyId) : "",
-    location,
-    city: location,
-    type: String(normalized.jobType || "full-time").toLowerCase(),
-    level: "middle",
-    remote,
-    salaryMin: salaryFrom,
-    salaryMax: salaryTo,
-    postedDays,
-    seed: normalized.title || "vacancy",
-    keywords: `${normalized.title} ${description} ${location}`.toLowerCase(),
-    tags: [normalized.jobType, normalized.schedule].filter(Boolean),
-    desc: {
-      en: description || normalized.title,
-      ru: description || normalized.title,
-      uk: description || normalized.title,
-    },
-    userPosted,
-    _api: true,
-  };
+  return items.map(mapApplicationDto).filter(Boolean);
 }
 
-/** Normalize a job application DTO for the vacancies activity hub. */
-export function mapApplicationDtoToAppliedView(app, { companyName = "", currentUserId } = {}) {
-  if (!app || typeof app !== "object") return null;
+export function mapFavoriteDto(dto) {
+  if (!dto) return null;
 
-  const applicationId = String(app.id ?? app.Id ?? "");
-  const vacancyId = String(app.vacancyId ?? app.VacancyId ?? "");
-  if (!applicationId && !vacancyId) return null;
-
-  const vacancyDto = app.vacancy ?? app.Vacancy ?? null;
-  const job = vacancyDto ? mapVacancyDtoToJob(vacancyDto, companyName, currentUserId) : null;
+  const vacancy = pick(dto, 'vacancy', 'Vacancy');
+  const vacancyId = pick(dto, 'vacancyId', 'VacancyId');
 
   return {
-    id: applicationId || vacancyId,
-    applicationId: applicationId || vacancyId,
+    id: pick(dto, 'id', 'Id'),
+    userId: pick(dto, 'userId', 'UserId'),
     vacancyId,
-    role: job?.role || job?.title || "Role",
-    title: job?.title || job?.role || "Role",
-    company: job?.company || "Company",
-    location: job?.location || "",
-    salary: job ? formatAppliedSalary(job.salaryMin, job.salaryMax) : "",
-    submittedAt: app.appliedAt ?? app.AppliedAt ?? app.submittedAt ?? null,
-    resumeName: app.resumeName || "",
-    _api: true,
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    vacancy: vacancy ? mapVacancyDto(vacancy, { isFavorite: true }) : null,
   };
 }
 
-function formatAppliedSalary(min, max) {
-  if (min && max) return `$${min}k — $${max}k / year`;
-  if (min) return `$${min}k+ / year`;
-  return "";
+export function mapFavoriteList(response) {
+  const items = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.items)
+      ? response.items
+      : [];
+
+  return items.map(mapFavoriteDto).filter(Boolean);
 }
 
-export function mapJobToPostForm(job = {}) {
-  const description =
-    typeof job.desc === "string" ? job.desc : String(job.desc?.en || job.desc?.uk || job.desc?.ru || "");
+export function mapRecommendedQueryDto(dto) {
+  if (!dto) return null;
+
   return {
-    role: String(job.role || job.title || ""),
-    company: String(job.company || ""),
-    location: String(job.location || job.city || ""),
-    type: String(job.type || "full-time"),
-    level: String(job.level || "middle"),
-    remote: String(job.remote || "yes"),
-    salaryMin: job.salaryMin != null && job.salaryMin !== "" ? String(job.salaryMin) : "",
-    salaryMax: job.salaryMax != null && job.salaryMax !== "" ? String(job.salaryMax) : "",
-    desc: description,
-    keywords: String(job.keywords || ""),
+    id: pick(dto, 'id', 'Id'),
+    query: pick(dto, 'query', 'Query') ?? '',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
   };
 }
 
-export function buildPostedJobFromForm(form, { id, userPosted = true } = {}) {
-  return {
-    id: id || `my-${Date.now()}`,
-    role: form.role,
-    company: form.company,
-    location: form.location,
-    type: form.type,
-    level: form.level,
-    remote: form.remote,
-    salaryMin: Number(form.salaryMin) || 0,
-    salaryMax: Number(form.salaryMax) || 0,
-    postedDays: 0,
-    seed: form.company || "CustomCompany",
-    keywords: form.keywords,
-    tags: [
-      form.type === "full-time" ? "Full-time" : form.type,
-      form.level,
-      form.remote === "yes" ? "Remote" : form.remote === "hybrid" ? "Hybrid" : "On-site",
-    ],
-    desc: {
-      en: form.desc || "Custom job description",
-      ru: form.desc || "Custom job description",
-      uk: form.desc || "Custom job description",
-    },
-    userPosted,
-  };
+export function mapRecommendedQueryList(response) {
+  const items = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.items)
+      ? response.items
+      : [];
+
+  return items.map(mapRecommendedQueryDto).filter(Boolean);
 }
 
-/** Browse filters → `GET /api/jobs/vacancies` query params. */
-export function buildVacancyBrowseParams({
-  query = "",
-  location = "",
-  jobType = "",
-  jobLevel = "",
-  remoteOnly = false,
-  salaryMin = "",
-  sortBy = "relevance",
-  page = 1,
-  pageSize = 50,
-} = {}) {
-  const searchParts = [String(query || "").trim()];
-  const level = String(jobLevel || "").trim();
-  if (level) searchParts.push(level);
-  const combinedQuery = searchParts.filter(Boolean).join(" ") || undefined;
+export function mapFiltersToVacancyQuery(filters = {}, searchQuery = '') {
+  const query = {};
 
-  const minK = Number(salaryMin) || 0;
-  let apiSortBy;
-  let apiSortDirection;
-  if (sortBy === "newest" || sortBy === "relevance") {
-    apiSortBy = "createdAt";
-    apiSortDirection = "desc";
+  const text = (searchQuery ?? filters.query ?? filters.search ?? '').trim();
+  if (text) {
+    query.query = text;
   }
 
-  return {
-    query: combinedQuery,
-    location: String(location || "").trim() || undefined,
-    employmentType: jobType || undefined,
-    schedule: remoteOnly ? "Remote" : undefined,
-    minSalaryFrom: minK > 0 ? minK * 1000 : undefined,
-    sortBy: apiSortBy,
-    sortDirection: apiSortDirection,
-    page,
-    pageSize,
-  };
+  if (filters.locationText?.trim()) {
+    query.location = filters.locationText.trim();
+  } else if (typeof filters.location === 'string' && filters.location.trim()) {
+    query.location = filters.location.trim();
+  }
+
+  const employmentTypes = filters.employmentType ?? filters.jobType ?? [];
+  if (Array.isArray(employmentTypes) && employmentTypes.length === 1) {
+    query.employmentType = employmentTypes[0].replace('-', ' ');
+  } else if (typeof employmentTypes === 'string' && employmentTypes) {
+    query.employmentType = employmentTypes.replace('-', ' ');
+  }
+
+  const schedules = filters.schedule ?? filters.location ?? [];
+  if (Array.isArray(schedules) && schedules.length === 1) {
+    const value = schedules[0];
+    if (['Remote', 'On-site', 'Hybrid'].includes(value)) {
+      query.schedule = value;
+    }
+  } else if (typeof filters.schedule === 'string' && filters.schedule) {
+    query.schedule = filters.schedule;
+  }
+
+  const mappedSortBy = mapVacancySortBy(filters.sortBy);
+  if (mappedSortBy) {
+    query.sortBy = mappedSortBy;
+    const mappedDirection = normalizeSortDirection(filters.sortDirection);
+    if (mappedDirection) {
+      query.sortDirection = mappedDirection;
+    }
+  }
+
+  return query;
 }
 
-export function mapPostFormToCreateVacancyRequest(form, companyId) {
-  const schedule =
-    form.remote === "yes" ? "Remote" : form.remote === "hybrid" ? "Hybrid" : "On-site";
-  const salaryMinK = Number(form.salaryMin) || 0;
-  const salaryMaxK = Number(form.salaryMax) || 0;
+const SKILL_SEARCH_ALIASES = {
+  java: ['java'],
+  postgresql: ['postgresql', 'postgres', 'sql'],
+  postgres: ['postgresql', 'postgres', 'sql'],
+  sql: ['sql', 'postgresql', 'postgres'],
+  javascript: ['javascript', 'typescript', 'react', 'frontend'],
+  typescript: ['typescript', 'javascript', 'react', 'frontend'],
+  react: ['react', 'frontend'],
+  python: ['python'],
+  'c#': ['c#', '.net', 'dotnet'],
+  '.net': ['.net', 'dotnet', 'c#'],
+};
 
-  return {
-    companyId,
-    title: String(form.role || "").trim(),
-    jobType: String(form.type || "full-time"),
-    schedule,
-    location: String(form.location || "").trim(),
-    salaryFrom: salaryMinK > 0 ? salaryMinK * 1000 : undefined,
-    salaryTo: salaryMaxK > 0 ? salaryMaxK * 1000 : undefined,
-    salaryCurrency: salaryMinK > 0 || salaryMaxK > 0 ? "USD" : undefined,
-    description: String(form.desc || "").trim() || undefined,
-  };
+function getSkillSearchTerms(skillName) {
+  const normalized = String(skillName ?? '').trim().toLowerCase();
+  if (!normalized) return [];
+  return SKILL_SEARCH_ALIASES[normalized] ?? [normalized];
+}
+
+function vacancyMatchesSkill(vacancy, skillName) {
+  const haystack = `${vacancy.title ?? ''} ${vacancy.description ?? ''}`.toLowerCase();
+  return getSkillSearchTerms(skillName).some((term) => haystack.includes(term));
+}
+
+function scoreVacancyForProfile(vacancy, skillNames, profileTitle) {
+  let score = 0;
+
+  for (const skill of skillNames) {
+    if (vacancyMatchesSkill(vacancy, skill)) {
+      score += 10;
+    }
+  }
+
+  if (profileTitle) {
+    const titleWords = profileTitle.toLowerCase().split(/\W+/).filter((word) => word.length > 2);
+    const vacancyTitle = (vacancy.title ?? '').toLowerCase();
+    for (const word of titleWords) {
+      if (vacancyTitle.includes(word)) {
+        score += 5;
+      }
+    }
+  }
+
+  return score;
+}
+
+export function recommendVacanciesForProfile(
+  vacancies,
+  { skillNames = [], profileTitle = '' } = {},
+  limit = 5,
+) {
+  if (!Array.isArray(vacancies) || vacancies.length === 0) return [];
+
+  const normalizedSkills = skillNames.filter(Boolean);
+
+  const scored = vacancies
+    .map((vacancy) => ({
+      vacancy,
+      score: scoreVacancyForProfile(vacancy, normalizedSkills, profileTitle),
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length > 0) {
+    return scored.slice(0, limit).map(({ vacancy }) => vacancy);
+  }
+
+  return vacancies.slice(0, limit);
+}
+
+export function vacancyMatchesProfileSkills(vacancy, skillNames = []) {
+  return skillNames.some((skill) => vacancyMatchesSkill(vacancy, skill));
+}
+
+export function applyClientSideVacancyFilters(vacancies, filters) {
+  if (!filters || !Array.isArray(vacancies)) return vacancies;
+
+  return vacancies.filter((vacancy) => {
+    const locationFilters = Array.isArray(filters.location)
+      ? filters.location.filter((item) => ['Remote', 'On-site', 'Hybrid'].includes(item))
+      : [];
+
+    if (locationFilters.length > 1) {
+      const schedule = vacancy.schedule?.toLowerCase() ?? '';
+      const loc = vacancy.location?.toLowerCase() ?? '';
+      const matches = locationFilters.some((filterValue) => {
+        if (filterValue === 'Remote') {
+          return schedule.includes('remote') || loc.includes('remote');
+        }
+        if (filterValue === 'On-site') {
+          return schedule.includes('on-site') || schedule.includes('onsite')
+            || (!loc.includes('remote') && !schedule.includes('remote'));
+        }
+        if (filterValue === 'Hybrid') {
+          return schedule.includes('hybrid') || loc.includes('hybrid');
+        }
+        return false;
+      });
+      if (!matches) return false;
+    }
+
+    const jobTypes = filters.jobType ?? filters.employmentType ?? [];
+    if (Array.isArray(jobTypes) && jobTypes.length > 0 && vacancy.employmentType) {
+      const normalized = jobTypes.map((item) => item.replace('-', ' ').toLowerCase());
+      if (!normalized.includes(vacancy.employmentType.replace('-', ' ').toLowerCase())) {
+        return false;
+      }
+    }
+
+    const experienceLevels = filters.experienceLevel ?? [];
+    if (experienceLevels.length > 0 && vacancy.experienceLevel) {
+      if (!experienceLevels.includes(vacancy.experienceLevel)) return false;
+    }
+
+    const salaryRange = filters.salaryRange;
+    if (Array.isArray(salaryRange) && salaryRange.length === 2) {
+      const [min, max] = salaryRange;
+      if (vacancy.salaryFrom != null && vacancy.salaryTo != null) {
+        if (Number(vacancy.salaryTo) < min || Number(vacancy.salaryFrom) > max) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
 }

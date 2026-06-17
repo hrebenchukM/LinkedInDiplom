@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as contentApi from "./contentApi";
 import { mapCommentsWithAuthors } from "./mapCommentsWithAuthors";
+import { useTranslation } from "../../app/i18n/LocaleContext.jsx";
 
 function PostActionIcon({ variant }) {
   const common = { viewBox: "0 0 24 24", fill: "currentColor", focusable: "false" };
@@ -52,7 +53,6 @@ function PostActionIcon({ variant }) {
 export function PostEngagement({
   post,
   onHint,
-  t,
   shareContacts = [],
   onSharePost,
   useApi,
@@ -64,6 +64,7 @@ export function PostEngagement({
   displayName,
   userAvatar,
 }) {
+  const { t } = useTranslation();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(() => Number(post.likes || 0));
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -102,9 +103,9 @@ export function PostEngagement({
     setCommentsLoading(true);
     contentApi
       .fetchPostComments(post.id)
-      .then(async (list) => {
+      .then(async (items) => {
         if (cancelled) return;
-        const mapped = await mapCommentsWithAuthors(list, {
+        const mapped = await mapCommentsWithAuthors(items, {
           currentUserId,
           displayName,
           userAvatar,
@@ -267,7 +268,7 @@ export function PostEngagement({
       <div className={`post-comments${commentsOpen ? " post-comments--open" : ""}`}>
         <div className="post-comments__inner">
           <div className="post-comments__body">
-            <h5 className="post-comments__title">{t("home.post.comments", "Comments")}</h5>
+            <h5 className="post-comments__title">{t("home.post.commentsTitle", "Comments")}</h5>
             <ul className="post-comments__list">
               {commentsLoading ? (
                 <li className="post-comment">

@@ -1,370 +1,273 @@
-import { resolveAvatarSeed, resolveMediaUrl, resolvePersonAvatar } from "../profile/mapProfile";
+import { resolveUploadUrl } from '../../shared/api/uploads.js';
+import { mapPagedResponse } from '../../shared/lib/pagination.js';
+import { getDisplayName } from '../profile/mapProfile.js';
 
-export const CONTACT_STATUS = Object.freeze({
-  PENDING: "pending",
-  ACCEPTED: "accepted",
-  REJECTED: "rejected",
-});
-
-export const RELATIONSHIP_STATE = Object.freeze({
-  NONE: "none",
-  PENDING_INCOMING: "pendingIncoming",
-  PENDING_OUTGOING: "pendingOutgoing",
-  ACCEPTED: "accepted",
-  BLOCKED: "blocked",
-  FOLLOWED: "followed",
-});
-
-export function normalizeContactStatus(status) {
-  return String(status || "").trim().toLowerCase();
+function pick(dto, ...keys) {
+  if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
 }
 
-const EMPTY_RELATIONSHIP = Object.freeze({
-  userId: "",
-  contactStatus: null,
-  contactDirection: null,
-  contactId: null,
-  isFollowed: false,
-  isBlocked: false,
-  blockId: null,
-});
+export function getContactOtherUserId(contact, currentUserId) {
+  if (!contact || !currentUserId) return null;
 
-export function buildRelationshipIndex({
-  acceptedPeople = [],
-  incomingContacts = [],
-  outgoingContacts = [],
-  followingPeople = [],
-  blockedPeople = [],
-} = {}) {
-  const byUserId = new Map();
+  const requesterId = pick(contact, 'requesterId', 'RequesterId');
+  const receiverId = pick(contact, 'receiverId', 'ReceiverId');
 
-  const ensure = (userId) => {
-    const key = String(userId);
-    if (!byUserId.has(key)) {
-      byUserId.set(key, {
-        userId: key,
-        contactStatus: null,
-        contactDirection: null,
-        contactId: null,
-        isFollowed: false,
-        isBlocked: false,
-        blockId: null,
-      });
-    }
-    return byUserId.get(key);
-  };
-
-  acceptedPeople.forEach((person) => {
-    if (!person?.userId) return;
-    const row = ensure(person.userId);
-    row.contactStatus = normalizeContactStatus(person.status) || CONTACT_STATUS.ACCEPTED;
-    row.contactId = person.id;
-    row.contactDirection = null;
-  });
-
-  incomingContacts.forEach((person) => {
-    if (!person?.userId) return;
-    const row = ensure(person.userId);
-    row.contactStatus = normalizeContactStatus(person.status) || CONTACT_STATUS.PENDING;
-    row.contactDirection = "incoming";
-    row.contactId = person.id;
-  });
-
-  outgoingContacts.forEach((person) => {
-    if (!person?.userId) return;
-    const row = ensure(person.userId);
-    row.contactStatus = normalizeContactStatus(person.status) || CONTACT_STATUS.PENDING;
-    row.contactDirection = "outgoing";
-    row.contactId = person.id;
-  });
-
-  followingPeople.forEach((person) => {
-    if (!person?.userId) return;
-    ensure(person.userId).isFollowed = true;
-  });
-
-  blockedPeople.forEach((person) => {
-    if (!person?.userId) return;
-    const row = ensure(person.userId);
-    row.isBlocked = true;
-    row.blockId = person.id;
-  });
-
-  return byUserId;
+  if (requesterId === currentUserId) return receiverId;
+  if (receiverId === currentUserId) return requesterId;
+  return receiverId ?? requesterId ?? pick(contact, 'userId', 'UserId');
 }
 
-export function getUserRelationship(index, userId) {
-  if (!userId) return { ...EMPTY_RELATIONSHIP };
-  return index.get(String(userId)) ?? { ...EMPTY_RELATIONSHIP, userId: String(userId) };
-}
+export function mapContactDto(dto) {
+  if (!dto) return null;
 
-export function getRelationshipStateKey(rel) {
-  if (!rel?.userId) return RELATIONSHIP_STATE.NONE;
-  if (rel.isBlocked) return RELATIONSHIP_STATE.BLOCKED;
-  if (rel.contactStatus === CONTACT_STATUS.PENDING) {
-    return rel.contactDirection === "incoming"
-      ? RELATIONSHIP_STATE.PENDING_INCOMING
-      : RELATIONSHIP_STATE.PENDING_OUTGOING;
-  }
-  if (rel.contactStatus === CONTACT_STATUS.ACCEPTED) return RELATIONSHIP_STATE.ACCEPTED;
-  if (rel.isFollowed) return RELATIONSHIP_STATE.FOLLOWED;
-  return RELATIONSHIP_STATE.NONE;
-}
+  const status = String(pick(dto, 'status', 'Status') ?? '').toLowerCase();
 
-export function getRelationshipStatusLabels(rel, t = (key, fallback) => fallback || key) {
-  if (!rel?.userId) return [];
-  const labels = [];
-  if (rel.isBlocked) {
-    labels.push(t("network.state.blocked", "Blocked"));
-    return labels;
-  }
-  if (rel.contactStatus === CONTACT_STATUS.PENDING && rel.contactDirection === "outgoing") {
-    labels.push(t("network.state.pendingOutgoing", "Pending"));
-  } else if (rel.contactStatus === CONTACT_STATUS.PENDING && rel.contactDirection === "incoming") {
-    labels.push(t("network.state.pendingIncoming", "Incoming request"));
-  } else if (rel.contactStatus === CONTACT_STATUS.ACCEPTED) {
-    labels.push(t("network.state.accepted", "Contact"));
-  }
-  if (rel.isFollowed) {
-    labels.push(t("network.state.followed", "Following"));
-  }
-  return labels;
-}
-
-export function resolvePersonCardActions(rel, { isSearchResult = false } = {}) {
-  const stateKey = getRelationshipStateKey(rel);
-
-  if (stateKey === RELATIONSHIP_STATE.BLOCKED) {
-    return { kind: "unblock", stateKey, labels: getRelationshipStatusLabels(rel) };
-  }
-  if (stateKey === RELATIONSHIP_STATE.PENDING_OUTGOING) {
-    return { kind: "pendingOutgoing", stateKey, labels: getRelationshipStatusLabels(rel) };
-  }
-  if (stateKey === RELATIONSHIP_STATE.PENDING_INCOMING) {
-    return { kind: "pendingIncoming", stateKey, labels: getRelationshipStatusLabels(rel), contactId: rel.contactId };
-  }
-  if (stateKey === RELATIONSHIP_STATE.ACCEPTED || (!isSearchResult && rel.contactStatus === CONTACT_STATUS.ACCEPTED)) {
-    return {
-      kind: "contact",
-      stateKey,
-      labels: getRelationshipStatusLabels(rel),
-      isFollowed: Boolean(rel.isFollowed),
-    };
-  }
-  if (isSearchResult || stateKey === RELATIONSHIP_STATE.NONE || stateKey === RELATIONSHIP_STATE.FOLLOWED) {
-    return {
-      kind: "connect",
-      stateKey,
-      labels: getRelationshipStatusLabels(rel),
-      isFollowed: Boolean(rel.isFollowed),
-    };
-  }
-  return { kind: "none", stateKey, labels: getRelationshipStatusLabels(rel) };
-}
-
-export function normalizeFollowDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
   return {
-    id: dto.id ?? dto.Id,
-    followerId: dto.followerId ?? dto.FollowerId,
-    followingId: dto.followingId ?? dto.FollowingId,
-    followedAt: dto.followedAt ?? dto.FollowedAt,
-    unfollowedAt: dto.unfollowedAt ?? dto.UnfollowedAt,
+    id: pick(dto, 'id', 'Id'),
+    contactId: pick(dto, 'id', 'Id'),
+    requesterId: pick(dto, 'requesterId', 'RequesterId'),
+    receiverId: pick(dto, 'receiverId', 'ReceiverId'),
+    userId: pick(dto, 'userId', 'UserId'),
+    status,
+    createdAt: pick(dto, 'requestedAt', 'RequestedAt', 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'respondedAt', 'RespondedAt', 'statusChangedAt', 'StatusChangedAt'),
+    mutualConnections: 0,
+    isConnected: status === 'accepted',
+    isPending: status === 'pending',
+    direction: null,
+    name: '',
+    avatar: '',
+    headline: '',
   };
 }
 
-function mapFollowUserToPerson(follow, profile, userId) {
-  const name =
-    profile?.fullName?.trim() ||
-    `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
-    `User ${String(userId).slice(0, 8)}`;
-  const avatarSeed = resolveAvatarSeed({ profile, userId, name });
-  const avatar = resolvePersonAvatar({ profile, userId, name });
-
+export function mapContactListResponse(response) {
+  const paged = mapPagedResponse(response);
   return {
-    id: String(follow.id),
-    userId,
-    name,
-    role: profile?.headline || profile?.profileTitle || "Member",
-    handle: String(userId).slice(0, 12),
-    seed: avatarSeed,
-    avatar,
-    keywords: `${name} ${profile?.headline || ""}`.toLowerCase(),
-    status: "followed",
-    _api: true,
+    ...paged,
+    items: paged.items.map(mapContactDto).filter(Boolean),
   };
 }
 
-export function mapFollowToPerson(follow, profile) {
-  return mapFollowUserToPerson(follow, profile, follow.followingId);
-}
+export function mapPendingCountsDto(dto) {
+  if (!dto) {
+    return { incoming: 0, outgoing: 0, incomingCount: 0, outgoingCount: 0 };
+  }
 
-export function mapFollowerToPerson(follow, profile) {
-  return mapFollowUserToPerson(follow, profile, follow.followerId);
-}
+  const incoming =
+    pick(dto, 'incomingCount', 'IncomingCount', 'incoming') ?? 0;
+  const outgoing =
+    pick(dto, 'outgoingCount', 'OutgoingCount', 'outgoing') ?? 0;
 
-export function normalizePageDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
   return {
-    id: dto.id ?? dto.Id,
-    ownerId: dto.ownerId ?? dto.OwnerId,
-    name: dto.name ?? dto.Name ?? "",
-    description: dto.description ?? dto.Description ?? "",
-    logoUrl: dto.logoUrl ?? dto.LogoUrl ?? "",
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    updatedAt: dto.updatedAt ?? dto.UpdatedAt,
+    incoming,
+    outgoing,
+    incomingCount: incoming,
+    outgoingCount: outgoing,
   };
 }
 
-export function normalizeGroupDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapFollowDto(dto) {
+  if (!dto) return null;
+
+  const followingId = pick(dto, 'followingId', 'FollowingId');
+
   return {
-    id: dto.id ?? dto.Id,
-    ownerId: dto.ownerId ?? dto.OwnerId,
-    name: dto.name ?? dto.Name ?? "",
-    description: dto.description ?? dto.Description ?? "",
-    avatarUrl: dto.avatarUrl ?? dto.AvatarUrl ?? "",
-    createdAt: dto.createdAt ?? dto.CreatedAt,
-    updatedAt: dto.updatedAt ?? dto.UpdatedAt,
+    id: pick(dto, 'id', 'Id'),
+    followerId: pick(dto, 'followerId', 'FollowerId'),
+    followingId,
+    userId: followingId,
+    followedAt: pick(dto, 'followedAt', 'FollowedAt'),
+    unfollowedAt: pick(dto, 'unfollowedAt', 'UnfollowedAt'),
+    name: '',
+    avatar: '',
+    headline: '',
+    cardType: 'following',
   };
 }
 
-export function normalizeGroupMemberDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
+export function mapFollowList(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  return list.map(mapFollowDto).filter(Boolean);
+}
+
+export function mapBlockedUserDto(dto) {
+  if (!dto) return null;
+
   return {
-    id: dto.id ?? dto.Id,
-    groupId: dto.groupId ?? dto.GroupId,
-    userId: dto.userId ?? dto.UserId,
-    role: dto.role ?? dto.Role ?? "",
-    createdAt: dto.createdAt ?? dto.CreatedAt,
+    id: pick(dto, 'id', 'Id'),
+    userId: pick(dto, 'userId', 'UserId'),
+    blockedUserId: pick(dto, 'blockedUserId', 'BlockedUserId'),
+    blockedAt: pick(dto, 'blockedAt', 'BlockedAt'),
+    unfollowedAt: pick(dto, 'unblockedAt', 'UnblockedAt'),
   };
 }
 
-export function mapPageToView(page, { isFollowing = false, isOwned = false } = {}) {
-  const logoUrl = page.logoUrl ? resolveMediaUrl(page.logoUrl) : "";
-  return {
-    id: String(page.id),
-    name: String(page.name || ""),
-    description: String(page.description || ""),
-    logoUrl,
-    seed: page.name || page.id,
-    isFollowing,
-    isOwned,
-    ownerId: page.ownerId,
-    _api: true,
-  };
-}
+export function mapGroupDto(dto) {
+  if (!dto) return null;
 
-export function mergePagesForDisplay(myPages = [], followedPages = []) {
-  const byId = new Map();
-  myPages.forEach((page) => {
-    byId.set(String(page.id), mapPageToView(page, { isOwned: true }));
-  });
-  followedPages.forEach((page) => {
-    const id = String(page.id);
-    if (byId.has(id)) {
-      byId.get(id).isFollowing = true;
-    } else {
-      byId.set(id, mapPageToView(page, { isFollowing: true }));
-    }
-  });
-  return [...byId.values()];
-}
+  const id = pick(dto, 'id', 'Id');
+  const avatarUrl = pick(dto, 'avatarUrl', 'AvatarUrl');
 
-export function mapGroupToView(group, { memberCount = 0 } = {}) {
-  const avatarUrl = group.avatarUrl ? resolveMediaUrl(group.avatarUrl) : "";
   return {
-    id: String(group.id),
-    name: String(group.name || ""),
-    description: String(group.description || ""),
+    id,
+    groupId: id,
+    ownerId: pick(dto, 'ownerId', 'OwnerId'),
+    name: pick(dto, 'name', 'Name') ?? '',
+    description: pick(dto, 'description', 'Description') ?? '',
     avatarUrl,
-    seed: group.name || group.id,
-    memberCount,
-    ownerId: group.ownerId,
-    _api: true,
+    imageUrl: resolveUploadUrl(avatarUrl),
+    membersCount: pick(dto, 'membersCount', 'MembersCount') ?? 0,
+    postsPerWeek: pick(dto, 'postsPerWeek', 'PostsPerWeek') ?? 0,
+    rules: Array.isArray(dto?.rules) ? dto.rules : [],
+    category: pick(dto, 'category', 'Category') ?? 'Group',
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
   };
 }
 
-export function normalizeBlockedUserDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  return {
-    id: dto.id ?? dto.Id,
-    userId: dto.userId ?? dto.UserId,
-    blockedUserId: dto.blockedUserId ?? dto.BlockedUserId,
-    blockedAt: dto.blockedAt ?? dto.BlockedAt,
-    unblockedAt: dto.unblockedAt ?? dto.UnblockedAt,
-  };
+export function mapGroupList(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  return list.map(mapGroupDto).filter(Boolean);
 }
 
-export function mapBlockedUserToPerson(block, profile) {
-  const userId = block.blockedUserId;
-  const name =
-    profile?.fullName?.trim() ||
-    `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
-    `User ${String(userId).slice(0, 8)}`;
-  const avatarSeed = resolveAvatarSeed({ profile, userId, name });
-  const avatar = resolvePersonAvatar({ profile, userId, name });
+export function mapGroupMemberDto(dto) {
+  if (!dto) return null;
+
+  const userId = pick(dto, 'userId', 'UserId');
 
   return {
-    id: String(block.id),
+    id: userId,
     userId,
-    name,
-    role: profile?.headline || profile?.profileTitle || "Member",
-    handle: String(userId).slice(0, 12),
-    seed: avatarSeed,
-    avatar,
-    blockedAt: block.blockedAt,
-    status: "blocked",
-    keywords: `${name} ${profile?.headline || ""}`.toLowerCase(),
-    _api: true,
+    role: pick(dto, 'role', 'Role') ?? 'Member',
+    joinedAt: pick(dto, 'joinedAt', 'JoinedAt'),
   };
 }
 
-export function normalizePendingContactCounts(data) {
-  if (!data || typeof data !== "object") {
-    return { incomingCount: 0, outgoingCount: 0 };
+export function mapGroupMemberList(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  return list.map(mapGroupMemberDto).filter(Boolean);
+}
+
+export function mapGroupPostDto(dto) {
+  if (!dto) return null;
+
+  return {
+    id: pick(dto, 'id', 'Id'),
+    groupId: pick(dto, 'groupId', 'GroupId'),
+    postId: pick(dto, 'postId', 'PostId'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+  };
+}
+
+export function mapGroupPostList(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  return list.map(mapGroupPostDto).filter(Boolean);
+}
+
+export function mapPageDto(dto) {
+  if (!dto) return null;
+
+  const id = pick(dto, 'id', 'Id');
+  const logoUrl = pick(dto, 'logoUrl', 'LogoUrl');
+
+  return {
+    id,
+    pageId: id,
+    ownerId: pick(dto, 'ownerId', 'OwnerId'),
+    name: pick(dto, 'name', 'Name') ?? '',
+    description: pick(dto, 'description', 'Description') ?? '',
+    logoUrl,
+    imageUrl: resolveUploadUrl(logoUrl),
+    followersCount: pick(dto, 'followersCount', 'FollowersCount') ?? 0,
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    updatedAt: pick(dto, 'updatedAt', 'UpdatedAt'),
+  };
+}
+
+export function mapPageList(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  return list.map(mapPageDto).filter(Boolean);
+}
+
+export function mapPersonSuggestion(profile) {
+  if (!profile) return null;
+
+  const userId = profile.userId ?? profile.id;
+  const avatarUrl = profile.avatarUrl ?? profile.AvatarUrl;
+  const headline = profile.headline ?? profile.profileTitle ?? '';
+
+  return {
+    id: userId,
+    userId,
+    firstName: profile.firstName ?? '',
+    secondName: profile.secondName ?? profile.lastName ?? '',
+    name: profile.displayName || getDisplayName({ user: profile }),
+    headline,
+    profileTitle: headline,
+    title: headline,
+    avatarUrl,
+    avatar: avatarUrl ? resolveUploadUrl(avatarUrl) : '',
+    status: 'suggested',
+    mutualConnections: 0,
+    isConnected: false,
+    isPending: false,
+    direction: null,
+    cardType: 'suggestion',
+  };
+}
+
+export function mapContactToDisplay(contact, profile, currentUserId) {
+  if (!contact) return null;
+
+  const userId = getContactOtherUserId(contact, currentUserId);
+  const status = String(contact.status ?? '').toLowerCase();
+  const isRequester = contact.requesterId === currentUserId;
+
+  let cardType = 'contact';
+  let direction = null;
+
+  if (status === 'pending') {
+    cardType = isRequester ? 'outgoing' : 'incoming';
+    direction = cardType;
   }
-  return {
-    incomingCount: Number(data.incomingCount ?? data.IncomingCount ?? 0) || 0,
-    outgoingCount: Number(data.outgoingCount ?? data.OutgoingCount ?? 0) || 0,
-  };
-}
 
-export function normalizeContactDto(dto) {
-  if (!dto || typeof dto !== "object") return null;
-  return {
-    id: dto.id ?? dto.Id,
-    requesterId: dto.requesterId ?? dto.RequesterId,
-    receiverId: dto.receiverId ?? dto.ReceiverId,
-    status: dto.status ?? dto.Status ?? "",
-    requestedAt: dto.requestedAt ?? dto.RequestedAt,
-    respondedAt: dto.respondedAt ?? dto.RespondedAt,
-    statusChangedAt: dto.statusChangedAt ?? dto.StatusChangedAt,
-  };
-}
-
-export function mapContactDtoToPerson(contact, profile, currentUserId) {
-  const otherUserId =
-    String(contact.requesterId) === String(currentUserId) ? contact.receiverId : contact.requesterId;
-  const name =
-    profile?.fullName?.trim() ||
-    `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
-    `User ${String(otherUserId).slice(0, 8)}`;
-
-  const avatarSeed = resolveAvatarSeed({ profile, userId: otherUserId, name });
-  const avatar = resolvePersonAvatar({ profile, userId: otherUserId, name });
+  const user = profile?.user ?? profile;
+  const name = profile?.failed
+    ? 'User'
+    : getDisplayName(profile ?? { user: { id: userId } });
+  const avatarUrl = user?.avatarUrl ?? user?.AvatarUrl ?? null;
+  const headline =
+    user?.headline ?? user?.profileTitle ?? profile?.headline ?? '';
 
   return {
-    id: String(contact.id),
-    userId: otherUserId,
+    ...contact,
+    userId,
+    contactId: contact.id ?? contact.contactId,
     name,
-    role: profile?.headline || profile?.profileTitle || "Member",
-    handle: String(otherUserId).slice(0, 12),
-    seed: avatarSeed,
-    avatar,
-    keywords: `${name} ${profile?.headline || ""}`.toLowerCase(),
-    mutual: 0,
-    status: normalizeContactStatus(contact.status),
-    _api: true,
+    firstName: user?.firstName ?? name.split(' ')[0] ?? 'User',
+    secondName: user?.secondName ?? user?.lastName ?? '',
+    profileTitle: headline,
+    title: headline,
+    headline,
+    avatarUrl,
+    avatar: avatarUrl ? resolveUploadUrl(avatarUrl) : '',
+    cardType,
+    direction,
+    isConnected: status === 'accepted',
+    isPending: status === 'pending',
+    mutualConnections: contact.mutualConnections ?? 0,
   };
+}
+
+export function unwrapList(response) {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.items)) return response.items;
+  if (Array.isArray(response?.Items)) return response.Items;
+  return [];
 }

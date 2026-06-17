@@ -1,10 +1,10 @@
 /**
  * Stage 8 — automated API smoke test (no backend changes).
  * Run: npm run verify:e2e
- * Requires backend at http://localhost:5282
+ * Requires backend at http://localhost:5000 (Docker) or set VITE_API_BASE_URL.
  */
 
-const API = process.env.VITE_API_BASE_URL || "http://localhost:5282";
+const API = process.env.VITE_API_BASE_URL || "http://localhost:5000";
 const FRONTEND = process.env.VITE_VERIFY_FRONTEND || "http://localhost:5173";
 
 const ADMIN = { email: "admin@local.dev", password: "Admin123!" };

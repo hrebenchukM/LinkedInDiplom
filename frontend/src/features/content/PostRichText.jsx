@@ -35,7 +35,7 @@ export function PostRichText({ text, mentionNames = {}, onHashtagClick, classNam
             <Link
               key={`${segment.type}-${index}`}
               className="post-entity post-entity--mention"
-              to={`/profile/${segment.userId}`}
+              to={`/app/profile/${segment.userId}`}
             >
               @{label}
             </Link>

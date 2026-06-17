@@ -1,0 +1,169 @@
+.portfolio-header-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.portfolio-banner {
+  height: 200px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.portfolio-profile-section {
+  padding: 24px 32px 32px;
+}
+
+.portfolio-top-row {
+  display: flex;
+  gap: 24px;
+  margin-top: -80px;
+  margin-bottom: 24px;
+}
+
+.portfolio-avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0;
+}
+
+.portfolio-main-info {
+  flex: 1;
+  padding-top: 80px;
+}
+
+.portfolio-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.portfolio-info {
+  flex: 1;
+}
+
+.portfolio-name {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.portfolio-title {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.portfolio-location {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 12px 0;
+}
+
+.portfolio-link {
+  color: var(--text-brand);
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.portfolio-link:hover {
+  text-decoration: underline;
+}
+
+.portfolio-connections {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.contact-item {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.more-icon-button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.more-icon-button:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.portfolio-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-send {
+  padding: 10px 24px;
+  background: var(--color-brand);
+  border: 2px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-send:hover {
+  background: var(--color-brand-hover);
+  border-color: var(--color-brand-hover);
+}
+
+.btn-more-action {
+  padding: 10px 24px;
+  background: var(--bg-muted);
+  border: 2px solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  color: var(--text-brand);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-more-action:hover {
+  background: var(--color-brand-soft);
+}
+
+@media (max-width: 768px) {
+  .portfolio-header-card { margin-bottom: 16px; }
+  .portfolio-banner { height: 150px; }
+  .portfolio-profile-section { padding: 16px 20px 24px; }
+  .portfolio-top-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -60px;
+    margin-bottom: 16px;
+  }
+  .portfolio-avatar { width: 120px; height: 120px; }
+  .portfolio-main-info { padding-top: 0; }
+  .portfolio-name { font-size: 24px; }
+  .portfolio-info-row { flex-direction: column; gap: 16px; }
+  .portfolio-actions { flex-direction: column; width: 100%; }
+  .btn-send, .btn-more-action { width: 100%; }
+}
