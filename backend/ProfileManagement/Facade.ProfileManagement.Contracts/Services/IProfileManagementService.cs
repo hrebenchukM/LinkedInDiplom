@@ -39,6 +39,12 @@ public interface IProfileManagementService
         string fileName,
         string contentType);
 
+    // Удалить аватар моего профиля
+    Task<ProfileResponse> DeleteMyAvatarAsync(string userId);
+
+    // Удалить header / обложку моего профиля
+    Task<ProfileResponse> DeleteMyHeaderAsync(string userId);
+
     Task<MessageSettingsDto> GetMyMessageSettingsAsync(string userId);
 
     Task<MessageSettingsResponse> UpdateMyMessageSettingsAsync(

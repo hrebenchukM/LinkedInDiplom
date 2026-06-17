@@ -90,7 +90,7 @@
     <h1>LinkedInDiplom — чеклист перевірки</h1>
     <p class="sub">
       Спочатку запусти автотест у терміналі, потім відмічай кроки в браузері.
-      Backend: <code>http://localhost:5282</code> · Frontend: <code>http://localhost:5173</code>
+      Backend: <code>http://localhost:5000</code> (Docker) · Frontend: <code>http://localhost:5173</code>
     </p>
 
     <div class="card">
@@ -122,65 +122,55 @@
     const steps = [
       {
         title: "1. Auth — email login",
-        desc: "Увійти як andrii, потрапити на /home",
+        desc: "Увійти як andrii → /app (головна з API-лентою)",
         links: [
           { label: "Відкрити /auth", href: "/auth", primary: true },
-          { label: "Home", href: "/home" },
+          { label: "App / Feed", href: "/app" },
         ],
       },
       {
-        title: "2. Auth — demo Google",
-        desc: "Logout → /auth → Continue with Google (без OAuth SDK)",
-        links: [{ label: "Auth", href: "/auth", primary: true }],
+        title: "2. Profile + modals",
+        desc: "Профіль завантажується з API, модалки досвід/навички",
+        links: [{ label: "Profile", href: "/app/profile", primary: true }],
       },
       {
-        title: "3. Profile",
-        desc: "Профіль завантажується, можна зберегти зміни",
-        links: [{ label: "Profile", href: "/profile", primary: true }],
+        title: "3. Feed — post (modal)",
+        desc: "Start your post → модалка → пост у стрічці після F5",
+        links: [{ label: "Home / Feed", href: "/app", primary: true }],
       },
       {
-        title: "4. Feed — post",
-        desc: "Створити пост, like, comment",
-        links: [{ label: "Home / Feed", href: "/home", primary: true }],
+        title: "4. Network — contacts",
+        desc: "Connections: connect request між двома акаунтами",
+        links: [{ label: "Network", href: "/app/network", primary: true }],
       },
       {
-        title: "5. Network — contacts",
-        desc: "Connections: список контактів або connect request",
-        links: [{ label: "Network", href: "/network", primary: true }],
+        title: "5. Vacancies — apply",
+        desc: "Список вакансій з API, Apply / Post Job modal",
+        links: [{ label: "Vacancies", href: "/app/vacancies", primary: true }],
       },
       {
-        title: "6. Events",
-        desc: "Discover → Join → Attending",
-        links: [{ label: "Events", href: "/network?section=events", primary: true }],
+        title: "6. Chat + SignalR",
+        desc: "Два браузери, два акаунти, повідомлення без F5",
+        links: [{ label: "Messages", href: "/app/messages", primary: true }],
       },
       {
-        title: "7. Vacancies — apply",
-        desc: "Список вакансій, Apply",
-        links: [{ label: "Vacancies", href: "/vacancies", primary: true }],
+        title: "7. Notifications",
+        desc: "Список сповіщень з API",
+        links: [{ label: "Notifications", href: "/app/notifications", primary: true }],
       },
       {
-        title: "8. Chat + SignalR",
-        desc: "Статус Online, надіслати повідомлення",
-        links: [{ label: "Messages", href: "/chat", primary: true }],
-      },
-      {
-        title: "9. Notifications",
-        desc: "Колокольчик → Mark all read, не demo «Sarah Chen»",
-        links: [{ label: "Home (bell)", href: "/home", primary: true }],
-      },
-      {
-        title: "10. Admin",
-        desc: "Увійти admin@local.dev → Dashboard, Users lock",
+        title: "8. Admin",
+        desc: "admin@local.dev → Dashboard, Users",
         links: [
           { label: "Logout → Auth", href: "/auth" },
-          { label: "Admin dashboard", href: "/admin/dashboard", primary: true },
-          { label: "Users", href: "/admin/users" },
+          { label: "Admin dashboard", href: "/app/admin/dashboard", primary: true },
+          { label: "Users", href: "/app/admin/users" },
         ],
       },
       {
-        title: "11. Non-admin 403",
-        desc: "andrii → /admin/dashboard = Access denied, немає Admin в меню",
-        links: [{ label: "Admin (expect 403)", href: "/admin/dashboard", primary: true }],
+        title: "9. Non-admin 403",
+        desc: "andrii → /app/admin/dashboard = forbidden",
+        links: [{ label: "Admin (expect 403)", href: "/app/admin/dashboard", primary: true }],
       },
     ];
 

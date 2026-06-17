@@ -1,5 +1,8 @@
 # 13. Ограничения v1 и что проверить позже
 
+> **Актуальная версия:** [26_LIMITATIONS_AND_TODO.md](26_LIMITATIONS_AND_TODO.md) (2026-06-17).  
+> Этот файл сохранён как legacy index.
+
 ## Ограничения v1 (факт)
 
 - realtime уведомлений нет; **SignalR Hub для Messaging** (`/hubs/messaging`): `JoinChat` / `LeaveChat`; backend realtime events — `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` (group `chat:{chatId}`) после успешных HTTP операций; **manual testing docs** — `docs/api/POSTMAN_TESTING.md` (раздел «Messaging SignalR manual testing»); **dev CORS** для SignalR: explicit localhost origins (`5173`, `3000`) + `AllowCredentials` в `DevelopmentCors`; **frontend SignalR integration still pending**; production CORS origins для deployed frontend **pending**; scale-out (Redis backplane / Azure SignalR Service) **pending**; HTTP send остаётся primary flow
@@ -8,7 +11,13 @@
 - Jobs: `CompanyId` не валидируется через Professional module
 - Network: ограниченная кросс-проверка существования target user
 - Events: `EventSpeaker` — глобальный справочник **без `OwnerId`**; write endpoints (create/patch/delete/avatar) **Admin-only**; обычный user может **читать** speaker (`GET me/speakers/{id}`), но не менять каталог
-- покрытие тестами ограничено (в основном Profile/Content)
+- покрытие тестами ограничено (в основном Profile/Content/Network) — **87 tests passing** на master
+
+### Demo seed (актуально)
+
+- **24-step orchestrator** — см. [22_SEED_DATA.md](22_SEED_DATA.md)
+- Enrichment: skills catalog (23), jobs catalog (10+10), bot content (18 users, 40 posts), bot network (follows/contacts), bot engagement
+- `DemoSeed:Reset=true` — **не реализован**
 
 ### FileStorage / uploads (v1)
 

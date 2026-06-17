@@ -1,5 +1,7 @@
 # 01. Обзор проекта
 
+> Обновлено: 2026-06-17 — demo seed enrichment, API overview, frontend integration guide.
+
 ## Что это
 
 LinkedInDiplom backend — **microservice-ready modular monolith + BFF** на `.NET 8 (net8.0)`.

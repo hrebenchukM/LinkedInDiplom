@@ -25,6 +25,9 @@ public record GetVacanciesQueryRequest : PagedRequest, IValidatableObject
     [StringLength(100)]
     public string? Schedule { get; init; }
 
+    [Range(0, double.MaxValue)]
+    public decimal? MinSalaryFrom { get; init; }
+
     public DateTime? FromCreatedAt { get; init; }
 
     public DateTime? ToCreatedAt { get; init; }

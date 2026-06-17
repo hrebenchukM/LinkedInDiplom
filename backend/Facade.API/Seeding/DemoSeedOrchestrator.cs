@@ -8,20 +8,25 @@ public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
     private readonly DemoSeedOptions _options;
     private readonly DemoUsersSeeder _usersSeeder;
     private readonly DemoShowcaseUsersSeeder _showcaseUsersSeeder;
+    private readonly DemoSkillsSeeder _skillsSeeder;
     private readonly DemoProfileSeeder _profileSeeder;
     private readonly DemoShowcaseProfileSeeder _showcaseProfileSeeder;
     private readonly DemoContentSeeder _contentSeeder;
+    private readonly DemoBotContentSeeder _botContentSeeder;
     private readonly DemoShowcaseContentSeeder _showcaseContentSeeder;
     private readonly DemoShowcaseProfessionalSeeder _showcaseProfessionalSeeder;
     private readonly DemoJobsSeeder _jobsSeeder;
+    private readonly DemoJobsCatalogSeeder _jobsCatalogSeeder;
     private readonly DemoShowcaseJobsSeeder _showcaseJobsSeeder;
     private readonly DemoEventsSeeder _eventsSeeder;
     private readonly DemoShowcaseEventsSeeder _showcaseEventsSeeder;
     private readonly DemoNetworkSeeder _networkSeeder;
+    private readonly DemoBotNetworkSeeder _botNetworkSeeder;
     private readonly DemoShowcaseNetworkSeeder _showcaseNetworkSeeder;
     private readonly DemoMessagingSeeder _messagingSeeder;
     private readonly DemoShowcaseMessagingSeeder _showcaseMessagingSeeder;
     private readonly DemoContentEngagementSeeder _contentEngagementSeeder;
+    private readonly DemoBotContentEngagementSeeder _botContentEngagementSeeder;
     private readonly DemoPagesGroupsSeeder _pagesGroupsSeeder;
     private readonly DemoNotificationsSeeder _notificationsSeeder;
     private readonly DemoShowcaseViewsSeeder _showcaseViewsSeeder;
@@ -32,20 +37,25 @@ public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
         IOptions<DemoSeedOptions> options,
         DemoUsersSeeder usersSeeder,
         DemoShowcaseUsersSeeder showcaseUsersSeeder,
+        DemoSkillsSeeder skillsSeeder,
         DemoProfileSeeder profileSeeder,
         DemoShowcaseProfileSeeder showcaseProfileSeeder,
         DemoContentSeeder contentSeeder,
+        DemoBotContentSeeder botContentSeeder,
         DemoShowcaseContentSeeder showcaseContentSeeder,
         DemoShowcaseProfessionalSeeder showcaseProfessionalSeeder,
         DemoJobsSeeder jobsSeeder,
+        DemoJobsCatalogSeeder jobsCatalogSeeder,
         DemoShowcaseJobsSeeder showcaseJobsSeeder,
         DemoEventsSeeder eventsSeeder,
         DemoShowcaseEventsSeeder showcaseEventsSeeder,
         DemoNetworkSeeder networkSeeder,
+        DemoBotNetworkSeeder botNetworkSeeder,
         DemoShowcaseNetworkSeeder showcaseNetworkSeeder,
         DemoMessagingSeeder messagingSeeder,
         DemoShowcaseMessagingSeeder showcaseMessagingSeeder,
         DemoContentEngagementSeeder contentEngagementSeeder,
+        DemoBotContentEngagementSeeder botContentEngagementSeeder,
         DemoPagesGroupsSeeder pagesGroupsSeeder,
         DemoNotificationsSeeder notificationsSeeder,
         DemoShowcaseViewsSeeder showcaseViewsSeeder,
@@ -55,20 +65,25 @@ public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
         _options = options.Value;
         _usersSeeder = usersSeeder;
         _showcaseUsersSeeder = showcaseUsersSeeder;
+        _skillsSeeder = skillsSeeder;
         _profileSeeder = profileSeeder;
         _showcaseProfileSeeder = showcaseProfileSeeder;
         _contentSeeder = contentSeeder;
+        _botContentSeeder = botContentSeeder;
         _showcaseContentSeeder = showcaseContentSeeder;
         _showcaseProfessionalSeeder = showcaseProfessionalSeeder;
         _jobsSeeder = jobsSeeder;
+        _jobsCatalogSeeder = jobsCatalogSeeder;
         _showcaseJobsSeeder = showcaseJobsSeeder;
         _eventsSeeder = eventsSeeder;
         _showcaseEventsSeeder = showcaseEventsSeeder;
         _networkSeeder = networkSeeder;
+        _botNetworkSeeder = botNetworkSeeder;
         _showcaseNetworkSeeder = showcaseNetworkSeeder;
         _messagingSeeder = messagingSeeder;
         _showcaseMessagingSeeder = showcaseMessagingSeeder;
         _contentEngagementSeeder = contentEngagementSeeder;
+        _botContentEngagementSeeder = botContentEngagementSeeder;
         _pagesGroupsSeeder = pagesGroupsSeeder;
         _notificationsSeeder = notificationsSeeder;
         _showcaseViewsSeeder = showcaseViewsSeeder;
@@ -103,20 +118,25 @@ public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
 
         await RunStepAsync("DemoUsersSeeder", () => _usersSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseUsersSeeder", () => _showcaseUsersSeeder.SeedAsync(cancellationToken));
+        await RunStepAsync("DemoSkillsSeeder", () => _skillsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoProfileSeeder", () => _profileSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseProfileSeeder", () => _showcaseProfileSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoContentSeeder", () => _contentSeeder.SeedAsync(cancellationToken));
+        await RunStepAsync("DemoBotContentSeeder", () => _botContentSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseContentSeeder", () => _showcaseContentSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseProfessionalSeeder", () => _showcaseProfessionalSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoJobsSeeder", () => _jobsSeeder.SeedAsync(cancellationToken));
+        await RunStepAsync("DemoJobsCatalogSeeder", () => _jobsCatalogSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseJobsSeeder", () => _showcaseJobsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoEventsSeeder", () => _eventsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseEventsSeeder", () => _showcaseEventsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoNetworkSeeder", () => _networkSeeder.SeedAsync(cancellationToken));
+        await RunStepAsync("DemoBotNetworkSeeder", () => _botNetworkSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseNetworkSeeder", () => _showcaseNetworkSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoMessagingSeeder", () => _messagingSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseMessagingSeeder", () => _showcaseMessagingSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoContentEngagementSeeder", () => _contentEngagementSeeder.SeedAsync(cancellationToken));
+        await RunStepAsync("DemoBotContentEngagementSeeder", () => _botContentEngagementSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoPagesGroupsSeeder", () => _pagesGroupsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoNotificationsSeeder", () => _notificationsSeeder.SeedAsync(cancellationToken));
         await RunStepAsync("DemoShowcaseViewsSeeder", () => _showcaseViewsSeeder.SeedAsync(cancellationToken));

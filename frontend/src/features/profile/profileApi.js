@@ -58,7 +58,9 @@ export async function fetchPublicProfile(userId) {
 
 export async function recordProfileView(profileOwnerId, source = 'profile') {
   if (!profileOwnerId) return null;
-  return apiClient.post(API_PATHS.profile.recordView(profileOwnerId), { source });
+  return apiClient.post(API_PATHS.profile.recordView(profileOwnerId), null, {
+    query: { source },
+  });
 }
 
 export async function searchProfiles(params = {}) {

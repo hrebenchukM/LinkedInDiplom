@@ -63,6 +63,8 @@ export const API_PATHS = {
     savedPosts: '/api/content/me/saved-posts',
     savePost: (postId) => `/api/content/me/posts/${postId}/save`,
     hashtags: '/api/content/hashtags',
+    hashtagFollowing: '/api/content/me/hashtags/following',
+    hashtagFollow: (hashtagId) => `/api/content/me/hashtags/${hashtagId}/follow`,
   },
 
   network: {

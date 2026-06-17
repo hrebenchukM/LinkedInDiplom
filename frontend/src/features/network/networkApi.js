@@ -502,4 +502,40 @@ export async function attachPostToGroup(groupId, postId) {
 
 }
 
+export async function getFollowers() {
+  try {
+    const response = await apiClient.get(API_PATHS.network.followers);
+    return mapFollowList(unwrapList(response));
+  } catch {
+    return [];
+  }
+}
+
+/** Legacy aliases used by NetworkStore and older components. */
+export async function fetchMyContacts(params = {}) {
+  const result = await getMyContacts(params);
+  return result.items ?? [];
+}
+
+export async function fetchIncomingContacts(params = {}) {
+  const result = await getIncomingContacts(params);
+  return result.items ?? [];
+}
+
+export async function fetchOutgoingContacts(params = {}) {
+  const result = await getOutgoingContacts(params);
+  return result.items ?? [];
+}
+
+export async function fetchPendingContactCounts() {
+  return getPendingContactCounts();
+}
+
+export async function fetchMyFollowing() {
+  return getFollowing();
+}
+
+export async function fetchMyFollowers() {
+  return getFollowers();
+}
 

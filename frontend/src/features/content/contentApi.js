@@ -198,3 +198,56 @@ export async function getMyPostViews(postId) {
     return null;
   }
 }
+
+function pick(dto, ...keys) {
+  if (!dto) return null;
+  for (const key of keys) {
+    const value = dto[key];
+    if (value != null && value !== '') return value;
+  }
+  return null;
+}
+
+function mapHashtagDto(dto) {
+  if (!dto) return null;
+  return {
+    id: pick(dto, 'id', 'Id'),
+    name: pick(dto, 'name', 'Name'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+  };
+}
+
+function mapHashtagFollowDto(dto) {
+  if (!dto) return null;
+  const hashtagDto = dto.hashtag ?? dto.Hashtag;
+  return {
+    id: pick(dto, 'id', 'Id'),
+    hashtagId: pick(dto, 'hashtagId', 'HashtagId') ?? pick(hashtagDto, 'id', 'Id'),
+    unfollowedAt: pick(dto, 'unfollowedAt', 'UnfollowedAt'),
+    hashtag: hashtagDto ? mapHashtagDto(hashtagDto) : null,
+  };
+}
+
+// Hashtags
+export async function fetchMyHashtagFollows() {
+  const response = await apiClient.get(API_PATHS.content.hashtagFollowing);
+  return unwrapList(response).map(mapHashtagFollowDto).filter(Boolean);
+}
+
+export async function searchHashtags(query, pageSize = 12) {
+  const params = buildPaginationQuery({
+    page: 1,
+    pageSize,
+    search: String(query ?? '').trim(),
+  });
+  const response = await apiClient.get(API_PATHS.content.hashtags, { query: params });
+  return unwrapList(response).map(mapHashtagDto).filter(Boolean);
+}
+
+export async function followHashtag(hashtagId) {
+  return apiClient.post(API_PATHS.content.hashtagFollow(hashtagId), {});
+}
+
+export async function unfollowHashtag(hashtagId) {
+  return apiClient.delete(API_PATHS.content.hashtagFollow(hashtagId));
+}
