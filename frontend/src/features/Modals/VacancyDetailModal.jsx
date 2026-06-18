@@ -92,7 +92,7 @@ const VacancyDetailModal = ({
               {applying
                 ? t('vac.card.applying', 'Applying...')
                 : withdrawing
-                  ? t('vac.withdraw', 'Withdraw')
+                  ? t('vac.card.withdrawing', 'Withdrawing...')
                   : hasApplied
                     ? t('vac.withdraw', 'Withdraw')
                     : t('vac.card.apply', 'Be among the candidates')}

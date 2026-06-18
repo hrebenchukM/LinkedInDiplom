@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Bookmark, X } from 'lucide-react';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 import '../VacancyCard/VacancyCard.css';
@@ -19,10 +19,11 @@ const VacancyCard = ({
   onToggleFavorite,
   actionError,
   favoriteError,
+  isApplying = false,
+  isWithdrawing = false,
+  showActions = true,
 }) => {
   const { t } = useTranslation();
-  const [applying, setApplying] = useState(false);
-  const [withdrawing, setWithdrawing] = useState(false);
 
   const data = vacancy ?? {
     id: null,
@@ -50,26 +51,16 @@ const VacancyCard = ({
 
   const handleAction = async (event) => {
     event.preventDefault();
-    if (!data.id || applying || withdrawing) return;
+    if (!data.id || isApplying || isWithdrawing) return;
 
     if (data.hasApplied) {
       if (!onWithdraw) return;
-      setWithdrawing(true);
-      try {
-        await onWithdraw(data.id);
-      } finally {
-        setWithdrawing(false);
-      }
+      await onWithdraw(data.id);
       return;
     }
 
     if (!onApply) return;
-    setApplying(true);
-    try {
-      await onApply(data.id);
-    } finally {
-      setApplying(false);
-    }
+    await onApply(data.id);
   };
 
   const handleFavorite = (event) => {
@@ -77,6 +68,8 @@ const VacancyCard = ({
     if (!onToggleFavorite || !data.id) return;
     onToggleFavorite(data.id, Boolean(data.isFavorite));
   };
+
+  const showApplyControls = showActions && (onApply || onWithdraw);
 
   return (
     <div className="vacancy-card">
@@ -121,27 +114,27 @@ const VacancyCard = ({
 
       <div className="vacancy-footer">
         <span className="vacancy-posted">{postedText}</span>
-        <span className="vacancy-separator">•</span>
-        {onApply || onWithdraw ? (
-          <button
-            type="button"
-            className={`vacancy-status-btn ${data.hasApplied ? 'is-applied' : ''}`}
-            onClick={handleAction}
-            disabled={
-              applying
-              || withdrawing
-              || (data.hasApplied ? !onWithdraw : !onApply)
-            }
-          >
-            {applying
-              ? t('vac.card.applying', 'Applying...')
-              : withdrawing
-                ? t('vac.withdraw', 'Withdraw')
-                : statusText}
-          </button>
-        ) : (
-          <a href="#" className="vacancy-status">{statusText}</a>
-        )}
+        {showApplyControls ? (
+          <>
+            <span className="vacancy-separator">•</span>
+            <button
+              type="button"
+              className={`vacancy-status-btn ${data.hasApplied ? 'is-applied' : ''}`}
+              onClick={handleAction}
+              disabled={
+                isApplying
+                || isWithdrawing
+                || (data.hasApplied ? !onWithdraw : !onApply)
+              }
+            >
+              {isApplying
+                ? t('vac.card.applying', 'Applying...')
+                : isWithdrawing
+                  ? t('vac.card.withdrawing', 'Withdrawing...')
+                  : statusText}
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );

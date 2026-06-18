@@ -10,7 +10,10 @@ import {
   mapRecommendedQueryList,
   mapVacancyDto,
   mapVacancyListResponse,
+  normalizeVacancyId,
 } from './mapJobs.js';
+
+export { normalizeVacancyId };
 
 function unwrapVacancy(response) {
   const vacancy = response?.vacancy ?? response?.Vacancy ?? response;
@@ -146,36 +149,58 @@ export async function getRecommendedJobQueries() {
   }
 }
 
+function buildVacancyMetaFromLists(favorites, applications) {
+  const favoriteIds = new Set();
+  favorites.forEach((item) => {
+    const norm = normalizeVacancyId(item.vacancyId ?? item.vacancy?.id);
+    if (norm) favoriteIds.add(norm);
+  });
+
+  const appliedIds = new Set();
+  const applicationIdsByVacancyId = new Map();
+
+  applications
+    .filter((item) => !item.withdrawnAt)
+    .forEach((item) => {
+      const normVacancyId = normalizeVacancyId(item.vacancyId ?? item.vacancy?.id);
+      if (!normVacancyId) return;
+      appliedIds.add(normVacancyId);
+      if (item.id) {
+        applicationIdsByVacancyId.set(normVacancyId, String(item.id));
+      }
+    });
+
+  return { favoriteIds, appliedIds, applicationIdsByVacancyId };
+}
+
 export async function loadVacancyMeta() {
   const [favorites, applications] = await Promise.all([
     getMyFavoriteVacancies(),
     getMyApplications(),
   ]);
 
-  const favoriteIds = new Set(
-    favorites
-      .map((item) => item.vacancyId ?? item.vacancy?.id)
-      .filter(Boolean),
-  );
-
-  const appliedIds = new Set(
-    applications
-      .filter((item) => !item.withdrawnAt)
-      .map((item) => item.vacancyId ?? item.vacancy?.id)
-      .filter(Boolean),
-  );
-
-  const applicationIdsByVacancyId = new Map();
-  applications
-    .filter((item) => !item.withdrawnAt && item.id)
-    .forEach((item) => {
-      const vacancyId = item.vacancyId ?? item.vacancy?.id;
-      if (vacancyId) {
-        applicationIdsByVacancyId.set(String(vacancyId), String(item.id));
-      }
-    });
+  const { favoriteIds, appliedIds, applicationIdsByVacancyId } =
+    buildVacancyMetaFromLists(favorites, applications);
 
   return { favoriteIds, appliedIds, favorites, applications, applicationIdsByVacancyId };
+}
+
+/** Resolve active application id for a vacancy (uses normalized vacancy id). */
+export async function findApplicationIdByVacancyId(vacancyId, existingMap = null) {
+  const normVacancyId = normalizeVacancyId(vacancyId);
+  if (!normVacancyId) return null;
+
+  const cached = existingMap?.get(normVacancyId);
+  if (cached) return cached;
+
+  const applications = await getMyApplications();
+  const match = applications.find(
+    (item) =>
+      !item.withdrawnAt
+      && normalizeVacancyId(item.vacancyId ?? item.vacancy?.id) === normVacancyId,
+  );
+
+  return match?.id ? String(match.id) : null;
 }
 
 export {

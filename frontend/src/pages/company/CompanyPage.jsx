@@ -288,7 +288,7 @@ const CompanyPage = () => {
                   {jobs.length === 0 ? (
                     <p>{t('company.emptyJobs', 'No jobs yet')}</p>
                   ) : (
-                    jobs.map((job) => <VacancyCard key={job.id} vacancy={job} />)
+                    jobs.map((job) => <VacancyCard key={job.id} vacancy={job} showActions={false} />)
                   )}
                 </div>
               )}

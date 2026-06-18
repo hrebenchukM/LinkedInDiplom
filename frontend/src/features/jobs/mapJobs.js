@@ -1,6 +1,18 @@
 import { mapVacancySortBy, normalizeSortDirection } from '../../shared/api/sortParams.js';
 import { mapPagedResponse } from '../../shared/lib/pagination.js';
 
+/** Lowercase string id for Set/Map lookups (GUID-safe). Empty if id is missing. */
+export function normalizeVacancyId(id) {
+  if (id == null || id === '') return '';
+  return String(id).toLowerCase();
+}
+
+function metaSetHas(set, rawId) {
+  const normalized = normalizeVacancyId(rawId);
+  if (!normalized || !set) return false;
+  return set.has(normalized);
+}
+
 function pick(dto, ...keys) {
   if (!dto) return null;
   for (const key of keys) {
@@ -97,8 +109,8 @@ export function mapVacancyListResponse(response, meta = {}) {
       .map((item) => {
         const vacancyId = pick(item, 'id', 'Id');
         return mapVacancyDto(item, {
-          isFavorite: meta.favoriteIds?.has?.(vacancyId),
-          hasApplied: meta.appliedIds?.has?.(vacancyId),
+          isFavorite: metaSetHas(meta.favoriteIds, vacancyId),
+          hasApplied: metaSetHas(meta.appliedIds, vacancyId),
         });
       })
       .filter(Boolean),
