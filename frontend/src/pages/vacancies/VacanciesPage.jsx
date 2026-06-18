@@ -22,6 +22,7 @@ import { fetchRecommendedJobs } from '../../features/ai/aiApi.js';
 import { useTranslation, getDateLocale } from '../../app/i18n/LocaleContext.jsx';
 import {
   applyClientSideVacancyFilters,
+  isOwnVacancy,
   mapFiltersToVacancyQuery,
   recommendVacanciesForProfile,
   vacancyMatchesProfileSkills,
@@ -47,9 +48,22 @@ function vacancyHasApplied(appliedIds, vacancyId) {
 }
 
 const VacanciesPage = ({ onNavigate }) => {
-  const { profile } = useContext(AppContext);
+  const { profile, account, user } = useContext(AppContext);
   const { t, locale } = useTranslation();
   const dateLocale = getDateLocale(locale);
+
+  const currentUserId = useMemo(
+    () => account?.id ?? user?.id ?? profile?.userId ?? profile?.user?.id ?? null,
+    [account?.id, user?.id, profile?.userId, profile?.user?.id],
+  );
+
+  const enrichVacancyForUi = useCallback((vacancy) => {
+    if (!vacancy) return vacancy;
+    return {
+      ...vacancy,
+      isOwn: isOwnVacancy(vacancy, currentUserId),
+    };
+  }, [currentUserId]);
 
   const formatPosted = useCallback((dateStr) => {
     if (!dateStr) return '';
@@ -273,24 +287,31 @@ const VacanciesPage = ({ onNavigate }) => {
     [userSkills],
   );
 
+  const vacanciesForRecommendations = useMemo(
+    () => vacancies.filter((vacancy) => !isOwnVacancy(vacancy, currentUserId)),
+    [vacancies, currentUserId],
+  );
+
   const skillMatchedVacancies = useMemo(
     () => recommendVacanciesForProfile(
-      vacancies,
+      vacanciesForRecommendations,
       { skillNames: userSkillNames, profileTitle },
       5,
     ),
-    [vacancies, userSkillNames, profileTitle],
+    [vacanciesForRecommendations, userSkillNames, profileTitle],
   );
 
   const recommendedVacancies = useMemo(() => {
-    const realCards = skillMatchedVacancies.map((vacancy) => ({
-      ...vacancy,
-      companyName: vacancy.companyName ?? vacancy.company?.name ?? 'Company',
-      companyLogo: vacancy.companyLogo ?? vacancy.company?.logo ?? '',
-      location: vacancy.location || vacancy.schedule || '',
-      aiRecommendation: false,
-      hasApplied: vacancyHasApplied(appliedIds, vacancy.id) || vacancy.hasApplied,
-    }));
+    const realCards = skillMatchedVacancies
+      .filter((vacancy) => !isOwnVacancy(vacancy, currentUserId))
+      .map((vacancy) => enrichVacancyForUi({
+        ...vacancy,
+        companyName: vacancy.companyName ?? vacancy.company?.name ?? 'Company',
+        companyLogo: vacancy.companyLogo ?? vacancy.company?.logo ?? '',
+        location: vacancy.location || vacancy.schedule || '',
+        aiRecommendation: false,
+        hasApplied: vacancyHasApplied(appliedIds, vacancy.id) || vacancy.hasApplied,
+      }));
 
     const matchedTitles = new Set(realCards.map((item) => item.title?.toLowerCase()));
     const aiExtras = aiRecommendations
@@ -307,12 +328,14 @@ const VacanciesPage = ({ onNavigate }) => {
       }));
 
     return [...realCards, ...aiExtras];
-  }, [skillMatchedVacancies, aiRecommendations, appliedIds, t]);
+  }, [skillMatchedVacancies, aiRecommendations, appliedIds, currentUserId, enrichVacancyForUi, t]);
 
   const hasSkillBasedMatches = useMemo(
     () => userSkillNames.length > 0
-      && vacancies.some((vacancy) => vacancyMatchesProfileSkills(vacancy, userSkillNames)),
-    [vacancies, userSkillNames],
+      && vacanciesForRecommendations.some(
+        (vacancy) => vacancyMatchesProfileSkills(vacancy, userSkillNames),
+      ),
+    [vacanciesForRecommendations, userSkillNames],
   );
 
   const recommendedSubtitle = useMemo(() => {
@@ -359,6 +382,20 @@ const VacanciesPage = ({ onNavigate }) => {
     }
   };
 
+  const resolveVacancyById = useCallback((vacancyId) => {
+    const norm = normalizeVacancyId(vacancyId);
+    if (!norm) return null;
+
+    const fromList = vacancies.find((item) => normalizeVacancyId(item.id) === norm);
+    if (fromList) return fromList;
+
+    if (detailVacancy && normalizeVacancyId(detailVacancy.id) === norm) {
+      return detailVacancy;
+    }
+
+    return null;
+  }, [vacancies, detailVacancy]);
+
   const handleRecommendedApply = async (vacancy) => {
     if (vacancy.aiRecommendation) {
       handleSearchQuery(vacancy.title);
@@ -366,7 +403,8 @@ const VacanciesPage = ({ onNavigate }) => {
       return;
     }
 
-    if (!vacancy.id || vacancyHasApplied(appliedIds, vacancy.id)) return;
+    if (!vacancy.id || isOwnVacancy(vacancy, currentUserId)) return;
+    if (vacancyHasApplied(appliedIds, vacancy.id)) return;
     await handleApply(vacancy.id);
   };
 
@@ -375,6 +413,11 @@ const VacanciesPage = ({ onNavigate }) => {
     if (!normId) return;
     if (applyingIds.has(normId) || withdrawingIds.has(normId)) return;
     if (vacancyHasApplied(appliedIds, vacancyId)) return;
+
+    const vacancy = resolveVacancyById(vacancyId);
+    if (isOwnVacancy(vacancy, currentUserId)) {
+      return;
+    }
 
     clearActionError(vacancyId);
     setApplyingIds((prev) => new Set(prev).add(normId));
@@ -636,10 +679,10 @@ const VacanciesPage = ({ onNavigate }) => {
                     }
                   >
                     <VacancyCard
-                      vacancy={{
+                      vacancy={enrichVacancyForUi({
                         ...vacancy,
                         hasApplied: vacancyHasApplied(appliedIds, vacancy.id) || vacancy.hasApplied,
-                      }}
+                      })}
                       posted={formatPosted(vacancy.postedAt ?? vacancy.createdAt)}
                       onApply={handleApply}
                       onWithdraw={handleWithdraw}
@@ -777,11 +820,11 @@ const VacanciesPage = ({ onNavigate }) => {
         onClose={() => setDetailVacancy(null)}
         vacancy={
           detailVacancy
-            ? {
+            ? enrichVacancyForUi({
                 ...detailVacancy,
                 hasApplied: vacancyHasApplied(appliedIds, detailVacancy.id)
                   || detailVacancy.hasApplied,
-              }
+              })
             : null
         }
         posted={

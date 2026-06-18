@@ -129,6 +129,15 @@
   text-decoration: underline;
 }
 
+.vacancy-status--own {
+  cursor: default;
+}
+
+.vacancy-status--own:hover {
+  color: var(--color-brand-muted);
+  text-decoration: none;
+}
+
 .vacancy-status-btn {
   background: none;
   border: none;

@@ -34,7 +34,10 @@ const VacancyCard = ({
     salary,
     hasApplied: false,
     isFavorite: false,
+    isOwn: false,
   };
+
+  const isOwn = Boolean(data.isOwn);
 
   const logoSrc = getAssetUrl(
     data.companyLogo || data.company?.logo || logo,
@@ -69,7 +72,7 @@ const VacancyCard = ({
     onToggleFavorite(data.id, Boolean(data.isFavorite));
   };
 
-  const showApplyControls = showActions && (onApply || onWithdraw);
+  const showApplyControls = showActions && !isOwn && (onApply || onWithdraw);
 
   return (
     <div className="vacancy-card">
@@ -114,7 +117,15 @@ const VacancyCard = ({
 
       <div className="vacancy-footer">
         <span className="vacancy-posted">{postedText}</span>
-        {showApplyControls ? (
+        {isOwn ? (
+          <>
+            <span className="vacancy-separator">•</span>
+            <span className="vacancy-status vacancy-status--own">
+              {t('vac.yourVacancy', 'Your vacancy')}
+            </span>
+          </>
+        ) : null}
+        {!isOwn && showApplyControls ? (
           <>
             <span className="vacancy-separator">•</span>
             <button

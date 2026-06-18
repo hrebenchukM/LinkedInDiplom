@@ -25,7 +25,8 @@ const VacancyDetailModal = ({
     IMAGE_PLACEHOLDERS.company,
   );
   const hasApplied = Boolean(vacancy.hasApplied);
-  const canApply = !vacancy.aiRecommendation && vacancy.id;
+  const isOwn = Boolean(vacancy.isOwn);
+  const canApply = !vacancy.aiRecommendation && vacancy.id && !isOwn;
 
   const handleApply = async () => {
     if (!canApply || hasApplied || applying || withdrawing) return;
@@ -82,7 +83,11 @@ const VacancyDetailModal = ({
         {applyError ? <p className="vacancy-detail-modal__error">{applyError}</p> : null}
 
         <div className="vacancy-detail-modal__actions">
-          {canApply ? (
+          {isOwn ? (
+            <p className="vacancy-detail-modal__own-label">
+              {t('vac.yourVacancy', 'Your vacancy')}
+            </p>
+          ) : canApply ? (
             <button
               type="button"
               className={`vacancy-detail-modal__apply${hasApplied ? ' is-applied' : ''}`}

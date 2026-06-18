@@ -11,9 +11,10 @@ import {
   mapVacancyDto,
   mapVacancyListResponse,
   normalizeVacancyId,
+  isOwnVacancy,
 } from './mapJobs.js';
 
-export { normalizeVacancyId };
+export { normalizeVacancyId, isOwnVacancy };
 
 function unwrapVacancy(response) {
   const vacancy = response?.vacancy ?? response?.Vacancy ?? response;

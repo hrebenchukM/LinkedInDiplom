@@ -64,6 +64,13 @@
   color: var(--text-secondary);
 }
 
+.vacancy-detail-modal__own-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-brand-muted);
+}
+
 .vacancy-detail-modal__error {
   margin: 0;
   font-size: 13px;

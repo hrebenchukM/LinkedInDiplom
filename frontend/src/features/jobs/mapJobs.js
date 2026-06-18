@@ -7,6 +7,32 @@ export function normalizeVacancyId(id) {
   return String(id).toLowerCase();
 }
 
+/** True when the vacancy was posted by the current user. */
+export function isOwnVacancy(vacancy, currentUserId) {
+  if (!vacancy || !currentUserId) return false;
+
+  const normUser = normalizeVacancyId(currentUserId);
+  if (!normUser) return false;
+
+  const ownerCandidates = [
+    vacancy.postedBy,
+    vacancy.postedByUserId,
+    vacancy.createdByUserId,
+    vacancy.ownerUserId,
+    vacancy.recruiterUserId,
+    vacancy.userId,
+    vacancy.postedBy?.id,
+    vacancy.postedBy?.userId,
+  ];
+
+  return ownerCandidates.some(
+    (candidate) =>
+      candidate != null
+      && candidate !== ''
+      && normalizeVacancyId(candidate) === normUser,
+  );
+}
+
 function metaSetHas(set, rawId) {
   const normalized = normalizeVacancyId(rawId);
   if (!normalized || !set) return false;
