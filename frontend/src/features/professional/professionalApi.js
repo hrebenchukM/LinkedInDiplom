@@ -300,6 +300,54 @@ export async function getCompanyById(companyId) {
   }
 }
 
+/** Resolve company names for experience blocks that only carry companyId. */
+export async function enrichExperienceListWithCompanies(experienceBlocks = []) {
+  if (!Array.isArray(experienceBlocks) || experienceBlocks.length === 0) {
+    return experienceBlocks;
+  }
+
+  const companyIds = [
+    ...new Set(
+      experienceBlocks
+        .map((block) => {
+          const exp = block?.experience ?? block;
+          return exp?.companyId ?? block?.companyId;
+        })
+        .filter(Boolean)
+        .map(String),
+    ),
+  ];
+
+  if (companyIds.length === 0) {
+    return experienceBlocks;
+  }
+
+  const companyEntries = await Promise.all(
+    companyIds.map(async (companyId) => {
+      const company = await getCompanyById(companyId);
+      return company ? [companyId, company] : null;
+    }),
+  );
+  const companyMap = Object.fromEntries(companyEntries.filter(Boolean));
+
+  return experienceBlocks.map((block) => {
+    const exp = block?.experience ?? block;
+    const companyId = exp?.companyId ? String(exp.companyId) : null;
+    if (!companyId || !companyMap[companyId]) {
+      return block;
+    }
+
+    return {
+      ...block,
+      company: {
+        ...(block.company ?? {}),
+        name: companyMap[companyId].name,
+        logoUrl: companyMap[companyId].logoUrl ?? block.company?.logoUrl ?? null,
+      },
+    };
+  });
+}
+
 export async function createMyCompany(data) {
   const response = await apiClient.post(API_PATHS.professional.myCompanies, data);
   const success = response?.success ?? response?.Success;

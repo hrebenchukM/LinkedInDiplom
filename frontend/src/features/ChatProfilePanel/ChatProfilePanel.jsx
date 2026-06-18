@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './ChatProfilePanel.css';
 import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getProfileByUserId } from '../profile/profileApi.js';
-import { mapProfileDto, getDisplayName } from '../profile/mapProfile.js';
+import { getDisplayName } from '../profile/mapProfile.js';
 import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 
 const ChatProfilePanel = ({ selectedUser, showProfile, onBackClick }) => {
@@ -31,11 +32,20 @@ const ChatProfilePanel = ({ selectedUser, showProfile, onBackClick }) => {
     getProfileByUserId(userId)
       .then((profile) => {
         if (cancelled) return;
-        const mapped = mapProfileDto(profile);
+        const user = profile?.user ?? profile;
         setFullUser({
-          ...mapped.user,
-          email: mapped.user?.email,
-          displayName: getDisplayName(mapped),
+          ...user,
+          firstName: user?.firstName ?? '',
+          secondName: user?.secondName ?? user?.lastName ?? '',
+          email: user?.email ?? profile?.login,
+          profileTitle: user?.profileTitle ?? profile?.profileTitle,
+          headline: user?.headline ?? profile?.headline,
+          genInfo: user?.genInfo ?? user?.about ?? profile?.about,
+          location: user?.location ?? profile?.location,
+          portfolioUrl: user?.portfolioUrl ?? profile?.portfolioUrl,
+          university: user?.university ?? profile?.university,
+          avatarUrl: user?.avatarUrl,
+          displayName: getDisplayName(profile),
         });
       })
       .catch(() => {
@@ -88,7 +98,7 @@ const ChatProfilePanel = ({ selectedUser, showProfile, onBackClick }) => {
       </div>
 
       <h2 className="profile-name">
-        {fullUser.firstName} {fullUser.secondName}
+        {fullUser.displayName || `${fullUser.firstName} ${fullUser.secondName}`.trim()}
       </h2>
 
       {(fullUser.profileTitle || fullUser.headline) && (
@@ -99,6 +109,15 @@ const ChatProfilePanel = ({ selectedUser, showProfile, onBackClick }) => {
           {fullUser.profileTitle || fullUser.headline}
         </p>
       )}
+
+      {userId ? (
+        <Link
+          to={`/app/profile/${userId}`}
+          className="chat-profile-full-link"
+        >
+          {t('chat.profile.viewFullProfile', 'View full profile')}
+        </Link>
+      ) : null}
 
       <div className="profile-section">
         <label>{t('chat.profile.phone', 'Phone Number')}</label>

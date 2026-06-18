@@ -9,7 +9,7 @@ import {
   MoreHorizontal,
   CheckCircle,
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import './EventPage.css';
 import SimpleProfileCard from '../../features/SimpleProfileCard/SimpleProfileCard';
@@ -29,6 +29,7 @@ import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
 
 const EventPage = ({ onNavigate }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { id: eventId } = useParams();
 
   const [event, setEvent] = useState(null);
@@ -150,7 +151,27 @@ const EventPage = ({ onNavigate }) => {
                 <div className="event-header-content">
                   <h1 className="event-title">{event.title}</h1>
 
-                  <div className="event-organizer">
+                  <div
+                    className={`event-organizer${organizer?.id ? ' event-organizer--clickable' : ''}`}
+                    onClick={
+                      organizer?.id
+                        ? () => navigate(`/app/profile/${organizer.id}`)
+                        : undefined
+                    }
+                    onKeyDown={
+                      organizer?.id
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              navigate(`/app/profile/${organizer.id}`);
+                            }
+                          }
+                        : undefined
+                    }
+                    role={organizer?.id ? 'button' : undefined}
+                    tabIndex={organizer?.id ? 0 : undefined}
+                    style={organizer?.id ? { cursor: 'pointer' } : undefined}
+                  >
                     <SafeImage
                       src={organizer?.avatar || organizer?.avatarUrl}
                       fallback={IMAGE_PLACEHOLDERS.avatar}

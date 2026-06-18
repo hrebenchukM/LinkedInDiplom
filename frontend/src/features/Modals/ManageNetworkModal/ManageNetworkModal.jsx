@@ -139,6 +139,11 @@ const ManageNetworkModal = ({
     }
   };
 
+  const openUserProfile = (userId, event) => {
+    event.stopPropagation();
+    if (userId) navigate(`/app/profile/${userId}`);
+  };
+
   const handleLeaveEvent = async (eventId) => {
     try {
       await leaveEvent(eventId);
@@ -184,8 +189,14 @@ const ManageNetworkModal = ({
                     src={getAssetUrl(u.avatarUrl, IMAGE_PLACEHOLDERS.avatar)}
                     alt={u.name}
                     className="network-item-avatar"
+                    onClick={(event) => openUserProfile(u.userId, event)}
+                    style={u.userId ? { cursor: 'pointer' } : undefined}
                   />
-                  <div className="network-item-info">
+                  <div
+                    className="network-item-info"
+                    onClick={(event) => openUserProfile(u.userId, event)}
+                    style={u.userId ? { cursor: 'pointer' } : undefined}
+                  >
                     <h4>{u.name}</h4>
                     <p>{u.title ?? u.headline}</p>
                     <span className="network-item-badge">
@@ -217,8 +228,14 @@ const ManageNetworkModal = ({
                   src={getAssetUrl(u.avatarUrl || u.avatar, IMAGE_PLACEHOLDERS.avatar)}
                   alt={u.name}
                   className="network-item-avatar"
+                  onClick={(event) => openUserProfile(u.followingId ?? u.userId, event)}
+                  style={(u.followingId ?? u.userId) ? { cursor: 'pointer' } : undefined}
                 />
-                <div className="network-item-info">
+                <div
+                  className="network-item-info"
+                  onClick={(event) => openUserProfile(u.followingId ?? u.userId, event)}
+                  style={(u.followingId ?? u.userId) ? { cursor: 'pointer' } : undefined}
+                >
                   <h4>{u.name}</h4>
                   <p>{u.headline ?? u.profileTitle}</p>
                 </div>

@@ -884,7 +884,11 @@ const MessagesPage = () => {
           onDraftChange={handleDraftChange}
           onViewProfile={() => {
             if (!selectedUser || selectedUser.isAiAssistant) return;
-            setShowProfile(true);
+            const companionId =
+              selectedUser.companion?.id ?? selectedUser.companionUserId;
+            if (companionId) {
+              navigate(`/app/profile/${companionId}`);
+            }
           }}
           onBackClick={() => {
             setShowProfile(false);

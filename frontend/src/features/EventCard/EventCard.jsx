@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './EventCard.css';
 import { joinEvent, leaveEvent } from '../events/eventsApi';
 import { getErrorMessage } from '../../shared/lib/apiError';
@@ -15,6 +15,7 @@ const EventCard = ({
   onLeave,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isAttending, setIsAttending] = useState(Boolean(event?.isAttending));
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -96,18 +97,46 @@ const EventCard = ({
     }
   };
 
+  const organizerId = event.organizer?.id ?? null;
+
+  const handleOrganizerProfileClick = (clickEvent) => {
+    clickEvent.preventDefault();
+    clickEvent.stopPropagation();
+    if (organizerId) navigate(`/app/profile/${organizerId}`);
+  };
+
   const cardContent = (
     <>
       <SafeImage
         src={avatar}
         fallback={IMAGE_PLACEHOLDERS.event}
         alt={organizerName}
-        className="event-card-avatar"
+        className={`event-card-avatar${organizerId ? ' event-card-avatar--clickable' : ''}`}
+        onClick={organizerId ? handleOrganizerProfileClick : undefined}
+        style={organizerId ? { cursor: 'pointer' } : undefined}
       />
       <div className="event-card-content">
         <div className="event-card-header">
           <div>
-            <h4 className="event-card-name">{organizerName}</h4>
+            <h4
+              className={`event-card-name${organizerId ? ' event-card-name--clickable' : ''}`}
+              onClick={organizerId ? handleOrganizerProfileClick : undefined}
+              role={organizerId ? 'button' : undefined}
+              tabIndex={organizerId ? 0 : undefined}
+              onKeyDown={
+                organizerId
+                  ? (keyEvent) => {
+                      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                        keyEvent.preventDefault();
+                        keyEvent.stopPropagation();
+                        navigate(`/app/profile/${organizerId}`);
+                      }
+                    }
+                  : undefined
+              }
+            >
+              {organizerName}
+            </h4>
             <p className="event-card-title">{event.title}</p>
           </div>
           <div className={`event-card-badge event-card-badge-${event.isOnline ? 'education' : 'career'}`}>

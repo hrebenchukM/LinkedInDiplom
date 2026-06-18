@@ -104,11 +104,11 @@ export function getNotificationLink(notification) {
     || entityType.includes('contact')
   ) {
     const profileId = actorUserId || entityId;
-    if (profileId) return `/app/portfolio/${profileId}`;
+    if (profileId) return `/app/profile/${profileId}`;
   }
 
   if (actorUserId) {
-    return `/app/portfolio/${actorUserId}`;
+    return `/app/profile/${actorUserId}`;
   }
 
   return '/app/notifications';

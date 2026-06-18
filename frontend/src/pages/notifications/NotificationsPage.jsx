@@ -275,6 +275,14 @@ const NotificationsPage = ({ onNavigate }) => {
       IMAGE_PLACEHOLDERS.avatar,
     );
     const actorName = notification.actorName || notification.actor?.name || 'User';
+    const actorUserId =
+      notification.actorUserId ?? notification.actor?.id ?? null;
+
+    const openActorProfile = (event) => {
+      if (!actorUserId) return;
+      event.stopPropagation();
+      navigate(`/app/profile/${actorUserId}`);
+    };
 
     return (
       <div
@@ -290,8 +298,10 @@ const NotificationsPage = ({ onNavigate }) => {
         <SafeImage
           src={avatar}
           fallback={IMAGE_PLACEHOLDERS.avatar}
-          className="notification-avatar"
+          className={`notification-avatar${actorUserId ? ' notification-avatar--clickable' : ''}`}
           alt={actorName}
+          onClick={actorUserId ? openActorProfile : undefined}
+          style={actorUserId ? { cursor: 'pointer' } : undefined}
         />
 
         <div className="notification-content">
@@ -300,7 +310,18 @@ const NotificationsPage = ({ onNavigate }) => {
               <strong>{notification.displayTitle}</strong>
             ) : (
               <>
-                <strong>{actorName}</strong> {notification.action}
+                {actorUserId ? (
+                  <button
+                    type="button"
+                    className="notification-actor-link"
+                    onClick={openActorProfile}
+                  >
+                    {actorName}
+                  </button>
+                ) : (
+                  <strong>{actorName}</strong>
+                )}{' '}
+                {notification.action}
               </>
             )}
           </p>

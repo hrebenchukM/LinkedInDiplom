@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as contentApi from "./contentApi";
 import { mapCommentsWithAuthors } from "./mapCommentsWithAuthors";
 import { useTranslation } from "../../app/i18n/LocaleContext.jsx";
@@ -65,6 +66,7 @@ export function PostEngagement({
   userAvatar,
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(() => Number(post.likes || 0));
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -275,15 +277,47 @@ export function PostEngagement({
                   <p>{t("common.loading", "Loading…")}</p>
                 </li>
               ) : null}
-              {comments.map((comment) => (
+              {comments.map((comment) => {
+                const commentUserId = comment.userId || null;
+                const openCommentAuthorProfile = () => {
+                  if (commentUserId) navigate(`/app/profile/${commentUserId}`);
+                };
+
+                return (
                 <li key={comment.id} className="post-comment">
-                  <img className="post-comment__avatar" src={comment.avatar} width="32" height="32" alt="" />
+                  <img
+                    className="post-comment__avatar"
+                    src={comment.avatar}
+                    width="32"
+                    height="32"
+                    alt=""
+                    onClick={commentUserId ? openCommentAuthorProfile : undefined}
+                    style={commentUserId ? { cursor: "pointer" } : undefined}
+                  />
                   <div className="post-comment__bubble">
-                    <strong>{comment.author}</strong>
+                    <strong
+                      onClick={commentUserId ? openCommentAuthorProfile : undefined}
+                      style={commentUserId ? { cursor: "pointer" } : undefined}
+                      role={commentUserId ? "button" : undefined}
+                      tabIndex={commentUserId ? 0 : undefined}
+                      onKeyDown={
+                        commentUserId
+                          ? (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openCommentAuthorProfile();
+                              }
+                            }
+                          : undefined
+                      }
+                    >
+                      {comment.author}
+                    </strong>
                     <p>{comment.text}</p>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <form
               className="post-comments__form"

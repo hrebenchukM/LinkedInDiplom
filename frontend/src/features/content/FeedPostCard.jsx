@@ -34,7 +34,7 @@ export function FeedPostCard({
   onDeletePost,
 }) {
   const profilePath =
-    !post.isOwn && post.userId ? `/profile/${encodeURIComponent(String(post.userId))}` : null;
+    !post.isOwn && post.userId ? `/app/profile/${encodeURIComponent(String(post.userId))}` : null;
 
   return (
     <article
@@ -45,7 +45,13 @@ export function FeedPostCard({
         <PostViewRecorder postId={post.id} enabled source={postViewSource} />
       ) : null}
       <div className="post-head">
-        <img className="avatar avatar-img small" src={resolvePostAvatar(post, userAvatar)} alt="" />
+        {profilePath ? (
+          <Link to={profilePath} className="post-head__avatar-link">
+            <img className="avatar avatar-img small" src={resolvePostAvatar(post, userAvatar)} alt="" />
+          </Link>
+        ) : (
+          <img className="avatar avatar-img small" src={resolvePostAvatar(post, userAvatar)} alt="" />
+        )}
         <div className="post-head__meta">
           {profilePath ? (
             <strong>

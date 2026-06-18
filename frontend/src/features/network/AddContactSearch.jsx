@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { searchProfiles } from '../profile/profileApi.js';
 import { sendContactRequest } from './networkApi.js';
@@ -11,6 +12,7 @@ import './AddContactSearch.css';
 
 const AddContactSearch = ({ currentUserId, onContactAdded, compact = false }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -126,15 +128,32 @@ const AddContactSearch = ({ currentUserId, onContactAdded, compact = false }) =>
               fallback={IMAGE_PLACEHOLDERS.avatar}
               alt={person.name}
               className="add-contact-search__avatar"
+              onClick={() => navigate(`/app/profile/${person.userId}`)}
+              style={{ cursor: 'pointer' }}
             />
-            <div className="add-contact-search__info">
+            <div
+              className="add-contact-search__info"
+              onClick={() => navigate(`/app/profile/${person.userId}`)}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigate(`/app/profile/${person.userId}`);
+                }
+              }}
+            >
               <strong>{person.name}</strong>
               {person.title ? <span>{person.title}</span> : null}
             </div>
             <button
               type="button"
               className="add-contact-search__btn"
-              onClick={() => handleAdd(person)}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleAdd(person);
+              }}
               disabled={submittingId === person.userId}
             >
               <UserPlus size={16} />

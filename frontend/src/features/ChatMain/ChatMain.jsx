@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Phone,
   Search,
@@ -74,6 +75,7 @@ const ChatMain = ({
   onCallEnded,
 }) => {
   const { t, locale: contextLocale } = useTranslation();
+  const navigate = useNavigate();
   const locale = localeProp || contextLocale;
   const dateLocale = getDateLocale(locale);
   const isAiAssistant = Boolean(selectedUser?.isAiAssistant);
@@ -516,6 +518,16 @@ const ChatMain = ({
                   )}
                   alt={message.sender?.firstName || 'User'}
                   className="message-avatar"
+                  onClick={
+                    message.senderId && message.senderId !== currentUserId
+                      ? () => navigate(`/app/profile/${message.senderId}`)
+                      : undefined
+                  }
+                  style={
+                    message.senderId && message.senderId !== currentUserId
+                      ? { cursor: 'pointer' }
+                      : undefined
+                  }
                 />
               ) : null}
 

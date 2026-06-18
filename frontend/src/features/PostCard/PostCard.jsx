@@ -135,6 +135,10 @@ const PostCard = ({
     }
   };
 
+  const openAuthorProfile = () => {
+    if (authorUserId) navigate(`/app/profile/${authorUserId}`);
+  };
+
   return (
     <div className="post-card">
       <div className="post-header">
@@ -143,14 +147,28 @@ const PostCard = ({
           fallback={IMAGE_PLACEHOLDERS.avatar}
           alt={postAuthor.firstName || t('post.userFallback', 'User')}
           className="post-avatar"
-          onClick={() => {
-            if (authorUserId) navigate(`/app/profile/${authorUserId}`);
-          }}
-          style={{ cursor: 'pointer' }}
+          onClick={openAuthorProfile}
+          style={authorUserId ? { cursor: 'pointer' } : undefined}
         />
 
         <div className="post-info">
-          <h4 className="post-author">
+          <h4
+            className="post-author"
+            onClick={openAuthorProfile}
+            style={authorUserId ? { cursor: 'pointer' } : undefined}
+            role={authorUserId ? 'button' : undefined}
+            tabIndex={authorUserId ? 0 : undefined}
+            onKeyDown={
+              authorUserId
+                ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openAuthorProfile();
+                    }
+                  }
+                : undefined
+            }
+          >
             {postAuthor.firstName} {postAuthor.secondName}
           </h4>
           <p className="post-title">{postAuthor.position || ''}</p>
