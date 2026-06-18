@@ -96,6 +96,14 @@ const sortMessages = (list) =>
     (a, b) => new Date(a.sentAt ?? a.createdAt) - new Date(b.sentAt ?? b.createdAt),
   );
 
+/** Prefer first user-to-user chat for default route; AI assistant is opt-in from sidebar. */
+const pickDefaultChatId = (chatList) => {
+  const firstReal = (chatList ?? []).find(
+    (chat) => chat?.id && !isAiAssistantChatId(chat.id),
+  );
+  return firstReal?.id ?? AI_ASSISTANT_CHAT_ID;
+};
+
 const MessagesPage = () => {
   const { token, account } = useContext(AppContext);
   const { t, locale } = useTranslation();
@@ -105,9 +113,7 @@ const MessagesPage = () => {
 
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(
-    () => routeChatId || AI_ASSISTANT_CHAT_ID,
-  );
+  const [selectedChat, setSelectedChat] = useState(() => routeChatId || null);
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState('');
@@ -177,8 +183,8 @@ const MessagesPage = () => {
               lastMessage: preview,
               lastMessageAt: message.sentAt ?? message.createdAt,
               time: message.sentAt ?? message.createdAt,
-              unread: chat.id !== selectedChatRef.current,
-              hasUnread: chat.id !== selectedChatRef.current,
+              unread: String(chat.id) !== String(selectedChatRef.current),
+              hasUnread: String(chat.id) !== String(selectedChatRef.current),
             }
           : chat,
       ),
@@ -342,10 +348,10 @@ const MessagesPage = () => {
 
       updateChatPreview(message.chatId, message);
 
-      if (message.chatId === selectedChatRef.current) {
+      if (String(message.chatId) === String(selectedChatRef.current)) {
         const enriched = (await enrichMessagesWithSenders([message]))[0];
         setMessages((prev) => {
-          if (prev.some((item) => item.id === enriched.id)) return prev;
+          if (prev.some((item) => String(item.id) === String(enriched.id))) return prev;
           const withoutTemp = prev.filter(
             (item) =>
               !String(item.id).startsWith('tmp-') || item.content !== enriched.content,
@@ -395,7 +401,7 @@ const MessagesPage = () => {
             : item,
         ),
       );
-      if (chatId === selectedChatRef.current) {
+      if (String(chatId) === String(selectedChatRef.current)) {
         updateChatPreview(chatId, {
           content: t('chat.attachment', 'Attachment'),
           sentAt: new Date().toISOString(),
@@ -420,17 +426,35 @@ const MessagesPage = () => {
   useEffect(() => {
     if (!selectedChat || isAiAssistantChatId(selectedChat)) return undefined;
 
+    let cancelled = false;
+    const chatId = selectedChat;
     const previousChat = previousChatRef.current;
-    if (previousChat && previousChat !== selectedChat) {
-      leaveChat(previousChat);
-    }
 
-    joinChat(selectedChat);
-    previousChatRef.current = selectedChat;
-    loadMessagesForChat(selectedChat);
+    (async () => {
+      if (
+        previousChat &&
+        String(previousChat) !== String(chatId) &&
+        !isAiAssistantChatId(previousChat)
+      ) {
+        await leaveChat(previousChat);
+      }
+      if (cancelled) return;
+
+      await joinChat(chatId);
+      if (cancelled) {
+        leaveChat(chatId).catch(() => {});
+        return;
+      }
+
+      previousChatRef.current = chatId;
+      loadMessagesForChat(chatId);
+    })();
 
     return () => {
-      leaveChat(selectedChat);
+      cancelled = true;
+      if (!isAiAssistantChatId(chatId)) {
+        leaveChat(chatId).catch(() => {});
+      }
     };
   }, [selectedChat, loadMessagesForChat]);
 
@@ -489,9 +513,9 @@ const MessagesPage = () => {
   };
 
   useEffect(() => {
-    if (routeChatId) return;
-    navigate(`/app/messages/${AI_ASSISTANT_CHAT_ID}`, { replace: true });
-  }, [routeChatId, navigate]);
+    if (routeChatId || loadingChats) return;
+    navigate(`/app/messages/${pickDefaultChatId(chats)}`, { replace: true });
+  }, [routeChatId, loadingChats, chats, navigate]);
 
   useEffect(() => {
     if (!routeChatId || loadingChats || isAiAssistantChatId(routeChatId)) return;
@@ -504,7 +528,7 @@ const MessagesPage = () => {
   useEffect(() => {
     if (!routeChatId || loadingChats) return;
     if (isAiAssistantChatId(routeChatId)) {
-      if (selectedChat !== routeChatId) {
+      if (String(selectedChat) !== String(routeChatId)) {
         setSelectedChat(routeChatId);
         setShowChat(true);
         setShowProfile(false);
@@ -512,7 +536,7 @@ const MessagesPage = () => {
       return;
     }
     const exists = chats.some((chat) => String(chat.id) === String(routeChatId));
-    if (exists && selectedChat !== routeChatId) {
+    if (exists && String(selectedChat) !== String(routeChatId)) {
       setSelectedChat(routeChatId);
       setShowChat(true);
       setShowProfile(false);
@@ -820,8 +844,8 @@ const MessagesPage = () => {
   ];
 
   const selectedUser =
-    chatUsers.find((user) => user.id === selectedChat) ||
-    (isAiAssistantChatId(selectedChat) ? aiAssistantChat : null);
+    chatUsers.find((user) => String(user.id) === String(selectedChat)) ||
+    (selectedChat && isAiAssistantChatId(selectedChat) ? aiAssistantChat : null);
 
   return (
     <div className="messages-page-wrapper">

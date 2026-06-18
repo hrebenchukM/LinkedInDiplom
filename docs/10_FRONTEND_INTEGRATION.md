@@ -17,10 +17,22 @@ Legacy `router.jsx` / `AppLayout.jsx` **не** используются producti
 
 В dev frontend по умолчанию использует **same-origin proxy** (`VITE_API_BASE_URL` пустой):
 
-- `/api/*` → `http://localhost:5000`
-- `/hubs/*` → `http://localhost:5000` (SignalR)
+- `/api/*` → backend (см. `VITE_DEV_PROXY_TARGET`)
+- `/hubs/*` → тот же backend (SignalR WebSocket)
 
 См. `frontend/vite.config.js` → `server.proxy`.
+
+**Важно:** REST и SignalR должны идти на **один** backend. Если запускаете `dotnet run` не в Docker, задайте в `frontend/.env.local`:
+
+```
+# HTTP profile
+VITE_DEV_PROXY_TARGET=http://localhost:5282
+
+# или HTTPS profile
+VITE_DEV_PROXY_TARGET=https://localhost:7011
+```
+
+По умолчанию proxy смотрит на Docker `http://localhost:5000`. После смены `.env.local` перезапустите `npm run dev`.
 
 Опционально в `.env`:
 

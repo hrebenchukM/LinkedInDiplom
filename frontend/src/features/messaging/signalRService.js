@@ -6,6 +6,9 @@ import { mapMessageDto, mapMessageMediaDto } from './mapMessaging.js';
 let connection = null;
 let startPromise = null;
 let listenersAttached = false;
+let reconnectHandlerAttached = false;
+/** Last chat successfully joined via JoinChat — re-joined after automatic reconnect. */
+let activeJoinedChatId = null;
 
 const handlers = {
   messageCreated: new Set(),
@@ -63,6 +66,22 @@ function attachListeners() {
   listenersAttached = true;
 }
 
+function attachReconnectHandler() {
+  if (!connection || reconnectHandlerAttached) return;
+
+  connection.onreconnected(async () => {
+    if (!activeJoinedChatId) return;
+
+    try {
+      await connection.invoke('JoinChat', activeJoinedChatId);
+    } catch (error) {
+      console.warn(`SignalR re-JoinChat failed for ${activeJoinedChatId}:`, error);
+    }
+  });
+
+  reconnectHandlerAttached = true;
+}
+
 export function getMessagingConnection() {
   return connection;
 }
@@ -90,6 +109,7 @@ export async function startMessagingConnection() {
     .build();
 
   attachListeners();
+  attachReconnectHandler();
 
   startPromise = connection
     .start()
@@ -98,6 +118,7 @@ export async function startMessagingConnection() {
       console.warn('SignalR messaging connection failed:', error);
       connection = null;
       listenersAttached = false;
+      reconnectHandlerAttached = false;
       return null;
     })
     .finally(() => {
@@ -117,6 +138,8 @@ export async function stopMessagingConnection() {
   } finally {
     connection = null;
     listenersAttached = false;
+    reconnectHandlerAttached = false;
+    activeJoinedChatId = null;
     startPromise = null;
   }
 }
@@ -129,6 +152,7 @@ export async function joinChat(chatId) {
 
   try {
     await hub.invoke('JoinChat', chatId);
+    activeJoinedChatId = String(chatId);
   } catch (error) {
     console.warn(`SignalR JoinChat failed for ${chatId}:`, error);
   }
@@ -139,6 +163,9 @@ export async function leaveChat(chatId) {
 
   try {
     await connection.invoke('LeaveChat', chatId);
+    if (String(chatId) === activeJoinedChatId) {
+      activeJoinedChatId = null;
+    }
   } catch (error) {
     console.warn(`SignalR LeaveChat failed for ${chatId}:`, error);
   }
