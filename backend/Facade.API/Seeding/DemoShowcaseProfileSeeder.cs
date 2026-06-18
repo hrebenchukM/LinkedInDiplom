@@ -87,8 +87,8 @@ public sealed class DemoShowcaseProfileSeeder : IDemoSeeder
         changed |= SetIfDifferent(profile, nameof(profile.University), "Warsaw University");
         changed |= SetIfDifferent(profile, nameof(profile.Location), "Warsaw, Poland");
         changed |= SetIfDifferent(profile, nameof(profile.PortfolioUrl), "https://portfolio.example.com");
-        changed |= SetIfDifferent(profile, nameof(profile.AvatarUrl), "marya.jpg");
-        changed |= SetIfDifferent(profile, nameof(profile.HeaderUrl), "david.jpg");
+        changed |= SetDemoMediaIfAllowed(profile, nameof(profile.AvatarUrl), "marya.jpg");
+        changed |= SetDemoMediaIfAllowed(profile, nameof(profile.HeaderUrl), "david.jpg");
 
         if (changed)
         {
@@ -156,12 +156,12 @@ public sealed class DemoShowcaseProfileSeeder : IDemoSeeder
 
         if (!string.IsNullOrWhiteSpace(template.Avatar))
         {
-            changed |= SetIfDifferent(profile, nameof(profile.AvatarUrl), template.Avatar);
+            changed |= SetDemoMediaIfAllowed(profile, nameof(profile.AvatarUrl), template.Avatar);
         }
 
         if (string.Equals(template.Email, DemoShowcaseSeedData.DavidJonsonEmail, StringComparison.OrdinalIgnoreCase))
         {
-            changed |= SetIfDifferent(profile, nameof(profile.HeaderUrl), "david.jpg");
+            changed |= SetDemoMediaIfAllowed(profile, nameof(profile.HeaderUrl), "david.jpg");
             changed |= SetIfDifferent(profile, nameof(profile.PortfolioUrl), "https://davidjonson.design");
             changed |= SetIfDifferent(
                 profile,
@@ -216,5 +216,44 @@ public sealed class DemoShowcaseProfileSeeder : IDemoSeeder
 
         property.SetValue(profile, value);
         return true;
+    }
+
+    /// <summary>
+    /// Applies demo avatar/header filenames only when the user has not uploaded custom media.
+    /// User uploads are stored as /uploads/profile/... or HTTPS (S3) URLs.
+    /// </summary>
+    private static bool SetDemoMediaIfAllowed(UserProfile profile, string propertyName, string? seedValue)
+    {
+        if (string.IsNullOrWhiteSpace(seedValue))
+        {
+            return false;
+        }
+
+        var property = typeof(UserProfile).GetProperty(propertyName);
+        if (property is null)
+        {
+            return false;
+        }
+
+        var current = property.GetValue(profile) as string;
+        if (IsUserUploadedMediaUrl(current))
+        {
+            return false;
+        }
+
+        return SetIfDifferent(profile, propertyName, seedValue);
+    }
+
+    private static bool IsUserUploadedMediaUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        var trimmed = url.Trim();
+
+        return trimmed.StartsWith("/uploads/profile/", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     }
 }
