@@ -6,6 +6,24 @@
 
 # Архитектура и правила
 
+> **Обновлено:** 2026-06-18
+
+## Backend vs frontend в v1
+
+LinkedInDiplom — **modular monolith backend** (`Facade.API`) + **React SPA** (`frontend/`). На защиту важно различать три категории:
+
+| Категория | Описание |
+|-----------|----------|
+| **Wired end-to-end** | Backend API + frontend client + активный UI (`App.jsx` routes) |
+| **Backend-ready, frontend partial** | Endpoints и domain logic есть; frontend API может быть wired, но UI неполный (repost на Home, mention composer, events create) |
+| **Frontend client-only / demo** | localStorage или in-memory UI без backend persistence (chat folders, AI assistant chat, fake calls, resume local) — **не** описывать как backend features |
+
+**Позиция v1:** backend намеренно экспонирует больше capabilities, чем SPA полностью использует — это нормально для дипломного modular monolith. Текущие frontend integration fixes (repost, portfolio, withdraw, admin queries, SignalR) **не требуют новых DB migrations**. Задачи с новыми таблицами (chat preferences, resume documents) — **после защиты**.
+
+Сводка интеграций: [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md). Roadmap: [11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md).
+
+---
+
 ## Слои
 
 Frontend  
@@ -115,15 +133,25 @@ GET /api/events (discover)
 
 **Пример (реализовано):** Content `ReactionService` публикует `ReactionUpsertedEvent` только при **первой** реакции пользователя на пост → Notifications `CreateNotificationOnReactionUpsertedHandler` создаёт notification для автора поста (кроме self-reaction; update типа реакции event не публикует). Content **не зависит** от Notifications.
 
+**Пример (реализовано):** Content `MentionService` публикует `MentionAddedEvent` → Notifications `CreateNotificationOnMentionAddedHandler` создаёт notification `post_mention` для упомянутого пользователя (кроме self-mention). Content **не зависит** от Notifications.
+
+**Пример (реализовано):** Jobs `JobApplicationService` публикует `VacancyApplicationSubmittedEvent` → Notifications `CreateNotificationOnVacancyApplicationSubmittedHandler` создаёт notification `job_application` для автора вакансии (`PostedBy`, кроме self-apply). Jobs **не зависит** от Notifications.
+
 **Пример (реализовано):** Network `ContactService` публикует `ContactRequestSentEvent` → Notifications `CreateNotificationOnContactRequestSentHandler` создаёт notification для получателя request (кроме self-request). Network **не зависит** от Notifications.
 
 **Пример (реализовано):** Network `ContactService` публикует `ContactRequestAcceptedEvent` → Notifications `CreateNotificationOnContactRequestAcceptedHandler` создаёт notification для отправителя request (requester). Network **не зависит** от Notifications.
 
 **Текущий transport:** in-memory (`InMemoryDomainEventPublisher` в Identity.DI). При выделении microservices — заменить publisher на broker/outbox; handlers и event contracts остаются на границе модулей.
 
-### AI module (microservice readiness note)
+### AI module (ограничение v1, не баг)
 
-`AIManagement` регистрирует `IAIService` напрямую в facade DI (`AddAIManagementFacade`), без `AI.Client` / `I*Resource`. Для выделения AI в отдельный сервис потребуется client boundary по тому же паттерну, что у остальных модулей.
+AI-модуль **намеренно упрощён** относительно остальных bounded contexts:
+
+- есть только `AI.Contracts` + `AI.Services` (без `AI.DataAccess`, без persistence);
+- `AIManagement` регистрирует **`IAIService` напрямую** в `AddAIManagementFacade()`, без слоя `AI.Client` / `IAIResource`;
+- facade вызывает Gemini через HTTP + fallback по skills; stateless, без своей schema.
+
+Это **осознанное ограничение v1** для дипломного scope: функциональность AI работает, но при выделении в отдельный микросервис потребуется client boundary по тому же паттерну, что у Identity/Professional/Content.
 
 ## Порядок migrations
 
@@ -235,7 +263,7 @@ Identity дополнительно имеет `Events + Events.Contracts`.
 ## Messaging (`messaging`)
 
 - сущности: chats, chat_members, messages, message_reads, message_media
-- v1: без realtime
+- **SignalR realtime:** hub `MessagingHub` (`/hubs/messaging`), зарегистрирован в `Program.cs`; `MessagingRealtimeNotifier` публикует `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` в group `chat:{chatId}` после успешных HTTP операций; frontend подключается через `signalRService.js`
 
 ## Jobs (`jobs`)
 
@@ -245,6 +273,7 @@ Identity дополнительно имеет `Events + Events.Contracts`.
 - user delete вакансии: ownership по `PostedBy` (`IVacancyService.DeleteAsync`)
 - platform admin: `GetAdminVacanciesAsync`, `AdminSoftDeleteVacancyAsync` / `AdminRestoreVacancyAsync`
 - **recommended job queries**: глобальный справочник; **write** только через Admin API; user API — только `GET /api/jobs/recommended-queries`
+- **demo seed:** `DemoJobsCatalogSeeder` создаёт 8 recommended queries + заявку Marya на catalog vacancy **Senior Frontend Engineer** (withdraw demo) — см. [08_SEED_DATA.md](08_SEED_DATA.md)
 - stats: `JobsStatsDto` + `GetJobsStatsAsync` (vacancies + `TotalRecommendedJobQueries`)
 
 ## Notifications (`notifications`)
@@ -252,6 +281,7 @@ Identity дополнительно имеет `Events + Events.Contracts`.
 - сущности: notifications, user_activity
 - notifications soft delete; user_activity append-only
 - **my notifications (paged):** `INotificationService.GetMyNotificationsAsync(GetMyNotificationsParameters)` → `NotificationsPageResult`; filters: `isRead`, `fromCreatedAt`, `toCreatedAt` (facade может маппить `limit` → `pageSize` на page 1)
+- **SignalR realtime:** после `CreateAsync` → `INotificationCreatedPublisher` → `NotificationRealtimeNotifier` → `NotificationCreated` в group `user:{userId}`; hub `NotificationsHub` (`/hubs/notifications`); frontend — `notificationsSignalRService.js`. Offline users получают notifications только через REST при следующем входе.
 
 ## Events (`events`)
 
@@ -262,6 +292,7 @@ Identity дополнительно имеет `Events + Events.Contracts`.
 - **speakers catalog (public paged):** `IEventSpeakerService.GetSpeakersAsync` → `EventSpeakersPageResult`
 - facade enrichment: `IsAttending` вычисляется в `EventsManagementService` (не поле БД)
 - platform admin: `GetAdminEventsAsync`, `AdminSoftDeleteEventAsync`, `AdminRestoreEventAsync`; stats: `GetEventsStatsAsync` → `EventsStatsDto` (`TotalEvents`, `ActiveEvents`, `DeletedEvents`, `UpcomingEvents`)
+- **demo seed:** `DemoShowcaseEventsSeeder` — rolling `StartAt` (+21d если в прошлом); `DemoEventsSeeder` — meetup +7d
 
 ## Связи между модулями
 
@@ -312,6 +343,8 @@ Controllers лежат только в facade.
   - `GET /api/professional/users/{userId}/experiences`
   - `GET /api/professional/users/{userId}/educations`
   - `GET /api/professional/users/{userId}/skills`
+  - `GET /api/professional/users/{userId}/certificates`
+  - `GET /api/professional/users/{userId}/languages`
 
 ## NetworkManagement (`/api/network`)
 
@@ -339,7 +372,9 @@ Controllers лежат только в facade.
 ## MessagingManagement (`/api/messaging`)
 
 - controllers: chats/chat members/messages/message reads/message media
-- сервис: `IMessagingManagementService` → `IMessagingClient` + `IFileStorageService`
+- сервис: `IMessagingManagementService` → `IMessagingClient` + `IFileStorageService` + `IMessagingRealtimeNotifier`
+- **SignalR hub:** `MessagingHub` (`/hubs/messaging`); JWT через query `access_token` (см. `Program.cs`)
+- **create direct chat:** `POST /api/messaging/me/chats` — body `{ "participantUserId": "<userId>" }` (опционально); facade создаёт чат и добавляет второго участника через `JoinAsync`; без поля — только создатель (обратная совместимость)
 - upload: `POST me/messages/{messageId}/media/upload`; JSON attach — `POST .../media`
 
 ## JobsManagement (`/api/jobs`)
@@ -347,6 +382,7 @@ Controllers лежат только в facade.
 - controllers: vacancies/favorites/applications/search queries/recommended queries (read-only для recommended)
 - сервис: `IJobsManagementService` → `IJobsClient`
 - recommended queries: user может только **GET**; POST/DELETE для recommended queries **удалены** из user API (перенесены в AdminManagement)
+- **withdraw application:** `DELETE /api/jobs/me/applications/{applicationId}` — frontend wired (`jobsApi.withdrawApplication`)
 - **public vacancies list:** `GET /api/jobs/vacancies` → `PagedResponse<VacancyDto>` (не plain array); `GetVacanciesQueryRequest`: `query`, `search` (alias), `sortBy`, `sortDirection`, `fromCreatedAt`, `toCreatedAt`, `page`, `pageSize`
 
 ## AdminManagement (`/api/admin`)
@@ -402,9 +438,10 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 
 ## NotificationsManagement (`/api/notifications`)
 
-- controllers: notifications items, user activity
+- controllers: notifications items, user activity; hub `NotificationsHub`
 - сервис: `INotificationsManagementService` → `INotificationsClient`
 - **my notifications (paged):** `GET /api/notifications/me` → `PagedResponse<NotificationDto>`; `limit` alias для `pageSize`; filters: `isRead`, `fromCreatedAt`, `toCreatedAt`
+- **SignalR:** `NotificationsHub` (`/hubs/notifications`); `NotificationRealtimeNotifier` → `NotificationCreated`; group `user:{userId}`; JWT через query `access_token` (как messaging)
 
 ## EventsManagement (`/api/events`)
 
@@ -419,8 +456,9 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 ## AIManagement (`/api/ai`)
 
 - controllers: `AIController`
-- сервис: `IAIManagementService` → `IAIService` (Gemini + fallback) — **прямая регистрация** `IAIService` в `AddAIManagementFacade`, без полноценного `AI.Client` / `I*Resource` слоя
-- endpoints (JWT required): `GET /api/ai/recommended-jobs`, `GET /api/ai/career-advice`
+- сервис: `IAIManagementService` → `IAIService` (Gemini + skill-based fallback)
+- **отличие от других модулей (v1):** `IAIService` регистрируется **напрямую** в `AddAIManagementFacade()`, без `AI.Client` / `I*Resource` — осознанное упрощение для stateless AI; не критическая ошибка архитектуры
+- endpoints (JWT required): `GET /api/ai/recommended-jobs`, `GET /api/ai/career-advice` (при ошибке AI — HTTP **503**, не 200)
 - **без** FileStorage uploads
 
 ## FileStorage (shared, не facade CRUD)
@@ -551,7 +589,7 @@ Platform admin facade. Проекты: `Facade.AdminManagement.Contracts`, `.Ser
 
 **Пример:** `ContentManagementService` → `INetworkClient.UserGraph.GetUserNetworkUserIdsAsync()` для network-aware feed.
 
-**Исключение:** `AIManagement` вызывает `IAIService` напрямую (architectural debt для future extraction).
+**Исключение (v1):** `AIManagement` вызывает `IAIService` напрямую — без `AI.Client` boundary. Для текущего диплома это допустимо; при extraction AI в отдельный сервис добавить `AI.Client` по образцу остальных модулей.
 
 ---
 

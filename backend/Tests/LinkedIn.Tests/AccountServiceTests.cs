@@ -5,6 +5,7 @@ using Identity.DataAccess;
 using Identity.DataAccess.Entities;
 using Identity.Events.Contracts.Abstractions;
 using Identity.Services;
+using Identity.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

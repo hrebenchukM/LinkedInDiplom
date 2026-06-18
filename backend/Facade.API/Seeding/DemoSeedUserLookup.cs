@@ -6,6 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
+/// <summary>
+/// Resolves users listed in <see cref="DemoSeedOptions.UserEmails"/> for baseline demo seeders.
+/// Does not create users. Missing emails are logged and omitted from the result.
+/// </summary>
 public sealed class DemoSeedUserLookup
 {
     private readonly IdentityDbContext _identityDb;

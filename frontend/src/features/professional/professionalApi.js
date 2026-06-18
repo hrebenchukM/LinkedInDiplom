@@ -237,9 +237,11 @@ export async function uploadCertificateFile(id, file) {
   return apiClient.upload(API_PATHS.professional.certificateFile(id), formData);
 }
 
-export async function getUserCertificates() {
-  // Public endpoint is not available on backend — graceful fallback.
-  return [];
+export async function getUserCertificates(userId) {
+  const items = await safeListRequest(() =>
+    apiClient.get(API_PATHS.professional.userCertificates(userId)),
+  );
+  return mapCertificateList(items);
 }
 
 // Languages
@@ -266,9 +268,12 @@ export async function deleteLanguage(id) {
   return apiClient.delete(API_PATHS.professional.userLanguageById(id));
 }
 
-export async function getUserLanguages() {
-  // Public endpoint is not available on backend — graceful fallback.
-  return [];
+export async function getUserLanguages(userId) {
+  const items = await safeListRequest(() =>
+    apiClient.get(API_PATHS.professional.userLanguages(userId)),
+  );
+  const languageMap = await buildLanguageMap(items);
+  return mapUserLanguageList(items, languageMap);
 }
 
 // Recommendations

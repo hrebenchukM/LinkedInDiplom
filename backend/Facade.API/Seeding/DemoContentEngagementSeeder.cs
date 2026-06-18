@@ -11,11 +11,15 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoContentEngagementSeeder
+public sealed class DemoContentEngagementSeeder : IDemoSeeder
 {
-    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
-    private const string TestUserOneEmail = "test@example.com";
-    private const string TestUserTwoEmail = "test2@example.com";
+    public int Order => 20;
+
+    public string Name => nameof(DemoContentEngagementSeeder);
+
+    private const string PrimaryDemoUserEmail = DemoSeedConstants.PrimaryDemoUserEmail;
+    private const string TestUserOneEmail = DemoSeedConstants.TestUserOneEmail;
+    private const string TestUserTwoEmail = DemoSeedConstants.TestUserTwoEmail;
 
     private readonly ContentDbContext _contentDb;
     private readonly ICommentService _commentService;
@@ -61,11 +65,13 @@ public sealed class DemoContentEngagementSeeder
             return;
         }
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
         var posts = await ResolveTargetPostsAsync(primaryDemoUser, marker, cancellationToken);
         if (posts.Count == 0)
         {
-            _logger.LogWarning("Demo content engagement seed skipped: no posts available.");
+            _logger.LogWarning(
+                "Demo content engagement seed skipped: no marker posts ({Marker}) available.",
+                marker);
             return;
         }
 
@@ -83,57 +89,103 @@ public sealed class DemoContentEngagementSeeder
         string marker,
         CancellationToken cancellationToken)
     {
+        const int targetPostCount = 2;
+
         var posts = await _contentDb.Posts
             .AsNoTracking()
-            .Where(p => p.DeletedAt == null)
+            .Where(p => p.DeletedAt == null && p.Content.StartsWith(marker))
             .OrderBy(p => p.CreatedAt)
-            .Take(2)
+            .Take(targetPostCount)
             .ToListAsync(cancellationToken);
 
-        if (posts.Count >= 2)
+        if (posts.Count >= targetPostCount)
         {
             _logger.LogInformation(
-                "Demo content engagement seed: using {Count} existing post(s).",
-                posts.Count);
+                "Demo content engagement seed: using {Count} marker post(s) ({Marker}).",
+                posts.Count,
+                marker);
             return posts;
         }
 
         if (posts.Count == 1)
         {
-            _logger.LogInformation("Demo content engagement seed: using 1 existing post.");
+            _logger.LogWarning(
+                "Demo content engagement seed: only 1 marker post ({Marker}) found; engagement will use a single post.",
+                marker);
             return posts;
         }
 
         if (primaryDemoUser is null)
         {
             _logger.LogWarning(
-                "Demo content engagement seed: no posts found and primary demo user {Email} is missing; cannot create demo post.",
+                "Demo content engagement seed: no marker posts ({Marker}) found and primary demo user {Email} is missing; cannot create fallback post.",
+                marker,
                 PrimaryDemoUserEmail);
             return Array.Empty<Post>();
         }
 
-        var createResult = await _postService.CreateAsync(new CreatePostParameters
-        {
-            AuthorId = primaryDemoUser.Id,
-            Content = $"{marker} Welcome to the LinkUp diploma demo feed.",
-            Visibility = "public",
-        });
+        var fallbackContent = $"{marker} Welcome to the LinkUp diploma demo feed.";
+        var fallbackExists = await _contentDb.Posts
+            .AsNoTracking()
+            .AnyAsync(
+                p => p.DeletedAt == null && p.Content == fallbackContent,
+                cancellationToken);
 
-        if (!createResult.Succeeded || createResult.Post is null)
+        if (!fallbackExists)
         {
-            var errors = string.Join(", ", createResult.Errors);
-            _logger.LogError("Demo content engagement seed: failed to create demo post: {Errors}", errors);
+            var createResult = await _postService.CreateAsync(new CreatePostParameters
+            {
+                AuthorId = primaryDemoUser.Id,
+                Content = fallbackContent,
+                Visibility = "public",
+            });
+
+            if (!createResult.Succeeded || createResult.Post is null)
+            {
+                var errors = string.Join(", ", createResult.Errors);
+                _logger.LogError("Demo content engagement seed: failed to create demo post: {Errors}", errors);
+                return Array.Empty<Post>();
+            }
+
+            _logger.LogInformation("Demo content engagement seed: created 1 fallback marker post from primary demo user.");
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Demo content engagement seed: fallback marker post already exists; skipped create.");
+        }
+
+        posts = await _contentDb.Posts
+            .AsNoTracking()
+            .Where(p => p.DeletedAt == null && p.Content.StartsWith(marker))
+            .OrderBy(p => p.CreatedAt)
+            .Take(targetPostCount)
+            .ToListAsync(cancellationToken);
+
+        if (posts.Count == 0)
+        {
+            _logger.LogWarning(
+                "Demo content engagement seed: no marker posts ({Marker}) available after fallback create.",
+                marker);
             return Array.Empty<Post>();
         }
 
-        _logger.LogInformation("Demo content engagement seed: created 1 demo post from primary demo user.");
+        if (posts.Count < targetPostCount)
+        {
+            _logger.LogWarning(
+                "Demo content engagement seed: only {Count} marker post(s) ({Marker}) available after fallback create.",
+                posts.Count,
+                marker);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Demo content engagement seed: using {Count} marker post(s) ({Marker}) after fallback create.",
+                posts.Count,
+                marker);
+        }
 
-        return await _contentDb.Posts
-            .AsNoTracking()
-            .Where(p => p.DeletedAt == null)
-            .OrderBy(p => p.CreatedAt)
-            .Take(2)
-            .ToListAsync(cancellationToken);
+        return posts;
     }
 
     private async Task<int> SeedCommentsAsync(
@@ -355,11 +407,5 @@ public sealed class DemoContentEngagementSeeder
         ApplicationUser? fallback)
     {
         return PickCommentAuthor(postAuthorId, primary, secondary, fallback);
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

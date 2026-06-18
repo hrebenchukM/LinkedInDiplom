@@ -14,6 +14,12 @@ import {
   markNotificationAsRead,
 } from '../../features/notifications/notificationsApi';
 import { enrichNotifications } from '../../features/notifications/enrichNotifications';
+import { mapNotificationDto } from '../../features/notifications/mapNotifications';
+import {
+  onNotificationCreated,
+  offNotificationCreated,
+} from '../../features/notifications/notificationsSignalRService';
+import { notifyNotificationsUnreadChanged } from '../../features/notifications/notificationsEvents';
 
 import './NotificationsPage.css';
 import MessagesPanel from '../../features/MessagesPanel/MessagesPanel';
@@ -77,7 +83,9 @@ const NotificationsPage = ({ onNavigate }) => {
       setHasNextPage(response.hasNextPage);
 
       if (filter === 'all' || filter === 'unread') {
-        await refreshUnreadCount();
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+        notifyNotificationsUnreadChanged(count);
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -94,6 +102,45 @@ const NotificationsPage = ({ onNavigate }) => {
     loadNotifications({ pageToLoad: 1, append: false, filter: activeFilter });
   }, [activeFilter]);
 
+  useEffect(() => {
+    const handleCreated = async (payload) => {
+      if (!payload?.id) return;
+      if (activeFilter === 'read') return;
+
+      const mapped = mapNotificationDto(payload);
+      if (!mapped) return;
+
+      const [enriched] = await enrichNotifications([mapped]);
+      if (!enriched) return;
+
+      setNotifications((prev) => {
+        if (prev.some((item) => item.id === enriched.id)) {
+          return prev;
+        }
+
+        if (activeFilter === 'unread' && enriched.isRead) {
+          return prev;
+        }
+
+        return [enriched, ...prev];
+      });
+
+      if (!enriched.isRead) {
+        setUnreadCount((prev) => {
+          const next = prev + 1;
+          notifyNotificationsUnreadChanged(next);
+          return next;
+        });
+      }
+    };
+
+    onNotificationCreated(handleCreated);
+
+    return () => {
+      offNotificationCreated(handleCreated);
+    };
+  }, [activeFilter]);
+
   const handleNotificationClick = async (notification) => {
     if (!notification?.id) return;
 
@@ -105,7 +152,11 @@ const NotificationsPage = ({ onNavigate }) => {
             : item,
         ),
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setUnreadCount((prev) => {
+        const next = Math.max(0, prev - 1);
+        notifyNotificationsUnreadChanged(next);
+        return next;
+      });
 
       try {
         await markNotificationAsRead(notification.id);
@@ -126,7 +177,11 @@ const NotificationsPage = ({ onNavigate }) => {
     setNotifications((prev) => prev.filter((item) => item.id !== notificationId));
 
     if (removed && !removed.isRead) {
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setUnreadCount((prev) => {
+        const next = Math.max(0, prev - 1);
+        notifyNotificationsUnreadChanged(next);
+        return next;
+      });
     }
 
     try {
@@ -145,6 +200,7 @@ const NotificationsPage = ({ onNavigate }) => {
       prev.map((item) => ({ ...item, isRead: true, unread: false })),
     );
     setUnreadCount(0);
+    notifyNotificationsUnreadChanged(0);
 
     try {
       await markAllNotificationsAsRead();

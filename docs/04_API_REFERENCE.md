@@ -217,13 +217,13 @@ Details: [04_API_REFERENCE.md](04_API_REFERENCE.md)
 
 | Method | Route | Auth |
 |--------|-------|------|
-| POST/GET/DELETE | `/me/chats`, `/me/chats/{id}` | ✓ (paged list) |
+| POST/GET/DELETE | `/me/chats`, `/me/chats/{id}` | ✓ (paged list); create body: optional `{ participantUserId }` |
 | POST/DELETE/GET | `/me/chats/{id}/join`, `/membership`, `/members` | ✓ |
 | POST/GET/PATCH/DELETE | `/me/chats/{id}/messages`, `/me/messages/{id}` | ✓ (paged) |
 | POST/GET | `/me/messages/{id}/read`, `/reads` | ✓ |
 | POST/GET/DELETE | `/me/messages/{id}/media`, `/upload` | ✓ |
 
-SignalR: [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md)
+SignalR: [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md) — HTTP хранит чаты/сообщения; hub push realtime-события после успешных HTTP-операций.
 
 ---
 
@@ -233,7 +233,10 @@ SignalR: [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md)
 |--------|-------|------|
 | POST/GET/PATCH/DELETE | `/me/vacancies`, `/vacancies/{id}` | ✓ |
 | GET | `/vacancies` | ✓ (paged; filters: search, location, minSalaryFrom, …) |
-| POST/DELETE/GET | `/me/vacancies/{id}/apply`, `/me/applications` | ✓ |
+| POST | `/me/vacancies/{vacancyId}/apply` | Apply to vacancy | ✓ |
+| DELETE | `/me/applications/{applicationId}` | Withdraw application (soft; status `withdrawn`) | ✓ |
+| GET | `/me/applications` | My applications (plain array) | ✓ |
+| GET | `/me/vacancies/{vacancyId}/applications` | Applications for vacancy I posted | ✓ |
 | POST/DELETE/GET | `/me/favorites/{id}` | ✓ |
 | POST/GET/DELETE | `/me/search-queries` | ✓ |
 | GET | `/recommended-queries` | ✓ |
@@ -264,10 +267,30 @@ SignalR: [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md)
 | GET/POST/PUT/PATCH/DELETE | `/me/companies`, `/companies/{id}` | ✓; logo upload |
 | GET/POST/PUT/PATCH/DELETE | `/me/educations` | ✓; public read |
 | GET/POST | `/academies` | read public; write Admin |
-| GET/POST/PUT/PATCH/DELETE | `/me/certificates` | ✓; file upload |
-| GET/POST | `/skills`, `/me/skills` | catalog read public; create skill Admin |
-| GET/POST/PUT/PATCH/DELETE | `/me/languages`, `/languages` | catalog Admin write |
+| GET/POST/PUT/PATCH/DELETE | `/me/certificates` | ✓; file upload; public read `/users/{userId}/certificates` |
+| GET/POST | `/skills`, `/me/skills` | catalog read public; create skill Admin; public read `/users/{userId}/skills` |
+| GET/POST/PUT/PATCH/DELETE | `/me/languages`, `/languages` | catalog Admin write; public read `/users/{userId}/languages` |
 | GET/POST/PATCH/DELETE | `/recommendations` | mixed auth |
+
+### Public user profile reads
+
+Публичные секции чужого профиля (рядом с `experiences` / `educations` / `skills`). Без JWT.
+
+**`GET /api/professional/users/{userId}/certificates`**
+
+- **Auth:** не требуется (публичный)
+- **Params:** `userId` (string, path)
+- **Response 200:** массив `CertificateDto`
+- **Response 404:** `{ success: false, errors: ["Profile not found."] }`
+- **Response 400:** `{ success: false, errors: ["UserId is required."] }`
+
+**`GET /api/professional/users/{userId}/languages`**
+
+- **Auth:** не требуется (публичный)
+- **Params:** `userId` (string, path)
+- **Response 200:** массив `UserLanguageDto`
+- **Response 404:** `{ success: false, errors: ["Profile not found."] }`
+- **Response 400:** `{ success: false, errors: ["UserId is required."] }`
 
 ---
 

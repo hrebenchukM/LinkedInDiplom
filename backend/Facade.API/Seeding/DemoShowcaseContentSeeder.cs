@@ -9,8 +9,12 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseContentSeeder
+public sealed class DemoShowcaseContentSeeder : IDemoSeeder
 {
+    public int Order => 8;
+
+    public string Name => nameof(DemoShowcaseContentSeeder);
+
     private readonly ContentDbContext _contentDb;
     private readonly IPostService _postService;
     private readonly IMediaService _mediaService;

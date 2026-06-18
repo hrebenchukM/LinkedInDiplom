@@ -9,8 +9,10 @@ const VacancyDetailModal = ({
   vacancy,
   posted,
   onApply,
+  onWithdraw,
   onSearchSimilar,
   applying = false,
+  withdrawing = false,
   applyError = '',
 }) => {
   const { t } = useTranslation();
@@ -26,8 +28,13 @@ const VacancyDetailModal = ({
   const canApply = !vacancy.aiRecommendation && vacancy.id;
 
   const handleApply = async () => {
-    if (!canApply || hasApplied || applying) return;
+    if (!canApply || hasApplied || applying || withdrawing) return;
     await onApply?.(vacancy.id);
+  };
+
+  const handleWithdraw = async () => {
+    if (!canApply || !hasApplied || applying || withdrawing) return;
+    await onWithdraw?.(vacancy.id);
   };
 
   return (
@@ -79,14 +86,16 @@ const VacancyDetailModal = ({
             <button
               type="button"
               className={`vacancy-detail-modal__apply${hasApplied ? ' is-applied' : ''}`}
-              onClick={handleApply}
-              disabled={hasApplied || applying}
+              onClick={hasApplied ? handleWithdraw : handleApply}
+              disabled={applying || withdrawing}
             >
               {applying
                 ? t('vac.card.applying', 'Applying...')
-                : hasApplied
-                  ? t('vac.card.applied', 'Applied')
-                  : t('vac.card.apply', 'Be among the candidates')}
+                : withdrawing
+                  ? t('vac.withdraw', 'Withdraw')
+                  : hasApplied
+                    ? t('vac.withdraw', 'Withdraw')
+                    : t('vac.card.apply', 'Be among the candidates')}
             </button>
           ) : (
             <button

@@ -94,7 +94,14 @@ export async function deleteVacancy(vacancyId) {
 
 // Applications
 export async function applyToVacancy(vacancyId) {
-  return apiClient.post(API_PATHS.jobs.apply(vacancyId));
+  const response = await apiClient.post(API_PATHS.jobs.apply(vacancyId));
+  const applicationDto =
+    response?.application ?? response?.Application ?? response;
+  return mapApplicationDto(applicationDto) ?? response;
+}
+
+export async function withdrawApplication(applicationId) {
+  return apiClient.delete(API_PATHS.jobs.applicationById(applicationId));
 }
 
 export async function getMyApplications(params = {}) {
@@ -153,11 +160,22 @@ export async function loadVacancyMeta() {
 
   const appliedIds = new Set(
     applications
+      .filter((item) => !item.withdrawnAt)
       .map((item) => item.vacancyId ?? item.vacancy?.id)
       .filter(Boolean),
   );
 
-  return { favoriteIds, appliedIds, favorites, applications };
+  const applicationIdsByVacancyId = new Map();
+  applications
+    .filter((item) => !item.withdrawnAt && item.id)
+    .forEach((item) => {
+      const vacancyId = item.vacancyId ?? item.vacancy?.id;
+      if (vacancyId) {
+        applicationIdsByVacancyId.set(String(vacancyId), String(item.id));
+      }
+    });
+
+  return { favoriteIds, appliedIds, favorites, applications, applicationIdsByVacancyId };
 }
 
 export {

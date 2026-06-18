@@ -13,6 +13,7 @@ import {
   getVacancies,
   loadVacancyMeta,
   removeVacancyFromFavorites,
+  withdrawApplication,
 } from '../../features/jobs/jobsApi';
 import { enrichVacanciesWithCompanies } from '../../features/jobs/enrichJobsWithCompanies';
 import { fetchRecommendedJobs } from '../../features/ai/aiApi.js';
@@ -62,6 +63,7 @@ const VacanciesPage = ({ onNavigate }) => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(() => new Set());
   const [appliedIds, setAppliedIds] = useState(() => new Set());
+  const [applicationIdsByVacancyId, setApplicationIdsByVacancyId] = useState(() => new Map());
   const [actionErrors, setActionErrors] = useState({});
   const [viewMode, setViewMode] = useState('all');
   const [initialized, setInitialized] = useState(false);
@@ -175,6 +177,7 @@ const VacanciesPage = ({ onNavigate }) => {
     const meta = await loadVacancyMeta();
     setFavoriteIds(meta.favoriteIds);
     setAppliedIds(meta.appliedIds);
+    setApplicationIdsByVacancyId(meta.applicationIdsByVacancyId);
     await loadVacancies({
       pageToLoad: 1,
       append: false,
@@ -338,13 +341,72 @@ const VacanciesPage = ({ onNavigate }) => {
     );
 
     try {
-      await applyToVacancy(vacancyId);
+      const application = await applyToVacancy(vacancyId);
+      if (application?.id) {
+        setApplicationIdsByVacancyId((prev) => {
+          const next = new Map(prev);
+          next.set(String(vacancyId), String(application.id));
+          return next;
+        });
+      }
     } catch (err) {
       const nextRollback = new Set(appliedIds);
       if (!previousApplied) {
         nextRollback.delete(vacancyId);
       }
       setAppliedIds(nextRollback);
+      setVacancies((prev) =>
+        prev.map((vacancy) =>
+          vacancy.id === vacancyId ? { ...vacancy, hasApplied: previousApplied } : vacancy,
+        ),
+      );
+      setActionErrors((prev) => ({
+        ...prev,
+        [vacancyId]: getErrorMessage(err),
+      }));
+    }
+  };
+
+  const handleWithdraw = async (vacancyId) => {
+    setActionErrors((prev) => ({ ...prev, [vacancyId]: '' }));
+
+    const applicationId = applicationIdsByVacancyId.get(String(vacancyId));
+    if (!applicationId) {
+      setActionErrors((prev) => ({
+        ...prev,
+        [vacancyId]: t('vac.withdrawFailed', 'Could not withdraw application.'),
+      }));
+      return;
+    }
+
+    const previousApplied = appliedIds.has(vacancyId);
+    const nextAppliedIds = new Set(appliedIds);
+    nextAppliedIds.delete(vacancyId);
+    setAppliedIds(nextAppliedIds);
+    setApplicationIdsByVacancyId((prev) => {
+      const next = new Map(prev);
+      next.delete(String(vacancyId));
+      return next;
+    });
+    setVacancies((prev) =>
+      prev.map((vacancy) =>
+        vacancy.id === vacancyId ? { ...vacancy, hasApplied: false } : vacancy,
+      ),
+    );
+
+    try {
+      await withdrawApplication(applicationId);
+    } catch (err) {
+      const nextRollback = new Set(appliedIds);
+      if (previousApplied) {
+        nextRollback.add(vacancyId);
+      }
+      setAppliedIds(nextRollback);
+      setApplicationIdsByVacancyId((prev) => {
+        const next = new Map(prev);
+        next.set(String(vacancyId), applicationId);
+        return next;
+      });
       setVacancies((prev) =>
         prev.map((vacancy) =>
           vacancy.id === vacancyId ? { ...vacancy, hasApplied: previousApplied } : vacancy,
@@ -485,6 +547,7 @@ const VacanciesPage = ({ onNavigate }) => {
                       vacancy={vacancy}
                       posted={formatPosted(vacancy.postedAt ?? vacancy.createdAt)}
                       onApply={handleApply}
+                      onWithdraw={handleWithdraw}
                       onToggleFavorite={handleToggleFavorite}
                       actionError={actionErrors[vacancy.id]}
                       favoriteError={actionErrors[`fav-${vacancy.id}`]}
@@ -565,10 +628,18 @@ const VacanciesPage = ({ onNavigate }) => {
                         <button
                           type="button"
                           className={`job-action-btn job-action-btn--primary${hasApplied ? ' is-applied' : ''}`}
-                          onClick={() => handleRecommendedApply(vacancy)}
-                          disabled={(!vacancy.aiRecommendation && hasApplied) || isApplying}
+                          onClick={() => (
+                            hasApplied && !vacancy.aiRecommendation
+                              ? handleWithdraw(vacancy.id)
+                              : handleRecommendedApply(vacancy)
+                          )}
+                          disabled={isApplying}
                         >
-                          {isApplying ? t('vac.card.applying', 'Applying...') : applyLabel}
+                          {isApplying
+                            ? t('vac.card.applying', 'Applying...')
+                            : hasApplied && !vacancy.aiRecommendation
+                              ? t('vac.withdraw', 'Withdraw')
+                              : applyLabel}
                         </button>
                         <button
                           type="button"
@@ -611,6 +682,7 @@ const VacanciesPage = ({ onNavigate }) => {
             : ''
         }
         onApply={handleApply}
+        onWithdraw={handleWithdraw}
         onSearchSimilar={(vacancy) => handleSearchQuery(vacancy.title)}
         applying={detailVacancy ? applyingRecommendedId === detailVacancy.id : false}
         applyError={detailVacancy?.id ? actionErrors[detailVacancy.id] : ''}

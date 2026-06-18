@@ -14,8 +14,12 @@ namespace Facade.API.Seeding;
 /// Links demo bot users to the primary demo user via follows and contacts.
 /// Additive to <see cref="DemoNetworkSeeder"/> — does not replace baseline/showcase network seeders.
 /// </summary>
-public sealed class DemoBotNetworkSeeder
+public sealed class DemoBotNetworkSeeder : IDemoSeeder
 {
+    public int Order => 16;
+
+    public string Name => nameof(DemoBotNetworkSeeder);
+
     private const string StatusAccepted = "accepted";
     private const string StatusPending = "pending";
 

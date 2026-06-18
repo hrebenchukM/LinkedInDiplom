@@ -13,7 +13,9 @@ internal static class DemoSeederSupport
 {
     public static string NormalizeMarker(string? markerPrefix)
     {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
+        var marker = string.IsNullOrWhiteSpace(markerPrefix)
+            ? DemoSeedConstants.DefaultMarkerPrefix
+            : markerPrefix.Trim();
         return marker.EndsWith(' ') ? marker : marker;
     }
 

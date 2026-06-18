@@ -9,9 +9,13 @@ using Network.DataAccess;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoPagesGroupsSeeder
+public sealed class DemoPagesGroupsSeeder : IDemoSeeder
 {
-    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
+    public int Order => 22;
+
+    public string Name => nameof(DemoPagesGroupsSeeder);
+
+    private const string PrimaryDemoUserEmail = DemoSeedConstants.PrimaryDemoUserEmail;
 
     private readonly NetworkDbContext _networkDb;
     private readonly IPageService _pageService;
@@ -50,7 +54,7 @@ public sealed class DemoPagesGroupsSeeder
             return;
         }
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
         var pageName = $"{marker} LinkUp Labs";
         var groupName = $"{marker} React & .NET Developers";
 
@@ -138,11 +142,5 @@ public sealed class DemoPagesGroupsSeeder
         }
 
         _logger.LogInformation("Demo pages/groups seed: created group {GroupName}.", groupName);
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

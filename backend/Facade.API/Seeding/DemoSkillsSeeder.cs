@@ -8,8 +8,12 @@ namespace Facade.API.Seeding;
 /// <summary>
 /// Dev-only global skills catalog so profile "Add skill" works on a fresh database.
 /// </summary>
-public sealed class DemoSkillsSeeder
+public sealed class DemoSkillsSeeder : IDemoSeeder
 {
+    public int Order => 3;
+
+    public string Name => nameof(DemoSkillsSeeder);
+
     private readonly ProfessionalDbContext _professionalDb;
     private readonly ILogger<DemoSkillsSeeder> _logger;
 

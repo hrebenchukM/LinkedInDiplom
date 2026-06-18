@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Identity.Events.Contracts.Abstractions;
 using Identity.Events.Contracts.Events;
 
-namespace Identity.Services;
+namespace Identity.Services.Services;
 
 // Сервис для работы с пользователями
 public class UserService : IUserService

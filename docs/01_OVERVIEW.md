@@ -1,15 +1,30 @@
 # 01. Обзор проекта
 
-> Обновлено: 2026-06-17 — demo seed enrichment, API overview, frontend integration guide.
+> Обновлено: 2026-06-18 — frontend integration status после последних wiring (repost, portfolio, withdraw, admin queries, SignalR).
 
 ## Что это
 
-LinkedInDiplom backend — **microservice-ready modular monolith + BFF** на `.NET 8 (net8.0)`.
+LinkedInDiplom — **microservice-ready modular monolith backend** + **React SPA frontend**.
 
-- один host: `backend/Facade.API`
-- 9 core-модулей: Identity, Profile, Professional, Network, Content, Messaging, Jobs, Notifications, Events
-- facade-модулей: AccountManagement, ProfileManagement, ProfessionalManagement, NetworkManagement, ContentManagement, MessagingManagement, JobsManagement, NotificationsManagement, EventsManagement, **AdminManagement**, **AIManagement**
-- shared infrastructure: **FileStorage** (`Facade.FileStorage.*`) — uploads local/S3 для 6 feature facades
+- Backend host: `backend/Facade.API`
+- Frontend: `frontend/` (Vite + React), entry `main.jsx` → `App.jsx`
+- 9 core-модулей + facade modules + FileStorage + AI
+- **Backend шире frontend** — часть API готова для post-defense UI; client-only demo фичи не являются backend capabilities
+
+## Frontend ↔ Backend (summary)
+
+| Интегрировано (2026-06-18) | Частично / после защиты |
+|----------------------------|-------------------------|
+| Auth, profile, feed, comments, reactions, save | Repost UI на Home |
+| Messaging + `/hubs/messaging` | Mention/hashtag add UI |
+| Notifications + `/hubs/notifications` | Message settings modal → API |
+| Portfolio certs/languages | Events/network create UI |
+| Jobs apply/withdraw | Career advice AI UI |
+| Admin + recommended queries (8 seeded) | Admin catalog UI, recruiter applications |
+
+**Demo seed:** catalog recommended queries, pre-seeded application for withdraw demo, rolling showcase event — [08_SEED_DATA.md](08_SEED_DATA.md).
+
+Детали: [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md).
 
 ## Техстек
 
@@ -62,6 +77,22 @@ Identity дополнительно:
 ## File uploads (backend)
 
 11 multipart endpoints через `IFileStorageService`; в БД только URL. Подробно: [05_CONFIGURATION_AND_UPLOADS.md](05_CONFIGURATION_AND_UPLOADS.md).
+
+## Тесты (backend)
+
+Проект `backend/Tests/LinkedIn.Tests` — **111 unit-тестов** в **11 классах** (xUnit + Moq + EF InMemory). Подробно: [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md).
+
+## Realtime (messaging + notifications)
+
+- **Messaging:** HTTP `/api/messaging` + SignalR `/hubs/messaging` (groups `chat:{chatId}`)
+- **Notifications:** HTTP `/api/notifications` + SignalR `/hubs/notifications` (groups `user:{userId}`)
+- Frontend: `signalRService.js`, `notificationsSignalRService.js`
+
+См. [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md).
+
+## AI module (v1)
+
+Отличается от core-модулей: нет `AI.Client`, facade вызывает `IAIService` напрямую — осознанное упрощение для stateless Gemini integration. См. [02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md).
 
 ## Устаревшие вещи
 

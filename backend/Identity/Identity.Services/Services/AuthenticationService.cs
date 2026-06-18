@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Identity.Services;
+namespace Identity.Services.Services;
 
 /// <summary>
 /// Core service модуля Identity для auth-сценариев.
@@ -281,7 +281,7 @@ public class AuthenticationService : IAuthenticationService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-       
+
         // Получаем роли пользователя
         var roles = await _userManager.GetRolesAsync(user);
 

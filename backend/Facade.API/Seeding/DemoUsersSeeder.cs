@@ -8,14 +8,21 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoUsersSeeder
+/// <summary>
+/// Creates baseline demo users (test1/test2). Admin is created separately by Identity <c>AdminSeed</c>.
+/// </summary>
+public sealed class DemoUsersSeeder : IDemoSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
+    public int Order => 1;
+
+    public string Name => nameof(DemoUsersSeeder);
+
+    private const string AdminEmail = DemoSeedConstants.AdminEmail;
 
     private static readonly string[] DemoUserEmails =
     [
-        "test@example.com",
-        "test2@example.com",
+        DemoSeedConstants.TestUserOneEmail,
+        DemoSeedConstants.TestUserTwoEmail,
     ];
 
     private readonly UserManager<ApplicationUser> _userManager;

@@ -16,8 +16,12 @@ using Network.DataAccess;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseNetworkSeeder
+public sealed class DemoShowcaseNetworkSeeder : IDemoSeeder
 {
+    public int Order => 17;
+
+    public string Name => nameof(DemoShowcaseNetworkSeeder);
+
     private const string StatusAccepted = "accepted";
     private const string StatusPending = "pending";
 

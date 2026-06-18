@@ -1,5 +1,6 @@
 using Content.Events.Contracts.Events;
 using Identity.Events.Contracts.Abstractions;
+using Jobs.Events.Contracts.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,9 @@ using Notifications.Client.Contracts;
 using Notifications.Client.Contracts.Resources;
 using Notifications.Client.Resources;
 using Notifications.Contracts.Services;
+using Notifications.Contracts.Realtime;
 using Notifications.DataAccess;
+using Notifications.Services.Realtime;
 using Notifications.Services.EventHandlers;
 using Notifications.Services.Services;
 
@@ -35,6 +38,8 @@ public static class NotificationsModuleServiceCollectionExtensions
 
         services.AddScoped<INotificationsClient, NotificationsClient>();
 
+        services.AddScoped<INotificationCreatedPublisher, NullNotificationCreatedPublisher>();
+
         services.AddScoped<
             IDomainEventHandler<CommentCreatedEvent>,
             CreateNotificationOnCommentCreatedHandler>();
@@ -50,6 +55,14 @@ public static class NotificationsModuleServiceCollectionExtensions
         services.AddScoped<
             IDomainEventHandler<ReactionUpsertedEvent>,
             CreateNotificationOnReactionUpsertedHandler>();
+
+        services.AddScoped<
+            IDomainEventHandler<MentionAddedEvent>,
+            CreateNotificationOnMentionAddedHandler>();
+
+        services.AddScoped<
+            IDomainEventHandler<VacancyApplicationSubmittedEvent>,
+            CreateNotificationOnVacancyApplicationSubmittedHandler>();
 
         return services;
     }

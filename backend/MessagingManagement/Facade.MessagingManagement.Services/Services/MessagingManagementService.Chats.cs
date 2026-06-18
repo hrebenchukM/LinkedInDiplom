@@ -3,6 +3,7 @@ using Facade.MessagingManagement.Contracts.Requests.Chat;
 using Facade.MessagingManagement.Contracts.Responses;
 using Facade.Shared.Contracts.Pagination;
 using Messaging.Contracts.Parameters.Chat;
+using Messaging.Contracts.Parameters.ChatMember;
 
 namespace Facade.MessagingManagement.Services.Services;
 
@@ -15,7 +16,47 @@ public partial class MessagingManagementService
             UserId = userId
         });
 
-        return MapChatResult(result);
+        if (!result.Succeeded || result.Chat == null)
+        {
+            return MapChatResult(result);
+        }
+
+        var participantUserId = request.ParticipantUserId?.Trim();
+
+        if (string.IsNullOrWhiteSpace(participantUserId) ||
+            string.Equals(participantUserId, userId, StringComparison.Ordinal))
+        {
+            return MapChatResult(result);
+        }
+
+        var joinResult = await _messagingClient.ChatMembers.JoinAsync(new JoinChatParameters
+        {
+            UserId = participantUserId,
+            ChatId = result.Chat.Id
+        });
+
+        if (!joinResult.Succeeded)
+        {
+            return MapChatResult(result);
+        }
+
+        var updatedChat = await _messagingClient.Chats.GetByIdAsync(new GetChatByIdParameters
+        {
+            UserId = userId,
+            ChatId = result.Chat.Id
+        });
+
+        if (updatedChat == null)
+        {
+            return MapChatResult(result);
+        }
+
+        return new ChatResponse
+        {
+            Success = true,
+            Chat = MapChatToFacadeDto(updatedChat),
+            Errors = Array.Empty<string>()
+        };
     }
 
     public async Task<PagedResponse<ChatDto>> GetMyChatsAsync(

@@ -1,5 +1,8 @@
 namespace Facade.MessagingManagement.Contracts.Requests.Chat;
 
-// Current chat creation only initializes a chat for the authenticated user.
-// Additional members are added through the chat membership flow.
-public record CreateChatRequest;
+// Creates a chat for the authenticated user. When ParticipantUserId is set,
+// the facade also adds that user as a member (direct messaging).
+public class CreateChatRequest
+{
+    public string? ParticipantUserId { get; set; }
+}

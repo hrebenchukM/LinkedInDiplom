@@ -6,8 +6,12 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseUsersSeeder
+public sealed class DemoShowcaseUsersSeeder : IDemoSeeder
 {
+    public int Order => 2;
+
+    public string Name => nameof(DemoShowcaseUsersSeeder);
+
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDomainEventPublisher _eventPublisher;
     private readonly DemoSeedOptions _options;

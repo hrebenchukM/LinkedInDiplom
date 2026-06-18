@@ -7,8 +7,12 @@ using Profile.DataAccess.Entities;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseProfileSeeder
+public sealed class DemoShowcaseProfileSeeder : IDemoSeeder
 {
+    public int Order => 5;
+
+    public string Name => nameof(DemoShowcaseProfileSeeder);
+
     private readonly ProfileDbContext _profileDb;
     private readonly IProfileService _profileService;
     private readonly Identity.DataAccess.IdentityDbContext _identityDb;

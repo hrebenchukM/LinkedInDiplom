@@ -1,4 +1,4 @@
-﻿using Facade.ProfessionalManagement.Contracts.DTOs;
+using Facade.ProfessionalManagement.Contracts.DTOs;
 using Facade.ProfessionalManagement.Contracts.Requests.Academy;
 using Facade.ProfessionalManagement.Contracts.Requests.Certificate;
 using Facade.ProfessionalManagement.Contracts.Requests.Company;
@@ -121,6 +121,8 @@ public interface IProfessionalManagementService
 
     Task<IReadOnlyCollection<CertificateDto>> GetMyCertificatesAsync(string userId);
 
+    Task<IReadOnlyCollection<CertificateDto>?> GetUserCertificatesAsync(string userId);
+
     Task<CertificateDto?> GetMyCertificateByIdAsync(string userId, Guid certificateId);
 
     Task<CertificateResponse> CreateMyCertificateAsync(
@@ -190,6 +192,8 @@ public interface IProfessionalManagementService
     Task<LanguageResponse> CreateLanguageAsync(CreateLanguageRequest request);
 
     Task<IReadOnlyCollection<UserLanguageDto>> GetMyUserLanguagesAsync(string userId);
+
+    Task<IReadOnlyCollection<UserLanguageDto>?> GetUserLanguagesAsync(string userId);
 
     Task<UserLanguageDto?> GetMyUserLanguageByIdAsync(string userId, Guid userLanguageId);
 

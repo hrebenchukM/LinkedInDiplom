@@ -168,7 +168,6 @@ public class UserAdminService : IUserAdminService
         var updateResult = await _userManager.UpdateAsync(user);
         EnsureSucceeded(updateResult, $"Failed to update user '{userId}' lock metadata");
 
-        // TODO: revoke active refresh tokens on lock.
         await _authenticationService.RevokeAllUserTokensAsync(userId);
     }
 

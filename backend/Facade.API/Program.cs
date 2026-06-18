@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer; // JWT Bearer
 using Microsoft.Extensions.FileProviders; // PhysicalFileProvider для uploads
 using Microsoft.IdentityModel.Tokens; // TokenValidationParameters, SymmetricSecurityKey
 using Microsoft.OpenApi.Models; // Swagger Authorize для JWT
+using Notifications.Contracts.Realtime;
 using Professional.DI;
 using Facade.ProfessionalManagement.Controllers.Controllers; // Professional*Controller
 using Facade.ProfessionalManagement.DI;
@@ -25,6 +26,9 @@ using Facade.MessagingManagement.Controllers.Realtime;
 using Facade.MessagingManagement.Contracts.Realtime;
 using Facade.MessagingManagement.DI;
 using Facade.NotificationsManagement.Controllers.Controllers;
+using Facade.NotificationsManagement.Controllers.Hubs;
+using Facade.NotificationsManagement.Controllers.Realtime;
+using Facade.NotificationsManagement.Contracts.Realtime;
 using Facade.NotificationsManagement.DI;
 using Facade.JobsManagement.Controllers.Controllers;
 using Facade.JobsManagement.DI;
@@ -173,7 +177,8 @@ builder.Services.AddAuthentication(options =>
             var path = context.HttpContext.Request.Path;
 
             if (!string.IsNullOrEmpty(accessToken) &&
-                path.StartsWithSegments("/hubs/messaging"))
+                (path.StartsWithSegments("/hubs/messaging") ||
+                 path.StartsWithSegments("/hubs/notifications")))
             {
                 context.Token = accessToken;
             }
@@ -188,6 +193,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IMessagingRealtimeNotifier, MessagingRealtimeNotifier>();
+builder.Services.AddScoped<INotificationRealtimeNotifier, NotificationRealtimeNotifier>();
+builder.Services.AddScoped<INotificationCreatedPublisher, NotificationCreatedPublisher>();
 
 // Swagger/OpenAPI только для локальной разработки
 if (isDevelopment)
@@ -315,6 +322,7 @@ app.UseAuthorization();
 // Маршрутизацию полностью обрабатывают facade-контроллеры.
 app.MapControllers();
 app.MapHub<MessagingHub>("/hubs/messaging");
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 // Запускаем API
 app.Run();

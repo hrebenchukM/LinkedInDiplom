@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Identity.Services;
+namespace Identity.Services.Services;
 
 public class ExternalAuthService : IExternalAuthService
 {

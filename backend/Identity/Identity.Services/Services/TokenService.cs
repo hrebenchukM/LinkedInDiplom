@@ -7,7 +7,7 @@ using Identity.Contracts.Services;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Identity.Services;
+namespace Identity.Services.Services;
 
 // Сервис для создания и проверки токенов
 public class TokenService : ITokenService

@@ -18,9 +18,17 @@ const SAVE_USER_TOKEN = [
   '  const access = j?.token?.accessToken;',
   '  const refresh = j?.token?.refreshToken;',
   '  const uid = j?.account?.id;',
-  '  if (access) { pm.environment.set("accessToken", access); console.log("accessToken saved"); }',
+  '  if (access) {',
+  '    pm.environment.set("accessToken", access);',
+  '    pm.environment.set("token", access);',
+  '    console.log("accessToken saved");',
+  '  }',
   '  if (refresh) { pm.environment.set("refreshToken", refresh); console.log("refreshToken saved"); }',
-  '  if (uid) { pm.environment.set("userId", uid); console.log("userId saved:", uid); }',
+  '  if (uid) {',
+  '    pm.environment.set("userId", uid);',
+  '    pm.environment.set("userAId", uid);',
+  '    console.log("userId saved:", uid);',
+  '  }',
   '} catch (e) { /* non-json */ }',
 ];
 
@@ -33,7 +41,7 @@ const SAVE_ADMIN_TOKEN = [
   '  if (access) {',
   '    pm.environment.set("adminAccessToken", access);',
   '    pm.environment.set("adminToken", access);',
-  '    console.log("adminAccessToken saved");',
+  '    console.log("adminToken saved");',
   '  }',
   '  if (uid) { pm.environment.set("adminUserId", uid); console.log("adminUserId saved:", uid); }',
   '} catch (e) {}',
@@ -59,6 +67,57 @@ const SAVE_REGISTER_USER = [
   '  const uid = j?.account?.id;',
   '  if (uid) { pm.environment.set("userId", uid); console.log("userId saved:", uid); }',
   '} catch (e) {}',
+];
+
+const SAVE_OTHER_USER_ID = [
+  "pm.test('Status 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));",
+  'if (pm.response.code === 200) {',
+  '  try {',
+  '    const j = pm.response.json();',
+  '    const uid = j?.account?.id;',
+  '    if (uid) {',
+  '      pm.environment.set("otherUserId", uid);',
+  '      pm.environment.set("userBId", uid);',
+  '      pm.environment.set("participantUserId", uid);',
+  '      console.log("userBId saved:", uid);',
+  '    }',
+  '  } catch (e) {}',
+  '}',
+];
+
+const SAVE_NOTIFICATION_ID_FROM_LIST = [
+  "pm.test('Status 200', () => pm.expect(pm.response.code).to.eql(200));",
+  'try {',
+  '  const j = pm.response.json();',
+  '  const items = j?.items || j?.Items || [];',
+  '  const first = items[0];',
+  '  const id = first?.id || first?.Id;',
+  '  if (id) { pm.environment.set("notificationId", String(id)); console.log("notificationId saved:", id); }',
+  '} catch (e) {}',
+];
+
+const SAVE_RECOMMENDED_QUERY_ID = [
+  'if (pm.response.code >= 200 && pm.response.code < 300) {',
+  '  try {',
+  '    const j = pm.response.json();',
+  '    const id = j?.id || j?.Id || j?.recommendedJobQuery?.id;',
+  '    if (id) {',
+  '      pm.environment.set("recommendedQueryId", String(id));',
+  '      pm.environment.set("recommendedJobQueryId", String(id));',
+  '      console.log("recommendedQueryId saved:", id);',
+  '    }',
+  '  } catch (e) {}',
+  '}',
+];
+
+const AI_RESPONSE_TEST = [
+  "pm.test('Status 200 or 503', () => pm.expect([200, 503]).to.include(pm.response.code));",
+  'if (pm.response.code === 503) {',
+  '  try {',
+  '    const j = pm.response.json();',
+  '    pm.expect(j.success).to.eql(false);',
+  '  } catch (e) {}',
+  '}',
 ];
 
 function saveIdTest(envVar, ...entityKeys) {
@@ -138,6 +197,21 @@ function findRequest(folderItems, name) {
   return null;
 }
 
+function insertAfter(folderItems, afterName, newReq) {
+  if (findRequest(folderItems, newReq.name)) return;
+  const idx = folderItems.findIndex((x) => x.name === afterName);
+  if (idx >= 0) folderItems.splice(idx + 1, 0, newReq);
+  else folderItems.push(newReq);
+}
+
+/** Resolve folder after renames; script is idempotent across multiple runs. */
+function folderByName(...names) {
+  for (const n of names) {
+    if (byName[n]) return byName[n];
+  }
+  return null;
+}
+
 function patchAuthAdmin(items) {
   for (const it of items) {
     if (it.auth?.bearer?.[0]) {
@@ -164,17 +238,50 @@ const byName = Object.fromEntries(col.item.map((f) => [f.name, f]));
 const authFolder = byName['01 Auth / Account'];
 if (authFolder) {
   for (const r of authFolder.item) {
-    if (r.name === 'Login') r.event = testEvent(SAVE_USER_TOKEN);
+    if (r.name === 'Login' || r.name === 'Login User A') {
+      r.name = 'Login User A';
+      r.request.body = jsonBody('{\n  "email": "{{userAEmail}}",\n  "password": "{{userAPassword}}"\n}');
+      r.request.description =
+        'Demo User A (default test@example.com / Test123! from DemoSeed). Saves accessToken, token, refreshToken, userId, userAId.';
+      r.event = testEvent(SAVE_USER_TOKEN);
+    }
     if (r.name === 'Register') r.event = testEvent(SAVE_REGISTER_USER);
     if (r.name === 'Refresh Token') r.event = testEvent(SAVE_REFRESH);
+    if (r.name === 'Get Current User') {
+      r.request.description = 'GET /api/auth/me — current account from JWT.';
+    }
   }
-  // add Login Demo User (Marya) for seed data
   if (!findRequest(authFolder.item, 'Login Demo User (Marya)')) {
     authFolder.item.splice(2, 0, req('Login Demo User (Marya)', 'POST', '/api/auth/login', {
       body: jsonBody('{\n  "email": "marya101204@gmail.com",\n  "password": "Mgg101204"\n}'),
-      description: 'Primary showcase user from demo seed. Password may differ — check DemoSeed options.',
+      description: 'Primary showcase user from demo seed. Password from DemoSeed:PrimaryDemoUserPassword (default Mgg101204).',
       tests: SAVE_USER_TOKEN,
     }));
+  }
+  const loginBOther = findRequest(authFolder.item, 'Login Other User (resolve otherUserId)')
+    || findRequest(authFolder.item, 'Login User B (resolve userBId)');
+  if (loginBOther) {
+    loginBOther.name = 'Login User B (resolve userBId)';
+    loginBOther.request.body = jsonBody('{\n  "email": "{{userBEmail}}",\n  "password": "{{userBPassword}}"\n}');
+    loginBOther.request.description =
+      'Demo User B (default test2@example.com). Saves userBId, otherUserId, participantUserId — does **not** overwrite accessToken. Run after Login User A.';
+    loginBOther.event = testEvent(SAVE_OTHER_USER_ID);
+  } else {
+    const loginIdx = authFolder.item.findIndex((x) => x.name === 'Login User A' || x.name === 'Login');
+    authFolder.item.splice(loginIdx + 1, 0, req('Login User B (resolve userBId)', 'POST', '/api/auth/login', {
+      body: jsonBody('{\n  "email": "{{userBEmail}}",\n  "password": "{{userBPassword}}"\n}'),
+      description: 'Demo User B. Saves userBId only — does not overwrite accessToken.',
+      tests: SAVE_OTHER_USER_ID,
+    }));
+  }
+  if (!findRequest(authFolder.item, 'Login Admin')) {
+    authFolder.item.push(
+      req('Login Admin', 'POST', '/api/auth/login', {
+        body: jsonBody('{\n  "email": "{{adminEmail}}",\n  "password": "{{adminPassword}}"\n}'),
+        description: 'Platform admin (AdminSeed: admin@local.dev / Admin123!). Saves adminToken, adminAccessToken, adminUserId.',
+        tests: SAVE_ADMIN_TOKEN,
+      }),
+    );
   }
 }
 
@@ -207,6 +314,7 @@ if (profileFolder) {
 const idMap = {
   'Create Vacancy': saveIdTest('vacancyId', 'vacancy'),
   'Create Chat': saveIdTest('chatId', 'chat'),
+  'Create Direct Chat (participantUserId)': saveIdTest('chatId', 'chat'),
   'Send Message': saveIdTest('messageId', 'message'),
   'Create Comment': saveIdTest('commentId', 'comment'),
   'Create Experience': saveIdTest('experienceId', 'experience'),
@@ -230,9 +338,16 @@ for (const f of Object.values(byName)) {
   if (f.item) addTestsToCreateRequests(f.item, idMap);
 }
 
-// jobs - add minSalaryFrom + save vacancy id on create
-const jobsFolder = byName['07 Jobs'];
+// jobs - withdraw + minSalaryFrom + save vacancy id
+const jobsFolder = folderByName('08 Jobs', '06 Jobs');
 if (jobsFolder) {
+  const withdraw = findRequest(jobsFolder.item, 'Delete Application')
+    || findRequest(jobsFolder.item, 'Withdraw Application');
+  if (withdraw) {
+    withdraw.name = 'Withdraw Application';
+    withdraw.request.description =
+      'DELETE /api/jobs/me/applications/{applicationId}. Soft-withdraw; frontend allows re-apply after withdraw.';
+  }
   if (!findRequest(jobsFolder.item, 'Get Vacancies (minSalaryFrom)')) {
     const pagedIdx = jobsFolder.item.findIndex((x) => x.name === 'Get Vacancies (paged)');
     jobsFolder.item.splice(pagedIdx + 1, 0, req('Get Vacancies (minSalaryFrom)', 'GET', '/api/jobs/vacancies?minSalaryFrom=80000&page=1&pageSize=20', {
@@ -243,8 +358,29 @@ if (jobsFolder) {
   if (createVac && !createVac.event) createVac.event = testEvent(saveIdTest('vacancyId', 'vacancy'));
 }
 
+// notifications — save first notificationId from list
+const notifFolder = folderByName('07 Notifications', '09 Notifications');
+if (notifFolder) {
+  notifFolder.auth = bearer();
+  const getNotif = findRequest(notifFolder.item, 'Get My Notifications');
+  if (getNotif) {
+    getNotif.event = testEvent(SAVE_NOTIFICATION_ID_FROM_LIST);
+    getNotif.request.description =
+      'PagedResponse<NotificationDto>. Saves first notificationId to environment. Realtime: /hubs/notifications (NotificationCreated).';
+  }
+  if (!findRequest(notifFolder.item, 'Get Unread Count (pageSize=1)')) {
+    insertAfter(
+      notifFolder.item,
+      'Get My Notifications (unread)',
+      req('Get Unread Count (pageSize=1)', 'GET', '/api/notifications/me?isRead=false&pageSize=1', {
+        description: 'Quick unread check (first page, one item).',
+      }),
+    );
+  }
+}
+
 // admin folder patches
-const adminFolder = byName['10 Admin'];
+const adminFolder = folderByName('11 Admin', '10 Admin');
 if (adminFolder) {
   adminFolder.name = '11 Admin';
   const adminLogin = findRequest(adminFolder.item, 'Admin Login');
@@ -253,6 +389,16 @@ if (adminFolder) {
   if (adminApi) {
     adminApi.auth = bearer('{{adminAccessToken}}');
     patchAuthAdmin(adminApi.item);
+    const createRq = findRequest(adminApi.item, 'Create Recommended Query');
+    if (createRq) {
+      createRq.request.body = jsonBody('{\n  "query": "React developer"\n}');
+      createRq.event = testEvent(SAVE_RECOMMENDED_QUERY_ID);
+    }
+    const deleteRq = findRequest(adminApi.item, 'Delete Recommended Query');
+    if (deleteRq) {
+      deleteRq.request.url = '{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedQueryId}}';
+      deleteRq.request.description = 'Uses recommendedQueryId (alias: recommendedJobQueryId).';
+    }
   }
 }
 
@@ -271,6 +417,105 @@ const renames = {
 
 for (const [oldName, newName] of Object.entries(renames)) {
   if (byName[oldName]) byName[oldName].name = newName;
+}
+
+// professional — public portfolio reads (certificates, languages)
+const profFolder = folderByName('08 Professional', '03 Professional');
+if (profFolder?.item) {
+  insertAfter(
+    profFolder.item,
+    'Get User Skills (public)',
+    req('Get User Certificates (public)', 'GET', '/api/professional/users/{{otherUserId}}/certificates', {
+      noAuth: true,
+      description:
+        'Public portfolio section. No JWT. Uses otherUserId (run Auth → Login Other User first). ' +
+        '404 if profile not found.',
+      tests: ["pm.test('Status 200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"],
+    })
+  );
+  insertAfter(
+    profFolder.item,
+    'Get User Certificates (public)',
+    req('Get User Languages (public)', 'GET', '/api/professional/users/{{otherUserId}}/languages', {
+      noAuth: true,
+      description: 'Public portfolio section. No JWT. Array of UserLanguageDto.',
+      tests: ["pm.test('Status 200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"],
+    })
+  );
+}
+
+// messaging — direct chat with participantUserId
+const msgFolder = folderByName('05 Messaging', '06 Messaging');
+if (msgFolder?.item) {
+  const createChat = findRequest(msgFolder.item, 'Create Chat');
+  if (createChat) {
+    createChat.request.description =
+      'Creates chat for current user only. Empty body `{}` — backward compatible (creator is sole member).';
+  }
+  insertAfter(
+    msgFolder.item,
+    'Create Chat',
+    req('Create Direct Chat (participantUserId)', 'POST', '/api/messaging/me/chats', {
+      body: jsonBody('{\n  "participantUserId": "{{userBId}}"\n}'),
+      description:
+        'Direct messaging User A → User B: run Login User B first to set userBId. ' +
+        'Facade auto-joins participant. Saves chatId. Realtime: /hubs/messaging after JoinChat.',
+      tests: saveIdTest('chatId', 'chat'),
+    })
+  );
+}
+
+// AI folder — rename and accept 200 or 503
+const aiFolder = folderByName('10 AI', '99 Debug / Utility / AI', '11 AI');
+if (aiFolder) {
+  aiFolder.name = '10 AI';
+  for (const r of aiFolder.item) {
+    if (r.name === 'Get Recommended Jobs' || r.name === 'Get Career Advice') {
+      r.request.description =
+        (r.name === 'Get Recommended Jobs'
+          ? 'GET /api/ai/recommended-jobs (Gemini or skill fallback). Frontend wired. '
+          : 'GET /api/ai/career-advice (Gemini). **Backend-ready; frontend not wired yet.** ') +
+        'Requires JWT. Expect **200** or **503** when AI unavailable.';
+      r.event = testEvent(AI_RESPONSE_TEST);
+    }
+  }
+}
+
+// folder numbering — Professional before Content (collision-safe via temp name)
+function setFolderName(folder, newName) {
+  if (!folder) return;
+  const old = folder.name;
+  folder.name = newName;
+  if (byName[old] === folder) delete byName[old];
+  byName[newName] = folder;
+}
+
+const profF = folderByName('08 Professional', '03 Professional');
+const contentF = folderByName('03 Content', '04 Content');
+const networkF = folderByName('04 Network', '05 Network');
+const msgF2 = folderByName('05 Messaging', '06 Messaging');
+const notifF2 = folderByName('09 Notifications', '07 Notifications');
+const jobsF2 = folderByName('06 Jobs', '08 Jobs');
+const eventsF = folderByName('07 Events', '09 Events');
+
+if (profF) setFolderName(profF, '_TMP_Professional');
+if (contentF) setFolderName(contentF, '04 Content');
+if (networkF) setFolderName(networkF, '05 Network');
+if (msgF2) setFolderName(msgF2, '06 Messaging');
+if (notifF2) setFolderName(notifF2, '07 Notifications');
+if (jobsF2) setFolderName(jobsF2, '08 Jobs');
+if (eventsF) setFolderName(eventsF, '09 Events');
+const profTmp = folderByName('_TMP_Professional');
+if (profTmp) setFolderName(profTmp, '03 Professional');
+
+// content — repost/mentions/hashtags descriptions
+const contentFolder = folderByName('04 Content', '03 Content');
+if (contentFolder) {
+  contentFolder.auth = bearer();
+  const repost = findRequest(contentFolder.item, 'Repost Post') || findRequest(contentFolder.item, 'Create Repost');
+  if (repost) {
+    repost.request.description = 'POST /api/content/me/posts/{postId}/repost. Frontend API wired; Home UI partial.';
+  }
 }
 
 // --- new folders ---
@@ -301,7 +546,7 @@ const uploadDefs = [
 ];
 
 const uploadsFolder = folder(
-  '10 File Uploads',
+  '12 File Uploads',
   uploadDefs.map(([name, method, urlPath, token, note]) =>
     req(name, method, urlPath, {
       auth: bearer(token),
@@ -312,15 +557,26 @@ const uploadsFolder = folder(
   bearer()
 );
 
-const signalrFolder = folder('12 SignalR Info (not HTTP)', [
-  req('README — SignalR Hub', 'GET', '/swagger/index.html', {
+const signalrFolder = folder('13 SignalR Info (not HTTP REST)', [
+  req('Messaging Hub — README', 'GET', '/swagger/index.html', {
     noAuth: true,
     description:
-      'SignalR cannot be fully tested via REST.\n\n' +
-      'Hub URL: {{baseUrl}}/hubs/messaging?access_token={{accessToken}}\n\n' +
-      'Client methods: JoinChat(chatId), LeaveChat(chatId)\n\n' +
+      '**Swagger does not test SignalR.** Use frontend (two browsers) or frontend/scripts/verify-signalr.mjs.\n\n' +
+      'Hub: {{baseUrl}}/hubs/messaging?access_token={{accessToken}}\n' +
+      'Group: chat:{chatId} (after JoinChat)\n' +
       'Server events: MessageCreated, MessageUpdated, MessageDeleted, MessageRead, MessageMediaAttached\n\n' +
-      'See docs/07_REALTIME_AND_DOMAIN_EVENTS.md and frontend/scripts/verify-signalr.mjs',
+      'Flow: POST message via REST → DB → hub push to group.\n' +
+      'See docs/07_REALTIME_AND_DOMAIN_EVENTS.md',
+  }),
+  req('Notifications Hub — README', 'GET', '/swagger/index.html', {
+    noAuth: true,
+    description:
+      'Hub: {{baseUrl}}/hubs/notifications?access_token={{accessToken}}\n' +
+      'Group: user:{userId} (auto-join from JWT on connect)\n' +
+      'Server event: NotificationCreated\n\n' +
+      'Offline users: notifications persisted in DB — GET /api/notifications/me after login.\n' +
+      'No push/email/outbox in v1.\n' +
+      'See docs/07_REALTIME_AND_DOMAIN_EVENTS.md',
   }),
 ]);
 
@@ -370,25 +626,25 @@ const orderedNames = [
   '00 Health / Swagger / Base',
   '01 Auth / Account',
   '02 Profile',
-  '03 Content',
-  '04 Network',
-  '05 Messaging',
-  '06 Jobs',
-  '07 Events',
-  '08 Professional',
-  '09 Notifications',
-  '10 File Uploads',
+  '03 Professional',
+  '04 Content',
+  '05 Network',
+  '06 Messaging',
+  '07 Notifications',
+  '08 Jobs',
+  '09 Events',
+  '10 AI',
   '11 Admin',
-  '12 SignalR Info (not HTTP)',
-  '99 Debug / Utility / AI',
+  '12 File Uploads',
+  '13 SignalR Info (not HTTP REST)',
   '99 Error Examples / Validation',
 ];
 
 const newItems = [];
 for (const n of orderedNames) {
   if (n === '00 Health / Swagger / Base') newItems.push(healthFolder);
-  else if (n === '10 File Uploads') newItems.push(uploadsFolder);
-  else if (n === '12 SignalR Info (not HTTP)') newItems.push(signalrFolder);
+  else if (n === '12 File Uploads') newItems.push(uploadsFolder);
+  else if (n === '13 SignalR Info (not HTTP REST)') newItems.push(signalrFolder);
   else {
     const f = Object.values(byName).find((x) => x.name === n);
     if (f) newItems.push(f);
@@ -396,9 +652,10 @@ for (const n of orderedNames) {
 }
 
 col.info.description =
-  'LinkedInDiplom backend API — modular monolith. Import with LinkedInDiplom.local.postman_environment.json. ' +
-  'Run 01 Auth → Login, then 11 Admin → Admin Login. See docs/09_TESTING_AND_POSTMAN.md.';
-col.info.version = '2026-06-17';
+  'LinkedInDiplom backend API — modular monolith (2026-06-18). Import LinkedInDiplom.local.postman_environment.json. ' +
+  'Smoke: 00 Health → 01 Login User A → 01 Login User B → 04 Create post → 06 Create Direct Chat → 08 Apply → Withdraw. ' +
+  'See docs/api/POSTMAN_TESTING.md and docs/09_TESTING_AND_POSTMAN.md.';
+col.info.version = '2026-06-18-postman-sync';
 col.item = newItems;
 
 // collection variables
@@ -424,23 +681,43 @@ const updates = {
   apiUrl: 'https://localhost:7011/api',
   userEmail: 'test@example.com',
   userPassword: 'Test123!',
-  adminEmail: 'admin@local.dev',
-  adminPassword: 'Admin123!',
+  userAEmail: 'test@example.com',
+  userAPassword: 'Test123!',
+  userBEmail: 'test2@example.com',
+  userBPassword: 'Test123!',
   otherUserEmail: 'test2@example.com',
   otherUserPassword: 'Test123!',
+  adminEmail: 'admin@local.dev',
+  adminPassword: 'Admin123!',
 };
 
 for (const v of env.values) {
   if (updates[v.key] !== undefined) v.value = updates[v.key];
-  if (v.key === 'adminToken' && !v.value) v.value = '';
-  if (v.key === 'adminAccessToken' && !v.value) v.value = '';
 }
 
+addVar('token', '');
+addVar('userAEmail', 'test@example.com');
+addVar('userAPassword', 'Test123!');
+addVar('userBEmail', 'test2@example.com');
+addVar('userBPassword', 'Test123!');
+addVar('userAId', '');
+addVar('userBId', '');
 addVar('apiUrl', 'https://localhost:7011/api');
 addVar('userEmail', 'test@example.com');
 addVar('userPassword', 'Test123!');
 addVar('adminEmail', 'admin@local.dev');
 addVar('adminPassword', 'Admin123!');
+addVar('participantUserId', '');
+
+// DemoSeed note on credential variables
+for (const v of env.values) {
+  if (['userAEmail', 'userAPassword', 'userBEmail', 'userBPassword', 'adminEmail', 'adminPassword', 'userEmail', 'userPassword', 'otherUserEmail', 'otherUserPassword'].includes(v.key)) {
+    v.description = 'Default from DemoSeed/AdminSeed (Development). See docs/08_SEED_DATA.md.';
+  }
+  if (v.key === 'participantUserId' && !v.description) {
+    v.description = 'Alias for userBId in direct chat; set by Login User B script.';
+  }
+}
 
 env.name = 'LinkedInDiplom Local';
 env._postman_exported_at = new Date().toISOString();

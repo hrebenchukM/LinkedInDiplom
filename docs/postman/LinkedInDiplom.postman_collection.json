@@ -2,9 +2,9 @@
   "info": {
     "name": "LinkedInDiplom API",
     "_postman_id": "7b2ed47c-3496-4a77-a2ad-33ca8129d731",
-    "description": "LinkedInDiplom backend API — modular monolith. Import with LinkedInDiplom.local.postman_environment.json. Run 01 Auth → Login, then 11 Admin → Admin Login. See docs/09_TESTING_AND_POSTMAN.md.",
+    "description": "LinkedInDiplom backend API — modular monolith (2026-06-18). Import LinkedInDiplom.local.postman_environment.json. Smoke: 00 Health → 01 Login User A → 01 Login User B → 04 Create post → 06 Create Direct Chat → 08 Apply → Withdraw. See docs/api/POSTMAN_TESTING.md and docs/09_TESTING_AND_POSTMAN.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2026-06-17"
+    "version": "2026-06-18-postman-sync"
   },
   "item": [
     {
@@ -84,7 +84,7 @@
           ]
         },
         {
-          "name": "Login",
+          "name": "Login User A",
           "request": {
             "method": "POST",
             "header": [
@@ -96,8 +96,14 @@
             "url": "{{baseUrl}}/api/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!\"\n}"
-            }
+              "raw": "{\n  \"email\": \"{{userAEmail}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Demo User A (default test@example.com / Test123! from DemoSeed). Saves accessToken, token, refreshToken, userId, userAId."
           },
           "event": [
             {
@@ -111,10 +117,59 @@
                   "  const access = j?.token?.accessToken;",
                   "  const refresh = j?.token?.refreshToken;",
                   "  const uid = j?.account?.id;",
-                  "  if (access) { pm.environment.set(\"accessToken\", access); console.log(\"accessToken saved\"); }",
+                  "  if (access) {",
+                  "    pm.environment.set(\"accessToken\", access);",
+                  "    pm.environment.set(\"token\", access);",
+                  "    console.log(\"accessToken saved\");",
+                  "  }",
                   "  if (refresh) { pm.environment.set(\"refreshToken\", refresh); console.log(\"refreshToken saved\"); }",
-                  "  if (uid) { pm.environment.set(\"userId\", uid); console.log(\"userId saved:\", uid); }",
+                  "  if (uid) {",
+                  "    pm.environment.set(\"userId\", uid);",
+                  "    pm.environment.set(\"userAId\", uid);",
+                  "    console.log(\"userId saved:\", uid);",
+                  "  }",
                   "} catch (e) { /* non-json */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User B (resolve userBId)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Demo User B (default test2@example.com). Saves userBId, otherUserId, participantUserId — does **not** overwrite accessToken. Run after Login User A.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userBEmail}}\",\n  \"password\": \"{{userBPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));",
+                  "if (pm.response.code === 200) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const uid = j?.account?.id;",
+                  "    if (uid) {",
+                  "      pm.environment.set(\"otherUserId\", uid);",
+                  "      pm.environment.set(\"userBId\", uid);",
+                  "      pm.environment.set(\"participantUserId\", uid);",
+                  "      console.log(\"userBId saved:\", uid);",
+                  "    }",
+                  "  } catch (e) {}",
+                  "}"
                 ]
               }
             }
@@ -260,8 +315,49 @@
               ]
             },
             "method": "GET",
-            "url": "{{baseUrl}}/api/auth/me"
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "GET /api/auth/me — current account from JWT."
           }
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Platform admin (AdminSeed: admin@local.dev / Admin123!). Saves adminToken, adminAccessToken, adminUserId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "try {",
+                  "  const j = pm.response.json();",
+                  "  const access = j?.token?.accessToken;",
+                  "  const uid = j?.account?.id;",
+                  "  if (access) {",
+                  "    pm.environment.set(\"adminAccessToken\", access);",
+                  "    pm.environment.set(\"adminToken\", access);",
+                  "    console.log(\"adminToken saved\");",
+                  "  }",
+                  "  if (uid) { pm.environment.set(\"adminUserId\", uid); console.log(\"adminUserId saved:\", uid); }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -471,1858 +567,7 @@
       ]
     },
     {
-      "name": "03 Content",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{accessToken}}",
-            "type": "string"
-          }
-        ]
-      },
-      "item": [
-        {
-          "name": "Create Post",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/posts",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"visibility\": \"public\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "let j={};try{j=pm.response.json()}catch(e){}",
-                  "const id=j?.post?.id||j?.item?.id||j?.id;",
-                  "if(id) pm.environment.set('postId', id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get My Posts",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/content/me/posts?page=1&pageSize=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "content",
-                "me",
-                "posts"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Feed",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "content",
-                "feed"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Feed (public, no JWT)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "Public global feed without JWT. With JWT same URL returns network-aware feed."
-          }
-        },
-        {
-          "name": "Get User Public Posts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/users/{{otherUserId}}/posts?page=1&pageSize=20",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "PagedResponse<PostDto>. Public posts of user (Step 2)."
-          }
-        },
-        {
-          "name": "Get Feed (limit alias)",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/content/feed?limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "content",
-                "feed"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "50"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Post By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}"
-          }
-        },
-        {
-          "name": "Patch Post",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Updated content\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Post",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}"
-          }
-        },
-        {
-          "name": "Attach Media To Post",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mediaId\": \"{{mediaId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Post Media",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media"
-          }
-        },
-        {
-          "name": "Detach Media From Post",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}"
-          }
-        },
-        {
-          "name": "Upload Media",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/me/media/upload",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Media By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/media/{{mediaId}}"
-          }
-        },
-        {
-          "name": "Create Comment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Nice post!\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.comment?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"commentId\", String(id)); console.log(\"commentId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Comments By Post",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments?page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Patch Comment",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Edited comment\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Comment",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}"
-          }
-        },
-        {
-          "name": "Put Reaction",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reactionType\": \"like\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Reaction",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
-          }
-        },
-        {
-          "name": "Get My Reaction",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me"
-          }
-        },
-        {
-          "name": "Get Post Reactions",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
-          }
-        },
-        {
-          "name": "List Hashtags",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/hashtags?page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Create Hashtag (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/hashtags",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"dotnet\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.hashtag?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"hashtagId\", String(id)); console.log(\"hashtagId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Hashtag By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}"
-          }
-        },
-        {
-          "name": "Attach Hashtag To Post",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Post Hashtags",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags"
-          }
-        },
-        {
-          "name": "Detach Hashtag From Post",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags/{{hashtagId}}"
-          }
-        },
-        {
-          "name": "Follow Hashtag",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
-          }
-        },
-        {
-          "name": "Unfollow Hashtag",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
-          }
-        },
-        {
-          "name": "Get My Hashtag Follows",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/me/hashtags/following"
-          }
-        },
-        {
-          "name": "Save Post",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
-          }
-        },
-        {
-          "name": "Unsave Post",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
-          }
-        },
-        {
-          "name": "Get My Saved Posts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/me/saved-posts"
-          }
-        },
-        {
-          "name": "Repost",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
-          }
-        },
-        {
-          "name": "Delete Repost",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
-          }
-        },
-        {
-          "name": "Get My Reposts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/me/reposts"
-          }
-        },
-        {
-          "name": "Get Post Reposts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reposts"
-          }
-        },
-        {
-          "name": "Create Post View",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/views?source=feed"
-          }
-        },
-        {
-          "name": "Get My Post Views",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/views"
-          }
-        },
-        {
-          "name": "Create Mention",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mentionedUserId\": \"{{otherUserId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Mention",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions/{{otherUserId}}"
-          }
-        },
-        {
-          "name": "Get Mentions By Post",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/content/posts/{{postId}}/mentions"
-          }
-        },
-        {
-          "name": "Create Media By URL",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/content/me/media",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"url\": \"https://example.com/image.png\",\n  \"type\": \"image\"\n}"
-            },
-            "description": "JSON attach by URL. Use me/media/upload for file upload."
-          }
-        }
-      ]
-    },
-    {
-      "name": "04 Network",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{accessToken}}",
-            "type": "string"
-          }
-        ]
-      },
-      "item": [
-        {
-          "name": "Create Contact",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/contacts",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"receiverId\": \"{{receiverId}}\"\n}"
-            },
-            "description": "Use receiverId (typically same GUID as otherUserId)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.contact?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"contactId\", String(id)); console.log(\"contactId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get My Contacts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts?page=1&pageSize=20",
-            "description": "PagedResponse<ContactDto> (Step 5)."
-          }
-        },
-        {
-          "name": "Get Contact By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
-          }
-        },
-        {
-          "name": "Accept Contact",
-          "request": {
-            "method": "PATCH",
-            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/accept"
-          }
-        },
-        {
-          "name": "Reject Contact",
-          "request": {
-            "method": "PATCH",
-            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/reject"
-          }
-        },
-        {
-          "name": "Delete Contact",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
-          }
-        },
-        {
-          "name": "Get Contacts Pending Incoming",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=incoming&page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Contacts Pending Outgoing",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=outgoing&page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Incoming Contact Requests",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts/incoming?page=1&pageSize=20",
-            "description": "Shortcut: pending incoming (Step 6)."
-          }
-        },
-        {
-          "name": "Get Outgoing Contact Requests",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts/outgoing?page=1&pageSize=20",
-            "description": "Shortcut: pending outgoing (Step 6)."
-          }
-        },
-        {
-          "name": "Get Contact Pending Counts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/contacts/pending-counts",
-            "description": "incomingCount, outgoingCount badges."
-          }
-        },
-        {
-          "name": "Cancel Outgoing Contact Request",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/cancel",
-            "description": "Outgoing pending only. Accepted cannot be cancelled here."
-          }
-        },
-        {
-          "name": "Upload Page Logo",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/logo",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Upload Group Avatar",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/avatar",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Follow User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/following",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"followingId\": \"{{followedUserId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Unfollow User",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/following/{{followedUserId}}"
-          }
-        },
-        {
-          "name": "Get Following",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/following"
-          }
-        },
-        {
-          "name": "Get Followers",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/followers"
-          }
-        },
-        {
-          "name": "Block User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/blocked-users",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"blockedUserId\": \"{{blockedUserId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Unblock User",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/blocked-users/{{blockedUserId}}"
-          }
-        },
-        {
-          "name": "Get Blocked Users",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/blocked-users"
-          }
-        },
-        {
-          "name": "Create Group",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/groups",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Backend Group\",\n  \"description\": \"Test group\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.userGroup?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"groupId\", String(id)); console.log(\"groupId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get My Groups",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/groups"
-          }
-        },
-        {
-          "name": "Get Group By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
-          }
-        },
-        {
-          "name": "Patch Group",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Updated\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Group",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
-          }
-        },
-        {
-          "name": "Join Group",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/join"
-          }
-        },
-        {
-          "name": "Leave Group",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/membership"
-          }
-        },
-        {
-          "name": "Get Group Members",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/members"
-          }
-        },
-        {
-          "name": "Attach Group Post",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
-          }
-        },
-        {
-          "name": "Detach Group Post",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
-          }
-        },
-        {
-          "name": "Get Group Posts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts"
-          }
-        },
-        {
-          "name": "Create Page",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/pages",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Test Page\",\n  \"description\": \"Company page\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.page?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"pageId\", String(id)); console.log(\"pageId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get My Pages",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/pages"
-          }
-        },
-        {
-          "name": "Get My Following Pages",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/pages/following"
-          }
-        },
-        {
-          "name": "Get Page By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
-          }
-        },
-        {
-          "name": "Patch Page",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"description\": \"Updated page\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Page",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
-          }
-        },
-        {
-          "name": "Add Page Admin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"adminUserId\": \"{{otherUserId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Remove Page Admin",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins/{{otherUserId}}"
-          }
-        },
-        {
-          "name": "Get Page Admins",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins"
-          }
-        },
-        {
-          "name": "Follow Page",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
-          }
-        },
-        {
-          "name": "Unfollow Page",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
-          }
-        },
-        {
-          "name": "Get Page Followers",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/followers"
-          }
-        }
-      ]
-    },
-    {
-      "name": "05 Messaging",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{accessToken}}",
-            "type": "string"
-          }
-        ]
-      },
-      "item": [
-        {
-          "name": "Create Chat",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/messaging/me/chats",
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
-            "description": "Creates personal chat for current user. Empty body is valid."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.chat?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"chatId\", String(id)); console.log(\"chatId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get My Chats",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/chats?page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Chat By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
-          }
-        },
-        {
-          "name": "Delete Chat",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
-          }
-        },
-        {
-          "name": "Join Chat",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join"
-          }
-        },
-        {
-          "name": "Leave Chat",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/membership"
-          }
-        },
-        {
-          "name": "Get Chat Members",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/members"
-          }
-        },
-        {
-          "name": "Send Message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Hello\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.message?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"messageId\", String(id)); console.log(\"messageId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Chat Messages",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages?page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Message By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
-          }
-        },
-        {
-          "name": "Patch Message",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Edited\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Message",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
-          }
-        },
-        {
-          "name": "Mark Message Read",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/read"
-          }
-        },
-        {
-          "name": "Get Message Reads",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/reads"
-          }
-        },
-        {
-          "name": "Attach Message Media (JSON URL)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mediaUrl\": \"https://example.com/file.pdf\",\n  \"mediaType\": \"document\"\n}"
-            },
-            "description": "JSON body — not form-data. Use Upload Message Media for files."
-          }
-        },
-        {
-          "name": "Upload Message Media",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/upload",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            },
-            "description": "multipart/form-data file upload."
-          }
-        },
-        {
-          "name": "Get Message Media",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media"
-          }
-        },
-        {
-          "name": "Delete Message Media",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/{{messageMediaId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "06 Jobs",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{accessToken}}",
-            "type": "string"
-          }
-        ]
-      },
-      "item": [
-        {
-          "name": "Create Vacancy",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/jobs/me/vacancies",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Backend Developer\",\n  \"description\": \"Test vacancy\",\n  \"companyId\": \"{{companyId}}\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.vacancy?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"vacancyId\", String(id)); console.log(\"vacancyId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Vacancies (legacy URL)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies",
-            "description": "Deprecated: use paged variants below."
-          }
-        },
-        {
-          "name": "Get Vacancies (paged)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies?page=1&pageSize=20",
-            "description": "PagedResponse<VacancyDto> (Step 5)."
-          }
-        },
-        {
-          "name": "Get Vacancies (minSalaryFrom)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/jobs/vacancies?minSalaryFrom=80000&page=1&pageSize=20",
-            "description": "Filter vacancies with salaryFrom >= minSalaryFrom. Requires JWT."
-          }
-        },
-        {
-          "name": "Get Vacancies (query)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies?query=developer&page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Vacancies (search alias)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies?search=developer&page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Vacancies (sorted)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies?sortBy=createdAt&sortDirection=desc&page=1&pageSize=20"
-          }
-        },
-        {
-          "name": "Get Vacancy By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/vacancies/{{vacancyId}}"
-          }
-        },
-        {
-          "name": "Patch Vacancy",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Senior Backend Developer\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Vacancy",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}"
-          }
-        },
-        {
-          "name": "Favorite Vacancy",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
-          }
-        },
-        {
-          "name": "Unfavorite Vacancy",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
-          }
-        },
-        {
-          "name": "Get My Favorites",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/favorites"
-          }
-        },
-        {
-          "name": "Apply To Vacancy",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/apply"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
-                  "  try {",
-                  "    const j = pm.response.json();",
-                  "    const id = j?.application?.id || j?.id;",
-                  "    if (id) { pm.environment.set(\"applicationId\", String(id)); console.log(\"applicationId saved:\", id); }",
-                  "  } catch (e) {}",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Delete Application",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/jobs/me/applications/{{applicationId}}"
-          }
-        },
-        {
-          "name": "Get My Applications",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/applications"
-          }
-        },
-        {
-          "name": "Get Vacancy Applications",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/applications"
-          }
-        },
-        {
-          "name": "Create Search Query",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/jobs/me/search-queries",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"query\": \"backend\",\n  \"location\": \"Chisinau\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get My Search Queries",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/search-queries"
-          }
-        },
-        {
-          "name": "Get Search Query By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
-          }
-        },
-        {
-          "name": "Delete Search Query",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
-          }
-        },
-        {
-          "name": "Get Search Results",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results"
-          }
-        },
-        {
-          "name": "Get Recommended Queries (user read-only)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/jobs/recommended-queries"
-          }
-        }
-      ]
-    },
-    {
-      "name": "07 Events",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{accessToken}}",
-            "type": "string"
-          }
-        ]
-      },
-      "item": [
-        {
-          "name": "Create Event",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Test Event\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-05-28T10:00:00Z\"\n}"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "let j={};try{j=pm.response.json()}catch(e){}",
-                  "const id=j?.item?.id||j?.event?.id||j?.id; if(id) pm.environment.set('eventId', id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Discover Events (public)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events?page=1&pageSize=20",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "Optional JWT adds isAttending. PagedResponse<EventDto> with attendeeCount."
-          }
-        },
-        {
-          "name": "Discover Events (filters)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events?query=conference&fromStartAt=2026-01-01T00:00:00Z&toStartAt=2026-12-31T23:59:59Z&location=&isOnline=true&page=1&pageSize=20",
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Get Attending Events",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/me/attending?page=1&pageSize=20",
-            "description": "Requires JWT. PagedResponse<EventDto>."
-          }
-        },
-        {
-          "name": "List Event Speakers (public catalog)",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/speakers?page=1&pageSize=20&query=",
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Upload Event Cover",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/cover",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get My Events",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/me"
-          }
-        },
-        {
-          "name": "Get Event By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/{{eventId}}"
-          }
-        },
-        {
-          "name": "Patch Event",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Updated Event\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Event",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}"
-          }
-        },
-        {
-          "name": "Join Event",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/join"
-          }
-        },
-        {
-          "name": "Leave Event",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/attendance"
-          }
-        },
-        {
-          "name": "Get Event Attendees",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/{{eventId}}/attendees"
-          }
-        },
-        {
-          "name": "Create Event Schedule Item",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Opening\",\n  \"orderIndex\": 1\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Event Schedule",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/{{eventId}}/schedule"
-          }
-        },
-        {
-          "name": "Patch Event Schedule Item",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Opening Updated\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Event Schedule Item",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}"
-          }
-        },
-        {
-          "name": "Create Speaker (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/speakers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Speaker By Id",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
-          }
-        },
-        {
-          "name": "Patch Speaker (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Principal Engineer\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Speaker (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
-          }
-        },
-        {
-          "name": "Upload Speaker Avatar (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Attach Speaker To Event",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Detach Speaker From Event",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}"
-          }
-        },
-        {
-          "name": "Get Event Speakers",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/events/{{eventId}}/speakers"
-          }
-        }
-      ]
-    },
-    {
-      "name": "08 Professional",
+      "name": "03 Professional",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -2370,6 +615,52 @@
               "type": "noauth"
             }
           }
+        },
+        {
+          "name": "Get User Certificates (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/professional/users/{{otherUserId}}/certificates",
+            "description": "Public portfolio section. No JWT. Uses otherUserId (run Auth → Login Other User first). 404 if profile not found.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Languages (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/professional/users/{{otherUserId}}/languages",
+            "description": "Public portfolio section. No JWT. Array of UserLanguageDto.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Experience",
@@ -3265,7 +1556,1306 @@
       ]
     },
     {
-      "name": "09 Notifications",
+      "name": "04 Content",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"visibility\": \"public\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "const id=j?.post?.id||j?.item?.id||j?.id;",
+                  "if(id) pm.environment.set('postId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Posts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/me/posts?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "me",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "feed"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Feed (public, no JWT)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/feed?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Public global feed without JWT. With JWT same URL returns network-aware feed."
+          }
+        },
+        {
+          "name": "Get User Public Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/users/{{otherUserId}}/posts?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "PagedResponse<PostDto>. Public posts of user (Step 2)."
+          }
+        },
+        {
+          "name": "Get Feed (limit alias)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/content/feed?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "feed"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Post By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Patch Post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated content\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Attach Media To Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mediaId\": \"{{mediaId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Post Media",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media"
+          }
+        },
+        {
+          "name": "Detach Media From Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/media/{{mediaId}}"
+          }
+        },
+        {
+          "name": "Upload Media",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/media/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Media By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/media/{{mediaId}}"
+          }
+        },
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Nice post!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.comment?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"commentId\", String(id)); console.log(\"commentId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Comments By Post",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/comments?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Patch Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Edited comment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Put Reaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reactionType\": \"like\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Reaction",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
+          }
+        },
+        {
+          "name": "Get My Reaction",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions/me"
+          }
+        },
+        {
+          "name": "Get Post Reactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reactions"
+          }
+        },
+        {
+          "name": "List Hashtags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/hashtags?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Create Hashtag (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/hashtags",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"dotnet\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.hashtag?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"hashtagId\", String(id)); console.log(\"hashtagId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Hashtag By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/hashtags/{{hashtagId}}"
+          }
+        },
+        {
+          "name": "Attach Hashtag To Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hashtagId\": \"{{hashtagId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Post Hashtags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/hashtags"
+          }
+        },
+        {
+          "name": "Detach Hashtag From Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/hashtags/{{hashtagId}}"
+          }
+        },
+        {
+          "name": "Follow Hashtag",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
+          }
+        },
+        {
+          "name": "Unfollow Hashtag",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/hashtags/{{hashtagId}}/follow"
+          }
+        },
+        {
+          "name": "Get My Hashtag Follows",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/hashtags/following"
+          }
+        },
+        {
+          "name": "Save Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
+          }
+        },
+        {
+          "name": "Unsave Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/save"
+          }
+        },
+        {
+          "name": "Get My Saved Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/saved-posts"
+          }
+        },
+        {
+          "name": "Repost",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
+          }
+        },
+        {
+          "name": "Delete Repost",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/repost"
+          }
+        },
+        {
+          "name": "Get My Reposts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/reposts"
+          }
+        },
+        {
+          "name": "Get Post Reposts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/reposts"
+          }
+        },
+        {
+          "name": "Create Post View",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/views?source=feed"
+          }
+        },
+        {
+          "name": "Get My Post Views",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/views"
+          }
+        },
+        {
+          "name": "Create Mention",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentionedUserId\": \"{{otherUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Mention",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/content/me/posts/{{postId}}/mentions/{{otherUserId}}"
+          }
+        },
+        {
+          "name": "Get Mentions By Post",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/content/posts/{{postId}}/mentions"
+          }
+        },
+        {
+          "name": "Create Media By URL",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/content/me/media",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/image.png\",\n  \"type\": \"image\"\n}"
+            },
+            "description": "JSON attach by URL. Use me/media/upload for file upload."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Network",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/contacts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiverId\": \"{{receiverId}}\"\n}"
+            },
+            "description": "Use receiverId (typically same GUID as otherUserId)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.contact?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"contactId\", String(id)); console.log(\"contactId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Contacts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?page=1&pageSize=20",
+            "description": "PagedResponse<ContactDto> (Step 5)."
+          }
+        },
+        {
+          "name": "Get Contact By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
+          }
+        },
+        {
+          "name": "Accept Contact",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/accept"
+          }
+        },
+        {
+          "name": "Reject Contact",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/reject"
+          }
+        },
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}"
+          }
+        },
+        {
+          "name": "Get Contacts Pending Incoming",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=incoming&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Contacts Pending Outgoing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts?status=pending&direction=outgoing&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Incoming Contact Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/incoming?page=1&pageSize=20",
+            "description": "Shortcut: pending incoming (Step 6)."
+          }
+        },
+        {
+          "name": "Get Outgoing Contact Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/outgoing?page=1&pageSize=20",
+            "description": "Shortcut: pending outgoing (Step 6)."
+          }
+        },
+        {
+          "name": "Get Contact Pending Counts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/contacts/pending-counts",
+            "description": "incomingCount, outgoingCount badges."
+          }
+        },
+        {
+          "name": "Cancel Outgoing Contact Request",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/contacts/{{contactId}}/cancel",
+            "description": "Outgoing pending only. Accepted cannot be cancelled here."
+          }
+        },
+        {
+          "name": "Upload Page Logo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/logo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Group Avatar",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/following",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followingId\": \"{{followedUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/following/{{followedUserId}}"
+          }
+        },
+        {
+          "name": "Get Following",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/following"
+          }
+        },
+        {
+          "name": "Get Followers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/followers"
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/blocked-users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"blockedUserId\": \"{{blockedUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/blocked-users/{{blockedUserId}}"
+          }
+        },
+        {
+          "name": "Get Blocked Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/blocked-users"
+          }
+        },
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/groups",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend Group\",\n  \"description\": \"Test group\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.userGroup?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"groupId\", String(id)); console.log(\"groupId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups"
+          }
+        },
+        {
+          "name": "Get Group By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
+          }
+        },
+        {
+          "name": "Patch Group",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}"
+          }
+        },
+        {
+          "name": "Join Group",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/join"
+          }
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/membership"
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/members"
+          }
+        },
+        {
+          "name": "Attach Group Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Detach Group Post",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Get Group Posts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/posts"
+          }
+        },
+        {
+          "name": "Create Page",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Page\",\n  \"description\": \"Company page\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.page?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"pageId\", String(id)); console.log(\"pageId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Pages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages"
+          }
+        },
+        {
+          "name": "Get My Following Pages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/following"
+          }
+        },
+        {
+          "name": "Get Page By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
+          }
+        },
+        {
+          "name": "Patch Page",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated page\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Page",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}"
+          }
+        },
+        {
+          "name": "Add Page Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adminUserId\": \"{{otherUserId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Page Admin",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins/{{otherUserId}}"
+          }
+        },
+        {
+          "name": "Get Page Admins",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/admins"
+          }
+        },
+        {
+          "name": "Follow Page",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
+          }
+        },
+        {
+          "name": "Unfollow Page",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/follow"
+          }
+        },
+        {
+          "name": "Get Page Followers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/followers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Messaging",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/chats",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Creates chat for current user only. Empty body `{}` — backward compatible (creator is sole member)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.chat?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"chatId\", String(id)); console.log(\"chatId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Direct Chat (participantUserId)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/messaging/me/chats",
+            "description": "Direct messaging: facade creates chat and auto-joins participantUserId. Set otherUserId first (Auth → Login Other User). Saves chatId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantUserId\": \"{{otherUserId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.chat?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"chatId\", String(id)); console.log(\"chatId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Chats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Chat By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
+          }
+        },
+        {
+          "name": "Delete Chat",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}"
+          }
+        },
+        {
+          "name": "Join Chat",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/join"
+          }
+        },
+        {
+          "name": "Leave Chat",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/membership"
+          }
+        },
+        {
+          "name": "Get Chat Members",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/members"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.message?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"messageId\", String(id)); console.log(\"messageId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Chat Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/chats/{{chatId}}/messages?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Message By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
+          }
+        },
+        {
+          "name": "Patch Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Edited\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}"
+          }
+        },
+        {
+          "name": "Mark Message Read",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/read"
+          }
+        },
+        {
+          "name": "Get Message Reads",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/reads"
+          }
+        },
+        {
+          "name": "Attach Message Media (JSON URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mediaUrl\": \"https://example.com/file.pdf\",\n  \"mediaType\": \"document\"\n}"
+            },
+            "description": "JSON body — not form-data. Use Upload Message Media for files."
+          }
+        },
+        {
+          "name": "Upload Message Media",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "description": "multipart/form-data file upload."
+          }
+        },
+        {
+          "name": "Get Message Media",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media"
+          }
+        },
+        {
+          "name": "Delete Message Media",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/{{messageMediaId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Notifications",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -3282,8 +2872,26 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/notifications/me?page=1&pageSize=20",
-            "description": "PagedResponse<NotificationDto> (Step 5)."
-          }
+            "description": "PagedResponse<NotificationDto>. Saves first notificationId to environment. Realtime: /hubs/notifications (NotificationCreated)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "try {",
+                  "  const j = pm.response.json();",
+                  "  const items = j?.items || j?.Items || [];",
+                  "  const first = items[0];",
+                  "  const id = first?.id || first?.Id;",
+                  "  if (id) { pm.environment.set(\"notificationId\", String(id)); console.log(\"notificationId saved:\", id); }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get My Notifications (limit alias)",
@@ -3298,6 +2906,15 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/notifications/me?isRead=false&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Unread Count (pageSize=1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications/me?isRead=false&pageSize=1",
+            "description": "Quick unread check (first page, one item)."
           }
         },
         {
@@ -3355,339 +2972,7 @@
       ]
     },
     {
-      "name": "10 File Uploads",
-      "item": [
-        {
-          "name": "Profile Avatar",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/profile/me/avatar",
-            "description": "form-data field `file` (type File — select manually in Postman). jpg/jpeg/png/webp, max 5MB. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Profile Header",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/profile/me/header",
-            "description": "form-data field `file` (type File — select manually in Postman). jpg/jpeg/png/webp, max 5MB. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Content Media",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/content/me/media/upload",
-            "description": "form-data field `file` (type File — select manually in Postman). images, max 10MB; creates Media row. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Company Logo",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}/logo",
-            "description": "form-data field `file` (type File — select manually in Postman). requires companyId. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Academy Logo (Admin)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/professional/academies/{{academyId}}/logo",
-            "description": "form-data field `file` (type File — select manually in Postman). Admin only. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Certificate File",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/file",
-            "description": "form-data field `file` (type File — select manually in Postman). pdf/images, max 10MB. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Page Logo",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/logo",
-            "description": "form-data field `file` (type File — select manually in Postman). requires pageId. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Group Avatar",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/avatar",
-            "description": "form-data field `file` (type File — select manually in Postman). requires groupId. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Event Cover",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/events/me/{{eventId}}/cover",
-            "description": "form-data field `file` (type File — select manually in Postman). requires eventId. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Speaker Avatar (Admin)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar",
-            "description": "form-data field `file` (type File — select manually in Postman). Admin only. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Message Media",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/upload",
-            "description": "form-data field `file` (type File — select manually in Postman). requires messageId, max 10MB. Returns URL in response DTO.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
-                }
-              ]
-            }
-          }
-        }
-      ],
+      "name": "08 Jobs",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -3697,7 +2982,647 @@
             "type": "string"
           }
         ]
-      }
+      },
+      "item": [
+        {
+          "name": "Create Vacancy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/vacancies",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Developer\",\n  \"description\": \"Test vacancy\",\n  \"companyId\": \"{{companyId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.vacancy?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"vacancyId\", String(id)); console.log(\"vacancyId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Vacancies (legacy URL)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies",
+            "description": "Deprecated: use paged variants below."
+          }
+        },
+        {
+          "name": "Get Vacancies (paged)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?page=1&pageSize=20",
+            "description": "PagedResponse<VacancyDto> (Step 5)."
+          }
+        },
+        {
+          "name": "Get Vacancies (minSalaryFrom)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/jobs/vacancies?minSalaryFrom=80000&page=1&pageSize=20",
+            "description": "Filter vacancies with salaryFrom >= minSalaryFrom. Requires JWT."
+          }
+        },
+        {
+          "name": "Get Vacancies (query)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?query=developer&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancies (search alias)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?search=developer&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancies (sorted)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies?sortBy=createdAt&sortDirection=desc&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Get Vacancy By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/vacancies/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Patch Vacancy",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Backend Developer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Vacancy",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Favorite Vacancy",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Unfavorite Vacancy",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/favorites/{{vacancyId}}"
+          }
+        },
+        {
+          "name": "Get My Favorites",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/favorites"
+          }
+        },
+        {
+          "name": "Apply To Vacancy",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/apply"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    const id = j?.application?.id || j?.id;",
+                  "    if (id) { pm.environment.set(\"applicationId\", String(id)); console.log(\"applicationId saved:\", id); }",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdraw Application",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/applications/{{applicationId}}",
+            "description": "DELETE /api/jobs/me/applications/{applicationId}. Soft-withdraw; frontend allows re-apply after withdraw."
+          }
+        },
+        {
+          "name": "Get My Applications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/applications"
+          }
+        },
+        {
+          "name": "Get Vacancy Applications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/vacancies/{{vacancyId}}/applications"
+          }
+        },
+        {
+          "name": "Create Search Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/jobs/me/search-queries",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"backend\",\n  \"location\": \"Chisinau\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Search Queries",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries"
+          }
+        },
+        {
+          "name": "Get Search Query By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
+          }
+        },
+        {
+          "name": "Delete Search Query",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}"
+          }
+        },
+        {
+          "name": "Get Search Results",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/me/search-queries/{{searchQueryId}}/results"
+          }
+        },
+        {
+          "name": "Get Recommended Queries (user read-only)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/jobs/recommended-queries"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Events",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Event\",\n  \"organizerType\": \"user\",\n  \"startAt\": \"2026-05-28T10:00:00Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j={};try{j=pm.response.json()}catch(e){}",
+                  "const id=j?.item?.id||j?.event?.id||j?.id; if(id) pm.environment.set('eventId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discover Events (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events?page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Optional JWT adds isAttending. PagedResponse<EventDto> with attendeeCount."
+          }
+        },
+        {
+          "name": "Discover Events (filters)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events?query=conference&fromStartAt=2026-01-01T00:00:00Z&toStartAt=2026-12-31T23:59:59Z&location=&isOnline=true&page=1&pageSize=20",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get Attending Events",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me/attending?page=1&pageSize=20",
+            "description": "Requires JWT. PagedResponse<EventDto>."
+          }
+        },
+        {
+          "name": "List Event Speakers (public catalog)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/speakers?page=1&pageSize=20&query=",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Upload Event Cover",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/cover",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Events",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me"
+          }
+        },
+        {
+          "name": "Get Event By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}"
+          }
+        },
+        {
+          "name": "Patch Event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Event\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}"
+          }
+        },
+        {
+          "name": "Join Event",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/join"
+          }
+        },
+        {
+          "name": "Leave Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/attendance"
+          }
+        },
+        {
+          "name": "Get Event Attendees",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/attendees"
+          }
+        },
+        {
+          "name": "Create Event Schedule Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Opening\",\n  \"orderIndex\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Event Schedule",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/schedule"
+          }
+        },
+        {
+          "name": "Patch Event Schedule Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Opening Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event Schedule Item",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/schedule/{{scheduleItemId}}"
+          }
+        },
+        {
+          "name": "Create Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/speakers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"title\": \"Engineer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Speaker By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Patch Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Principal Engineer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Speaker (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Upload Speaker Avatar (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach Speaker To Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"speakerId\": \"{{speakerId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Detach Speaker From Event",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/speakers/{{speakerId}}"
+          }
+        },
+        {
+          "name": "Get Event Speakers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/events/{{eventId}}/speakers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 AI",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Recommended Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/recommended-jobs",
+            "description": "GET /api/ai/recommended-jobs (Gemini or skill fallback). Frontend wired. Requires JWT. Expect **200** or **503** when AI unavailable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 503', () => pm.expect([200, 503]).to.include(pm.response.code));",
+                  "if (pm.response.code === 503) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j.success).to.eql(false);",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Career Advice",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/career-advice",
+            "description": "GET /api/ai/career-advice (Gemini). **Backend-ready; frontend not wired yet.** Requires JWT. Expect **200** or **503** when AI unavailable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 503', () => pm.expect([200, 503]).to.include(pm.response.code));",
+                  "if (pm.response.code === 503) {",
+                  "  try {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j.success).to.eql(false);",
+                  "  } catch (e) {}",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "11 Admin",
@@ -3732,7 +3657,7 @@
                   "  if (access) {",
                   "    pm.environment.set(\"adminAccessToken\", access);",
                   "    pm.environment.set(\"adminToken\", access);",
-                  "    console.log(\"adminAccessToken saved\");",
+                  "    console.log(\"adminToken saved\");",
                   "  }",
                   "  if (uid) { pm.environment.set(\"adminUserId\", uid); console.log(\"adminUserId saved:\", uid); }",
                   "} catch (e) {}"
@@ -4462,7 +4387,12 @@
                 "url": "{{baseUrl}}/api/admin/jobs/recommended-queries",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"query\": \"dotnet developer\"\n}"
+                  "raw": "{\n  \"query\": \"React developer\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
               },
               "event": [
@@ -4471,8 +4401,17 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "let j={};try{j=pm.response.json()}catch(e){}",
-                      "if(j.id) pm.environment.set('recommendedJobQueryId', j.id);"
+                      "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                      "  try {",
+                      "    const j = pm.response.json();",
+                      "    const id = j?.id || j?.Id || j?.recommendedJobQuery?.id;",
+                      "    if (id) {",
+                      "      pm.environment.set(\"recommendedQueryId\", String(id));",
+                      "      pm.environment.set(\"recommendedJobQueryId\", String(id));",
+                      "      console.log(\"recommendedQueryId saved:\", id);",
+                      "    }",
+                      "  } catch (e) {}",
+                      "}"
                     ]
                   }
                 }
@@ -4482,7 +4421,8 @@
               "name": "Delete Recommended Query",
               "request": {
                 "method": "DELETE",
-                "url": "{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedJobQueryId}}"
+                "url": "{{baseUrl}}/api/admin/jobs/recommended-queries/{{recommendedQueryId}}",
+                "description": "Uses recommendedQueryId (alias: recommendedJobQueryId)."
               }
             },
             {
@@ -4595,24 +4535,339 @@
       ]
     },
     {
-      "name": "12 SignalR Info (not HTTP)",
+      "name": "12 File Uploads",
       "item": [
         {
-          "name": "README — SignalR Hub",
+          "name": "Profile Avatar",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [],
-            "url": "{{baseUrl}}/swagger/index.html",
-            "description": "SignalR cannot be fully tested via REST.\n\nHub URL: {{baseUrl}}/hubs/messaging?access_token={{accessToken}}\n\nClient methods: JoinChat(chatId), LeaveChat(chatId)\n\nServer events: MessageCreated, MessageUpdated, MessageDeleted, MessageRead, MessageMediaAttached\n\nSee docs/07_REALTIME_AND_DOMAIN_EVENTS.md and frontend/scripts/verify-signalr.mjs",
+            "url": "{{baseUrl}}/api/profile/me/avatar",
+            "description": "form-data field `file` (type File — select manually in Postman). jpg/jpeg/png/webp, max 5MB. Returns URL in response DTO.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Profile Header",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/profile/me/header",
+            "description": "form-data field `file` (type File — select manually in Postman). jpg/jpeg/png/webp, max 5MB. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Content Media",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/content/me/media/upload",
+            "description": "form-data field `file` (type File — select manually in Postman). images, max 10MB; creates Media row. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Company Logo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/professional/me/companies/{{companyId}}/logo",
+            "description": "form-data field `file` (type File — select manually in Postman). requires companyId. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Academy Logo (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/professional/academies/{{academyId}}/logo",
+            "description": "form-data field `file` (type File — select manually in Postman). Admin only. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Certificate File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/professional/me/certificates/{{certificateId}}/file",
+            "description": "form-data field `file` (type File — select manually in Postman). pdf/images, max 10MB. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Page Logo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/network/me/pages/{{pageId}}/logo",
+            "description": "form-data field `file` (type File — select manually in Postman). requires pageId. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Group Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/network/me/groups/{{groupId}}/avatar",
+            "description": "form-data field `file` (type File — select manually in Postman). requires groupId. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Event Cover",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/events/me/{{eventId}}/cover",
+            "description": "form-data field `file` (type File — select manually in Postman). requires eventId. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Speaker Avatar (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/events/me/speakers/{{speakerId}}/avatar",
+            "description": "form-data field `file` (type File — select manually in Postman). Admin only. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Message Media",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/messaging/me/messages/{{messageId}}/media/upload",
+            "description": "form-data field `file` (type File — select manually in Postman). requires messageId, max 10MB. Returns URL in response DTO.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select jpg/png/webp (max 5MB) or pdf for certificates (max 10MB)"
+                }
+              ]
             }
           }
         }
-      ]
-    },
-    {
-      "name": "99 Debug / Utility / AI",
+      ],
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -4622,22 +4877,33 @@
             "type": "string"
           }
         ]
-      },
+      }
+    },
+    {
+      "name": "13 SignalR Info (not HTTP REST)",
       "item": [
         {
-          "name": "Get Recommended Jobs",
+          "name": "Messaging Hub — README",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/ai/recommended-jobs",
-            "description": "GET not POST. Requires JWT."
+            "header": [],
+            "url": "{{baseUrl}}/swagger/index.html",
+            "description": "**Swagger does not test SignalR.** Use frontend (two browsers) or frontend/scripts/verify-signalr.mjs.\n\nHub: {{baseUrl}}/hubs/messaging?access_token={{accessToken}}\nGroup: chat:{chatId} (after JoinChat)\nServer events: MessageCreated, MessageUpdated, MessageDeleted, MessageRead, MessageMediaAttached\n\nFlow: POST message via REST → DB → hub push to group.\nSee docs/07_REALTIME_AND_DOMAIN_EVENTS.md",
+            "auth": {
+              "type": "noauth"
+            }
           }
         },
         {
-          "name": "Get Career Advice",
+          "name": "Notifications Hub — README",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/ai/career-advice",
-            "description": "GET not POST. Requires JWT."
+            "header": [],
+            "url": "{{baseUrl}}/swagger/index.html",
+            "description": "Hub: {{baseUrl}}/hubs/notifications?access_token={{accessToken}}\nGroup: user:{userId} (auto-join from JWT on connect)\nServer event: NotificationCreated\n\nOffline users: notifications persisted in DB — GET /api/notifications/me after login.\nNo push/email/outbox in v1.\nSee docs/07_REALTIME_AND_DOMAIN_EVENTS.md",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]

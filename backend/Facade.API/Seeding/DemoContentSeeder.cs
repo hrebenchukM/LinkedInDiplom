@@ -8,12 +8,16 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoContentSeeder
+public sealed class DemoContentSeeder : IDemoSeeder
 {
-    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
-    private const string TestUserOneEmail = "test@example.com";
-    private const string TestUserTwoEmail = "test2@example.com";
-    private const int MinDemoPosts = 3;
+    public int Order => 6;
+
+    public string Name => nameof(DemoContentSeeder);
+
+    private const string PrimaryDemoUserEmail = DemoSeedConstants.PrimaryDemoUserEmail;
+    private const string TestUserOneEmail = DemoSeedConstants.TestUserOneEmail;
+    private const string TestUserTwoEmail = DemoSeedConstants.TestUserTwoEmail;
+    private const int MinDemoPosts = DemoSeedConstants.MinBaselineDemoPosts;
 
     private readonly ContentDbContext _contentDb;
     private readonly IPostService _postService;
@@ -39,7 +43,7 @@ public sealed class DemoContentSeeder
     {
         _logger.LogInformation("Demo content seed started.");
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
         var existingDemoPosts = await _contentDb.Posts
             .AsNoTracking()
             .CountAsync(
@@ -123,11 +127,5 @@ public sealed class DemoContentSeeder
 
         _logger.LogInformation("Demo content seed: created post for {Email}.", author.Email);
         return true;
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

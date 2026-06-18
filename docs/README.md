@@ -4,16 +4,34 @@
 > **Backend:** `.NET 8` modular monolith, host `Facade.API`  
 > **БД:** PostgreSQL 16, одна база, 9 schema  
 > **Frontend:** React (Vite), отдельная папка `frontend/`  
-> **Обновлено:** 2026-06-17
+> **Обновлено:** 2026-06-18
 
 ---
 
 ## Для защиты диплома — с чего начать
 
 1. **[01_OVERVIEW.md](01_OVERVIEW.md)** — обзор системы  
-2. **[02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md)** — архитектура и модули  
-3. **[08_SEED_DATA.md](08_SEED_DATA.md)** — demo seed  
-4. **[11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md)** — что готово / что частично  
+2. **[02_ARCHITECTURE_AND_MODULES.md](02_ARCHITECTURE_AND_MODULES.md)** — архитектура, backend vs frontend v1  
+3. **[10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md)** — что wired, что partial, client-only  
+4. **[08_SEED_DATA.md](08_SEED_DATA.md)** — demo seed  
+5. **[11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md)** — roadmap до/после защиты  
+6. **[09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md)** — build/test + manual QA checklist  
+
+---
+
+## Возможности проекта (кратко)
+
+| Слой | Статус |
+|------|--------|
+| **Backend** | ~200 REST endpoints, 9 DB schemas, 2 SignalR hubs, domain events, admin, AI (Gemini) |
+| **Frontend wired** | Auth, feed, save, messaging+SignalR, notifications+SignalR, jobs apply/withdraw, portfolio, admin |
+| **Frontend partial** | Repost UI (не на Home), mentions/hashtags panel (read-only), message settings modal |
+| **Client-only demo** | Chat archive/favorites/spam/drafts, AI assistant chat, fake calls, local resume — **не backend** |
+| **Backend-ready, UI later** | Career advice, events create, network create, recruiter applications, admin catalog |
+
+**Demo seed (2026-06-18):** recommended job queries, Marya job application (withdraw demo), rolling showcase event dates — [08_SEED_DATA.md](08_SEED_DATA.md).
+
+Подробно: [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md), [11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md).
 
 ---
 
@@ -30,7 +48,8 @@
 | 06 | [06_INFRASTRUCTURE_AND_DEVELOPMENT.md](06_INFRASTRUCTURE_AND_DEVELOPMENT.md) | Docker, запуск, добавление фич |
 | 07 | [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md) | SignalR, domain events |
 | 08 | [08_SEED_DATA.md](08_SEED_DATA.md) | Demo seed orchestrator |
-| 09 | [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md) | Тесты, Postman collection |
+| 09 | [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md) | Тесты, Postman, manual QA |
+| — | [api/POSTMAN_TESTING.md](api/POSTMAN_TESTING.md) | **Postman guide** (import, flows, SignalR) |
 | 10 | [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md) | Frontend ↔ backend |
 | 11 | [11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md) | Limitations, TODO, защита |
 
@@ -44,9 +63,11 @@
 cd backend/Facade.API
 dotnet run --launch-profile https
 dotnet build LinkedIn.sln
-dotnet test backend/Tests/LinkedIn.Tests/LinkedIn.Tests.csproj
+dotnet test backend/Tests/LinkedIn.Tests/LinkedIn.Tests.csproj   # 111 unit-тестов, 11 классов
 # Swagger: https://localhost:7011/swagger
 ```
+
+**Postman:** импорт `docs/postman/LinkedInDiplom.postman_collection.json` + environment — см. **[api/POSTMAN_TESTING.md](api/POSTMAN_TESTING.md)** и [09_TESTING_AND_POSTMAN.md](09_TESTING_AND_POSTMAN.md).
 
 ---
 
@@ -65,6 +86,7 @@ dotnet test backend/Tests/LinkedIn.Tests/LinkedIn.Tests.csproj
 | `/api/notifications` | Notifications |
 | `/api/admin` | Platform admin |
 | `/api/ai` | Gemini AI |
-| `/hubs/messaging` | SignalR |
+| `/hubs/messaging` | SignalR (chat) |
+| `/hubs/notifications` | SignalR (notifications) |
 
 Подробности — [04_API_REFERENCE.md](04_API_REFERENCE.md).

@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LogOut, Shield } from 'lucide-react';
 import { Home, Users, Briefcase, MessageCircle, Bell } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -7,6 +7,14 @@ import { getAssetUrl, IMAGE_PLACEHOLDERS } from '../../shared/api/files';
 import { getProfileMediaVersion } from '../../features/profile/mapProfile.js';
 import { getAccessToken } from '../../shared/api/tokens.js';
 import { isAdminToken } from '../../shared/lib/jwtClaims.js';
+import { getUnreadCount } from '../../features/notifications/notificationsApi.js';
+import {
+  connectNotificationsHub,
+  disconnectNotificationsHub,
+  onNotificationCreated,
+  offNotificationCreated,
+} from '../../features/notifications/notificationsSignalRService.js';
+import { NOTIFICATIONS_UNREAD_CHANGED_EVENT } from '../../features/notifications/notificationsEvents.js';
 
 import ThemeToggle from '../theme/ThemeToggle.jsx';
 import LanguageSwitcher from '../i18n/LanguageSwitcher.jsx';
@@ -21,6 +29,52 @@ const Header = () => {
   const location = useLocation();
   const { t, locale } = useTranslation();
   const { user, profile, logout, account, token } = useContext(AppContext);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnreadCount = useCallback(async () => {
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const count = await getUnreadCount();
+    setUnreadCount(count);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setUnreadCount(0);
+      disconnectNotificationsHub();
+      return undefined;
+    }
+
+    refreshUnreadCount();
+
+    const handleCreated = (notification) => {
+      if (notification && !notification.isRead) {
+        setUnreadCount((prev) => prev + 1);
+      }
+    };
+
+    const handleUnreadChanged = (event) => {
+      if (typeof event.detail?.count === 'number') {
+        setUnreadCount(event.detail.count);
+        return;
+      }
+
+      refreshUnreadCount();
+    };
+
+    connectNotificationsHub();
+    onNotificationCreated(handleCreated);
+    window.addEventListener(NOTIFICATIONS_UNREAD_CHANGED_EVENT, handleUnreadChanged);
+
+    return () => {
+      offNotificationCreated(handleCreated);
+      window.removeEventListener(NOTIFICATIONS_UNREAD_CHANGED_EVENT, handleUnreadChanged);
+      disconnectNotificationsHub();
+    };
+  }, [token, refreshUnreadCount]);
 
   const isAdmin = useMemo(() => {
     const accessToken = token || getAccessToken();
@@ -112,9 +166,16 @@ const Header = () => {
 
                 <button
                   onClick={() => navigate('/app/notifications')}
-                  className={`nav-item ${isActive('/app/notifications') ? 'active' : ''}`}
+                  className={`nav-item nav-item--with-badge ${isActive('/app/notifications') ? 'active' : ''}`}
                 >
-                <Bell size={20} />
+                <span className="nav-item-icon-wrap">
+                  <Bell size={20} />
+                  {unreadCount > 0 ? (
+                    <span className="nav-item-badge">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  ) : null}
+                </span>
                 <span>{t('nav.notifications', 'Notifications')}</span>
               </button>
 

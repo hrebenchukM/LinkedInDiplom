@@ -31,6 +31,10 @@ export const SIGNALR_HUB_URL = trimTrailingSlash(
   readEnvString('VITE_SIGNALR_HUB_URL', ''),
 );
 
+export const NOTIFICATIONS_SIGNALR_HUB_URL = trimTrailingSlash(
+  readEnvString('VITE_NOTIFICATIONS_SIGNALR_HUB_URL', ''),
+);
+
 const configuredUploadsBaseUrl = readEnvString('VITE_UPLOADS_BASE_URL', '');
 
 export const UPLOADS_BASE_URL = trimTrailingSlash(
@@ -58,6 +62,12 @@ export function resolveSignalRHubUrl() {
   return origin ? `${origin}/hubs/messaging` : '/hubs/messaging';
 }
 
+export function resolveNotificationsSignalRHubUrl() {
+  if (NOTIFICATIONS_SIGNALR_HUB_URL) return NOTIFICATIONS_SIGNALR_HUB_URL;
+  const origin = resolveApiOrigin();
+  return origin ? `${origin}/hubs/notifications` : '/hubs/notifications';
+}
+
 export function joinUrl(base, path) {
   const normalizedBase = trimTrailingSlash(base);
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -68,4 +78,5 @@ export function joinUrl(base, path) {
 if (import.meta.env.DEV) {
   console.log('API_BASE_URL:', API_BASE_URL || '(same-origin proxy)');
   console.log('SIGNALR_HUB_URL:', resolveSignalRHubUrl());
+  console.log('NOTIFICATIONS_SIGNALR_HUB_URL:', resolveNotificationsSignalRHubUrl());
 }

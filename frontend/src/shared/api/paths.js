@@ -42,6 +42,8 @@ export const API_PATHS = {
     userExperiences: (userId) => `/api/professional/users/${userId}/experiences`,
     userEducations: (userId) => `/api/professional/users/${userId}/educations`,
     userSkills: (userId) => `/api/professional/users/${userId}/skills`,
+    userCertificates: (userId) => `/api/professional/users/${userId}/certificates`,
+    userLanguages: (userId) => `/api/professional/users/${userId}/languages`,
     userRecommendations: (userId) => `/api/professional/users/${userId}/recommendations`,
     recommendations: '/api/professional/recommendations',
   },
@@ -62,9 +64,19 @@ export const API_PATHS = {
     myPostViews: (postId) => `/api/content/me/posts/${postId}/views`,
     savedPosts: '/api/content/me/saved-posts',
     savePost: (postId) => `/api/content/me/posts/${postId}/save`,
+    myReposts: '/api/content/me/reposts',
+    repostPost: (postId) => `/api/content/me/posts/${postId}/repost`,
     hashtags: '/api/content/hashtags',
     hashtagFollowing: '/api/content/me/hashtags/following',
     hashtagFollow: (hashtagId) => `/api/content/me/hashtags/${hashtagId}/follow`,
+    postMentions: (postId) => `/api/content/posts/${postId}/mentions`,
+    postMentionsManage: (postId) => `/api/content/me/posts/${postId}/mentions`,
+    deletePostMention: (postId, mentionedUserId) =>
+      `/api/content/me/posts/${postId}/mentions/${encodeURIComponent(mentionedUserId)}`,
+    postHashtags: (postId) => `/api/content/posts/${postId}/hashtags`,
+    postHashtagsAttach: (postId) => `/api/content/me/posts/${postId}/hashtags`,
+    deletePostHashtag: (postId, hashtagId) =>
+      `/api/content/me/posts/${postId}/hashtags/${hashtagId}`,
   },
 
   network: {
@@ -123,6 +135,7 @@ export const API_PATHS = {
     favoriteByVacancyId: (vacancyId) => `/api/jobs/me/favorites/${vacancyId}`,
     applications: '/api/jobs/me/applications',
     myApplications: '/api/jobs/me/applications',
+    applicationById: (applicationId) => `/api/jobs/me/applications/${applicationId}`,
     recommendedQueries: '/api/jobs/recommended-queries',
   },
 
@@ -181,6 +194,8 @@ export const API_PATHS = {
       vacancies: '/api/admin/jobs/vacancies',
       vacancyById: (vacancyId) => `/api/admin/jobs/vacancies/${vacancyId}`,
       restoreVacancy: (vacancyId) => `/api/admin/jobs/vacancies/${vacancyId}/restore`,
+      recommendedQueries: '/api/admin/jobs/recommended-queries',
+      recommendedQueryById: (queryId) => `/api/admin/jobs/recommended-queries/${queryId}`,
     },
     events: {
       list: '/api/admin/events',

@@ -2,10 +2,10 @@ namespace Facade.API.Seeding;
 
 internal static class DemoShowcaseSeedData
 {
-    public const string AdminEmail = "admin@local.dev";
-    public const string PrimaryDemoUserEmail = "marya101204@gmail.com";
-    public const string LucasEmail = "test@example.com";
-    public const string TestTwoEmail = "test2@example.com";
+    public const string AdminEmail = DemoSeedConstants.AdminEmail;
+    public const string PrimaryDemoUserEmail = DemoSeedConstants.PrimaryDemoUserEmail;
+    public const string LucasEmail = DemoSeedConstants.TestUserOneEmail;
+    public const string TestTwoEmail = DemoSeedConstants.TestUserTwoEmail;
     public const string EmmaEmail = "designer@demo.com";
     public const string DavidJonsonEmail = "david.jonson@demo.com";
     public const string DavidJohnsonEmail = "david.johnson@demo.com";

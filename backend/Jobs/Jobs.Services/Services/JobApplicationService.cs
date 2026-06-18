@@ -1,14 +1,18 @@
+using Identity.Events.Contracts.Abstractions;
 using Jobs.Contracts.DTOs;
 using Jobs.Contracts.Parameters.JobApplication;
 using Jobs.Contracts.Results;
 using Jobs.Contracts.Services;
 using Jobs.DataAccess;
 using Jobs.DataAccess.Entities;
+using Jobs.Events.Contracts.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jobs.Services.Services;
 
-public class JobApplicationService(JobsDbContext dbContext) : IJobApplicationService
+public class JobApplicationService(
+    JobsDbContext dbContext,
+    IDomainEventPublisher domainEventPublisher) : IJobApplicationService
 {
     public async Task<JobApplicationResult> ApplyAsync(ApplyToVacancyParameters parameters)
     {
@@ -70,6 +74,16 @@ public class JobApplicationService(JobsDbContext dbContext) : IJobApplicationSer
         }
 
         await dbContext.SaveChangesAsync();
+
+        await domainEventPublisher.PublishAsync(new VacancyApplicationSubmittedEvent
+        {
+            ApplicationId = application.Id,
+            VacancyId = vacancy.Id,
+            VacancyTitle = vacancy.Title,
+            ApplicantUserId = application.UserId,
+            PostedByUserId = vacancy.PostedBy,
+            AppliedAt = application.AppliedAt
+        });
 
         return new JobApplicationResult
         {

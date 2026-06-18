@@ -7,10 +7,14 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoEventsSeeder
+public sealed class DemoEventsSeeder : IDemoSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
-    private const string AttendeeEmail = "test2@example.com";
+    public int Order => 13;
+
+    public string Name => nameof(DemoEventsSeeder);
+
+    private const string AdminEmail = DemoSeedConstants.AdminEmail;
+    private const string AttendeeEmail = DemoSeedConstants.TestUserTwoEmail;
     private const string EventTitleSuffix = "LinkUp Dev Meetup";
 
     private readonly EventsDbContext _eventsDb;
@@ -40,7 +44,7 @@ public sealed class DemoEventsSeeder
             return;
         }
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
         var eventTitle = $"{marker}{EventTitleSuffix}";
 
         var demoEvent = await _eventsDb.Events
@@ -123,11 +127,5 @@ public sealed class DemoEventsSeeder
             "Demo events seed: attendee {Email} joined event {Title}.",
             AttendeeEmail,
             eventTitle);
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

@@ -4,6 +4,8 @@ using Content.Contracts.Results;
 using Content.Contracts.Services;
 using Content.DataAccess;
 using Content.DataAccess.Entities;
+using Content.Events.Contracts.Events;
+using Identity.Events.Contracts.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Content.Services.Services;
@@ -14,10 +16,14 @@ public class MentionService : IMentionService
     private const string VisibilityPrivate = "private";
 
     private readonly ContentDbContext _dbContext;
+    private readonly IDomainEventPublisher _domainEventPublisher;
 
-    public MentionService(ContentDbContext dbContext)
+    public MentionService(
+        ContentDbContext dbContext,
+        IDomainEventPublisher domainEventPublisher)
     {
         _dbContext = dbContext;
+        _domainEventPublisher = domainEventPublisher;
     }
 
     public async Task<MentionResult> AddAsync(AddMentionParameters parameters)
@@ -56,6 +62,8 @@ public class MentionService : IMentionService
 
             await _dbContext.SaveChangesAsync();
 
+            await PublishMentionAddedAsync(existing, post.UserId, parameters.AuthorId);
+
             return Success(existing);
         }
 
@@ -70,6 +78,8 @@ public class MentionService : IMentionService
 
         _dbContext.Mentions.Add(mention);
         await _dbContext.SaveChangesAsync();
+
+        await PublishMentionAddedAsync(mention, post.UserId, parameters.AuthorId);
 
         return Success(mention);
     }
@@ -172,5 +182,18 @@ public class MentionService : IMentionService
             MentionedUserId = mention.MentionedUserId,
             CreatedAt = mention.CreatedAt
         };
+    }
+
+    private Task PublishMentionAddedAsync(Mention mention, string postAuthorUserId, string actorUserId)
+    {
+        return _domainEventPublisher.PublishAsync(new MentionAddedEvent
+        {
+            MentionId = mention.Id,
+            PostId = mention.PostId,
+            PostAuthorUserId = postAuthorUserId,
+            MentionedUserId = mention.MentionedUserId,
+            ActorUserId = actorUserId,
+            CreatedAt = mention.CreatedAt
+        });
     }
 }

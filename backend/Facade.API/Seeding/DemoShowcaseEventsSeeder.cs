@@ -7,9 +7,15 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseEventsSeeder
+public sealed class DemoShowcaseEventsSeeder : IDemoSeeder
 {
+    public int Order => 14;
+
+    public string Name => nameof(DemoShowcaseEventsSeeder);
+
     private const string EventTitle = "Design Systems Conference 2026";
+    private const int ShowcaseEventLeadDays = 21;
+    private static readonly TimeSpan DefaultEventDuration = TimeSpan.FromHours(8);
 
     private readonly EventsDbContext _eventsDb;
     private readonly Identity.DataAccess.IdentityDbContext _identityDb;
@@ -51,7 +57,7 @@ public sealed class DemoShowcaseEventsSeeder
 
         if (demoEvent is null)
         {
-            var startAt = new DateTime(2026, 2, 15, 9, 0, 0, DateTimeKind.Utc);
+            var startAt = ComputeShowcaseStartAt();
             demoEvent = new Event
             {
                 Id = Guid.NewGuid(),
@@ -66,20 +72,57 @@ public sealed class DemoShowcaseEventsSeeder
                 Visibility = "public",
                 AllowComments = true,
                 StartAt = startAt,
-                EndAt = startAt.AddHours(8),
+                EndAt = startAt.Add(DefaultEventDuration),
                 Timezone = "America/Los_Angeles",
                 CreatedAt = DateTime.UtcNow,
             };
 
             _eventsDb.Events.Add(demoEvent);
             await _eventsDb.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Demo showcase events seed: created event {Title}.", eventTitle);
+            _logger.LogInformation(
+                "Demo showcase events seed: created event {Title} with StartAt={StartAt}.",
+                eventTitle,
+                demoEvent.StartAt);
+        }
+        else
+        {
+            await EnsureUpcomingDatesAsync(demoEvent, cancellationToken);
         }
 
         await EnsureAttendeeAsync(demoEvent.Id, marya.Id, cancellationToken);
         await EnsureSpeakersAndScheduleAsync(demoEvent.Id, cancellationToken);
 
         _logger.LogInformation("Demo showcase events seed finished.");
+    }
+
+    private static DateTime ComputeShowcaseStartAt() =>
+        DateTime.UtcNow.AddDays(ShowcaseEventLeadDays);
+
+    private async Task EnsureUpcomingDatesAsync(Event demoEvent, CancellationToken cancellationToken)
+    {
+        if (demoEvent.StartAt >= DateTime.UtcNow)
+        {
+            return;
+        }
+
+        var duration = demoEvent.EndAt.HasValue && demoEvent.EndAt.Value > demoEvent.StartAt
+            ? demoEvent.EndAt.Value - demoEvent.StartAt
+            : DefaultEventDuration;
+
+        var previousStartAt = demoEvent.StartAt;
+        var newStartAt = ComputeShowcaseStartAt();
+        demoEvent.StartAt = newStartAt;
+        demoEvent.EndAt = newStartAt.Add(duration);
+        demoEvent.UpdatedAt = DateTime.UtcNow;
+
+        await _eventsDb.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Demo showcase events seed: rolled event {Title} from StartAt={PreviousStartAt} to StartAt={StartAt}, EndAt={EndAt}.",
+            demoEvent.Title,
+            previousStartAt,
+            demoEvent.StartAt,
+            demoEvent.EndAt);
     }
 
     private async Task EnsureAttendeeAsync(Guid eventId, string userId, CancellationToken cancellationToken)

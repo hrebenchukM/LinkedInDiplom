@@ -13,11 +13,17 @@ function pick(dto, ...keys) {
 const TYPE_LABELS = {
   like: 'liked your post',
   comment: 'commented on your post',
+  post_comment: 'commented on your post',
+  post_reaction: 'reacted to your post',
+  post_mention: 'mentioned you',
   connection: 'accepted your connection request',
   contact: 'sent you a connection request',
+  contact_request: 'sent you a connection request',
+  contact_request_accepted: 'accepted your connection request',
   mention: 'mentioned you',
   vacancy: 'posted a new job',
   job: 'posted a new job',
+  job_application: 'applied to your vacancy',
   message: 'sent you a message',
   chat: 'sent you a message',
   event: 'invited you to an event',
@@ -26,7 +32,7 @@ const TYPE_LABELS = {
 
 export function mapNotificationType(dto) {
   const raw = String(pick(dto, 'type', 'Type') ?? 'notification').toLowerCase();
-  if (raw === 'vacancy') return 'job';
+  if (raw === 'vacancy' || raw === 'job_application') return 'job';
   return raw;
 }
 

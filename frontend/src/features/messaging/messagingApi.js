@@ -151,12 +151,10 @@ export async function createDirectChat(targetUserId, currentUserId) {
     return { chat: existing, created: false };
   }
 
-  const created = await createChat({});
+  const created = await createChat({ participantUserId: targetUserId });
   return {
     chat: created,
     created: true,
-    limitation:
-      'Backend has no add-member endpoint; the other user must join via POST /chats/{id}/join.',
   };
 }
 

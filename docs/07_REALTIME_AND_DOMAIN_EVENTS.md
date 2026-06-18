@@ -4,9 +4,28 @@
 
 <!-- merged from: 07_REALTIME_AND_DOMAIN_EVENTS.md -->
 
-# SignalR / Realtime Chat
+# SignalR / Realtime (Messaging + Notifications)
 
-# 18. SignalR / Realtime Chat
+# 18. SignalR / Realtime Chat & Notifications
+
+> **Обновлено:** 2026-06-18 — уточнены hub groups, domain events → notifications, frontend wiring, v1 limitations.
+
+---
+
+## Краткая сводка
+
+| Hub | Route | Groups | Server → client events | Frontend client |
+|-----|-------|--------|------------------------|-----------------|
+| **Messaging** | `/hubs/messaging` | `chat:{chatId}` (after `JoinChat`) | `MessageCreated`, `MessageUpdated`, `MessageDeleted`, `MessageRead`, `MessageMediaAttached` | `frontend/src/features/messaging/signalRService.js` |
+| **Notifications** | `/hubs/notifications` | `user:{userId}` (auto on connect from JWT) | `NotificationCreated` | `frontend/src/features/notifications/notificationsSignalRService.js` |
+
+**Limitations v1:**
+- SignalR — **realtime delivery только для online** пользователей.
+- Offline users получают notifications из **PostgreSQL** через `GET /api/notifications/me` после входа.
+- **Нет** Outbox, message broker, push/email, retry для failed hub push.
+- HTTP API остаётся **source of truth** для messages и notifications.
+
+**Vite dev proxy:** `/hubs/*` и `/api/*` → `http://localhost:5000` (см. `frontend/vite.config.js`).
 
 ---
 
@@ -14,11 +33,35 @@
 
 | Компонент | Статус |
 |-----------|--------|
-| SignalR Hub | **Реализован** |
-| Server push events | **Реализованы** (5 типов) |
-| HTTP Messaging API | **Primary flow** (создание сообщений через REST) |
-| Frontend integration | **Pending** |
-| Redis backplane / scale-out | **Не реализовано** |
+| **Messaging** SignalR Hub | **Реализован** (`MessagingHub`, `/hubs/messaging`) |
+| Messaging server push events | **Реализованы** (5 типов) |
+| **Notifications** SignalR Hub | **Реализован** (`NotificationsHub`, `/hubs/notifications`) |
+| Notifications server push events | **Реализован** (`NotificationCreated`) |
+| HTTP Messaging API | **Основной flow** — создание чатов, отправка и хранение сообщений |
+| HTTP Notifications API | **Источник истины** — список, read, delete |
+| Frontend messaging integration | **Реализована** (`frontend/src/features/messaging/signalRService.js`) |
+| Frontend notifications integration | **Реализована** (`frontend/src/features/notifications/notificationsSignalRService.js`) |
+| Redis backplane / scale-out | **Не реализовано** (ограничение v1) |
+
+### Два hub — зачем раздельно
+
+| Hub | Route | Group | События | Назначение |
+|-----|-------|-------|---------|------------|
+| **MessagingHub** | `/hubs/messaging` | `chat:{chatId}` | `MessageCreated`, `MessageUpdated`, … | Realtime **чата** — только участники чата (после `JoinChat`) |
+| **NotificationsHub** | `/hubs/notifications` | `user:{userId}` | `NotificationCreated` | Realtime **уведомлений** — только получатель (group из JWT при connect) |
+
+Клиент **не** смешивает chat events и notification events: разные URL, разные сервисы на frontend.
+
+**Offline:** SignalR доставляет события только **подключённым** клиентам. Если пользователь offline, notification **всё равно сохраняется в PostgreSQL** и появится через `GET /api/notifications/me` после входа. Push/email/mobile push **не реализованы**.
+
+### HTTP и SignalR — простыми словами
+
+| Слой | За что отвечает |
+|------|-----------------|
+| **HTTP API** (`/api/messaging/*`) | Создание чатов, список чатов, отправка/редактирование/удаление сообщений, read receipts, загрузка media. Всё сохраняется в PostgreSQL — это **источник истины**. |
+| **SignalR** (`/hubs/messaging`) | **Realtime-доставка** уже сохранённых событий другим участникам чата: новое сообщение, правка, удаление, прочтение, media. Клиент **не отправляет** текст сообщения через WebSocket — только получает push после успешного HTTP. |
+
+Типичный сценарий: `POST .../messages` → запись в БД → `MessagingRealtimeNotifier` → `MessageCreated` в group `chat:{chatId}` → открытые вкладки обновляются без polling.
 
 ---
 
@@ -140,12 +183,88 @@ node scripts/verify-signalr.mjs
 
 ---
 
-## Ограничения v1
+## Ограничения v1 (SignalR)
 
 - Один instance — без Redis backplane events не cross-node
 - Нет typing indicators, online presence
-- Нет notification hub (только messaging)
-- Token refresh во время active connection — reconnect manually
+- **Нет** push/email/mobile push для notifications
+- **Нет** outbox/retry — при падении push после записи в БД клиент узнает о notification через REST
+- Token refresh во время active connection — reconnect manually (automatic reconnect в клиенте частично помогает)
+
+---
+
+## Notifications Hub
+
+| Параметр | Значение |
+|----------|----------|
+| Класс | `NotificationsHub` |
+| Проект | `Facade.NotificationsManagement.Controllers` |
+| Route | `/hubs/notifications` |
+| Auth | `[Authorize]` — JWT обязателен |
+| Group | `user:{userId}` — userId из JWT claims при `OnConnectedAsync`; клиент **не** передаёт userId |
+
+Регистрация в `Facade.API/Program.cs`:
+
+```csharp
+app.MapHub<NotificationsHub>("/hubs/notifications");
+```
+
+JWT для WebSocket: query `access_token` для путей `/hubs/messaging` **и** `/hubs/notifications` (см. `JwtBearerEvents.OnMessageReceived`).
+
+### Подключение клиента
+
+```
+ws://localhost:5000/hubs/notifications?access_token=<JWT>
+```
+
+Frontend (`notificationsSignalRService.js`):
+
+```javascript
+import * as signalR from '@microsoft/signalr';
+import { resolveNotificationsSignalRHubUrl } from '../../shared/api/config.js';
+
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl(resolveNotificationsSignalRHubUrl(), {
+    accessTokenFactory: () => getAccessToken() || '',
+  })
+  .withAutomaticReconnect()
+  .build();
+
+await connection.start();
+// Отдельный Join не нужен — hub добавляет connection в user:{userId} при connect
+```
+
+### События сервер → клиент
+
+| Event | Payload | Когда |
+|-------|---------|-------|
+| `NotificationCreated` | `NotificationDto` | После успешного `NotificationService.CreateAsync` (domain event handlers, demo seed) |
+
+Broadcast: `NotificationRealtimeNotifier` → `Clients.Group("user:{notification.UserId}").SendAsync("NotificationCreated", dto)`.
+
+Ошибка push **логируется**, не ломает создание notification в БД.
+
+### Связь с Notifications API
+
+```
+1. Domain event (например CommentCreatedEvent)
+2. CreateNotificationOnCommentCreatedHandler → NotificationService.CreateAsync
+3. Backend: INSERT в notifications.notifications
+4. INotificationCreatedPublisher → NotificationRealtimeNotifier → NotificationCreated
+5. Online клиент получает push; offline — увидит запись при GET /api/notifications/me
+```
+
+HTTP остаётся source of truth; SignalR — realtime layer для **online** пользователей.
+
+### Frontend integration
+
+| Файл | Роль |
+|------|------|
+| `notificationsSignalRService.js` | Hub connection, `onNotificationCreated` / `offNotificationCreated` |
+| `Header.jsx` | Connect при login; unread badge +1 на `NotificationCreated` |
+| `NotificationsPage.jsx` | Prepend новой notification в список (без дубликатов по `id`) |
+
+См. [10_FRONTEND_INTEGRATION.md](10_FRONTEND_INTEGRATION.md) — раздел Notifications.
 
 
 ---
@@ -187,13 +306,15 @@ Task PublishAsync<TEvent>(TEvent domainEvent, CancellationToken ct = default) wh
 
 ---
 
-## События (5 типов)
+## События (7 типов)
 
 | Event | Module | Properties |
 |-------|--------|------------|
 | `UserRegisteredEvent` | Identity | UserId, UserName, Email, RegisteredAt |
 | `CommentCreatedEvent` | Content | CommentId, PostId, PostAuthorUserId, CommentAuthorUserId, CreatedAt |
 | `ReactionUpsertedEvent` | Content | ReactionId, PostId, PostAuthorUserId, ActorUserId, ReactionType, IsNewReaction, CreatedAt |
+| `MentionAddedEvent` | Content | MentionId, PostId, PostAuthorUserId, MentionedUserId, ActorUserId, CreatedAt |
+| `VacancyApplicationSubmittedEvent` | Jobs | ApplicationId, VacancyId, VacancyTitle, ApplicantUserId, PostedByUserId, AppliedAt |
 | `ContactRequestSentEvent` | Network | ContactRequestId, SenderUserId, ReceiverUserId, CreatedAt |
 | `ContactRequestAcceptedEvent` | Network | ContactRequestId, RequesterUserId, AccepterUserId, AcceptedAt |
 
@@ -207,19 +328,36 @@ Task PublishAsync<TEvent>(TEvent domainEvent, CancellationToken ct = default) wh
 | `ExternalAuthService` | `UserRegisteredEvent` (new external users) |
 | `CommentService` | `CommentCreatedEvent` |
 | `ReactionService` | `ReactionUpsertedEvent` |
+| `MentionService` | `MentionAddedEvent` |
+| `JobApplicationService` | `VacancyApplicationSubmittedEvent` |
 | `ContactService` | `ContactRequestSentEvent`, `ContactRequestAcceptedEvent` |
 
 ---
 
-## Handlers (5)
+## Handlers (7)
 
 | Handler | Event | Effect |
 |---------|-------|--------|
 | `CreateEmptyProfileWhenUserRegisteredHandler` | UserRegisteredEvent | Creates empty profile via `IProfileService` |
 | `CreateNotificationOnCommentCreatedHandler` | CommentCreatedEvent | Notification `post_comment` (skip self) |
 | `CreateNotificationOnReactionUpsertedHandler` | ReactionUpsertedEvent | Notification `post_reaction` (new only, skip self) |
+| `CreateNotificationOnMentionAddedHandler` | MentionAddedEvent | Notification `post_mention` (skip self) |
+| `CreateNotificationOnVacancyApplicationSubmittedHandler` | VacancyApplicationSubmittedEvent | Notification `job_application` (skip self-apply) |
 | `CreateNotificationOnContactRequestSentHandler` | ContactRequestSentEvent | Notification `contact_request` |
 | `CreateNotificationOnContactRequestAcceptedHandler` | ContactRequestAcceptedEvent | Notification `contact_request_accepted` |
+
+### Notification types (domain events → DB + optional SignalR)
+
+| Domain event | Notification `type` | Recipient |
+|--------------|---------------------|-----------|
+| `CommentCreatedEvent` | `post_comment` | Post author (not self-comment) |
+| `ReactionUpsertedEvent` | `post_reaction` | Post author (new reaction only, not self) |
+| `MentionAddedEvent` | `post_mention` | Mentioned user (not self) |
+| `VacancyApplicationSubmittedEvent` | `job_application` | Vacancy `PostedBy` (not self-apply) |
+| `ContactRequestSentEvent` | `contact_request` | Receiver |
+| `ContactRequestAcceptedEvent` | `contact_request_accepted` | Requester |
+
+После `NotificationService.CreateAsync` → `INotificationCreatedPublisher` → `NotificationCreated` в group `user:{userId}` для online clients.
 
 **DI:** Profile.DI + Notifications.DI register handlers.
 
@@ -235,7 +373,9 @@ Task PublishAsync<TEvent>(TEvent domainEvent, CancellationToken ct = default) wh
 5. CreateNotificationOnCommentCreatedHandler:
    - if commentAuthor != postAuthor
    - NotificationService.CreateAsync(type: post_comment, ...)
-6. GET /api/notifications/me → new item
+6. NotificationService → INotificationCreatedPublisher → SignalR NotificationCreated (user:{postAuthor})
+7. Online recipient: Header badge + NotificationsPage без refresh
+8. GET /api/notifications/me → new item (всегда, в т.ч. если был offline)
 ```
 
 ---
@@ -252,10 +392,7 @@ Task PublishAsync<TEvent>(TEvent domainEvent, CancellationToken ct = default) wh
 
 ## Pending events (не реализованы)
 
-- `MentionAddedEvent`
-- `VacancyApplicationSubmittedEvent`
 - `PostCreatedEvent`
-- Realtime notification push via SignalR
 
 ---
 

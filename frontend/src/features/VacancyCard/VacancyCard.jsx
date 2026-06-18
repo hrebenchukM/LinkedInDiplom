@@ -15,12 +15,14 @@ const VacancyCard = ({
   posted,
   status,
   onApply,
+  onWithdraw,
   onToggleFavorite,
   actionError,
   favoriteError,
 }) => {
   const { t } = useTranslation();
   const [applying, setApplying] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const data = vacancy ?? {
     id: null,
@@ -43,13 +45,25 @@ const VacancyCard = ({
   const salaryText = data.salary || salary || t('vac.card.salaryUnknown', 'Salary not specified');
   const postedText = posted || '';
   const statusText = data.hasApplied
-    ? t('vac.card.applied', 'Applied')
+    ? t('vac.withdraw', 'Withdraw')
     : (status || t('vac.card.apply', 'Be among the candidates'));
 
-  const handleApply = async (event) => {
+  const handleAction = async (event) => {
     event.preventDefault();
-    if (!onApply || !data.id || data.hasApplied || applying) return;
+    if (!data.id || applying || withdrawing) return;
 
+    if (data.hasApplied) {
+      if (!onWithdraw) return;
+      setWithdrawing(true);
+      try {
+        await onWithdraw(data.id);
+      } finally {
+        setWithdrawing(false);
+      }
+      return;
+    }
+
+    if (!onApply) return;
     setApplying(true);
     try {
       await onApply(data.id);
@@ -108,14 +122,22 @@ const VacancyCard = ({
       <div className="vacancy-footer">
         <span className="vacancy-posted">{postedText}</span>
         <span className="vacancy-separator">•</span>
-        {onApply ? (
+        {onApply || onWithdraw ? (
           <button
             type="button"
             className={`vacancy-status-btn ${data.hasApplied ? 'is-applied' : ''}`}
-            onClick={handleApply}
-            disabled={data.hasApplied || applying}
+            onClick={handleAction}
+            disabled={
+              applying
+              || withdrawing
+              || (data.hasApplied ? !onWithdraw : !onApply)
+            }
           >
-            {applying ? t('vac.card.applying', 'Applying...') : statusText}
+            {applying
+              ? t('vac.card.applying', 'Applying...')
+              : withdrawing
+                ? t('vac.withdraw', 'Withdraw')
+                : statusText}
           </button>
         ) : (
           <a href="#" className="vacancy-status">{statusText}</a>

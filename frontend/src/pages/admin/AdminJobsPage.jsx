@@ -1,15 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from '../../app/i18n/LocaleContext.jsx';
+import { useTranslation, getDateLocale } from '../../app/i18n/LocaleContext.jsx';
 import { DEFAULT_PAGE_SIZE } from '../../shared/api/config';
 import { getErrorMessage } from '../../shared/lib/apiError';
 import {
+  createAdminRecommendedQuery,
+  deleteAdminRecommendedQuery,
   deleteAdminVacancy,
+  getAdminRecommendedQueries,
   getAdminVacancies,
   restoreAdminVacancy,
 } from '../../features/admin/adminApi';
 
+function formatQueryDate(value, locale) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString(getDateLocale(locale), {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export default function AdminJobsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -18,6 +32,12 @@ export default function AdminJobsPage() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
+
+  const [recommendedQueries, setRecommendedQueries] = useState([]);
+  const [queriesLoading, setQueriesLoading] = useState(true);
+  const [queriesError, setQueriesError] = useState('');
+  const [newQuery, setNewQuery] = useState('');
+  const [savingQuery, setSavingQuery] = useState(false);
 
   const loadItems = useCallback(async ({
     pageToLoad = 1,
@@ -56,12 +76,30 @@ export default function AdminJobsPage() {
     }
   }, [filter, search]);
 
+  const loadRecommendedQueries = useCallback(async () => {
+    setQueriesLoading(true);
+    setQueriesError('');
+    try {
+      const queries = await getAdminRecommendedQueries();
+      setRecommendedQueries(queries);
+    } catch (err) {
+      setQueriesError(getErrorMessage(err));
+      setRecommendedQueries([]);
+    } finally {
+      setQueriesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       loadItems({ pageToLoad: 1, append: false });
     }, 300);
     return () => clearTimeout(timeout);
   }, [loadItems]);
+
+  useEffect(() => {
+    loadRecommendedQueries();
+  }, [loadRecommendedQueries]);
 
   const handleDelete = async (vacancyId) => {
     if (!window.confirm(t('admin.jobs.confirmDelete', 'Delete this vacancy?'))) return;
@@ -79,6 +117,38 @@ export default function AdminJobsPage() {
       await loadItems({ pageToLoad: 1, append: false });
     } catch (err) {
       setError(getErrorMessage(err));
+    }
+  };
+
+  const handleAddQuery = async (event) => {
+    event.preventDefault();
+    const trimmed = newQuery.trim();
+    if (!trimmed || savingQuery) return;
+
+    setSavingQuery(true);
+    setQueriesError('');
+    try {
+      await createAdminRecommendedQuery({ query: trimmed });
+      setNewQuery('');
+      await loadRecommendedQueries();
+    } catch (err) {
+      setQueriesError(getErrorMessage(err));
+    } finally {
+      setSavingQuery(false);
+    }
+  };
+
+  const handleDeleteQuery = async (queryId) => {
+    if (!window.confirm(t('admin.jobs.confirmDeleteQuery', 'Delete this recommended query?'))) {
+      return;
+    }
+
+    setQueriesError('');
+    try {
+      await deleteAdminRecommendedQuery(queryId);
+      await loadRecommendedQueries();
+    } catch (err) {
+      setQueriesError(getErrorMessage(err));
     }
   };
 
@@ -162,6 +232,70 @@ export default function AdminJobsPage() {
         >
           {loadingMore ? t('common.loading', 'Loading...') : t('common.loadMore', 'Load more')}
         </button>
+      )}
+
+      <h2 className="admin-page-subtitle" style={{ marginTop: '2.5rem' }}>
+        {t('admin.jobs.recommended', 'Recommended queries')}
+      </h2>
+      <p className="admin-page-subtitle">
+        {t(
+          'admin.jobs.recommendedHint',
+          'Search suggestions shown to users on the Vacancies page sidebar.',
+        )}
+      </p>
+
+      <form className="admin-toolbar" onSubmit={handleAddQuery}>
+        <input
+          type="text"
+          className="admin-input"
+          placeholder={t('admin.jobs.newQuery', 'New search query')}
+          value={newQuery}
+          onChange={(e) => setNewQuery(e.target.value)}
+          maxLength={200}
+          disabled={savingQuery}
+        />
+        <button type="submit" className="admin-btn" disabled={savingQuery || !newQuery.trim()}>
+          {savingQuery ? t('common.loading', 'Loading...') : t('admin.add', 'Add')}
+        </button>
+      </form>
+
+      {queriesError && <div className="admin-error">{queriesError}</div>}
+      {queriesLoading && <div className="admin-loading">{t('common.loading', 'Loading...')}</div>}
+      {!queriesLoading && recommendedQueries.length === 0 && (
+        <div className="admin-empty">{t('admin.jobs.noQueries', 'No recommended queries.')}</div>
+      )}
+
+      {!queriesLoading && recommendedQueries.length > 0 && (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>{t('admin.jobs.queryCol', 'Query')}</th>
+                <th>{t('admin.content.created', 'Created')}</th>
+                <th>{t('admin.users.actions', 'Actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recommendedQueries.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.query}</td>
+                  <td>{formatQueryDate(item.createdAt, locale)}</td>
+                  <td>
+                    <div className="admin-actions">
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-danger"
+                        onClick={() => handleDeleteQuery(item.id)}
+                      >
+                        {t('admin.delete', 'Delete')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

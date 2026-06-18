@@ -10,10 +10,14 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoMessagingSeeder
+public sealed class DemoMessagingSeeder : IDemoSeeder
 {
-    private const string TestUserOneEmail = "test@example.com";
-    private const string TestUserTwoEmail = "test2@example.com";
+    public int Order => 18;
+
+    public string Name => nameof(DemoMessagingSeeder);
+
+    private const string TestUserOneEmail = DemoSeedConstants.TestUserOneEmail;
+    private const string TestUserTwoEmail = DemoSeedConstants.TestUserTwoEmail;
 
     private readonly MessagingDbContext _messagingDb;
     private readonly IChatService _chatService;
@@ -58,20 +62,7 @@ public sealed class DemoMessagingSeeder
             return;
         }
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
-        var existingDemoMessages = await _messagingDb.Messages
-            .AsNoTracking()
-            .CountAsync(
-                m => m.DeletedAt == null && m.Content.StartsWith(marker),
-                cancellationToken);
-
-        if (existingDemoMessages >= 3)
-        {
-            _logger.LogInformation(
-                "Demo messaging seed skipped: {Count} demo message(s) already exist.",
-                existingDemoMessages);
-            return;
-        }
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
 
         var chatId = await FindDirectChatIdAsync(testOne.Id, testTwo.Id, cancellationToken);
         if (chatId is null)
@@ -111,7 +102,9 @@ public sealed class DemoMessagingSeeder
 
             if (exists)
             {
-                _logger.LogDebug("Demo messaging seed: message already exists; skipped.");
+                _logger.LogDebug(
+                    "Demo messaging seed: message already exists in chat {ChatId}; skipped.",
+                    chatId);
                 continue;
             }
 
@@ -234,11 +227,5 @@ public sealed class DemoMessagingSeeder
         }
 
         return null;
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

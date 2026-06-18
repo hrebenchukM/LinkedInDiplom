@@ -8,14 +8,18 @@ using Profile.DataAccess.Entities;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoProfileSeeder
+public sealed class DemoProfileSeeder : IDemoSeeder
 {
+    public int Order => 4;
+
+    public string Name => nameof(DemoProfileSeeder);
+
     private static readonly IReadOnlyDictionary<string, (string FirstName, string LastName, string Headline)> ProfileSeeds =
         new Dictionary<string, (string, string, string)>(StringComparer.OrdinalIgnoreCase)
         {
-            ["admin@local.dev"] = ("Admin", "User", "System Administrator"),
-            ["test@example.com"] = ("Test", "User One", "Frontend Developer"),
-            ["test2@example.com"] = ("Test", "User Two", "Backend Developer"),
+            [DemoSeedConstants.AdminEmail] = ("Admin", "User", "System Administrator"),
+            [DemoSeedConstants.TestUserOneEmail] = ("Test", "User One", "Frontend Developer"),
+            [DemoSeedConstants.TestUserTwoEmail] = ("Test", "User Two", "Backend Developer"),
         };
 
     private readonly ProfileDbContext _profileDb;

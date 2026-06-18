@@ -80,16 +80,10 @@ const NewMessageModal = ({
     setError('');
 
     try {
-      const { chat, limitation } = await createDirectChat(
+      const { chat } = await createDirectChat(
         person.userId,
         currentUserId,
       );
-
-      if (limitation && chat?.members?.length === 1) {
-        setError(
-          'Chat created, but backend cannot add the other member automatically. Use an existing conversation if available.',
-        );
-      }
 
       if (chat?.id) {
         markUserInitiatedChat(chat.id, person.userId);

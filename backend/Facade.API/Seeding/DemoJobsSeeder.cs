@@ -9,10 +9,14 @@ using Professional.DataAccess.Entities;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoJobsSeeder
+public sealed class DemoJobsSeeder : IDemoSeeder
 {
-    private const string AdminEmail = "admin@local.dev";
-    private const string DemoCompanyName = "LinkUp Labs";
+    public int Order => 10;
+
+    public string Name => nameof(DemoJobsSeeder);
+
+    private const string AdminEmail = DemoSeedConstants.AdminEmail;
+    private const string DemoCompanyName = DemoSeedConstants.DemoCompanyName;
 
     private readonly JobsDbContext _jobsDb;
     private readonly ProfessionalDbContext _professionalDb;
@@ -44,7 +48,7 @@ public sealed class DemoJobsSeeder
             return;
         }
 
-        var marker = NormalizeMarker(_options.MarkerPrefix);
+        var marker = DemoSeederSupport.NormalizeMarker(_options.MarkerPrefix);
         var existingDemoVacancies = await _jobsDb.Vacancies
             .AsNoTracking()
             .CountAsync(v => v.DeletedAt == null && v.Title.StartsWith(marker), cancellationToken);
@@ -136,11 +140,5 @@ public sealed class DemoJobsSeeder
         await _professionalDb.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Demo jobs seed: created company {CompanyName}.", companyName);
         return company;
-    }
-
-    private static string NormalizeMarker(string? markerPrefix)
-    {
-        var marker = string.IsNullOrWhiteSpace(markerPrefix) ? "demo-seed:" : markerPrefix.Trim();
-        return marker.EndsWith(' ') ? marker : marker;
     }
 }

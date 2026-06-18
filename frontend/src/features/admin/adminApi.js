@@ -20,6 +20,10 @@ import {
   mapAdminUsersResponse,
   mapAdminVacanciesResponse,
 } from './mapAdmin.js';
+import {
+  mapRecommendedQueryDto,
+  mapRecommendedQueryList,
+} from '../jobs/mapJobs.js';
 
 function buildAdminQuery(params = {}, { allowedSortBy = ['createdAt', 'updatedAt'] } = {}) {
   const {
@@ -158,6 +162,21 @@ export async function deleteAdminVacancy(vacancyId) {
 
 export async function restoreAdminVacancy(vacancyId) {
   return apiClient.patch(API_PATHS.admin.jobs.restoreVacancy(vacancyId));
+}
+
+export async function getAdminRecommendedQueries() {
+  const response = await apiClient.get(API_PATHS.admin.jobs.recommendedQueries);
+  return mapRecommendedQueryList(response);
+}
+
+export async function createAdminRecommendedQuery(payload) {
+  const query = String(payload?.query ?? payload?.Query ?? '').trim();
+  const response = await apiClient.post(API_PATHS.admin.jobs.recommendedQueries, { query });
+  return mapRecommendedQueryDto(response) ?? response;
+}
+
+export async function deleteAdminRecommendedQuery(id) {
+  return apiClient.delete(API_PATHS.admin.jobs.recommendedQueryById(id));
 }
 
 // Events

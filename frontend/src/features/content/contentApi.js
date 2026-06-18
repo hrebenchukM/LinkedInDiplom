@@ -172,6 +172,15 @@ export async function fetchMySavedPosts() {
     .filter((item) => item.postId);
 }
 
+export async function fetchMySavedPostIds() {
+  const saved = await fetchMySavedPosts();
+  return new Set(
+    saved
+      .filter((item) => !item.unsavedAt && item.postId)
+      .map((item) => String(item.postId)),
+  );
+}
+
 export async function savePost(postId) {
   return apiClient.post(API_PATHS.content.savePost(postId), {});
 }
@@ -206,6 +215,44 @@ function pick(dto, ...keys) {
     if (value != null && value !== '') return value;
   }
   return null;
+}
+
+function mapRepostDto(dto) {
+  if (!dto) return null;
+  const postDto = dto.originalPost ?? dto.OriginalPost;
+  return {
+    id: pick(dto, 'id', 'Id'),
+    userId: pick(dto, 'userId', 'UserId'),
+    originalPostId: pick(dto, 'originalPostId', 'OriginalPostId'),
+    repostedAt: pick(dto, 'repostedAt', 'RepostedAt'),
+    removedAt: pick(dto, 'removedAt', 'RemovedAt'),
+    originalPost: postDto ? mapPostDto(postDto) : null,
+  };
+}
+
+// Reposts
+export async function repostPost(postId) {
+  return apiClient.post(API_PATHS.content.repostPost(postId), {});
+}
+
+export async function unrepostPost(postId) {
+  return apiClient.delete(API_PATHS.content.repostPost(postId));
+}
+
+export async function fetchMyReposts(_params = {}) {
+  const response = await apiClient.get(API_PATHS.content.myReposts);
+  return unwrapList(response).map(mapRepostDto).filter(Boolean);
+}
+
+export async function fetchMyRepostedPostIds() {
+  const reposts = await fetchMyReposts();
+  return new Set(
+    reposts
+      .filter((item) => !item.removedAt)
+      .map((item) => item.originalPostId ?? item.originalPost?.id)
+      .filter(Boolean)
+      .map(String),
+  );
 }
 
 function mapHashtagDto(dto) {
@@ -250,4 +297,74 @@ export async function followHashtag(hashtagId) {
 
 export async function unfollowHashtag(hashtagId) {
   return apiClient.delete(API_PATHS.content.hashtagFollow(hashtagId));
+}
+
+function mapMentionDto(dto) {
+  if (!dto) return null;
+  return {
+    id: pick(dto, 'id', 'Id'),
+    postId: pick(dto, 'postId', 'PostId'),
+    mentionedUserId: pick(dto, 'mentionedUserId', 'MentionedUserId'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+  };
+}
+
+function mapPostHashtagDto(dto) {
+  if (!dto) return null;
+  const hashtagDto = dto.hashtag ?? dto.Hashtag;
+  return {
+    id: pick(dto, 'id', 'Id'),
+    postId: pick(dto, 'postId', 'PostId'),
+    hashtagId: pick(dto, 'hashtagId', 'HashtagId'),
+    createdAt: pick(dto, 'createdAt', 'CreatedAt'),
+    hashtag: hashtagDto ? mapHashtagDto(hashtagDto) : null,
+  };
+}
+
+// Post mentions
+export async function fetchPostMentions(postId) {
+  try {
+    const response = await apiClient.get(API_PATHS.content.postMentions(postId));
+    return unwrapList(response).map(mapMentionDto).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export async function addPostMention(postId, payload) {
+  const mentionedUserId =
+    payload?.mentionedUserId ?? payload?.MentionedUserId ?? payload;
+  const response = await apiClient.post(API_PATHS.content.postMentionsManage(postId), {
+    mentionedUserId,
+  });
+  const mentionDto = response?.mention ?? response?.Mention ?? response;
+  return mapMentionDto(mentionDto) ?? response;
+}
+
+export async function deletePostMention(postId, mentionId) {
+  return apiClient.delete(API_PATHS.content.deletePostMention(postId, mentionId));
+}
+
+// Post hashtags
+export async function fetchPostHashtags(postId) {
+  try {
+    const response = await apiClient.get(API_PATHS.content.postHashtags(postId));
+    return unwrapList(response).map(mapPostHashtagDto).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export async function addPostHashtag(postId, payload) {
+  const hashtagId = payload?.hashtagId ?? payload?.HashtagId ?? payload?.id ?? payload;
+  const response = await apiClient.post(API_PATHS.content.postHashtagsAttach(postId), {
+    hashtagId,
+  });
+  const postHashtagDto =
+    response?.postHashtag ?? response?.PostHashtag ?? response;
+  return mapPostHashtagDto(postHashtagDto) ?? response;
+}
+
+export async function deletePostHashtag(postId, hashtagId) {
+  return apiClient.delete(API_PATHS.content.deletePostHashtag(postId, hashtagId));
 }

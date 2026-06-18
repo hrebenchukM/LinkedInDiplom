@@ -12,8 +12,12 @@ using Profile.Contracts.Services;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseViewsSeeder
+public sealed class DemoShowcaseViewsSeeder : IDemoSeeder
 {
+    public int Order => 24;
+
+    public string Name => nameof(DemoShowcaseViewsSeeder);
+
     private readonly ContentDbContext _contentDb;
     private readonly NotificationsDbContext _notificationsDb;
     private readonly Identity.DataAccess.IdentityDbContext _identityDb;

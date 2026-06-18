@@ -1,4 +1,4 @@
-﻿using Identity.Client;
+using Identity.Client;
 using Identity.Client.Contracts;
 using Identity.Client.Contracts.Resources;
 using Identity.Client.Resources;

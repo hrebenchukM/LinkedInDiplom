@@ -21,7 +21,7 @@ internal sealed record DemoJobVacancy(
 
 internal static class DemoJobsCatalog
 {
-    internal const string PosterEmail = "admin@local.dev";
+    internal const string PosterEmail = DemoSeedConstants.AdminEmail;
 
     internal static readonly DemoJobCompany[] Companies =
     [
@@ -200,4 +200,23 @@ internal static class DemoJobsCatalog
             "Lead a squad of 6–8 engineers across profile and professional modules. Coaching, hiring, and pragmatic delivery are core to the role.",
             11),
     ];
+
+    internal static readonly string[] RecommendedQueries =
+    [
+        "React developer",
+        "Frontend developer",
+        ".NET developer",
+        "Remote",
+        "UI designer",
+        "Product manager",
+        "DevOps",
+        "Warsaw",
+    ];
+
+    internal const string DemoApplicationApplicantEmail = DemoSeedConstants.PrimaryDemoUserEmail;
+
+    /// <summary>
+    /// Catalog vacancy used for the pre-seeded withdraw demo (posted by admin, not the applicant).
+    /// </summary>
+    internal static readonly DemoJobVacancy DemoApplicationVacancy = Vacancies[0];
 }

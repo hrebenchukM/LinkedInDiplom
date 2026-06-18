@@ -64,6 +64,28 @@ public class ProfessionalLanguagesController : ProfessionalManagementControllerB
         return Ok(response);
     }
 
+    // GET api/professional/users/{userId}/languages
+    [HttpGet("users/{userId}/languages")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetUserLanguages(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var userLanguages = await ProfessionalService.GetUserLanguagesAsync(userId);
+
+        if (userLanguages is null)
+        {
+            return NotFoundError(UserProfileNotFoundError);
+        }
+
+        return Ok(userLanguages);
+    }
+
     // GET api/professional/me/languages
     [Authorize]
     [HttpGet("me/languages")]

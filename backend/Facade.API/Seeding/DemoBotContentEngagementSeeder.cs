@@ -15,8 +15,12 @@ namespace Facade.API.Seeding;
 /// Adds reactions and comments from demo/showcase users to bot posts only.
 /// Additive to <see cref="DemoContentEngagementSeeder"/> — does not change baseline engagement logic.
 /// </summary>
-public sealed class DemoBotContentEngagementSeeder
+public sealed class DemoBotContentEngagementSeeder : IDemoSeeder
 {
+    public int Order => 21;
+
+    public string Name => nameof(DemoBotContentEngagementSeeder);
+
     private const int MaxBotPostsToEnrich = 20;
     private const int MaxReactionsPerPost = 2;
     private const int MaxExtraCommentsPerPost = 1;

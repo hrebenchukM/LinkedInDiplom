@@ -16,6 +16,28 @@ public class ProfessionalCertificatesController : ProfessionalManagementControll
     {
     }
 
+    // GET api/professional/users/{userId}/certificates
+    [HttpGet("users/{userId}/certificates")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetUserCertificates(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new { success = false, errors = new[] { "UserId is required." } });
+        }
+
+        var certificates = await ProfessionalService.GetUserCertificatesAsync(userId);
+
+        if (certificates is null)
+        {
+            return NotFoundError(UserProfileNotFoundError);
+        }
+
+        return Ok(certificates);
+    }
+
     // GET api/professional/me/certificates
     [Authorize]
     [HttpGet("me/certificates")]

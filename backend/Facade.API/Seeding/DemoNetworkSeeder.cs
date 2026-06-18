@@ -9,11 +9,15 @@ using Network.DataAccess;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoNetworkSeeder
+public sealed class DemoNetworkSeeder : IDemoSeeder
 {
-    private const string PrimaryDemoUserEmail = DemoShowcaseSeedData.PrimaryDemoUserEmail;
-    private const string TestUserOneEmail = "test@example.com";
-    private const string TestUserTwoEmail = "test2@example.com";
+    public int Order => 15;
+
+    public string Name => nameof(DemoNetworkSeeder);
+
+    private const string PrimaryDemoUserEmail = DemoSeedConstants.PrimaryDemoUserEmail;
+    private const string TestUserOneEmail = DemoSeedConstants.TestUserOneEmail;
+    private const string TestUserTwoEmail = DemoSeedConstants.TestUserTwoEmail;
     private const string StatusAccepted = "accepted";
     private const string StatusPending = "pending";
 

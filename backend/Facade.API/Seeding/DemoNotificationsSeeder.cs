@@ -10,8 +10,12 @@ using Notifications.DataAccess;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoNotificationsSeeder
+public sealed class DemoNotificationsSeeder : IDemoSeeder
 {
+    public int Order => 23;
+
+    public string Name => nameof(DemoNotificationsSeeder);
+
     private readonly NotificationsDbContext _notificationsDb;
     private readonly ContentDbContext _contentDb;
     private readonly JobsDbContext _jobsDb;

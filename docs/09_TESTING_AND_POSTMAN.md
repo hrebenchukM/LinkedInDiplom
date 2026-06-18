@@ -20,11 +20,19 @@
 
 Фактические test classes:
 
-- `ProfileServiceTests` (7)
+- `ContactServiceTests` (13)
+- `FileStorageServiceTests` (19)
+- `ExperienceServiceTests` (12)
+- `CommentServiceTests` (11)
 - `PostServiceTests` (11)
+- `ReactionServiceTests` (10)
+- `FollowServiceTests` (9)
 - `HashtagServiceTests` (8)
+- `ProfileServiceTests` (7)
+- `SkillServiceTests` (6)
+- `AccountServiceTests` (5)
 
-Всего: 26 тестов.
+Всего: **111 unit-тестов** в **11 классах**.
 
 Запуск:
 
@@ -38,7 +46,7 @@ dotnet test LinkedIn.sln
 - error mapping tests
 - auth/refresh regression tests
 - integration tests по API
-- расширение покрытия по Network/Messaging/Jobs/Notifications/Events
+- расширение покрытия по Messaging/Jobs/Notifications/Events facade layer
 
 ## Частые проблемы
 
@@ -58,18 +66,35 @@ dotnet test LinkedIn.sln
 
 # Postman: как протестировать весь LinkedInDiplom API
 
-> **Обновлено:** 2026-06-17 — новая структура папок 00–99, auto-save tokens/IDs.
+> **Обновлено:** 2026-06-18 — коллекция v2026-06-18-postman-sync, repost/withdraw/mentions/admin queries.
 
-Подробная документация: [../09_TESTING_AND_POSTMAN.md](../09_TESTING_AND_POSTMAN.md)
+Подробная инструкция: **[api/POSTMAN_TESTING.md](api/POSTMAN_TESTING.md)**  
+Краткий quick start ниже; полная документация — этот файл + POSTMAN_TESTING.md.
 
 ---
 
 ## 1) Что импортировать
 
-1. `docs/postman/LinkedInDiplom.postman_collection.json`
-2. `docs/postman/LinkedInDiplom.local.postman_environment.json`
+Файлы в репозитории (не редактировать collection вручную, если не нужны кастомные запросы):
 
-Postman → **Import** → оба файла → выбрать environment **LinkedInDiplom Local**.
+| Файл | Назначение |
+|------|------------|
+| `docs/postman/LinkedInDiplom.postman_collection.json` | ~100 HTTP-запросов, папки 00–99 |
+| `docs/postman/LinkedInDiplom.local.postman_environment.json` | `baseUrl`, tokens, saved IDs |
+
+**Шаги в Postman:**
+
+1. **Import** → выбрать оба JSON-файла → Import.
+2. В правом верхнем углу выбрать environment **LinkedInDiplom Local**.
+3. Проверить `baseUrl` (по умолчанию `https://localhost:7011`).
+4. Запустить backend (`dotnet run --launch-profile https` или Docker).
+5. Папка **00 Health** → Swagger JSON → ожидать **200**.
+6. **01 Auth → Login User A** → auto-save `accessToken`, `token`, `refreshToken`, `userId`
+7. **01 Auth → Login User B** → saves `userBId` (does not overwrite token).
+
+Пересборка collection из кода (опционально): `node docs/postman/build-postman.mjs` — не обязательна для ручного тестирования.
+
+**SignalR** не тестируется REST-коллекцией — папка **12 SignalR Info** только с инструкцией; см. `frontend/scripts/verify-signalr.mjs` или [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md).
 
 ---
 
@@ -99,11 +124,12 @@ Smoke: папка **00 Health / Swagger / Base** → Swagger JSON → **200**.
 
 ---
 
-## 4) Быстрый старт (3 шага)
+## 4) Быстрый старт (4 шага)
 
 1. **01 Auth → Login** → auto-saves `accessToken`, `refreshToken`, `userId`
-2. **01 Auth → Get Current User** → проверка JWT
-3. **03 Content → Get Feed** → проверка данных (demo seed)
+2. **01 Auth → Login Other User** → saves `otherUserId` (second demo user)
+3. **01 Auth → Get Current User** → проверка JWT
+4. **03 Content → Get Feed** → проверка данных (demo seed)
 
 Admin: **11 Admin → Admin Login** (`admin@local.dev` / `Admin123!`) → `adminAccessToken`
 
@@ -116,17 +142,18 @@ Admin: **11 Admin → Admin Login** (`admin@local.dev` / `Admin123!`) → `admin
 | 00 | Health / Swagger / Base |
 | 01 | Auth / Account |
 | 02 | Profile |
-| 03 | Content |
-| 04 | Network |
-| 05 | Messaging |
-| 06 | Jobs |
-| 07 | Events |
-| 08 | Professional |
-| 09 | Notifications |
-| 10 | File Uploads (все multipart) |
+| 03 | Professional |
+| 04 | Content |
+| 05 | Network |
+| 06 | Messaging |
+| 07 | Notifications |
+| 08 | Jobs |
+| 09 | Events |
+| 10 | AI |
 | 11 | Admin |
-| 12 | SignalR Info (docs only) |
-| 99 | Error Examples + AI |
+| 12 | File Uploads |
+| 13 | SignalR Info (not HTTP REST) |
+| 99 | Error Examples / Validation |
 
 ---
 
@@ -141,7 +168,7 @@ Console Postman покажет: `accessToken saved`, `postId saved: ...`
 
 ## 7) Upload
 
-Папка **10 File Uploads** — form-data, key `file`, выберите файл вручную.
+Папка **12 File Uploads** — form-data, key `file`, выберите файл вручную.
 
 ---
 
@@ -158,6 +185,7 @@ node docs/postman/build-postman.mjs
 | Email | Password |
 |-------|----------|
 | test@example.com | Test123! |
+| test2@example.com | Test123! |
 | admin@local.dev | Admin123! |
 | marya101204@gmail.com | Mgg101204 |
 
@@ -170,7 +198,7 @@ node docs/postman/build-postman.mjs
 
 # Postman testing (полная документация)
 
-> **Обновлено:** 2026-06-17  
+> **Обновлено:** 2026-06-18  
 > Коллекция синхронизирована с backend controllers (56 controllers, ~200 endpoints).
 
 ---
@@ -189,10 +217,14 @@ node docs/postman/build-postman.mjs
 ## 2. Импорт в Postman
 
 1. Запустите backend (см. раздел 4).
-2. Postman → **Import** → выберите оба JSON:
+2. Postman → **Import** → выберите оба JSON из `docs/postman/`:
    - `LinkedInDiplom.postman_collection.json`
    - `LinkedInDiplom.local.postman_environment.json`
 3. В правом верхнем углу выберите environment: **LinkedInDiplom Local**.
+4. Проверьте `baseUrl` (по умолчанию `https://localhost:7011`).
+5. **Не нужно** править collection для базового smoke — готовая коллекция в репозитории актуальна; пересборка только через `build-postman.mjs` при изменении API.
+
+**SignalR:** REST-коллекция не заменяет WebSocket-тест hub; см. папку **12 SignalR Info** и [07_REALTIME_AND_DOMAIN_EVENTS.md](07_REALTIME_AND_DOMAIN_EVENTS.md).
 
 ---
 
@@ -240,14 +272,14 @@ Swagger UI: `https://localhost:7011/swagger`
 | **03 Content** | posts, feed, comments, reactions, media, hashtags |
 | **04 Network** | contacts, follows, groups, pages |
 | **05 Messaging** | chats, messages, reads, media |
-| **06 Jobs** | vacancies (incl. minSalaryFrom), applications, favorites |
+| **06 Jobs** | vacancies (incl. minSalaryFrom), applications, **withdraw**, favorites |
 | **07 Events** | discover, attending, schedule, speakers |
-| **08 Professional** | experience, education, skills, companies, certificates |
+| **08 Professional** | experience, education, skills, **public certificates/languages**, companies, certificates |
 | **09 Notifications** | notifications, activity |
 | **10 File Uploads** | все 11 multipart upload endpoints |
-| **11 Admin** | platform admin (роль Admin) |
+| **11 Admin** | platform admin; **recommended-queries CRUD** |
 | **12 SignalR Info** | документация hub (не HTTP REST) |
-| **99 Debug / Utility / AI** | AI recommendations |
+| **99 Debug / Utility / AI** | AI recommendations (expect **200** or **503** when unavailable) |
 | **99 Error Examples / Validation** | negative tests (400/401/403) |
 
 ---
@@ -261,6 +293,7 @@ Swagger UI: `https://localhost:7011/swagger`
 | Запрос | Сохраняет |
 |--------|-----------|
 | `01 Auth → Login` | `accessToken`, `refreshToken`, `userId` |
+| `01 Auth → Login Other User (resolve otherUserId)` | `otherUserId` (does **not** overwrite `accessToken`) |
 | `01 Auth → Login Demo User (Marya)` | то же (showcase user) |
 | `01 Auth → Register` | `userId` |
 | `01 Auth → Refresh Token` | `accessToken`, `refreshToken` |
@@ -303,9 +336,13 @@ Create-запросы сохраняют ID в environment (test scripts):
 | Create Post | `postId` | `post.id` |
 | Create Comment | `commentId` | `comment.id` |
 | Create Chat | `chatId` | `chat.id` |
+| Create Direct Chat (participantUserId) | `chatId` | `chat.id` |
 | Send Message | `messageId` | `message.id` |
 | Create Vacancy | `vacancyId` | `vacancy.id` |
 | Apply To Vacancy | `applicationId` | `application.id` |
+| **Withdraw Application** | — | uses `applicationId` |
+| Create Recommended Query (Admin) | `recommendedQueryId`, `recommendedJobQueryId` | `id` |
+| Get My Notifications | `notificationId` | first item in `items` |
 | Create Contact | `contactId` | `contact.id` |
 | Create Group | `groupId` | `userGroup.id` |
 | Create Page | `pageId` | `page.id` |
@@ -324,20 +361,23 @@ Create-запросы сохраняют ID в environment (test scripts):
 ```
 1.  Запустить backend
 2.  00 Health → Swagger JSON (200?)
-3.  01 Auth → Login (или Login Demo User Marya)
-4.  01 Auth → Get Current User
-5.  02 Profile → Get/Patch My Profile
-6.  08 Professional → Create Company → Create Experience
-7.  03 Content → Create Post → Create Comment
-8.  04 Network → Create Contact / Follow
-9.  05 Messaging → Create Chat → Send Message
-10. 06 Jobs → Get Vacancies (minSalaryFrom) → Apply
-11. 07 Events → Discover → Join
-12. 09 Notifications → Get My Notifications
-13. 10 File Uploads → Upload Avatar (выбрать файл вручную)
-14. 11 Admin → Admin Login → Get Users / Stats
-15. 99 Error Examples → validation smoke
-16. 01 Auth → Refresh Token → Logout
+3.  01 Auth → Login (test@example.com)
+4.  01 Auth → Login Other User (resolve otherUserId) — для otherUserId (test2@example.com)
+5.  01 Auth → Get Current User
+6.  02 Profile → Get/Patch My Profile
+7.  08 Professional → Get User Certificates/Languages (public) — smoke без JWT
+8.  08 Professional → Create Company → Create Experience
+9.  03 Content → Create Post → Create Comment
+10. 04 Network → Create Contact / Follow
+11. 05 Messaging → Create Direct Chat (participantUserId) → Send Message
+12. 06 Jobs → Get Vacancies (minSalaryFrom) → Apply
+13. 07 Events → Discover → Join
+14. 09 Notifications → Get My Notifications
+15. 10 File Uploads → Upload Avatar (выбрать файл вручную)
+16. 11 Admin → Admin Login → Get Users / Stats
+17. 99 Debug / Utility / AI → Get Recommended Jobs (200 или 503)
+18. 99 Error Examples → validation smoke
+19. 01 Auth → Refresh Token → Logout
 ```
 
 ---
@@ -441,7 +481,9 @@ Postman WebSocket может подключиться, но полный chat fl
 | Admin | `admin@local.dev` | `Admin123!` |
 | Showcase (Marya) | `marya101204@gmail.com` | `Mgg101204` (или из DemoSeed) |
 
-Environment variables: `userEmail`, `userPassword`, `adminEmail`, `adminPassword`, `otherUserEmail`.
+Environment variables: `userEmail`, `userPassword`, `otherUserEmail`, `otherUserPassword`, `adminEmail`, `adminPassword`.
+
+Для direct chat и public portfolio: после **Login** выполните **Login Other User** — сохранится `otherUserId` без перезаписи основного `accessToken`.
 
 ---
 
@@ -484,7 +526,8 @@ Environment variables: `userEmail`, `userPassword`, `adminEmail`, `adminPassword
 | `adminToken` | Alias для admin JWT |
 | `userId` | Current user GUID |
 | `adminUserId` | Admin user GUID |
-| `otherUserId` | Second user (contacts/messaging) |
+| `otherUserId` | Second user (contacts/messaging/public portfolio) |
+| `participantUserId` | Optional alias; requests use `otherUserId` by default |
 | `receiverId` | Contact request target |
 | `postId`, `commentId`, `chatId`, `messageId` | Content/Messaging |
 | `vacancyId`, `applicationId`, `companyId` | Jobs/Professional |
@@ -498,10 +541,11 @@ Environment variables: `userEmail`, `userPassword`, `adminEmail`, `adminPassword
 1. Проверить `baseUrl` (HTTPS vs HTTP vs Docker port)
 2. Отключить SSL verify для localhost (если HTTPS)
 3. Выполнить **Login** → проверить `accessToken` в environment
-4. Для upload — **выбрать файл** в form-data
-5. Для contacts/messaging — заполнить `otherUserId` (login as test2, copy id)
+4. Выполнить **Login Other User** → проверить `otherUserId` (для messaging и public professional)
+5. Для upload — **выбрать файл** в form-data
 6. Для vacancy create — сначала **Create Company** → `companyId`
-7. SignalR — использовать отдельный клиент, не REST
+7. AI endpoints: **200** = success; **503** = AI unavailable (`success: false` в body)
+8. SignalR — использовать отдельный клиент, не REST
 
 ---
 
@@ -546,3 +590,113 @@ node docs/postman/build-postman.mjs
 ```
 
 Скрипт применяет transforms к базовой коллекции: folder order, test scripts, upload folder, health checks.
+
+---
+
+## 20. Automated build & test (before defense)
+
+```powershell
+# from repo root
+dotnet build LinkedIn.sln
+dotnet test backend/Tests/LinkedIn.Tests/LinkedIn.Tests.csproj
+cd frontend
+npm run build
+```
+
+| Command | Expected |
+|---------|----------|
+| `dotnet build` | Build succeeded, 0 errors |
+| `dotnet test` | All passed (111 tests) |
+| `npm run build` | Exit 0; Vite production bundle |
+
+**Frontend build warnings (non-critical):** npm `devdir`, SignalR `/*#__PURE__*/` in node_modules, chunk size >500 kB — do not break runtime.
+
+---
+
+## 21. Manual QA checklist (defense)
+
+> Два браузера: **User A** = `test@example.com` / `Test123!`; **User B** = `test2@example.com` / `Test123!` (incognito).  
+> Admin: `admin@local.dev` / `Admin123!`. Portfolio demo: `marya101204@gmail.com` / `Mgg101204`.  
+> Frontend: `http://localhost:5173` (Vite proxy → `:5000`). Backend: `http://localhost:5000`.
+
+### Preconditions
+
+- [ ] PostgreSQL + `linkedin_dev` running
+- [ ] `DemoSeed:Enabled = true`
+- [ ] DevTools → Network → **WS** filter enabled
+- [ ] Verify Vite proxy: `/api/*` and `/hubs/*` → backend
+
+### User flow — content & notifications
+
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 1 | Login User A | `/app`, JWT in storage |
+| 2 | Login User B (incognito) | Separate session |
+| 3 | User A: create post **with image** | Post in feed; `POST /api/content/me/posts` 2xx |
+| 4 | User B: comment on A's post | Comment visible; count +1 |
+| 5 | User A: **realtime** notification (no F5) | WS `/hubs/notifications` Connected; badge +1; type `post_comment` |
+| 6 | User B: Like reaction | Reaction active |
+| 7 | User A: notification `post_reaction` | Badge or list update |
+| 8 | Mention → `post_mention` | **Note:** mention add = post author only; use User B's post + API `POST .../mentions` or Postman; A receives notification |
+| 9 | User A: Save / Unsave post | Saved tab; hint messages |
+| 10 | Repost / unrepost | API `POST/DELETE .../repost` (UI on Home may be absent — see limitations) |
+| 11 | Portfolio: `/app/portfolio/{maryaUserId}` | Certificates + Languages sections populated |
+| 12 | Mentions/hashtags panel | If entities exist on post (API seed); `PostTagsPanel` on legacy `FeedPostCard` route |
+
+### Messaging flow
+
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 1 | User A: New message → search User B → create chat | `/app/messages/{chatId}` |
+| 2 | User A: send message | Message in thread |
+| 3 | User B: message appears **without refresh** | WS `/hubs/messaging`; `MessageCreated` |
+| 4 | User B: reply | User A sees reply realtime |
+| 5 | Read status | Opening chat calls `POST .../read`; unread badge clears |
+
+### Jobs flow
+
+> После seed: login **Marya** (`marya101204@gmail.com`) — на **Senior Frontend Engineer** (NovaStack) уже есть application; sidebar chips заполнены из seed.
+
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 1 | Marya: `/app/vacancies` | Vacancies list; **8 recommended chips** in sidebar |
+| 2 | Find **Senior Frontend Engineer** | Button **Applied** (pre-seeded) |
+| 3 | **Withdraw** | `DELETE /api/jobs/me/applications/{id}`; status clears |
+| 4 | Apply again | Success |
+| 5 | (Optional) Admin adds another recommended query | Chip appears for user |
+
+### Admin flow
+
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 1 | Admin login | `/app/admin/dashboard` |
+| 2 | Users list | Search/pagination works |
+| 3 | Lock / unlock user (not self) | Badge Locked; locked user cannot login |
+| 4 | Assign / remove role | Role column updates |
+| 5 | Content moderation | List + delete/restore |
+| 6 | Jobs moderation | Vacancies table |
+| 7 | Events moderation | Events table |
+| 8 | Recommended queries | List shows **8 seeded** queries; add → user sidebar → delete |
+
+### Events flow (Network sidebar)
+
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 1 | `/app/network` → EventPanel filter **Upcoming** | **Design Systems Conference** visible (rolling +21d) |
+| 2 | Open event | Speakers + schedule populated |
+
+### SignalR verification (browser)
+
+| Hub | Check |
+|-----|-------|
+| `/hubs/notifications` | Status 101 Switching Protocols; `NotificationCreated` after comment/reaction |
+| `/hubs/messaging` | Connected after opening Messages; `MessageCreated` after send |
+
+### Known partial UI (document honestly if fails on UI but API works)
+
+- Repost button not on Home `PostCard` — test via API or legacy profile posts
+- Mention/hashtag add — no composer UI; use Postman
+- Post deep link `/app/post/{id}` — may not exist; notifications list still works
+
+См. также [11_LIMITATIONS_AND_TODO.md](11_LIMITATIONS_AND_TODO.md) roadmap § A–D.
+

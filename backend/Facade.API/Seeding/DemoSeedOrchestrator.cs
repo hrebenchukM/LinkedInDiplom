@@ -1,160 +1,146 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
-namespace Facade.API.Seeding;
-
-public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
-{
-    private readonly DemoSeedOptions _options;
-    private readonly DemoUsersSeeder _usersSeeder;
-    private readonly DemoShowcaseUsersSeeder _showcaseUsersSeeder;
-    private readonly DemoSkillsSeeder _skillsSeeder;
-    private readonly DemoProfileSeeder _profileSeeder;
-    private readonly DemoShowcaseProfileSeeder _showcaseProfileSeeder;
-    private readonly DemoContentSeeder _contentSeeder;
-    private readonly DemoBotContentSeeder _botContentSeeder;
-    private readonly DemoShowcaseContentSeeder _showcaseContentSeeder;
-    private readonly DemoShowcaseProfessionalSeeder _showcaseProfessionalSeeder;
-    private readonly DemoJobsSeeder _jobsSeeder;
-    private readonly DemoJobsCatalogSeeder _jobsCatalogSeeder;
-    private readonly DemoShowcaseJobsSeeder _showcaseJobsSeeder;
-    private readonly DemoEventsSeeder _eventsSeeder;
-    private readonly DemoShowcaseEventsSeeder _showcaseEventsSeeder;
-    private readonly DemoNetworkSeeder _networkSeeder;
-    private readonly DemoBotNetworkSeeder _botNetworkSeeder;
-    private readonly DemoShowcaseNetworkSeeder _showcaseNetworkSeeder;
-    private readonly DemoMessagingSeeder _messagingSeeder;
-    private readonly DemoShowcaseMessagingSeeder _showcaseMessagingSeeder;
-    private readonly DemoContentEngagementSeeder _contentEngagementSeeder;
-    private readonly DemoBotContentEngagementSeeder _botContentEngagementSeeder;
-    private readonly DemoPagesGroupsSeeder _pagesGroupsSeeder;
-    private readonly DemoNotificationsSeeder _notificationsSeeder;
-    private readonly DemoShowcaseViewsSeeder _showcaseViewsSeeder;
-    private readonly DemoSeedUserLookup _userLookup;
-    private readonly ILogger<DemoSeedOrchestrator> _logger;
-
-    public DemoSeedOrchestrator(
-        IOptions<DemoSeedOptions> options,
-        DemoUsersSeeder usersSeeder,
-        DemoShowcaseUsersSeeder showcaseUsersSeeder,
-        DemoSkillsSeeder skillsSeeder,
-        DemoProfileSeeder profileSeeder,
-        DemoShowcaseProfileSeeder showcaseProfileSeeder,
-        DemoContentSeeder contentSeeder,
-        DemoBotContentSeeder botContentSeeder,
-        DemoShowcaseContentSeeder showcaseContentSeeder,
-        DemoShowcaseProfessionalSeeder showcaseProfessionalSeeder,
-        DemoJobsSeeder jobsSeeder,
-        DemoJobsCatalogSeeder jobsCatalogSeeder,
-        DemoShowcaseJobsSeeder showcaseJobsSeeder,
-        DemoEventsSeeder eventsSeeder,
-        DemoShowcaseEventsSeeder showcaseEventsSeeder,
-        DemoNetworkSeeder networkSeeder,
-        DemoBotNetworkSeeder botNetworkSeeder,
-        DemoShowcaseNetworkSeeder showcaseNetworkSeeder,
-        DemoMessagingSeeder messagingSeeder,
-        DemoShowcaseMessagingSeeder showcaseMessagingSeeder,
-        DemoContentEngagementSeeder contentEngagementSeeder,
-        DemoBotContentEngagementSeeder botContentEngagementSeeder,
-        DemoPagesGroupsSeeder pagesGroupsSeeder,
-        DemoNotificationsSeeder notificationsSeeder,
-        DemoShowcaseViewsSeeder showcaseViewsSeeder,
-        DemoSeedUserLookup userLookup,
-        ILogger<DemoSeedOrchestrator> logger)
-    {
-        _options = options.Value;
-        _usersSeeder = usersSeeder;
-        _showcaseUsersSeeder = showcaseUsersSeeder;
-        _skillsSeeder = skillsSeeder;
-        _profileSeeder = profileSeeder;
-        _showcaseProfileSeeder = showcaseProfileSeeder;
-        _contentSeeder = contentSeeder;
-        _botContentSeeder = botContentSeeder;
-        _showcaseContentSeeder = showcaseContentSeeder;
-        _showcaseProfessionalSeeder = showcaseProfessionalSeeder;
-        _jobsSeeder = jobsSeeder;
-        _jobsCatalogSeeder = jobsCatalogSeeder;
-        _showcaseJobsSeeder = showcaseJobsSeeder;
-        _eventsSeeder = eventsSeeder;
-        _showcaseEventsSeeder = showcaseEventsSeeder;
-        _networkSeeder = networkSeeder;
-        _botNetworkSeeder = botNetworkSeeder;
-        _showcaseNetworkSeeder = showcaseNetworkSeeder;
-        _messagingSeeder = messagingSeeder;
-        _showcaseMessagingSeeder = showcaseMessagingSeeder;
-        _contentEngagementSeeder = contentEngagementSeeder;
-        _botContentEngagementSeeder = botContentEngagementSeeder;
-        _pagesGroupsSeeder = pagesGroupsSeeder;
-        _notificationsSeeder = notificationsSeeder;
-        _showcaseViewsSeeder = showcaseViewsSeeder;
-        _userLookup = userLookup;
-        _logger = logger;
-    }
-
-    public async Task SeedAsync(CancellationToken cancellationToken = default)
-    {
-        if (!_options.Enabled)
-        {
-            _logger.LogDebug("Demo seed orchestrator skipped: DemoSeed:Enabled is false.");
-            return;
-        }
-
-        if (_options.Reset)
-        {
-            _logger.LogWarning(
-                "Demo seed Reset=true is configured but not implemented; continuing without reset.");
-        }
-
-        var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
-        if (users.Count < _options.MinUsers)
-        {
-            _logger.LogWarning(
-                "Demo seed orchestrator: found {Found} configured user(s), MinUsers={MinUsers}. Continuing with partial seed.",
-                users.Count,
-                _options.MinUsers);
-        }
-
-        _logger.LogInformation("Demo seed orchestrator started.");
-
-        await RunStepAsync("DemoUsersSeeder", () => _usersSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseUsersSeeder", () => _showcaseUsersSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoSkillsSeeder", () => _skillsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoProfileSeeder", () => _profileSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseProfileSeeder", () => _showcaseProfileSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoContentSeeder", () => _contentSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoBotContentSeeder", () => _botContentSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseContentSeeder", () => _showcaseContentSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseProfessionalSeeder", () => _showcaseProfessionalSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoJobsSeeder", () => _jobsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoJobsCatalogSeeder", () => _jobsCatalogSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseJobsSeeder", () => _showcaseJobsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoEventsSeeder", () => _eventsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseEventsSeeder", () => _showcaseEventsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoNetworkSeeder", () => _networkSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoBotNetworkSeeder", () => _botNetworkSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseNetworkSeeder", () => _showcaseNetworkSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoMessagingSeeder", () => _messagingSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseMessagingSeeder", () => _showcaseMessagingSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoContentEngagementSeeder", () => _contentEngagementSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoBotContentEngagementSeeder", () => _botContentEngagementSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoPagesGroupsSeeder", () => _pagesGroupsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoNotificationsSeeder", () => _notificationsSeeder.SeedAsync(cancellationToken));
-        await RunStepAsync("DemoShowcaseViewsSeeder", () => _showcaseViewsSeeder.SeedAsync(cancellationToken));
-
-        _logger.LogInformation("Demo seed orchestrator finished.");
-    }
-
-    private async Task RunStepAsync(string stepName, Func<Task> action)
-    {
-        try
-        {
-            _logger.LogInformation("Demo seed step starting: {StepName}.", stepName);
-            await action();
-            _logger.LogInformation("Demo seed step completed: {StepName}.", stepName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Demo seed step failed: {StepName}.", stepName);
-        }
-    }
-}
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Facade.API.Seeding;
+
+public sealed class DemoSeedOrchestrator : IDemoSeedOrchestrator
+{
+    private const int ExpectedStepCount = 24;
+
+    private readonly DemoSeedOptions _options;
+    private readonly IReadOnlyList<IDemoSeeder> _seeders;
+    private readonly DemoSeedUserLookup _userLookup;
+    private readonly ILogger<DemoSeedOrchestrator> _logger;
+
+    public DemoSeedOrchestrator(
+        IOptions<DemoSeedOptions> options,
+        IEnumerable<IDemoSeeder> seeders,
+        DemoSeedUserLookup userLookup,
+        ILogger<DemoSeedOrchestrator> logger)
+    {
+        _options = options.Value;
+        _seeders = seeders.ToList();
+        _userLookup = userLookup;
+        _logger = logger;
+    }
+
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_options.Enabled)
+        {
+            _logger.LogDebug("Demo seed orchestrator skipped: DemoSeed:Enabled is false.");
+            return;
+        }
+
+        if (_options.Reset)
+        {
+            _logger.LogWarning(
+                "Demo seed Reset=true is configured but not implemented; continuing without reset.");
+        }
+
+        var users = await _userLookup.ResolveConfiguredUsersAsync(cancellationToken);
+        if (users.Count < _options.MinUsers)
+        {
+            _logger.LogWarning(
+                "Demo seed orchestrator: found {Found} configured user(s), MinUsers={MinUsers}. Continuing with partial seed.",
+                users.Count,
+                _options.MinUsers);
+        }
+
+        ValidateSeederRegistration();
+
+        _logger.LogInformation("Demo seed orchestrator started.");
+
+        var stepResults = new List<SeedStepResult>(ExpectedStepCount);
+        var orderedSeeders = _seeders.OrderBy(static seeder => seeder.Order).ToList();
+
+        foreach (var seeder in orderedSeeders)
+        {
+            stepResults.Add(await RunStepAsync(seeder, cancellationToken));
+        }
+
+        var succeededSteps = stepResults.Count(static r => r.Succeeded);
+        var failedResults = stepResults.Where(static r => !r.Succeeded).ToList();
+
+        if (failedResults.Count == 0)
+        {
+            _logger.LogInformation(
+                "Demo seed orchestrator finished: {Succeeded}/{Total} steps succeeded, {Failed} failed.",
+                succeededSteps,
+                ExpectedStepCount,
+                0);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Demo seed orchestrator finished: {Succeeded}/{Total} steps succeeded, {Failed} failed: {FailedSteps}.",
+                succeededSteps,
+                ExpectedStepCount,
+                failedResults.Count,
+                string.Join(", ", failedResults.Select(static r => r.StepName)));
+        }
+    }
+
+    private void ValidateSeederRegistration()
+    {
+        if (_seeders.Count != ExpectedStepCount)
+        {
+            _logger.LogWarning(
+                "Demo seed orchestrator: expected {Expected} seeders, found {Found}.",
+                ExpectedStepCount,
+                _seeders.Count);
+        }
+
+        var duplicateOrders = _seeders
+            .GroupBy(static seeder => seeder.Order)
+            .Where(static group => group.Count() > 1)
+            .Select(static group => group.Key)
+            .OrderBy(static order => order)
+            .ToList();
+
+        if (duplicateOrders.Count > 0)
+        {
+            _logger.LogError(
+                "Demo seed orchestrator: duplicate seeder Order value(s): {Orders}.",
+                string.Join(", ", duplicateOrders));
+        }
+
+        var registeredOrders = _seeders.Select(static seeder => seeder.Order).ToHashSet();
+        var missingOrders = Enumerable.Range(1, ExpectedStepCount)
+            .Where(order => !registeredOrders.Contains(order))
+            .ToList();
+
+        if (missingOrders.Count > 0)
+        {
+            _logger.LogWarning(
+                "Demo seed orchestrator: missing seeder Order value(s): {Orders}.",
+                string.Join(", ", missingOrders));
+        }
+    }
+
+    private async Task<SeedStepResult> RunStepAsync(IDemoSeeder seeder, CancellationToken cancellationToken)
+    {
+        var stepName = seeder.Name;
+        var startedAtUtc = DateTime.UtcNow;
+
+        try
+        {
+            _logger.LogInformation("Demo seed step starting: {StepName}.", stepName);
+            await seeder.SeedAsync(cancellationToken);
+            var finishedAtUtc = DateTime.UtcNow;
+            var result = SeedStepResult.Success(stepName, startedAtUtc, finishedAtUtc);
+            _logger.LogInformation(
+                "Demo seed step completed: {StepName} in {DurationMs}ms.",
+                stepName,
+                result.DurationMs);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            var finishedAtUtc = DateTime.UtcNow;
+            _logger.LogError(ex, "Demo seed step failed: {StepName}.", stepName);
+            return SeedStepResult.Failed(stepName, startedAtUtc, finishedAtUtc, ex.Message);
+        }
+    }
+}
+

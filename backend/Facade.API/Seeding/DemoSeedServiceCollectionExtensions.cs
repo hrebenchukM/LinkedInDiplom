@@ -1,38 +1,47 @@
-using Microsoft.Extensions.DependencyInjection;
-
-namespace Facade.API.Seeding;
-
-public static class DemoSeedServiceCollectionExtensions
-{
-    public static IServiceCollection AddDemoSeeders(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<DemoSeedOptions>(configuration.GetSection("DemoSeed"));
-        services.AddScoped<DemoSeedUserLookup>();
-        services.AddScoped<DemoUsersSeeder>();
-        services.AddScoped<DemoShowcaseUsersSeeder>();
-        services.AddScoped<DemoSkillsSeeder>();
-        services.AddScoped<DemoProfileSeeder>();
-        services.AddScoped<DemoShowcaseProfileSeeder>();
-        services.AddScoped<DemoContentSeeder>();
-        services.AddScoped<DemoBotContentSeeder>();
-        services.AddScoped<DemoShowcaseContentSeeder>();
-        services.AddScoped<DemoShowcaseProfessionalSeeder>();
-        services.AddScoped<DemoJobsSeeder>();
-        services.AddScoped<DemoJobsCatalogSeeder>();
-        services.AddScoped<DemoShowcaseJobsSeeder>();
-        services.AddScoped<DemoEventsSeeder>();
-        services.AddScoped<DemoShowcaseEventsSeeder>();
-        services.AddScoped<DemoNetworkSeeder>();
-        services.AddScoped<DemoBotNetworkSeeder>();
-        services.AddScoped<DemoShowcaseNetworkSeeder>();
-        services.AddScoped<DemoMessagingSeeder>();
-        services.AddScoped<DemoShowcaseMessagingSeeder>();
-        services.AddScoped<DemoContentEngagementSeeder>();
-        services.AddScoped<DemoBotContentEngagementSeeder>();
-        services.AddScoped<DemoPagesGroupsSeeder>();
-        services.AddScoped<DemoNotificationsSeeder>();
-        services.AddScoped<DemoShowcaseViewsSeeder>();
-        services.AddScoped<IDemoSeedOrchestrator, DemoSeedOrchestrator>();
-        return services;
-    }
-}
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Facade.API.Seeding;
+
+public static class DemoSeedServiceCollectionExtensions
+{
+    public static IServiceCollection AddDemoSeeders(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<DemoSeedOptions>(configuration.GetSection("DemoSeed"));
+        services.AddScoped<DemoSeedUserLookup>();
+        services.AddDemoSeeder<DemoUsersSeeder>();
+        services.AddDemoSeeder<DemoShowcaseUsersSeeder>();
+        services.AddDemoSeeder<DemoSkillsSeeder>();
+        services.AddDemoSeeder<DemoProfileSeeder>();
+        services.AddDemoSeeder<DemoShowcaseProfileSeeder>();
+        services.AddDemoSeeder<DemoContentSeeder>();
+        services.AddDemoSeeder<DemoBotContentSeeder>();
+        services.AddDemoSeeder<DemoShowcaseContentSeeder>();
+        services.AddDemoSeeder<DemoShowcaseProfessionalSeeder>();
+        services.AddDemoSeeder<DemoJobsSeeder>();
+        services.AddDemoSeeder<DemoJobsCatalogSeeder>();
+        services.AddDemoSeeder<DemoShowcaseJobsSeeder>();
+        services.AddDemoSeeder<DemoEventsSeeder>();
+        services.AddDemoSeeder<DemoShowcaseEventsSeeder>();
+        services.AddDemoSeeder<DemoNetworkSeeder>();
+        services.AddDemoSeeder<DemoBotNetworkSeeder>();
+        services.AddDemoSeeder<DemoShowcaseNetworkSeeder>();
+        services.AddDemoSeeder<DemoMessagingSeeder>();
+        services.AddDemoSeeder<DemoShowcaseMessagingSeeder>();
+        services.AddDemoSeeder<DemoContentEngagementSeeder>();
+        services.AddDemoSeeder<DemoBotContentEngagementSeeder>();
+        services.AddDemoSeeder<DemoPagesGroupsSeeder>();
+        services.AddDemoSeeder<DemoNotificationsSeeder>();
+        services.AddDemoSeeder<DemoShowcaseViewsSeeder>();
+        services.AddScoped<IDemoSeedOrchestrator, DemoSeedOrchestrator>();
+        return services;
+    }
+
+    private static IServiceCollection AddDemoSeeder<TSeeder>(this IServiceCollection services)
+        where TSeeder : class, IDemoSeeder
+    {
+        services.AddScoped<TSeeder>();
+        services.AddScoped<IDemoSeeder>(sp => sp.GetRequiredService<TSeeder>());
+        return services;
+    }
+}
+

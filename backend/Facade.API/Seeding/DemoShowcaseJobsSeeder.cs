@@ -11,8 +11,12 @@ using Professional.DataAccess.Entities;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseJobsSeeder
+public sealed class DemoShowcaseJobsSeeder : IDemoSeeder
 {
+    public int Order => 12;
+
+    public string Name => nameof(DemoShowcaseJobsSeeder);
+
     private readonly JobsDbContext _jobsDb;
     private readonly ProfessionalDbContext _professionalDb;
     private readonly Identity.DataAccess.IdentityDbContext _identityDb;

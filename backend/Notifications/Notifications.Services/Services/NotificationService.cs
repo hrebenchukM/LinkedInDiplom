@@ -3,6 +3,7 @@ using Notifications.Contracts.DTOs;
 using Notifications.Contracts.Parameters.Notification;
 using Notifications.Contracts.Results;
 using Notifications.Contracts.Services;
+using Notifications.Contracts.Realtime;
 using Notifications.DataAccess;
 using NotificationEntity = Notifications.DataAccess.Entities.Notification;
 
@@ -12,7 +13,9 @@ namespace Notifications.Services.Services;
 /// Core service модуля Notifications.
 /// Управляет жизненным циклом уведомлений: create/read/read-all/delete.
 /// </summary>
-public class NotificationService(NotificationsDbContext dbContext) : INotificationService
+public class NotificationService(
+    NotificationsDbContext dbContext,
+    INotificationCreatedPublisher createdPublisher) : INotificationService
 {
     public async Task<NotificationResult> CreateAsync(CreateNotificationParameters parameters)
     {
@@ -55,10 +58,14 @@ public class NotificationService(NotificationsDbContext dbContext) : INotificati
         dbContext.Notifications.Add(notification);
         await dbContext.SaveChangesAsync();
 
+        var notificationDto = Map(notification);
+
+        await createdPublisher.PublishCreatedAsync(notificationDto);
+
         return new NotificationResult
         {
             Succeeded = true,
-            Notification = Map(notification)
+            Notification = notificationDto
         };
     }
 

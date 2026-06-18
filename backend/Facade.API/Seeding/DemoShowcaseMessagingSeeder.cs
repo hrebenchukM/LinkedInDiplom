@@ -10,8 +10,12 @@ using Microsoft.Extensions.Options;
 
 namespace Facade.API.Seeding;
 
-public sealed class DemoShowcaseMessagingSeeder
+public sealed class DemoShowcaseMessagingSeeder : IDemoSeeder
 {
+    public int Order => 19;
+
+    public string Name => nameof(DemoShowcaseMessagingSeeder);
+
     private readonly MessagingDbContext _messagingDb;
     private readonly Identity.DataAccess.IdentityDbContext _identityDb;
     private readonly IChatService _chatService;
