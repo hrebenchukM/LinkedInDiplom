@@ -165,6 +165,18 @@ export async function getChatMessages(chatId, params = {}, currentUserId = null)
   return mapMessageListResponse(response, currentUserId);
 }
 
+/** Backend chat list has no lastMessage — fetch the newest message for preview. */
+export async function getLatestChatMessage(chatId, currentUserId = null) {
+  const probe = await getChatMessages(chatId, { page: 1, pageSize: 1 }, currentUserId);
+  const totalCount = probe.totalCount ?? probe.items?.length ?? 0;
+  if (!totalCount) return null;
+  if (totalCount === 1) return probe.items?.[0] ?? null;
+
+  const lastPage = totalCount;
+  const last = await getChatMessages(chatId, { page: lastPage, pageSize: 1 }, currentUserId);
+  return last.items?.[0] ?? null;
+}
+
 export async function sendMessage(chatId, data, currentUserId = null) {
   const response = await apiClient.post(API_PATHS.messaging.messages(chatId), data);
   return extractMessageFromResponse(response, currentUserId);

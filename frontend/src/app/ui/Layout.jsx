@@ -6,14 +6,18 @@ import AppContext from '../../features/appContext/AppContext.js';
 import { isDemoAccountEmail } from '../../features/auth/demoAccount.js';
 import AiAssistantHomeToast from '../../features/AiAssistantHomeToast/AiAssistantHomeToast.jsx';
 import { getEmailFromToken } from '../../shared/lib/jwtClaims.js';
+import { useMessagingRealtime } from '../../features/messaging/useMessagingRealtime.js';
 import './Layout.css';
 
 const Layout = () => {
-  const { user, token } = useContext(AppContext);
+  const { user, token, account } = useContext(AppContext);
+  const currentUserId = account?.id ?? account?.userId ?? null;
   const isDemo = useMemo(
     () => isDemoAccountEmail(user?.email ?? getEmailFromToken(token)),
     [user?.email, token],
   );
+
+  useMessagingRealtime(Boolean(token), currentUserId);
 
   return (
     <div className="layout">

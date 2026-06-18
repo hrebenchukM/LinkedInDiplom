@@ -24,9 +24,7 @@ import {
 } from '../../features/messaging/enrichMessagingProfiles.js';
 import {
   startMessagingConnection,
-  stopMessagingConnection,
   joinChat,
-  leaveChat,
   onMessageCreated,
   offMessageCreated,
   onMessageUpdated,
@@ -54,6 +52,7 @@ import {
 } from '../../features/messaging/userInitiatedChats.js';
 import { MESSAGING_CHANGED_EVENT, notifyMessagingChanged } from '../../features/messaging/messagingEvents.js';
 import { isTestChatContent } from '../../features/messaging/mapMessaging.js';
+import { setStoredChatPreview } from '../../features/messaging/userInitiatedChats.js';
 import { getSharedPostPreview } from '../../features/messaging/sharedPostMessage.js';
 import {
   archiveChat,
@@ -155,7 +154,6 @@ const MessagesPage = () => {
   const [aiPreview, setAiPreview] = useState(() => t('chat.ai.preview', 'Ask me anything about LinkUp'));
 
   const selectedChatRef = useRef(null);
-  const previousChatRef = useRef(null);
   const messagesRequestRef = useRef(0);
 
   useEffect(() => {
@@ -189,6 +187,9 @@ const MessagesPage = () => {
           : chat,
       ),
     );
+    if (preview) {
+      setStoredChatPreview(chatId, preview);
+    }
   }, [t]);
 
   const loadChats = useCallback(async () => {
@@ -419,7 +420,6 @@ const MessagesPage = () => {
       offMessageUpdated(handleUpdated);
       offMessageDeleted(handleDeleted);
       offMessageMediaAttached(handleMediaAttached);
-      stopMessagingConnection();
     };
   }, [token, currentUserId, updateChatPreview, t]);
 
@@ -428,33 +428,16 @@ const MessagesPage = () => {
 
     let cancelled = false;
     const chatId = selectedChat;
-    const previousChat = previousChatRef.current;
 
     (async () => {
-      if (
-        previousChat &&
-        String(previousChat) !== String(chatId) &&
-        !isAiAssistantChatId(previousChat)
-      ) {
-        await leaveChat(previousChat);
-      }
+      await joinChat(chatId);
       if (cancelled) return;
 
-      await joinChat(chatId);
-      if (cancelled) {
-        leaveChat(chatId).catch(() => {});
-        return;
-      }
-
-      previousChatRef.current = chatId;
       loadMessagesForChat(chatId);
     })();
 
     return () => {
       cancelled = true;
-      if (!isAiAssistantChatId(chatId)) {
-        leaveChat(chatId).catch(() => {});
-      }
     };
   }, [selectedChat, loadMessagesForChat]);
 

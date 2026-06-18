@@ -124,6 +124,19 @@ export function mapChatDto(dto, currentUserId = null) {
   const id = pick(dto, 'id', 'Id');
   const companionUserId = getCompanionUserIdFromChat({ members }, currentUserId);
 
+  const rawLastMessage = pick(dto, 'lastMessage', 'LastMessage');
+  const lastMessageText =
+    pick(dto, 'lastMessageText', 'LastMessageText') ??
+    (typeof rawLastMessage === 'string'
+      ? rawLastMessage
+      : pick(rawLastMessage, 'content', 'Content', 'text', 'Text', 'body', 'Body')) ??
+    '';
+  const lastMessageAt =
+    pick(dto, 'lastMessageAt', 'LastMessageAt') ??
+    pick(rawLastMessage, 'createdAt', 'CreatedAt', 'sentAt', 'SentAt') ??
+    pick(dto, 'updatedAt', 'UpdatedAt') ??
+    pick(dto, 'createdAt', 'CreatedAt');
+
   return {
     id,
     chatId: id,
@@ -133,10 +146,9 @@ export function mapChatDto(dto, currentUserId = null) {
     members,
     companionUserId,
     companion: null,
-    lastMessage: pick(dto, 'lastMessage', 'LastMessage') ?? '',
-    lastMessageAt:
-      pick(dto, 'lastMessageAt', 'LastMessageAt', 'updatedAt', 'UpdatedAt') ??
-      pick(dto, 'createdAt', 'CreatedAt'),
+    lastMessage: lastMessageText,
+    lastMessageText,
+    lastMessageAt,
     unreadCount: pick(dto, 'unreadCount', 'UnreadCount') ?? 0,
     hasUnread: Boolean(pick(dto, 'hasUnread', 'HasUnread')),
   };

@@ -8,15 +8,17 @@ import {
   getStoredCompanionUserId,
   getStoredChatPreview,
   getChatCompanions,
+  setStoredChatPreview,
 } from './userInitiatedChats.js';
 import { getSharedPostPreview } from './sharedPostMessage.js';
-import { getChatById, getChatMembers } from './messagingApi.js';
+import { getChatById, getChatMembers, getLatestChatMessage } from './messagingApi.js';
 import {
   getCompanionUserIdFromChat,
   mapChatToDisplay,
   resolveCompanionUserId,
   shouldShowChatInList,
 } from './mapMessaging.js';
+import { buildChatPreviewText, resolveChatPreviewText } from './chatPreview.js';
 
 const profileCache = new Map();
 
@@ -123,6 +125,40 @@ async function loadPendingInitiatedChats(apiChats = [], currentUserId) {
   return pending;
 }
 
+async function enrichChatWithLatestMessage(chat, currentUserId) {
+  const existingPreview = resolveChatPreviewText(chat);
+  if (existingPreview) return chat;
+
+  const storedPreview = getStoredChatPreview(chat.id);
+  if (storedPreview) {
+    return {
+      ...chat,
+      lastMessage: storedPreview,
+      lastMessageText: storedPreview,
+      lastMessageAt: chat.lastMessageAt ?? chat.updatedAt ?? chat.createdAt,
+    };
+  }
+
+  try {
+    const latest = await getLatestChatMessage(chat.id, currentUserId);
+    if (!latest) return chat;
+
+    const preview = buildChatPreviewText(latest);
+    if (!preview) return chat;
+
+    setStoredChatPreview(chat.id, preview);
+
+    return {
+      ...chat,
+      lastMessage: preview,
+      lastMessageText: preview,
+      lastMessageAt: latest.sentAt ?? latest.createdAt ?? chat.updatedAt ?? chat.createdAt,
+    };
+  } catch {
+    return chat;
+  }
+}
+
 export async function enrichChatsWithCompanions(chats = [], currentUserId) {
   const list = Array.isArray(chats) ? chats : [];
   const pending = await loadPendingInitiatedChats(list, currentUserId);
@@ -164,8 +200,12 @@ export async function enrichChatsWithCompanions(chats = [], currentUserId) {
 
   const visible = resolved.filter((chat) => shouldShowChatInList(chat, filterOptions));
 
+  const withLastMessages = await Promise.all(
+    visible.map((chat) => enrichChatWithLatestMessage(chat, currentUserId)),
+  );
+
   const userIds = [
-    ...new Set(visible.map((chat) => chat.companionUserId).filter(Boolean)),
+    ...new Set(withLastMessages.map((chat) => chat.companionUserId).filter(Boolean)),
   ];
 
   const profiles = await fetchProfilesByUserIds(userIds);
@@ -173,7 +213,7 @@ export async function enrichChatsWithCompanions(chats = [], currentUserId) {
     profileCache.set(id, profile ?? { userId: id, failed: true });
   });
 
-  return visible.map((chat) => {
+  return withLastMessages.map((chat) => {
     const profile = chat.companionUserId
       ? profiles[String(chat.companionUserId)] ?? profileCache.get(String(chat.companionUserId))
       : null;

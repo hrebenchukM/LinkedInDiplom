@@ -16,6 +16,7 @@ import {
   AI_ASSISTANT_CHAT_ID,
   buildAiAssistantDisplayChat,
 } from '../messaging/aiAssistantSession.js';
+import { resolveChatPreviewText } from '../messaging/chatPreview.js';
 import { MESSAGING_CHANGED_EVENT } from '../messaging/messagingEvents.js';
 
 const MessagesPanel = ({ onSelectChat }) => {
@@ -75,19 +76,32 @@ const MessagesPanel = ({ onSelectChat }) => {
     return () => window.removeEventListener(MESSAGING_CHANGED_EVENT, onMessagingChanged);
   }, [loadChats]);
 
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadChats();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [loadChats]);
+
   const aiChat = useMemo(() => buildAiAssistantDisplayChat(t), [t]);
 
   const chats = useMemo(
     () =>
-      rawChats.map((chat) => ({
-        id: chat.id,
-        name: chat.name ?? 'User',
-        avatar: chat.avatar ?? chat.companion?.avatarUrl ?? null,
-        lastMessage: chat.lastMessage || '',
-        time: chat.time ?? chat.lastMessageAt ?? chat.updatedAt,
-        unread: chat.unread || chat.hasUnread || (chat.unreadCount ?? 0) > 0,
-        isAiAssistant: false,
-      })),
+      rawChats
+        .map((chat) => ({
+          id: chat.id,
+          name: chat.name ?? 'User',
+          avatar: chat.avatar ?? chat.companion?.avatarUrl ?? null,
+          lastMessage: resolveChatPreviewText(chat),
+          time: chat.time ?? chat.lastMessageAt ?? chat.updatedAt,
+          unread: chat.unread || chat.hasUnread || (chat.unreadCount ?? 0) > 0,
+          isAiAssistant: false,
+        }))
+        .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0)),
     [rawChats],
   );
 

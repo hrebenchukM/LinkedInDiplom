@@ -7,8 +7,10 @@ let connection = null;
 let startPromise = null;
 let listenersAttached = false;
 let reconnectHandlerAttached = false;
-/** Last chat successfully joined via JoinChat — re-joined after automatic reconnect. */
+/** Last chat opened on the full messages page — kept for backward compatibility. */
 let activeJoinedChatId = null;
+/** All chat groups this connection should stay subscribed to. */
+const joinedChatIds = new Set();
 
 const handlers = {
   messageCreated: new Set(),
@@ -70,13 +72,21 @@ function attachReconnectHandler() {
   if (!connection || reconnectHandlerAttached) return;
 
   connection.onreconnected(async () => {
-    if (!activeJoinedChatId) return;
+    const ids = joinedChatIds.size
+      ? [...joinedChatIds]
+      : activeJoinedChatId
+        ? [activeJoinedChatId]
+        : [];
 
-    try {
-      await connection.invoke('JoinChat', activeJoinedChatId);
-    } catch (error) {
-      console.warn(`SignalR re-JoinChat failed for ${activeJoinedChatId}:`, error);
-    }
+    await Promise.all(
+      ids.map(async (chatId) => {
+        try {
+          await connection.invoke('JoinChat', chatId);
+        } catch (error) {
+          console.warn(`SignalR re-JoinChat failed for ${chatId}:`, error);
+        }
+      }),
+    );
   });
 
   reconnectHandlerAttached = true;
@@ -140,30 +150,49 @@ export async function stopMessagingConnection() {
     listenersAttached = false;
     reconnectHandlerAttached = false;
     activeJoinedChatId = null;
+    joinedChatIds.clear();
     startPromise = null;
   }
+}
+
+async function invokeJoinChat(chatId) {
+  const key = String(chatId);
+  const hub = await startMessagingConnection();
+  if (!hub) return false;
+
+  try {
+    await hub.invoke('JoinChat', chatId);
+    joinedChatIds.add(key);
+    return true;
+  } catch (error) {
+    console.warn(`SignalR JoinChat failed for ${chatId}:`, error);
+    return false;
+  }
+}
+
+/** Join all listed chats so MessageCreated events reach the session (widget + sidebar). */
+export async function syncJoinedChats(chatIds = []) {
+  const unique = [...new Set((chatIds ?? []).map(String).filter(Boolean))];
+  await Promise.all(unique.map((chatId) => invokeJoinChat(chatId)));
 }
 
 export async function joinChat(chatId) {
   if (!chatId) return;
 
-  const hub = await startMessagingConnection();
-  if (!hub) return;
-
-  try {
-    await hub.invoke('JoinChat', chatId);
+  const joined = await invokeJoinChat(chatId);
+  if (joined) {
     activeJoinedChatId = String(chatId);
-  } catch (error) {
-    console.warn(`SignalR JoinChat failed for ${chatId}:`, error);
   }
 }
 
 export async function leaveChat(chatId) {
   if (!chatId || !connection) return;
 
+  const key = String(chatId);
   try {
     await connection.invoke('LeaveChat', chatId);
-    if (String(chatId) === activeJoinedChatId) {
+    joinedChatIds.delete(key);
+    if (key === activeJoinedChatId) {
       activeJoinedChatId = null;
     }
   } catch (error) {
